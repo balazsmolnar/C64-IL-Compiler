@@ -2,8 +2,8 @@
 ;Variable stack
 
 !macro stack_init .stack {
-  stackPointer = $20
-  stackStart = $21
+  stackPointer = $21
+  stackStart = $22
 
   lda # 0
   sta stackPointer

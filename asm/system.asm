@@ -1,10 +1,9 @@
 
 	basout = $ffd2		; explicit global label def.
-WriteLine
+Console_WriteLine
 
         ; pull variable from stack
         +stack_pull_pointer $30
- 
         ldy #0
 		beq +			; enter loop
 

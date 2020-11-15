@@ -16,7 +16,7 @@ namespace Compiler
                 { ILOpCode.Stloc_0, "+stack_pull_int .var0"},
                 { ILOpCode.Stloc_1, "+stack_pull_int .var1"},
                 { ILOpCode.Br_s, "jmp"},
-                { ILOpCode.Brtrue_s, "beq"},
+                { ILOpCode.Brtrue_s, "+branch_true"},
                 { ILOpCode.Nop, "nop"},
                 { ILOpCode.Ldloc_0, "+stack_push_var .var0"},
                 { ILOpCode.Ldloc_1, "+stack_push_var .var1"},

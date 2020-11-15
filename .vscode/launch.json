@@ -1,0 +1,23 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": ".NET Core Launch (console)",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/compiler/bin/Debug/compiler.exe",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "stopAtEntry": false,
+            "console": "internalConsole"
+        },
+        {
+            "type": "asm",
+            "request": "launch",
+            "name": "C64",
+            "pc": "$c000",            
+            "binary": "c:\\Balazs\\C64\\.cache\\asm\\test.prg"
+        }
+    ]
+}

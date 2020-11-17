@@ -22,7 +22,7 @@ using System.Linq;
 
 namespace Compiler
 {
-    class ILLabelPass: ICompilerPass
+    class ILMethodLabelPass: ICompilerPass
     {
         public void Execute(CompilerContext context)
         {

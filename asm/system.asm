@@ -2,6 +2,13 @@
 	basout = $ffd2		; explicit global label def.
 Console_WriteLine
 
+        jsr Console_Write
+        lda #13
+        jsr basout
+        rts
+
+Console_Write
+
         ; pull variable from stack
         +stack_pull_pointer $30
         ldy #0
@@ -11,6 +18,4 @@ Console_WriteLine
 			iny		; advance pointer
 +			lda ($30),y	; get character
 			bne -		; check whether last
-            lda #13
-            jsr basout
 		rts

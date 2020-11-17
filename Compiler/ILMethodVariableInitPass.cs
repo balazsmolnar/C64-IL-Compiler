@@ -13,7 +13,7 @@ using System.Linq;
 
 namespace Compiler
 {
-    class ILVariableInitPass: ICompilerPass
+    class ILMethodVariableInitPass: ICompilerPass
     {
         public void Execute(CompilerContext context)
         {
@@ -22,7 +22,7 @@ namespace Compiler
             foreach (var variable in variables)
             {
 
-                string outputLine = $".var{variable.LocalIndex} !byte 0,0"; 
+                string outputLine = $".{context.Method.GetLabel()}_var{variable.LocalIndex} !byte 0,0"; 
                 context.OutputFile.WriteLine(outputLine);
             }
         }

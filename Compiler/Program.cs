@@ -30,10 +30,12 @@ namespace Compiler
                     OutputFile = outputFile
                 };
                 var passes = new List<ICompilerPass> {
-                    new ILCodePass(), 
-                    new ILLabelPass(),
-                     new ILEmitPass(), 
-                     new ILVariableInitPass(),
+                    new ILCodePass(
+                        new ICompilerPass[] {
+                            new ILMethodCodePass(), 
+                            new ILMethodLabelPass(), 
+                            new ILMethodEmitPass(), 
+                            new ILMethodVariableInitPass()}), 
                      new ILStringResourcesPass() };
                 passes.ForEach(p => p.Execute(context));
             }            

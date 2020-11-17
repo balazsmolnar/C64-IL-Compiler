@@ -13,7 +13,7 @@ using System.Linq;
 
 namespace Compiler
 {
-    class ILEmitPass: ICompilerPass
+    class ILMethodEmitPass: ICompilerPass
     {
         public void Execute(CompilerContext context)
         {
@@ -23,6 +23,8 @@ namespace Compiler
                 string outputLine = $"{(line.Label == null ? "" : line.Label+":")}    {CommandMap.Get(line.OpCode)} {(line.Parameter?.ToString() ?? "")}"; 
                 context.OutputFile.WriteLine(outputLine);
             }
+
+            context.Lines = null;
         }
     }    
 }

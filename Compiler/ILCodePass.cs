@@ -13,65 +13,28 @@ using System.Collections.Generic;
 using System.Reflection.Emit;
 using System.Reflection.Metadata;
 using System.Linq;
+using System.Reflection;
 
 namespace Compiler
 {
     class ILCodePass: ICompilerPass
     {
+        private IEnumerable<ICompilerPass> _methodPasses;
+        public ILCodePass (IEnumerable<ICompilerPass> methodPasses)
+        {
+            _methodPasses = methodPasses;
+
+        }
         public void Execute(CompilerContext context)
         {
-            var body = context.Method.GetMethodBody();
-            var input = body.GetILAsByteArray();
-            var lines = new List<ILLine>();
-            var index = 0;
-            while (index < input.Length) {
-
-                ILOpCode opCode;
-                ILLine line = new ILLine();
-                line.Position = index;
-
-                if (input[index] >= 254) {
-                    opCode = (ILOpCode)(input[index++]*256 + input[index++]);                    
-                } else {
-                    opCode = (ILOpCode)(input[index++]);
-                }
-                line.OpCode = opCode;
-                                
-                if (!CommandMap.Supported(opCode))
-                    throw new NotSupportedException($"Command is not supported: {opCode.ToString()}");
-
-                switch (opCode)
+            foreach (var method in context.Assembly.GetTypes().SelectMany(t=> t.GetMethods(BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public))) 
+            {
+                context.Method = method;
+                foreach (var pass in _methodPasses)
                 {
-                    case ILOpCode.Ldstr: {
-                        var token = input[index++]+256*input[index++]+256*256*input[index++]+256*256*256*input[index++];
-                        line.Parameter = $".string_{token}";
-                        context.StringValues.Add(token, context.Assembly.ManifestModule.ResolveString(token));
-                        break;
-                    }
-
-                    case ILOpCode.Call: {
-                        var token = input[index++]+256*input[index++]+256*256*input[index++]+256*256*256*input[index++];
-                        line.Parameter = context.Assembly.ManifestModule.ResolveMethod(token).GetLabel();
-                        break;
-                    }
-
-                    case ILOpCode.Ldc_i4_s: {
-                        var param = input[index++];
-                        line.Parameter = param;
-                        break;
-                    }
-
-                    case ILOpCode.Br_s: 
-                    case ILOpCode.Brtrue_s: {
-                        var target = input[index++];
-                        line.Parameter = target < 128 ? (int)target : (int)target-256;
-                        break;
-                    }
+                    pass.Execute(context);
                 }
-                line.Size = index-line.Position;
-                lines.Add(line);
             }
-            context.Lines = lines.ToArray();
         }       
     }    
 }

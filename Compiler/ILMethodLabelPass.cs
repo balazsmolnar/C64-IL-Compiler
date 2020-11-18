@@ -36,8 +36,9 @@ namespace Compiler
                 if (shortBranches.Contains(line.OpCode))
                 {
                     var target = (int)line.Parameter+line.Position + 2;
-                    labelPositions.Add(target, $"label_{labelNum}");
-                    line.Parameter = $"label_{labelNum}";
+                    var label = $"label_{context.Method.Name}_{labelNum}";
+                    labelPositions.Add(target, label);
+                    line.Parameter = label;
                     labelNum++;
                 }
             }

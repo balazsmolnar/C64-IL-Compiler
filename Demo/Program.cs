@@ -4,18 +4,24 @@ namespace Demo
 {
     class Program
     {
-        static void Hello()
+        static void Hello(string s)
         {
-            Console.WriteLine("hello world from method");
+            Console.WriteLine(s);
         }
-        static void Main(string[] args)
+
+        static void WriteSpaces(int n)
         {
-            for (int i=0; i<10; i++) {
-                for (int j=0; j<i; j++) {
+                for (int j=0; j<n; j++) {
                     Console.Write(" ");
                 }
+        }
+
+        static void Main()
+        {
+            for (int i=0; i<10; i++) {
                 
-                Hello();
+                WriteSpaces(i);
+                Hello("hello world from parameter");
             }
         }
     }

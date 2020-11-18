@@ -35,6 +35,7 @@ namespace Compiler
                             new ILMethodCodePass(), 
                             new ILMethodLabelPass(), 
                             new ILMethodEmitPass(), 
+                            new ILMethodParameterInitPass(),
                             new ILMethodVariableInitPass()}), 
                      new ILStringResourcesPass() };
                 passes.ForEach(p => p.Execute(context));

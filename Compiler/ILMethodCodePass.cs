@@ -23,6 +23,7 @@ namespace Compiler
             var body = context.Method.GetMethodBody();
             var input = body.GetILAsByteArray();
             var lines = new List<ILLine>();
+
             var index = 0;
             while (index < input.Length) {
 
@@ -83,6 +84,16 @@ namespace Compiler
                     case ILOpCode.Ldloc_3:
                         line.Parameter = $".{context.Method.GetLabel()}_var3";
                         break;                        
+                    case ILOpCode.Ldarg_0:
+                        line.Parameter = $".{context.Method.GetLabel()}_{context.Method.GetParameters()[0].Name}";
+                        break;
+                    case ILOpCode.Ldarg_1:
+                        line.Parameter = $".{context.Method.GetLabel()}_{context.Method.GetParameters()[1].Name}";
+                        break;
+                    case ILOpCode.Ldarg_2:
+                        line.Parameter = $".{context.Method.GetLabel()}_{context.Method.GetParameters()[2].Name}";
+                        break;
+
                 }
                 line.Size = index-line.Position;
                 lines.Add(line);

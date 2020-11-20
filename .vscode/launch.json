@@ -6,7 +6,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/compiler/bin/Debug/compiler.exe",
+            "program": "${workspaceFolder}/run.bat",
             "args": [],
             "cwd": "${workspaceFolder}",
             "stopAtEntry": false,

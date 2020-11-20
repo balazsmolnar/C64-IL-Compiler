@@ -27,7 +27,7 @@ namespace Compiler
         public void Execute(CompilerContext context)
         {
             Dictionary<int, string> labelPositions = new Dictionary<int, string>();
-            ILOpCode[] shortBranches = new [] { ILOpCode.Br_s, ILOpCode.Brtrue_s };
+            ILOpCode[] shortBranches = new [] { ILOpCode.Br_s, ILOpCode.Brtrue_s, ILOpCode.Brfalse_s };
             int labelNum = 0;
             var lines = context.Lines;
 

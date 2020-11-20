@@ -27,6 +27,37 @@ namespace Demo
                 }
         }
 
+        static void RunBall()
+        {
+            int x=0;
+            int y=0;
+            int vx=1;
+            int vy=1;
+            const int circle = 81;
+            const int space = 32;
+            const int WIDTH=39;
+            const int HEIGHT=24;
+            for(;;) 
+            {
+                C64.SetChar(x,y,space);
+                x+=vx;
+                y+=vy;
+                if (x==WIDTH)
+                    vx =-1;
+                if (x==0)
+                    vx = 1;
+                if (y==HEIGHT)
+                     vy = -1;
+                if (y==0)
+                     vy = 1;
+                C64.SetChar(x,y,circle);
+
+                for (var ii=0; ii<100; ii++);
+
+            }
+
+        }
+
         static void Main()
         {
             ClearScreen();
@@ -35,6 +66,7 @@ namespace Demo
                 WriteSpaces(i);
                 Hello("hello world from parameter");
             }
+            RunBall();
         }
     }
 }

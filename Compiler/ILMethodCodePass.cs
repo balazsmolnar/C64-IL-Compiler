@@ -62,7 +62,17 @@ namespace Compiler
                         break;
                     }
 
+                    case ILOpCode.Ldc_i4: {
+                        // low 16 byte only
+                        var param = input[index++]+256*input[index++];
+                        index++;
+                        index++;
+                        line.Parameter = param;
+                        break;
+                    }
+
                     case ILOpCode.Br_s: 
+                    case ILOpCode.Brfalse_s:
                     case ILOpCode.Brtrue_s: {
                         var target = input[index++];
                         line.Parameter = target < 128 ? (int)target : (int)target-256;
@@ -83,6 +93,11 @@ namespace Compiler
                     case ILOpCode.Stloc_3:
                     case ILOpCode.Ldloc_3:
                         line.Parameter = $".{context.Method.GetLabel()}_var3";
+                        break;                        
+                    case ILOpCode.Stloc_s:
+                    case ILOpCode.Ldloc_s:
+                        var varIndex = input[index++];
+                        line.Parameter = $".{context.Method.GetLabel()}_var{varIndex}";
                         break;                        
                     case ILOpCode.Ldarg_0:
                         line.Parameter = $".{context.Method.GetLabel()}_{context.Method.GetParameters()[0].Name}";

@@ -5,3 +5,11 @@
 +       
 
 }
+
+!macro branch_false label {
+    +stack_pull_int $30
+    bne+
+    jmp label
++       
+
+}

@@ -15,20 +15,12 @@ C64_SetChar_Core:
     ; add Y*40
     lda $34
     asl
+    asl
+    adc $34
+    asl
+    asl
     bcc +
     inc $31
-+   asl
-    bcc +
-    inc $31
-    clc
-+   adc $34
-    bcc +
-    inc $31
-+   asl
-    bcc +
-    inc $31
-+   asl
-    bcc +
     inc $31
 +   asl
     bcc +

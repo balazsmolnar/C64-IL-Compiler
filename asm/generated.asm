@@ -45,6 +45,7 @@ label_ClearScreen_2:    nop
     +stack_push_var .Program_ClearScreen_var0
     +stack_push_var .Program_ClearScreen_var1
     +stack_push_int 32
+    +stack_push_int 14
     jsr C64_SetChar
     nop 
     nop 
@@ -128,6 +129,7 @@ label_RunBall_7:    nop
     +stack_push_var .Program_RunBall_var0
     +stack_push_var .Program_RunBall_var1
     +stack_push_int 32
+    +stack_push_int 14
     jsr C64_SetChar
     nop 
     +stack_push_var .Program_RunBall_var0
@@ -173,6 +175,7 @@ label_RunBall_3:    +stack_push_var .Program_RunBall_var1
 label_RunBall_4:    +stack_push_var .Program_RunBall_var0
     +stack_push_var .Program_RunBall_var1
     +stack_push_int 81
+    +stack_push_int 8 
     jsr C64_SetChar
     nop 
     +stack_push_int 0 

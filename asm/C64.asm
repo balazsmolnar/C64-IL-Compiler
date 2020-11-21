@@ -3,6 +3,7 @@
 ; $32 - X
 ; $34 - Y
 ; $36 - char
+; $38 - Color
 
 C64_SetChar_Core:
 
@@ -36,9 +37,15 @@ C64_SetChar_Core:
     lda $36
     ldy #0
     sta ($30),y
+    lda #$d4
+    adc $31
+    sta $31
+    lda $38
+    sta ($30),y
     rts
 
 C64_SetChar:
+    +stack_pull_pointer $38
     +stack_pull_pointer $36
     +stack_pull_pointer $34
     +stack_pull_pointer $32

@@ -50,10 +50,8 @@ namespace Demo
                      vy = -1;
                 if (y==0)
                      vy = 1;
-                C64.SetChar(x,y,circle);
-
+                C64.SetChar(x,y,circle, Colors.Orange);
                 for (var ii=0; ii<100; ii++);
-
             }
 
         }

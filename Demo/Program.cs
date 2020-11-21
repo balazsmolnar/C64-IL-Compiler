@@ -39,7 +39,7 @@ namespace Demo
             const int HEIGHT=24;
             for(;;) 
             {
-                C64.SetChar(x,y,space);
+                C64.SetChar(x,y,space, Colors.Orange);
                 x+=vx;
                 y+=vy;
                 if (x==WIDTH)

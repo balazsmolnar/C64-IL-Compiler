@@ -10,7 +10,7 @@ C64_SetChar_Core:
     ; Init
     lda #$00
     sta $30
-    lda #$04
+    lda #$d8
     sta $31
 
     ; add Y*40
@@ -34,13 +34,14 @@ C64_SetChar_Core:
     bcc +
     inc $31
 +   sta $30
-    lda $36
     ldy #0
-    sta ($30),y
-    lda #$d4
-    adc $31
-    sta $31
     lda $38
+    sta ($30),y
+    lda $31
+    sec
+    sbc #$d4
+    sta $31
+    lda $36
     sta ($30),y
     rts
 

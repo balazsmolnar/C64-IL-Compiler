@@ -28,7 +28,7 @@ namespace Compiler
             }
             foreach (var line in context.Lines)
             {
-                string outputLine = $"{(line.Label == null ? "" : line.Label+":")}    {CommandMap.Get(line.OpCode)} {(line.Parameter?.ToString() ?? "")}"; 
+                string outputLine = $"{(line.Label == null ? "" : line.Label+":")}    {CommandMap.Get(line.OpCode).Command} {(line.Parameter?.ToString() ?? "")}"; 
                 context.OutputFile.WriteLine(outputLine);
             }
 

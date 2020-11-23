@@ -13,6 +13,18 @@
             "console": "internalConsole"
         },
         {
+            "name": ".NET Core DEBUG",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/compiler/bin/Debug/compiler.exe",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "stopAtEntry": false,
+            "console": "internalConsole"
+        },
+
+        {
             "type": "asm",
             "request": "launch",
             "name": "C64",

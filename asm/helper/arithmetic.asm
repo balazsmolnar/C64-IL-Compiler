@@ -14,6 +14,23 @@
     +stack_push_var $34
 }
 
+!macro negate16 {
+
+    +stack_pull_int $34
+
+    lda $35
+    eor #$FF
+    sta $35
+    lda $34
+    eor #$FF
+    clc
+    adc #$1
+    bcc +
+    inc $35
++   sta $34
+    +stack_push_var $34
+}
+
 !macro compareLess16 {
         +stack_pull_int $34
         +stack_pull_int $32

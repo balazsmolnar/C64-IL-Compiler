@@ -3,8 +3,12 @@ using C64Lib;
 
 namespace Demo
 {
+    class A {
+
+    }
     class Program
     {
+        static Colors BallColor => Colors.Orange;
         static void ClearScreen()
         {
             for (int x=0; x<40; x++)
@@ -39,9 +43,15 @@ namespace Demo
             const int HEIGHT=24;
             for(;;) 
             {
-                C64.SetChar(x,y,space, Colors.Orange);
+                C64.SetChar(x,y,space, BallColor);
                 x+=vx;
                 y+=vy;
+                var oldChar = C64.GetChar(x,y);
+                if (oldChar != 32) {
+                    vx = -vx;
+                    vy = -vy;
+                    continue;
+                }
                 if (x==WIDTH)
                     vx =-1;
                 if (x==0)
@@ -50,7 +60,9 @@ namespace Demo
                      vy = -1;
                 if (y==0)
                      vy = 1;
-                C64.SetChar(x,y,circle, Colors.Orange);
+
+                C64.SetChar(x,y,circle, BallColor);
+                
                 for (var ii=0; ii<100; ii++);
             }
 

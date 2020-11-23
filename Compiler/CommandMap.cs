@@ -40,7 +40,9 @@ namespace Compiler
             return $".string_{parameter}";
         }
 
-        public static object ShortJumpConverter(OpCode opCode, CompilerContext context, int? parameter) => parameter.Value < 128 ? (int)parameter : (int)parameter-256;
+        public static object ShortJumpConverter(OpCode opCode, CompilerContext context, int? parameter) => (parameter.Value < 128 ? (int)parameter : (int)parameter-256) + 2;
+
+        public static object LongJumpConverter(OpCode opCode, CompilerContext context, int? parameter) => parameter.Value + 5;
 
         public static object CallConverter(OpCode opCode, CompilerContext context, int? parameter) => context.Assembly.ManifestModule.ResolveMethod(parameter.Value).GetLabel();
     }
@@ -78,10 +80,12 @@ namespace Compiler
                 { ILOpCode.Ldarg_1, new OpCode(ILOpCode.Ldarg_1, "+stack_push_var", 0, 1, OpCode.ArgConverter) },
                 { ILOpCode.Ldarg_2, new OpCode(ILOpCode.Ldarg_2, "+stack_push_var", 0, 2, OpCode.ArgConverter) },
                 { ILOpCode.Br_s, new OpCode(ILOpCode.Br_s, "jmp", 1, 0, OpCode.ShortJumpConverter) },
+                { ILOpCode.Br, new OpCode(ILOpCode.Br, "jmp", 4, 0, OpCode.LongJumpConverter) },
                 { ILOpCode.Brtrue_s, new OpCode(ILOpCode.Brtrue_s, "+branch_true", 1, 0, OpCode.ShortJumpConverter) },
                 { ILOpCode.Brfalse_s, new OpCode(ILOpCode.Brfalse_s, "+branch_false", 1, 0, OpCode.ShortJumpConverter) },
                 { ILOpCode.Nop, new OpCode(ILOpCode.Nop, "nop") },
                 { ILOpCode.Add, new OpCode(ILOpCode.Add, "+add16") },
+                { ILOpCode.Neg, new OpCode(ILOpCode.Neg, "+negate16") },
                 { ILOpCode.Ret, new OpCode(ILOpCode.Ret, "rts") },
                 { ILOpCode.Clt, new OpCode(ILOpCode.Ret, "+compareLess16") },
                 { ILOpCode.Ceq, new OpCode(ILOpCode.Ret, "+compareEqual16") },

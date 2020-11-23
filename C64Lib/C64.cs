@@ -24,5 +24,7 @@ namespace C64Lib
     public static class C64
     {
         public static void SetChar(int x, int y, int ch, Colors colors=Colors.LightBlue) {}
+        public static int GetChar(int x, int y) => 0;
+        public static void SetBorderColor(Colors color) {}
     }
 }

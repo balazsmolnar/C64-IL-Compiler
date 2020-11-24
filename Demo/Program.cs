@@ -6,6 +6,7 @@ namespace Demo
     class A {
 
     }
+
     class Program
     {
         static Colors BallColor => Colors.Orange;
@@ -13,7 +14,7 @@ namespace Demo
         {
             for (int x=0; x<40; x++)
             {
-                for (int y=0; y<40; y++)
+                for (int y=0; y<25; y++)
                 {
                     C64.SetChar(x,y,32);
                 }
@@ -41,6 +42,7 @@ namespace Demo
             const int space = 32;
             const int WIDTH=39;
             const int HEIGHT=24;
+
             for(;;) 
             {
                 C64.SetChar(x,y,space, BallColor);

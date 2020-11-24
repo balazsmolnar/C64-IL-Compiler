@@ -30,6 +30,7 @@ namespace Compiler
             foreach (var method in context.Assembly.GetTypes().SelectMany(t=> t.GetMethods(BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public))) 
             {
                 context.Method = method;
+                context.MethodParameters = method.GetParameters().OrderBy(x => x.Position).ToArray();
                 context.Lines = new List<ILLine> ();
                 foreach (var pass in _methodPasses)
                 {

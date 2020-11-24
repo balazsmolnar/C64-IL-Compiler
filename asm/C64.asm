@@ -48,36 +48,31 @@ C64_SetChar_Core:
     sta $31
     lda $36
     sta ($30),y
-    rts
+    +stack_return_to_saved_address $20
 
 C64_GetChar_Core:
 
     ; Init
-    lda #$00
-    sta $30
-    lda #$04
-    sta $31
-
     jsr C64_Set_Screen_Ptr
-    ldy #0
-    lda ($30),y
-    sta $36
-    sty $37
     rts
 
 C64_SetChar:
+    +stack_save_return_adress $20
     +stack_pull_int $38
     +stack_pull_int $36
     +stack_pull_int $34
     +stack_pull_int $32
+
     jmp C64_SetChar_Core
 
 C64_GetChar:
+    +stack_save_return_adress $20
     +stack_pull_int $34
     +stack_pull_int $32
     jsr C64_GetChar_Core
     +stack_push_var $36
-    rts
+
+    +stack_return_to_saved_address $20
 
 C64_SetBorderColor:
     +stack_pull_int $34

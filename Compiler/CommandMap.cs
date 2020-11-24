@@ -45,6 +45,9 @@ namespace Compiler
         public static object LongJumpConverter(OpCode opCode, CompilerContext context, int? parameter) => parameter.Value + 5;
 
         public static object CallConverter(OpCode opCode, CompilerContext context, int? parameter) => context.Assembly.ManifestModule.ResolveMethod(parameter.Value).GetLabel();
+
+        public static object RtsConverter(OpCode opCode, CompilerContext context, int? parameter) => $".{context.Method.GetLabel()}_ReturnAddress";
+
     }
 
     internal static class CommandMap
@@ -86,7 +89,7 @@ namespace Compiler
                 { ILOpCode.Nop, new OpCode(ILOpCode.Nop, "nop") },
                 { ILOpCode.Add, new OpCode(ILOpCode.Add, "+add16") },
                 { ILOpCode.Neg, new OpCode(ILOpCode.Neg, "+negate16") },
-                { ILOpCode.Ret, new OpCode(ILOpCode.Ret, "rts") },
+                { ILOpCode.Ret, new OpCode(ILOpCode.Ret, "+stack_return_to_saved_address", 0, 0, OpCode.RtsConverter)  },
                 { ILOpCode.Clt, new OpCode(ILOpCode.Ret, "+compareLess16") },
                 { ILOpCode.Ceq, new OpCode(ILOpCode.Ret, "+compareEqual16") },
             };

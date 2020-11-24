@@ -13,20 +13,11 @@ namespace Compiler
         {
             var asmLocation = @"c:\Balazs\C64\Demo\bin\Debug\Demo.dll";
             var asm = Assembly.LoadFrom(asmLocation);
-            var type = asm.GetType("Demo.Program");
-            if (type==null)
-                throw new Exception("Type not found");
-            var method = type.GetMethod("Main", BindingFlags.Static | BindingFlags.NonPublic);
-            if (method==null)
-                throw new Exception("Method not found");
-            var body = method.GetMethodBody();
-            var ilCode = body.GetILAsByteArray();
 
             using (var outputFile = File.CreateText(@"C:\Balazs\C64\asm\generated.asm"))
             {
                 var context = new CompilerContext {
                     Assembly = asm,
-                    Method = method,
                     OutputFile = outputFile
                 };
                 var passes = new List<ICompilerPass> {

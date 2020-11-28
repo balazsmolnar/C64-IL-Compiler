@@ -9,40 +9,40 @@ Program_get_BallColor
 
 Program_ClearScreen 
 +stack_save_return_adress .Program_ClearScreen_ReturnAddress
-    nop 
+    nop
     +stack_push_int 0
     +stack_pull_int .Program_ClearScreen_var0
     jmp label_ClearScreen_42
-label_ClearScreen_5:    nop 
+label_ClearScreen_5:    nop
     +stack_push_int 0
     +stack_pull_int .Program_ClearScreen_var1
     jmp label_ClearScreen_28
-label_ClearScreen_10:    nop 
+label_ClearScreen_10:    nop
     +stack_push_var .Program_ClearScreen_var0
     +stack_push_var .Program_ClearScreen_var1
     +stack_push_int 32
     +stack_push_int 14
     jsr C64_SetChar
-    nop 
-    nop 
+    nop
+    nop
     +stack_push_var .Program_ClearScreen_var1
     +stack_push_int 1
-    +add16 
+    +add16
     +stack_pull_int .Program_ClearScreen_var1
 label_ClearScreen_28:    +stack_push_var .Program_ClearScreen_var1
     +stack_push_int 25
-    +compareLess16 
+    +compareLess16
     +stack_pull_int .Program_ClearScreen_var2
     +stack_push_var .Program_ClearScreen_var2
     +branch_true label_ClearScreen_10
-    nop 
+    nop
     +stack_push_var .Program_ClearScreen_var0
     +stack_push_int 1
-    +add16 
+    +add16
     +stack_pull_int .Program_ClearScreen_var0
 label_ClearScreen_42:    +stack_push_var .Program_ClearScreen_var0
     +stack_push_int 40
-    +compareLess16 
+    +compareLess16
     +stack_pull_int .Program_ClearScreen_var3
     +stack_push_var .Program_ClearScreen_var3
     +branch_true label_ClearScreen_5
@@ -57,10 +57,10 @@ label_ClearScreen_42:    +stack_push_var .Program_ClearScreen_var0
 Program_Hello 
 +stack_save_return_adress .Program_Hello_ReturnAddress
 +stack_pull_int .Program_Hello_s
-    nop 
+    nop
     +stack_push_var .Program_Hello_s
     jsr Console_WriteLine
-    nop 
+    nop
     +stack_return_to_saved_address .Program_Hello_ReturnAddress
 .Program_Hello_s !byte 0,0
 .Program_Hello_ReturnAddress !byte 0,0
@@ -69,22 +69,22 @@ Program_Hello
 Program_WriteSpaces 
 +stack_save_return_adress .Program_WriteSpaces_ReturnAddress
 +stack_pull_int .Program_WriteSpaces_n
-    nop 
+    nop
     +stack_push_int 0
     +stack_pull_int .Program_WriteSpaces_var0
     jmp label_WriteSpaces_22
-label_WriteSpaces_5:    nop 
+label_WriteSpaces_5:    nop
     +stack_push_pointer .string_1879048193
     jsr Console_Write
-    nop 
-    nop 
+    nop
+    nop
     +stack_push_var .Program_WriteSpaces_var0
     +stack_push_int 1
-    +add16 
+    +add16
     +stack_pull_int .Program_WriteSpaces_var0
 label_WriteSpaces_22:    +stack_push_var .Program_WriteSpaces_var0
     +stack_push_var .Program_WriteSpaces_n
-    +compareLess16 
+    +compareLess16
     +stack_pull_int .Program_WriteSpaces_var1
     +stack_push_var .Program_WriteSpaces_var1
     +branch_true label_WriteSpaces_5
@@ -97,7 +97,7 @@ label_WriteSpaces_22:    +stack_push_var .Program_WriteSpaces_var0
 
 Program_RunBall 
 +stack_save_return_adress .Program_RunBall_ReturnAddress
-    nop 
+    nop
     +stack_push_int 0
     +stack_pull_int .Program_RunBall_var0
     +stack_push_int 0
@@ -107,20 +107,20 @@ Program_RunBall
     +stack_push_int 1
     +stack_pull_int .Program_RunBall_var3
     jmp label_RunBall_161
-label_RunBall_14:    nop 
+label_RunBall_14:    nop
     +stack_push_var .Program_RunBall_var0
     +stack_push_var .Program_RunBall_var1
     +stack_push_int 32
     jsr Program_get_BallColor
     jsr C64_SetChar
-    nop 
+    nop
     +stack_push_var .Program_RunBall_var0
     +stack_push_var .Program_RunBall_var2
-    +add16 
+    +add16
     +stack_pull_int .Program_RunBall_var0
     +stack_push_var .Program_RunBall_var1
     +stack_push_var .Program_RunBall_var3
-    +add16 
+    +add16
     +stack_pull_int .Program_RunBall_var1
     +stack_push_var .Program_RunBall_var0
     +stack_push_var .Program_RunBall_var1
@@ -128,23 +128,23 @@ label_RunBall_14:    nop
     +stack_pull_int .Program_RunBall_var4
     +stack_push_var .Program_RunBall_var4
     +stack_push_int 32
-    +compareEqual16 
+    +compareEqual16
     +stack_push_int 0
-    +compareEqual16 
+    +compareEqual16
     +stack_pull_int .Program_RunBall_var5
     +stack_push_var .Program_RunBall_var5
     +branch_false label_RunBall_71
-    nop 
+    nop
     +stack_push_var .Program_RunBall_var2
-    +negate16 
+    +negate16
     +stack_pull_int .Program_RunBall_var2
     +stack_push_var .Program_RunBall_var3
-    +negate16 
+    +negate16
     +stack_pull_int .Program_RunBall_var3
     jmp label_RunBall_161
 label_RunBall_71:    +stack_push_var .Program_RunBall_var0
     +stack_push_int 39
-    +compareEqual16 
+    +compareEqual16
     +stack_pull_int .Program_RunBall_var6
     +stack_push_var .Program_RunBall_var6
     +branch_false label_RunBall_84
@@ -152,7 +152,7 @@ label_RunBall_71:    +stack_push_var .Program_RunBall_var0
     +stack_pull_int .Program_RunBall_var2
 label_RunBall_84:    +stack_push_var .Program_RunBall_var0
     +stack_push_int 0
-    +compareEqual16 
+    +compareEqual16
     +stack_pull_int .Program_RunBall_var7
     +stack_push_var .Program_RunBall_var7
     +branch_false label_RunBall_96
@@ -160,7 +160,7 @@ label_RunBall_84:    +stack_push_var .Program_RunBall_var0
     +stack_pull_int .Program_RunBall_var2
 label_RunBall_96:    +stack_push_var .Program_RunBall_var1
     +stack_push_int 24
-    +compareEqual16 
+    +compareEqual16
     +stack_pull_int .Program_RunBall_var8
     +stack_push_var .Program_RunBall_var8
     +branch_false label_RunBall_109
@@ -168,7 +168,7 @@ label_RunBall_96:    +stack_push_var .Program_RunBall_var1
     +stack_pull_int .Program_RunBall_var3
 label_RunBall_109:    +stack_push_var .Program_RunBall_var1
     +stack_push_int 0
-    +compareEqual16 
+    +compareEqual16
     +stack_pull_int .Program_RunBall_var9
     +stack_push_var .Program_RunBall_var9
     +branch_false label_RunBall_121
@@ -179,22 +179,22 @@ label_RunBall_121:    +stack_push_var .Program_RunBall_var0
     +stack_push_int 81
     jsr Program_get_BallColor
     jsr C64_SetChar
-    nop 
+    nop
     +stack_push_int 0
     +stack_pull_int .Program_RunBall_var10
     jmp label_RunBall_148
-label_RunBall_141:    nop 
+label_RunBall_141:    nop
     +stack_push_var .Program_RunBall_var10
     +stack_push_int 1
-    +add16 
+    +add16
     +stack_pull_int .Program_RunBall_var10
 label_RunBall_148:    +stack_push_var .Program_RunBall_var10
     +stack_push_int 100
-    +compareLess16 
+    +compareLess16
     +stack_pull_int .Program_RunBall_var11
     +stack_push_var .Program_RunBall_var11
     +branch_true label_RunBall_141
-    nop 
+    nop
 label_RunBall_161:    jmp label_RunBall_14
 .Program_RunBall_ReturnAddress !byte 0,0
 .Program_RunBall_var0 !byte 0,0
@@ -213,32 +213,32 @@ label_RunBall_161:    jmp label_RunBall_14
 
 Program_Main 
 +stack_save_return_adress .Program_Main_ReturnAddress
-    nop 
+    nop
     jsr Program_ClearScreen
-    nop 
+    nop
     +stack_push_int 0
     +stack_pull_int .Program_Main_var0
     jmp label_Main_35
-label_Main_11:    nop 
+label_Main_11:    nop
     +stack_push_var .Program_Main_var0
     jsr Program_WriteSpaces
-    nop 
+    nop
     +stack_push_pointer .string_1879048197
     jsr Program_Hello
-    nop 
-    nop 
+    nop
+    nop
     +stack_push_var .Program_Main_var0
     +stack_push_int 1
-    +add16 
+    +add16
     +stack_pull_int .Program_Main_var0
 label_Main_35:    +stack_push_var .Program_Main_var0
     +stack_push_int 10
-    +compareLess16 
+    +compareLess16
     +stack_pull_int .Program_Main_var1
     +stack_push_var .Program_Main_var1
     +branch_true label_Main_11
     jsr Program_RunBall
-    nop 
+    nop
     +stack_return_to_saved_address .Program_Main_ReturnAddress
 .Program_Main_ReturnAddress !byte 0,0
 .Program_Main_var0 !byte 0,0

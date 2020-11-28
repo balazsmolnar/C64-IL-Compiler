@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Reflection.Metadata;
+using Compiler.Ops;
 
 namespace Compiler
 {
@@ -29,7 +30,7 @@ namespace Compiler
         public static object NullConverter(OpCode opCode, CompilerContext context, int? parameter) => null;
 
         public static object ParameterConverter(OpCode opCode, CompilerContext context, int? parameter) => parameter ?? opCode.ConstParameter;
-
+    
         public static object VariableConverter(OpCode opCode, CompilerContext context, int? parameter) => $".{context.Method.GetLabel()}_var{parameter ?? opCode.ConstParameter}";
 
         public static object ArgConverter(OpCode opCode, CompilerContext context, int? parameter) => $".{context.Method.GetLabel()}_{context.Method.GetParameters()[parameter ?? opCode.ConstParameter].Name}";
@@ -52,53 +53,53 @@ namespace Compiler
 
     internal static class CommandMap
     {
-        private static Dictionary<ILOpCode, OpCode> map
-            = new Dictionary<ILOpCode, OpCode>
+        private static Dictionary<ILOpCode, OpBase> map
+            = new Dictionary<ILOpCode, OpBase>
             {
-                { ILOpCode.Ldstr, new OpCode(ILOpCode.Ldstr, "+stack_push_pointer", 4, -1, OpCode.StringConverter) },
-                { ILOpCode.Call, new OpCode(ILOpCode.Call, "jsr", 4, -1, OpCode.CallConverter) },
-                { ILOpCode.Ldc_i4_0, new OpCode(ILOpCode.Ldc_i4_0, "+stack_push_int", 0, 0, OpCode.ParameterConverter) },
-                { ILOpCode.Ldc_i4_1, new OpCode(ILOpCode.Ldc_i4_1, "+stack_push_int", 0, 1, OpCode.ParameterConverter) },
-                { ILOpCode.Ldc_i4_2, new OpCode(ILOpCode.Ldc_i4_2, "+stack_push_int", 0, 2, OpCode.ParameterConverter) },
-                { ILOpCode.Ldc_i4_3, new OpCode(ILOpCode.Ldc_i4_3, "+stack_push_int", 0, 3, OpCode.ParameterConverter) },
-                { ILOpCode.Ldc_i4_4, new OpCode(ILOpCode.Ldc_i4_4, "+stack_push_int", 0, 4, OpCode.ParameterConverter) },
-                { ILOpCode.Ldc_i4_5, new OpCode(ILOpCode.Ldc_i4_5, "+stack_push_int", 0, 5, OpCode.ParameterConverter) },
-                { ILOpCode.Ldc_i4_6, new OpCode(ILOpCode.Ldc_i4_6, "+stack_push_int", 0, 6, OpCode.ParameterConverter) },
-                { ILOpCode.Ldc_i4_7, new OpCode(ILOpCode.Ldc_i4_7, "+stack_push_int", 0, 7, OpCode.ParameterConverter) },
-                { ILOpCode.Ldc_i4_8, new OpCode(ILOpCode.Ldc_i4_8, "+stack_push_int", 0, 8, OpCode.ParameterConverter) },
-                { ILOpCode.Ldc_i4_m1, new OpCode(ILOpCode.Ldc_i4_m1, "+stack_push_int", 0, 0xFFFF, OpCode.ParameterConverter) },
-                { ILOpCode.Ldc_i4_s, new OpCode(ILOpCode.Ldc_i4_s, "+stack_push_int", 1, -1, OpCode.ParameterConverter) },
-                { ILOpCode.Ldc_i4, new OpCode(ILOpCode.Ldc_i4, "+stack_push_int", 4, -1, OpCode.ParameterConverter) },
-                { ILOpCode.Stloc_0, new OpCode(ILOpCode.Stloc_0, "+stack_pull_int", 0, 0, OpCode.VariableConverter) },
-                { ILOpCode.Stloc_1, new OpCode(ILOpCode.Stloc_1, "+stack_pull_int", 0, 1, OpCode.VariableConverter) },
-                { ILOpCode.Stloc_2, new OpCode(ILOpCode.Stloc_2, "+stack_pull_int", 0, 2, OpCode.VariableConverter) },
-                { ILOpCode.Stloc_3, new OpCode(ILOpCode.Stloc_3, "+stack_pull_int", 0, 3, OpCode.VariableConverter) },
-                { ILOpCode.Stloc_s, new OpCode(ILOpCode.Stloc_s, "+stack_pull_int", 1, 0, OpCode.VariableConverter) },
-                { ILOpCode.Ldloc_0, new OpCode(ILOpCode.Ldloc_0, "+stack_push_var", 0, 0, OpCode.VariableConverter) },
-                { ILOpCode.Ldloc_1, new OpCode(ILOpCode.Ldloc_1, "+stack_push_var", 0, 1, OpCode.VariableConverter) },
-                { ILOpCode.Ldloc_2, new OpCode(ILOpCode.Ldloc_2, "+stack_push_var", 0, 2, OpCode.VariableConverter) },
-                { ILOpCode.Ldloc_3, new OpCode(ILOpCode.Ldloc_3, "+stack_push_var", 0, 3, OpCode.VariableConverter) },
-                { ILOpCode.Ldloc_s, new OpCode(ILOpCode.Ldloc_s, "+stack_push_var", 1, 0, OpCode.VariableConverter) },
-                { ILOpCode.Ldarg_0, new OpCode(ILOpCode.Ldarg_0, "+stack_push_var", 0, 0, OpCode.ArgConverter) },
-                { ILOpCode.Ldarg_1, new OpCode(ILOpCode.Ldarg_1, "+stack_push_var", 0, 1, OpCode.ArgConverter) },
-                { ILOpCode.Ldarg_2, new OpCode(ILOpCode.Ldarg_2, "+stack_push_var", 0, 2, OpCode.ArgConverter) },
-                { ILOpCode.Br_s, new OpCode(ILOpCode.Br_s, "jmp", 1, 0, OpCode.ShortJumpConverter) },
-                { ILOpCode.Br, new OpCode(ILOpCode.Br, "jmp", 4, 0, OpCode.LongJumpConverter) },
-                { ILOpCode.Brtrue_s, new OpCode(ILOpCode.Brtrue_s, "+branch_true", 1, 0, OpCode.ShortJumpConverter) },
-                { ILOpCode.Brfalse_s, new OpCode(ILOpCode.Brfalse_s, "+branch_false", 1, 0, OpCode.ShortJumpConverter) },
-                { ILOpCode.Nop, new OpCode(ILOpCode.Nop, "nop") },
-                { ILOpCode.Add, new OpCode(ILOpCode.Add, "+add16") },
-                { ILOpCode.Neg, new OpCode(ILOpCode.Neg, "+negate16") },
-                { ILOpCode.Ret, new OpCode(ILOpCode.Ret, "+stack_return_to_saved_address", 0, 0, OpCode.RtsConverter)  },
-                { ILOpCode.Clt, new OpCode(ILOpCode.Ret, "+compareLess16") },
-                { ILOpCode.Ceq, new OpCode(ILOpCode.Ret, "+compareEqual16") },
+                { ILOpCode.Ldstr, new OpLdstr() },
+                { ILOpCode.Call, new OpCall() },
+                { ILOpCode.Ldc_i4_0, new OpLdc_i4_const(0) },
+                { ILOpCode.Ldc_i4_1, new OpLdc_i4_const(1) },
+                { ILOpCode.Ldc_i4_2, new OpLdc_i4_const(2) },
+                { ILOpCode.Ldc_i4_3, new OpLdc_i4_const(3) },
+                { ILOpCode.Ldc_i4_4, new OpLdc_i4_const(4) },
+                { ILOpCode.Ldc_i4_5, new OpLdc_i4_const(5) },
+                { ILOpCode.Ldc_i4_6, new OpLdc_i4_const(6) },
+                { ILOpCode.Ldc_i4_7, new OpLdc_i4_const(7) },
+                { ILOpCode.Ldc_i4_8, new OpLdc_i4_const(8) },
+                { ILOpCode.Ldc_i4_m1, new OpLdc_i4_const(0xFFFF) },
+                { ILOpCode.Ldc_i4_s, new OpLdc_i4_s() },
+                { ILOpCode.Ldc_i4, new OpLdc_i4() },
+                { ILOpCode.Stloc_0, new OpStloc(0) },
+                { ILOpCode.Stloc_1, new OpStloc(1) },
+                { ILOpCode.Stloc_2, new OpStloc(2) },
+                { ILOpCode.Stloc_3, new OpStloc(3) },
+                { ILOpCode.Stloc_s, new OpStloc_s() },
+                { ILOpCode.Ldloc_0, new OpLdloc(0) },
+                { ILOpCode.Ldloc_1, new OpLdloc(1) },
+                { ILOpCode.Ldloc_2, new OpLdloc(2) },
+                { ILOpCode.Ldloc_3, new OpLdloc(3) },
+                { ILOpCode.Ldloc_s, new OpLdloc_s() },
+                { ILOpCode.Ldarg_0, new OpLdarg(0) },
+                { ILOpCode.Ldarg_1, new OpLdarg(1) },
+                { ILOpCode.Ldarg_2, new OpLdarg(2) },
+                { ILOpCode.Br_s, new OpShortJump("jmp") },
+                { ILOpCode.Br, new OpLongJump("jmp") },
+                { ILOpCode.Brtrue_s, new OpShortJump("+branch_true") },
+                { ILOpCode.Brfalse_s, new OpShortJump("+branch_false") },
+                { ILOpCode.Nop, new OpBase(0, "nop") },
+                { ILOpCode.Add, new OpArithmetic2("+add16") },
+                { ILOpCode.Neg, new OpArithmetic1("+negate16") },
+                { ILOpCode.Ret, new OpRet()  },
+                { ILOpCode.Clt, new OpArithmetic2("+compareLess16") },
+                { ILOpCode.Ceq, new OpArithmetic2("+compareEqual16") },
             };
     
         public static bool Supported(ILOpCode code) {
             return map.ContainsKey(code);
         }
 
-        public static OpCode Get(ILOpCode opCode) {
+        public static OpBase Get(ILOpCode opCode) {
             return map[opCode];
         }
     }

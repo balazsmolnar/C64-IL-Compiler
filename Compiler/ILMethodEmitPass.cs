@@ -31,7 +31,9 @@ namespace Compiler
 
             foreach (var line in context.Lines)
             {
-                string outputLine = $"{(line.Label == null ? "" : line.Label+":")}    {CommandMap.Get(line.OpCode).Command} {(line.Parameter?.ToString() ?? "")}"; 
+                var op = CommandMap.Get(line.OpCode);
+
+                string outputLine = $"{(line.Label == null ? "" : line.Label+":")}    {op.Emit(context, line.Parameter)}"; 
                 context.OutputFile.WriteLine(outputLine);
             }
 

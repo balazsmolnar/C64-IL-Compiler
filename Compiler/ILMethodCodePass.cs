@@ -29,12 +29,12 @@ namespace Compiler
                     throw new NotSupportedException($"Command is not supported: {opCode.ToString()}");
 
                 var op = CommandMap.Get(opCode);
-                int? parameter = null;
+                int parameter = 0;
                 if (op.ParameterSize == 1)
                     parameter = input[index++];
                 if (op.ParameterSize == 4)
                     parameter = input[index++]+256*input[index++]+256*256*input[index++]+256*256*256*input[index++];
-                line.Parameter = op.Converter(op, context, parameter);
+                line.Parameter = op.ConvertParameter(context, parameter);
                 line.Size = index-line.Position;
                 Console.WriteLine(line);
 

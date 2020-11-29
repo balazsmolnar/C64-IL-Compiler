@@ -17,14 +17,14 @@ namespace Compiler.Ops
         public string Command { get; }
         public int ParameterSize { get; }
 
-        public virtual string Emit(CompilerContext context, object parameter)
+        public virtual string Emit(CompilerMethodContext context, object parameter)
         {
             if (parameter==null)
                 return Command;
             return $"{Command} {parameter}";
         }
 
-        public virtual object ConvertParameter(CompilerContext context, int parameter) => null;
+        public virtual object ConvertParameter(CompilerMethodContext context, int parameter) => null;
     }
 
     class OpLdstr : OpBase
@@ -33,9 +33,9 @@ namespace Compiler.Ops
         {            
         }
 
-        public override object ConvertParameter(CompilerContext context, int parameter)
+        public override object ConvertParameter(CompilerMethodContext context, int parameter)
         {
-            context.StringValues.Add(parameter, context.Assembly.ManifestModule.ResolveString(parameter));
+            context.CompilerContext.StringValues.Add(parameter, context.CompilerContext.Assembly.ManifestModule.ResolveString(parameter));
             return $".string_{parameter}";
         }
     }
@@ -46,9 +46,9 @@ namespace Compiler.Ops
         {            
         }
 
-        public override object ConvertParameter(CompilerContext context, int parameter)
+        public override object ConvertParameter(CompilerMethodContext context, int parameter)
         {
-            return context.Assembly.ManifestModule.ResolveMethod(parameter).GetLabel();
+            return context.CompilerContext.Assembly.ManifestModule.ResolveMethod(parameter).GetLabel();
         }
     }
 
@@ -70,7 +70,7 @@ namespace Compiler.Ops
             _value = value; 
         }
 
-        public override object ConvertParameter(CompilerContext context, int parameter)
+        public override object ConvertParameter(CompilerMethodContext context, int parameter)
         {
             return _value;
         }
@@ -82,7 +82,7 @@ namespace Compiler.Ops
         {           
         }
 
-        public override object ConvertParameter(CompilerContext context, int parameter)
+        public override object ConvertParameter(CompilerMethodContext context, int parameter)
         {
             return parameter;
         }
@@ -94,7 +94,7 @@ namespace Compiler.Ops
         {           
         }
 
-        public override object ConvertParameter(CompilerContext context, int parameter)
+        public override object ConvertParameter(CompilerMethodContext context, int parameter)
         {
             return parameter;
         }
@@ -108,7 +108,7 @@ namespace Compiler.Ops
             _varIndex = varIndex;
         }
 
-        public override object ConvertParameter(CompilerContext context, int parameter) => $".{context.Method.GetLabel()}_var{_varIndex}";
+        public override object ConvertParameter(CompilerMethodContext context, int parameter) => $".{context.Method.GetLabel()}_var{_varIndex}";
     }
 
     class OpLdloc_s : OpPushBase
@@ -117,7 +117,7 @@ namespace Compiler.Ops
         {           
         }
 
-        public override object ConvertParameter(CompilerContext context, int parameter) => $".{context.Method.GetLabel()}_var{parameter}";
+        public override object ConvertParameter(CompilerMethodContext context, int parameter) => $".{context.Method.GetLabel()}_var{parameter}";
     }
 
     class OpLdarg : OpPushBase
@@ -128,7 +128,7 @@ namespace Compiler.Ops
             _argIndex = argIndex;
         }
 
-        public override object ConvertParameter(CompilerContext context, int parameter) => $".{context.Method.GetLabel()}_{context.Method.GetParameters()[_argIndex].Name}";
+        public override object ConvertParameter(CompilerMethodContext context, int parameter) => $".{context.Method.GetLabel()}_{context.Method.GetParameters()[_argIndex].Name}";
     }
 
     class OpPullBase : OpBase
@@ -147,7 +147,7 @@ namespace Compiler.Ops
             _varIndex = varIndex;
         }
 
-        public override object ConvertParameter(CompilerContext context, int parameter) => $".{context.Method.GetLabel()}_var{_varIndex}";
+        public override object ConvertParameter(CompilerMethodContext context, int parameter) => $".{context.Method.GetLabel()}_var{_varIndex}";
     }
 
     class OpStloc_s : OpPullBase
@@ -156,7 +156,7 @@ namespace Compiler.Ops
         {           
         }
 
-        public override object ConvertParameter(CompilerContext context, int parameter) => $".{context.Method.GetLabel()}_var{parameter}";
+        public override object ConvertParameter(CompilerMethodContext context, int parameter) => $".{context.Method.GetLabel()}_var{parameter}";
     }
 
     class OpShortJump : OpBase
@@ -165,7 +165,7 @@ namespace Compiler.Ops
         {            
         }
 
-        public override object ConvertParameter(CompilerContext context, int parameter) => (parameter < 128 ? (int)parameter : (int)parameter-256) + 2;
+        public override object ConvertParameter(CompilerMethodContext context, int parameter) => (parameter < 128 ? (int)parameter : (int)parameter-256) + 2;
     }
 
     class OpLongJump : OpBase
@@ -174,7 +174,7 @@ namespace Compiler.Ops
         {            
         }
 
-        public override object ConvertParameter(CompilerContext context, int parameter) =>  parameter + 5;
+        public override object ConvertParameter(CompilerMethodContext context, int parameter) =>  parameter + 5;
     }
 
     class OpArithmetic2 : OpBase
@@ -197,7 +197,7 @@ namespace Compiler.Ops
         {            
         }
 
-        public override object ConvertParameter(CompilerContext context, int parameter) => $".{context.Method.GetLabel()}_ReturnAddress";
+        public override object ConvertParameter(CompilerMethodContext context, int parameter) => $".{context.Method.GetLabel()}_ReturnAddress";
     }
 
 }

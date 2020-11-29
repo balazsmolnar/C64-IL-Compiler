@@ -19,22 +19,30 @@ namespace Compiler
 {
     class ILCodePass: ICompilerPass
     {
-        private IEnumerable<ICompilerPass> _methodPasses;
-        public ILCodePass (IEnumerable<ICompilerPass> methodPasses)
+        private IEnumerable<ICompilerMethodPass> _methodPasses;
+        public ILCodePass (IEnumerable<ICompilerMethodPass> methodPasses)
         {
             _methodPasses = methodPasses;
 
         }
         public void Execute(CompilerContext context)
         {
+            context.Methods = new List<CompilerMethodContext>();
             foreach (var method in context.Assembly.GetTypes().SelectMany(t=> t.GetMethods(BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public))) 
             {
-                context.Method = method;
-                context.MethodParameters = method.GetParameters().OrderBy(x => x.Position).ToArray();
-                context.Lines = new List<ILLine> ();
+                var methodContext = new CompilerMethodContext()
+                {
+                    CompilerContext = context,
+                    Lines = new List<ILLine>(),
+                    Method = method,
+                    MethodParameters = method.GetParameters().OrderBy(x => x.Position).ToArray()
+                };
+
+                context.Methods.Add(methodContext);
+
                 foreach (var pass in _methodPasses)
                 {
-                    pass.Execute(context);
+                    pass.Execute(methodContext);
                 }
             }
         }       

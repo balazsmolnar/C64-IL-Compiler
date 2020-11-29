@@ -3,54 +3,8 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Reflection.Metadata;
 using Compiler.Ops;
-
 namespace Compiler
 {
-    internal class OpCode
-    {
-        public OpCode(ILOpCode opCode, string command, int parameterSize, int constParameter, Func<OpCode, CompilerContext, int?, object> converter = null)
-        {
-            ILOpCode = opCode;
-            Command = command;
-            ParameterSize = parameterSize;
-            Converter = converter ?? NullConverter;;
-            ConstParameter = constParameter;
-        }
-
-        public OpCode(ILOpCode opCode, string command):this(opCode, command, 0, -1, NullConverter)
-        {
-        }
-
-        public ILOpCode ILOpCode { get; }
-        public string Command { get; }
-        public int ParameterSize { get; }
-        public int ConstParameter { get; }
-        public Func<OpCode, CompilerContext, int?, object> Converter { get; }
-
-        public static object NullConverter(OpCode opCode, CompilerContext context, int? parameter) => null;
-
-        public static object ParameterConverter(OpCode opCode, CompilerContext context, int? parameter) => parameter ?? opCode.ConstParameter;
-    
-        public static object VariableConverter(OpCode opCode, CompilerContext context, int? parameter) => $".{context.Method.GetLabel()}_var{parameter ?? opCode.ConstParameter}";
-
-        public static object ArgConverter(OpCode opCode, CompilerContext context, int? parameter) => $".{context.Method.GetLabel()}_{context.Method.GetParameters()[parameter ?? opCode.ConstParameter].Name}";
-
-        public static object StringConverter(OpCode opCode, CompilerContext context, int? parameter) {
-
-            context.StringValues.Add(parameter.Value, context.Assembly.ManifestModule.ResolveString(parameter.Value));
-            return $".string_{parameter}";
-        }
-
-        public static object ShortJumpConverter(OpCode opCode, CompilerContext context, int? parameter) => (parameter.Value < 128 ? (int)parameter : (int)parameter-256) + 2;
-
-        public static object LongJumpConverter(OpCode opCode, CompilerContext context, int? parameter) => parameter.Value + 5;
-
-        public static object CallConverter(OpCode opCode, CompilerContext context, int? parameter) => context.Assembly.ManifestModule.ResolveMethod(parameter.Value).GetLabel();
-
-        public static object RtsConverter(OpCode opCode, CompilerContext context, int? parameter) => $".{context.Method.GetLabel()}_ReturnAddress";
-
-    }
-
     internal static class CommandMap
     {
         private static Dictionary<ILOpCode, OpBase> map

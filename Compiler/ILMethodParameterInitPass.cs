@@ -13,15 +13,15 @@ using System.Linq;
 
 namespace Compiler
 {
-    class ILMethodParameterInitPass: ICompilerPass
+    class ILMethodParameterInitPass: ICompilerMethodPass
     {
-        public void Execute(CompilerContext context)
+        public void Execute(CompilerMethodContext context)
         {
             var parameters = context.Method.GetParameters();
             foreach (var parameter in parameters)
             {
                 string outputLine = $".{context.Method.GetLabel()}_{parameter.Name} !byte 0,0"; 
-                context.OutputFile.WriteLine(outputLine);
+                context.CompilerContext.OutputFile.WriteLine(outputLine);
             }
         }
     }    

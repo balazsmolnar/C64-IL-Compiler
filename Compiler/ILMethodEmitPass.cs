@@ -13,20 +13,21 @@ using System.Linq;
 
 namespace Compiler
 {
-    class ILMethodEmitPass: ICompilerPass
+    class ILMethodEmitPass: ICompilerMethodPass
     {
-        public void Execute(CompilerContext context)
+        public void Execute(CompilerMethodContext context)
         {
-            context.OutputFile.WriteLine("");
-            context.OutputFile.WriteLine("");
-            context.OutputFile.WriteLine($"{context.Method.GetLabel()} ");
+            var output = context.CompilerContext.OutputFile;
+            output.WriteLine("");
+            output.WriteLine("");
+            output.WriteLine($"{context.Method.GetLabel()} ");
 
-            context.OutputFile.WriteLine($"+stack_save_return_adress .{context.Method.GetLabel()}_ReturnAddress");
+            output.WriteLine($"+stack_save_return_adress .{context.Method.GetLabel()}_ReturnAddress");
 
             foreach (var param in context.Method.GetParameters())
             {
                 string outputLine = $"+stack_pull_int .{context.Method.GetLabel()}_{param.Name}"; 
-                context.OutputFile.WriteLine(outputLine);
+                output.WriteLine(outputLine);
             }
 
             foreach (var line in context.Lines)
@@ -34,10 +35,8 @@ namespace Compiler
                 var op = CommandMap.Get(line.OpCode);
 
                 string outputLine = $"{(line.Label == null ? "" : line.Label+":")}    {op.Emit(context, line.Parameter)}"; 
-                context.OutputFile.WriteLine(outputLine);
+                output.WriteLine(outputLine);
             }
-
-            context.Lines = null;
         }
     }    
 }

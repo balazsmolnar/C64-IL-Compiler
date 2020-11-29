@@ -7,17 +7,27 @@ namespace Compiler
     class CompilerContext 
     {
         public Assembly Assembly { get; set; }
-        public MethodInfo Method { get; set; }
-
-        public ParameterInfo[] MethodParameters { get; set; }
         public StreamWriter OutputFile { get; set; }
-        public IList<ILLine> Lines { get; set; }
+        public IList<CompilerMethodContext> Methods { get; set; }
         public Dictionary<int, string> StringValues { get; set; } = new Dictionary<int, string>();
+    }
+
+    class CompilerMethodContext 
+    {
+        public CompilerContext CompilerContext { get; set; }
+        public MethodInfo Method { get; set; }
+        public ParameterInfo[] MethodParameters { get; set; }
+        public IList<ILLine> Lines { get; set; }
     }
 
     interface ICompilerPass
     {
         void Execute(CompilerContext context);
+    }
+
+    interface ICompilerMethodPass
+    {
+        void Execute(CompilerMethodContext context);
     }
 
 }

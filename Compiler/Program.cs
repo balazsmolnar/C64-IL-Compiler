@@ -22,7 +22,7 @@ namespace Compiler
                 };
                 var passes = new List<ICompilerPass> {
                     new ILCodePass(
-                        new ICompilerPass[] {
+                        new ICompilerMethodPass[] {
                             new ILMethodCodePass(), 
                             new ILMethodLabelPass(), 
                             new ILMethodEmitPass(), 

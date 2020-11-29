@@ -4,9 +4,9 @@ using System.Reflection.Metadata;
 
 namespace Compiler
 {
-    class ILMethodCodePass: ICompilerPass
+    class ILMethodCodePass: ICompilerMethodPass
     {
-        public void Execute(CompilerContext context)
+        public void Execute(CompilerMethodContext context)
         {
             var body = context.Method.GetMethodBody();
             var input = body.GetILAsByteArray();

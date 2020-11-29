@@ -5,9 +5,9 @@ using System.Linq;
 
 namespace Compiler
 {
-    class ILMethodLabelPass: ICompilerPass
+    class ILMethodLabelPass: ICompilerMethodPass
     {
-        public void Execute(CompilerContext context)
+        public void Execute(CompilerMethodContext context)
         {
             Dictionary<int, string> labelPositions = new Dictionary<int, string>();
             int labelNum = 0;

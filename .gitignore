@@ -1,3 +1,4 @@
 .cache/**
 */bin/**
 */obj/**
+prg/main.prg

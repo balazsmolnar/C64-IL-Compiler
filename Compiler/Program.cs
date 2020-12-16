@@ -11,26 +11,34 @@ namespace Compiler
     {
         static void Main(string[] args)
         {
-            var asmLocation = @"c:\Balazs\C64\Demo\bin\Debug\Demo.dll";
+            if (args.Length < 1)
+                throw new InvalidOperationException("Assembly must be specified.");
+
+            if (args.Length < 2)
+                throw new InvalidOperationException("Output folder must be specified.");
+
+            var asmLocation = args[0];
+            var output = args[1];
             var asm = Assembly.LoadFrom(asmLocation);
 
-            using (var outputFile = File.CreateText(@"C:\Balazs\C64\asm\generated.asm"))
+            using (var outputFile = File.CreateText(Path.Combine(output, "generated.asm")))
             {
-                var context = new CompilerContext {
+                var context = new CompilerContext
+                {
                     Assembly = asm,
                     OutputFile = outputFile
                 };
                 var passes = new List<ICompilerPass> {
                     new ILCodePass(
                         new ICompilerMethodPass[] {
-                            new ILMethodCodePass(), 
-                            new ILMethodLabelPass(), 
-                            new ILMethodEmitPass(), 
+                            new ILMethodCodePass(),
+                            new ILMethodLabelPass(),
+                            new ILMethodEmitPass(),
                             new ILMethodParameterInitPass(),
-                            new ILMethodVariableInitPass()}), 
+                            new ILMethodVariableInitPass()}),
                      new ILStringResourcesPass() };
                 passes.ForEach(p => p.Execute(context));
-            }            
+            }
         }
     }
 }

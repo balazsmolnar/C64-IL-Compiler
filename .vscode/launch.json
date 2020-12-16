@@ -18,17 +18,19 @@
             "request": "launch",
             "preLaunchTask": "build",
             "program": "${workspaceFolder}/compiler/bin/Debug/compiler.exe",
-            "args": [],
+            "args": [
+                "./demo/bin/debug/demo.dll",
+                "./asm"
+            ],
             "cwd": "${workspaceFolder}",
             "stopAtEntry": false,
             "console": "internalConsole"
         },
-
         {
             "type": "asm",
             "request": "launch",
             "name": "C64",
-            "pc": "$c000",            
+            "pc": "$c000",
             "binary": "c:\\Balazs\\C64\\.cache\\asm\\test.prg"
         }
     ]

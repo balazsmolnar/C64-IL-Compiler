@@ -211,32 +211,48 @@ label_RunBall_161:    jmp label_RunBall_14
 .Program_RunBall_var11 !byte 0,0
 
 
+Program_OnInterrupt 
++stack_save_return_adress .Program_OnInterrupt_ReturnAddress
++stack_pull_int .Program_OnInterrupt_sender
++stack_pull_int .Program_OnInterrupt_args
+    nop
+    jsr C64_GetBorderColor
+    +stack_push_int 1
+    +add16
+    jsr C64_SetBorderColor
+    nop
+    +stack_return_to_saved_address .Program_OnInterrupt_ReturnAddress
+.Program_OnInterrupt_sender !byte 0,0
+.Program_OnInterrupt_args !byte 0,0
+.Program_OnInterrupt_ReturnAddress !byte 0,0
+
+
 Program_Main 
 +stack_save_return_adress .Program_Main_ReturnAddress
     nop
-    jsr Program_ClearScreen
+    +stack_push_int 0
+    +stack_push_int Program_OnInterrupt
+    +stack_push_int 167772178
+    jsr C64_add_Interrupt
     nop
     +stack_push_int 0
     +stack_pull_int .Program_Main_var0
-    jmp label_Main_35
-label_Main_11:    nop
-    +stack_push_var .Program_Main_var0
-    jsr Program_WriteSpaces
-    nop
+    jmp label_Main_40
+label_Main_23:    nop
     +stack_push_pointer .string_1879048197
-    jsr Program_Hello
+    jsr Console_WriteLine
     nop
     nop
     +stack_push_var .Program_Main_var0
     +stack_push_int 1
     +add16
     +stack_pull_int .Program_Main_var0
-label_Main_35:    +stack_push_var .Program_Main_var0
+label_Main_40:    +stack_push_var .Program_Main_var0
     +stack_push_int 10
     +compareLess16
     +stack_pull_int .Program_Main_var1
     +stack_push_var .Program_Main_var1
-    +branch_true label_Main_11
+    +branch_true label_Main_23
     jsr Program_RunBall
     nop
     +stack_return_to_saved_address .Program_Main_ReturnAddress
@@ -244,4 +260,4 @@ label_Main_35:    +stack_push_var .Program_Main_var0
 .Program_Main_var0 !byte 0,0
 .Program_Main_var1 !byte 0,0
 .string_1879048193 !pet " ",0
-.string_1879048197 !pet "hello world from parameter",0
+.string_1879048197 !pet "hello world",0

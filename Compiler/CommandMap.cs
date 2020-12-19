@@ -24,6 +24,9 @@ namespace Compiler
                 { ILOpCode.Ldc_i4_m1, new OpLdc_i4_const(0xFFFF) },
                 { ILOpCode.Ldc_i4_s, new OpLdc_i4_s() },
                 { ILOpCode.Ldc_i4, new OpLdc_i4() },
+                { ILOpCode.Ldnull, new OpLdnull() },
+                { ILOpCode.Newobj, new OpLdc_i4() },  // TODO
+                { ILOpCode.Ldftn, new OpLdftn() },
                 { ILOpCode.Stloc_0, new OpStloc(0) },
                 { ILOpCode.Stloc_1, new OpStloc(1) },
                 { ILOpCode.Stloc_2, new OpStloc(2) },
@@ -48,12 +51,14 @@ namespace Compiler
                 { ILOpCode.Clt, new OpArithmetic2("+compareLess16") },
                 { ILOpCode.Ceq, new OpArithmetic2("+compareEqual16") },
             };
-    
-        public static bool Supported(ILOpCode code) {
+
+        public static bool Supported(ILOpCode code)
+        {
             return map.ContainsKey(code);
         }
 
-        public static OpBase Get(ILOpCode opCode) {
+        public static OpBase Get(ILOpCode opCode)
+        {
             return map[opCode];
         }
     }

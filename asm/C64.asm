@@ -97,7 +97,7 @@ C64_add_Interrupt:
     sei
     +stack_save_return_adress $20
     +stack_pull_int $34
-    +stack_pull_int $26
+    +stack_pull_pointer $26
     +stack_pull_int $34
     lda $0314
     sta $52

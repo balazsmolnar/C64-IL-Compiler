@@ -14,6 +14,18 @@
     +stack_push_var $34
 }
 
+!macro add8 {
+
+    +stack_pull_int $32
+    +stack_pull_int $34
+
+    clc
+    lda $34
+    adc $32
+    sta $34
+    +stack_push_var $34
+}
+
 !macro negate16 {
 
     +stack_pull_int $34
@@ -27,6 +39,18 @@
     adc #$1
     bcc +
     inc $35
++   sta $34
+    +stack_push_var $34
+}
+
+!macro negate8 {
+
+    +stack_pull_int $34
+
+    lda $34
+    eor #$FF
+    clc
+    adc #$1
 +   sta $34
     +stack_push_var $34
 }
@@ -52,6 +76,19 @@
         +stack_push_var $34
 }
 
+!macro compareLess8 {
+        +stack_pull_int $34
+        +stack_pull_int $32
+
+        ldx #0
+        lda $32
+        cmp $34
+        bpl +
+        ldx #1
++       stx $34
+        +stack_push_var $34
+}
+
 !macro compareEqual16 {
         +stack_pull_int $34
         +stack_pull_int $32
@@ -71,3 +108,23 @@
         stx $35
         +stack_push_var $34
 }
+
+!macro compareEqual8 {
+        +stack_pull_int $34
+        +stack_pull_int $32
+
+        ldx #0
+        lda $32
+        cmp $34
+        bne ++
+        ldx #1
+++      
+        stx $34
+        +stack_push_var $34
+}
+
+!macro add {
+        ;+add16
+        +add8
+}
+

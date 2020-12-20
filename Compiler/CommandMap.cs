@@ -45,11 +45,11 @@ namespace Compiler
                 { ILOpCode.Brtrue_s, new OpShortJump("+branch_true") },
                 { ILOpCode.Brfalse_s, new OpShortJump("+branch_false") },
                 { ILOpCode.Nop, new OpBase(0, "nop") },
-                { ILOpCode.Add, new OpArithmetic2("+add16") },
-                { ILOpCode.Neg, new OpArithmetic1("+negate16") },
+                { ILOpCode.Add, new OpArithmetic2("+add") },
+                { ILOpCode.Neg, new OpArithmetic1("+negate") },
                 { ILOpCode.Ret, new OpRet()  },
-                { ILOpCode.Clt, new OpArithmetic2("+compareLess16") },
-                { ILOpCode.Ceq, new OpArithmetic2("+compareEqual16") },
+                { ILOpCode.Clt, new OpArithmetic2("+compareLess") },
+                { ILOpCode.Ceq, new OpArithmetic2("+compareEqual") },
             };
 
         public static bool Supported(ILOpCode code)

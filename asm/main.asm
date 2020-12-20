@@ -3,8 +3,10 @@
 !src ".\\asm\\helper\\arithmetic.asm"
 !src ".\\asm\\helper\\branch.asm"
 
+!src ".\\asm\\helper\\16bit.asm"
+
 +start_at $1000
-+stack_init .stack
+;+stack_init .stack
 
 jsr Program_Main
 rts

@@ -42,7 +42,7 @@ namespace Compiler.Ops
 
     class OpLdftn : OpBase
     {
-        public OpLdftn() : base(4, "+stack_push_int")
+        public OpLdftn() : base(4, "+stack_push_pointer")
         {
         }
 

@@ -143,6 +143,15 @@ namespace Compiler.Ops
         public override object ConvertParameter(CompilerMethodContext context, int parameter) => $".{context.Method.GetLabel()}_{context.Method.GetParameters()[_argIndex].Name}";
     }
 
+    class OpLdsld : OpPushBase
+    {
+        public OpLdsld() : base(4, "+stack_push_var")
+        {
+        }
+
+        public override object ConvertParameter(CompilerMethodContext context, int parameter) => $".{context.Method.DeclaringType.Name}_field_{parameter}";
+    }
+
     class OpLdnull : OpPushBase
     {
         public OpLdnull() : base(0)
@@ -169,6 +178,15 @@ namespace Compiler.Ops
         }
 
         public override object ConvertParameter(CompilerMethodContext context, int parameter) => $".{context.Method.GetLabel()}_var{_varIndex}";
+    }
+
+    class OpStsfld : OpPullBase
+    {
+        public OpStsfld() : base(4)
+        {
+        }
+
+        public override object ConvertParameter(CompilerMethodContext context, int parameter) => $".{context.Method.DeclaringType.Name}_field_{parameter}";
     }
 
     class OpStloc_s : OpPullBase
@@ -220,5 +238,4 @@ namespace Compiler.Ops
 
         public override object ConvertParameter(CompilerMethodContext context, int parameter) => $".{context.Method.GetLabel()}_ReturnAddress";
     }
-
 }

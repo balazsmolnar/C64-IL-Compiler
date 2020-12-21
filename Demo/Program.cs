@@ -73,18 +73,25 @@ namespace Demo
 
         }
 
+        static int x;
+
         static void OnInterrupt(object sender, EventArgs args)
         {
-            C64.SetBorderColor(C64.GetBorderColor() + 1);
+            x = x + 1;
+            C64.SetBorderColor((Colors)(x));
         }
+
 
         static void Main()
         {
+            x = 0;
+
             C64.Interrupt += OnInterrupt;
-            for (int i = 0; i < 10; i++)
+            for (int i = x; i < 10; i++)
             {
                 Console.WriteLine("hello world");
             }
+            // RunBall();
         }
     }
 }

@@ -30,6 +30,9 @@ namespace Compiler
                 };
                 var passes = new List<ICompilerPass> {
                     new ILCodePass(
+                        new ICompilerTypePass[] {
+                            new ILTypeStaticFieldInitPass()
+                        },
                         new ICompilerMethodPass[] {
                             new ILMethodCodePass(),
                             new ILMethodLabelPass(),

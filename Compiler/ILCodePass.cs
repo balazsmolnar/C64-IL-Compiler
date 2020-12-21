@@ -17,34 +17,49 @@ using System.Reflection;
 
 namespace Compiler
 {
-    class ILCodePass: ICompilerPass
+    class ILCodePass : ICompilerPass
     {
+        private readonly IEnumerable<ICompilerTypePass> _typePasses;
         private IEnumerable<ICompilerMethodPass> _methodPasses;
-        public ILCodePass (IEnumerable<ICompilerMethodPass> methodPasses)
+        public ILCodePass(IEnumerable<ICompilerTypePass> typePasses, IEnumerable<ICompilerMethodPass> methodPasses)
         {
+            _typePasses = typePasses;
             _methodPasses = methodPasses;
 
         }
         public void Execute(CompilerContext context)
         {
             context.Methods = new List<CompilerMethodContext>();
-            foreach (var method in context.Assembly.GetTypes().SelectMany(t=> t.GetMethods(BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public))) 
+            foreach (var @type in context.Assembly.GetTypes())
             {
-                var methodContext = new CompilerMethodContext()
+                var typeContext = new CompilerTypeContext()
                 {
                     CompilerContext = context,
-                    Lines = new List<ILLine>(),
-                    Method = method,
-                    MethodParameters = method.GetParameters().OrderBy(x => x.Position).ToArray()
+                    Type = @type
                 };
-
-                context.Methods.Add(methodContext);
-
-                foreach (var pass in _methodPasses)
+                foreach (var pass in _typePasses)
                 {
-                    pass.Execute(methodContext);
+                    pass.Execute(typeContext);
+                }
+
+                var methods = @type.GetMethods(BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public);
+                foreach (var method in methods)
+                {
+                    var methodContext = new CompilerMethodContext()
+                    {
+                        CompilerContext = context,
+                        Lines = new List<ILLine>(),
+                        Method = method,
+                        MethodParameters = method.GetParameters().OrderBy(x => x.Position).ToArray()
+                    };
+                    context.Methods.Add(methodContext);
+
+                    foreach (var pass in _methodPasses)
+                    {
+                        pass.Execute(methodContext);
+                    }
                 }
             }
-        }       
-    }    
+        }
+    }
 }

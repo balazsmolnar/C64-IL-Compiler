@@ -1,3 +1,4 @@
+.Program_field_67108865 !byte 0,0
 
 
 Program_get_BallColor 
@@ -216,6 +217,13 @@ Program_OnInterrupt
 +stack_pull_int .Program_OnInterrupt_sender
 +stack_pull_int .Program_OnInterrupt_args
     nop
+    +stack_push_var .Program_field_67108865
+    +stack_push_int 1
+    +add
+    +stack_pull_int .Program_field_67108865
+    +stack_push_var .Program_field_67108865
+    jsr C64_SetBorderColor
+    nop
     +stack_return_to_saved_address .Program_OnInterrupt_ReturnAddress
 .Program_OnInterrupt_sender !byte 0,0
 .Program_OnInterrupt_args !byte 0,0
@@ -226,14 +234,16 @@ Program_Main
 +stack_save_return_adress .Program_Main_ReturnAddress
     nop
     +stack_push_int 0
+    +stack_pull_int .Program_field_67108865
+    +stack_push_int 0
     +stack_push_pointer Program_OnInterrupt
-    +stack_push_int 167772176
+    +stack_push_int 167772177
     jsr C64_add_Interrupt
     nop
-    +stack_push_int 0
+    +stack_push_var .Program_field_67108865
     +stack_pull_int .Program_Main_var0
-    jmp label_Main_40
-label_Main_23:    nop
+    jmp label_Main_50
+label_Main_33:    nop
     +stack_push_pointer .string_1879048197
     jsr Console_WriteLine
     nop
@@ -242,12 +252,12 @@ label_Main_23:    nop
     +stack_push_int 1
     +add
     +stack_pull_int .Program_Main_var0
-label_Main_40:    +stack_push_var .Program_Main_var0
+label_Main_50:    +stack_push_var .Program_Main_var0
     +stack_push_int 10
     +compareLess
     +stack_pull_int .Program_Main_var1
     +stack_push_var .Program_Main_var1
-    +branch_true label_Main_23
+    +branch_true label_Main_33
     +stack_return_to_saved_address .Program_Main_ReturnAddress
 .Program_Main_ReturnAddress !byte 0,0
 .Program_Main_var0 !byte 0,0

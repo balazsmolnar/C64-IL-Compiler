@@ -23,7 +23,7 @@ namespace Compiler
         public CompilerContext CompilerContext { get; set; }
         public MethodInfo Method { get; set; }
         public ParameterInfo[] MethodParameters { get; set; }
-        public IList<ILLine> Lines { get; set; }
+        public List<ILLine> Lines { get; set; }
     }
 
     interface ICompilerPass

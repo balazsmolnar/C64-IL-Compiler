@@ -1,4 +1,5 @@
 using System.Reflection.Metadata;
+using Compiler.Ops;
 
 namespace Compiler
 {
@@ -9,6 +10,9 @@ namespace Compiler
         public object Parameter { get; set; }
         public int Position { get; set; }
         public int Size { get; set; }
+        public bool Optimized { get; set; }
+
+        public OpBase Operand { get; set; }
 
         public override string ToString()
         {

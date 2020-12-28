@@ -26,10 +26,11 @@ label_ClearScreen_10:    nop
     jsr C64_SetChar
     nop
     nop
-    +stack_push_var .Program_ClearScreen_var1
-    +stack_push_int 1
-    +add
-    +stack_pull_int .Program_ClearScreen_var1
+  ;  +stack_push_var .Program_ClearScreen_var1
+  ;  +stack_push_int 1
+  ;  +add
+  ;  +stack_pull_int .Program_ClearScreen_var1
+    +inc_var .Program_ClearScreen_var1
 label_ClearScreen_28:    +stack_push_var .Program_ClearScreen_var1
     +stack_push_int 25
     +compareLess
@@ -37,10 +38,11 @@ label_ClearScreen_28:    +stack_push_var .Program_ClearScreen_var1
     +stack_push_var .Program_ClearScreen_var2
     +branch_true label_ClearScreen_10
     nop
-    +stack_push_var .Program_ClearScreen_var0
-    +stack_push_int 1
-    +add
-    +stack_pull_int .Program_ClearScreen_var0
+  ;  +stack_push_var .Program_ClearScreen_var0
+  ;  +stack_push_int 1
+  ;  +add
+  ;  +stack_pull_int .Program_ClearScreen_var0
+    +inc_var .Program_ClearScreen_var0
 label_ClearScreen_42:    +stack_push_var .Program_ClearScreen_var0
     +stack_push_int 40
     +compareLess
@@ -79,10 +81,11 @@ label_WriteSpaces_5:    nop
     jsr Console_Write
     nop
     nop
-    +stack_push_var .Program_WriteSpaces_var0
-    +stack_push_int 1
-    +add
-    +stack_pull_int .Program_WriteSpaces_var0
+  ;  +stack_push_var .Program_WriteSpaces_var0
+  ;  +stack_push_int 1
+  ;  +add
+  ;  +stack_pull_int .Program_WriteSpaces_var0
+    +inc_var .Program_WriteSpaces_var0
 label_WriteSpaces_22:    +stack_push_var .Program_WriteSpaces_var0
     +stack_push_var .Program_WriteSpaces_n
     +compareLess
@@ -235,29 +238,29 @@ Program_Main
     nop
     +stack_push_int 0
     +stack_pull_int .Program_field_67108865
-    +stack_push_int 0
-    +stack_push_pointer Program_OnInterrupt
-    +stack_push_int 167772177
-    jsr C64_add_Interrupt
+    jsr Program_ClearScreen
     nop
     +stack_push_var .Program_field_67108865
     +stack_pull_int .Program_Main_var0
-    jmp label_Main_50
-label_Main_33:    nop
+    jmp label_Main_38
+label_Main_21:    nop
     +stack_push_pointer .string_1879048197
     jsr Console_WriteLine
     nop
     nop
-    +stack_push_var .Program_Main_var0
-    +stack_push_int 1
-    +add
-    +stack_pull_int .Program_Main_var0
-label_Main_50:    +stack_push_var .Program_Main_var0
+  ;  +stack_push_var .Program_Main_var0
+  ;  +stack_push_int 1
+  ;  +add
+  ;  +stack_pull_int .Program_Main_var0
+    +inc_var .Program_Main_var0
+label_Main_38:    +stack_push_var .Program_Main_var0
     +stack_push_int 10
     +compareLess
     +stack_pull_int .Program_Main_var1
     +stack_push_var .Program_Main_var1
-    +branch_true label_Main_33
+    +branch_true label_Main_21
+    jsr Program_RunBall
+    nop
     +stack_return_to_saved_address .Program_Main_ReturnAddress
 .Program_Main_ReturnAddress !byte 0,0
 .Program_Main_var0 !byte 0,0

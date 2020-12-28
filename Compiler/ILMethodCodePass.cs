@@ -4,7 +4,7 @@ using System.Reflection.Metadata;
 
 namespace Compiler
 {
-    class ILMethodCodePass: ICompilerMethodPass
+    class ILMethodCodePass : ICompilerMethodPass
     {
         public void Execute(CompilerMethodContext context)
         {
@@ -13,18 +13,24 @@ namespace Compiler
             var lines = new List<ILLine>();
 
             var index = 0;
-            while (index < input.Length) {
+            while (index < input.Length)
+            {
 
                 ILOpCode opCode;
                 ILLine line = new ILLine();
                 line.Position = index;
 
-                if (input[index] >= 254) {
-                    opCode = (ILOpCode)(input[index++]*256 + input[index++]);                    
-                } else {
+                if (input[index] >= 254)
+                {
+                    opCode = (ILOpCode)(input[index++] * 256 + input[index++]);
+                }
+                else
+                {
                     opCode = (ILOpCode)(input[index++]);
                 }
                 line.OpCode = opCode;
+                line.Operand = CommandMap.Get(line.OpCode);
+
                 if (!CommandMap.Supported(opCode))
                     throw new NotSupportedException($"Command is not supported: {opCode.ToString()}");
 
@@ -33,14 +39,14 @@ namespace Compiler
                 if (op.ParameterSize == 1)
                     parameter = input[index++];
                 if (op.ParameterSize == 4)
-                    parameter = input[index++]+256*input[index++]+256*256*input[index++]+256*256*256*input[index++];
+                    parameter = input[index++] + 256 * input[index++] + 256 * 256 * input[index++] + 256 * 256 * 256 * input[index++];
                 line.Parameter = op.ConvertParameter(context, parameter);
-                line.Size = index-line.Position;
+                line.Size = index - line.Position;
                 Console.WriteLine(line);
 
                 lines.Add(line);
             }
-            context.Lines = lines.ToArray();
-        }       
-    }    
+            context.Lines = lines;
+        }
+    }
 }

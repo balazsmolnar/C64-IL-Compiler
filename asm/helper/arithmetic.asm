@@ -123,8 +123,6 @@
         +stack_push_var $34
 }
 
-!macro add {
-        ;+add16
-        +add8
+!macro inc_var8 .variable {
+        inc .variable
 }
-

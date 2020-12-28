@@ -21,3 +21,11 @@
 !macro compareEqual {
     +compareEqual8
 }
+
+!macro add {
+    +add8
+}
+
+!macro inc_var .variable {
+    +inc_var8 .variable
+}

@@ -171,13 +171,13 @@ namespace Compiler.Ops
 
     class OpStloc : OpPullBase
     {
-        private int _varIndex;
+        public int VarIndex { get; }
         public OpStloc(int varIndex) : base(0)
         {
-            _varIndex = varIndex;
+            VarIndex = varIndex;
         }
 
-        public override object ConvertParameter(CompilerMethodContext context, int parameter) => $".{context.Method.GetLabel()}_var{_varIndex}";
+        public override object ConvertParameter(CompilerMethodContext context, int parameter) => $".{context.Method.GetLabel()}_var{VarIndex}";
     }
 
     class OpStsfld : OpPullBase
@@ -238,4 +238,16 @@ namespace Compiler.Ops
 
         public override object ConvertParameter(CompilerMethodContext context, int parameter) => $".{context.Method.GetLabel()}_ReturnAddress";
     }
+
+    class OpIncVar : OpBase
+    {
+        private int _varIndex;
+        public OpIncVar(int varIndex) : base(0, "+inc_var")
+        {
+            _varIndex = varIndex;
+        }
+
+        public override object ConvertParameter(CompilerMethodContext context, int parameter) => $".{context.Method.GetLabel()}_var{_varIndex}";
+    }
+
 }

@@ -21,3 +21,11 @@
 !macro compareEqual {
     +compareEqual16
 }
+
+!macro add {
+    +add16
+}
+
+!macro inc_var .variable {
+    +inc_var16 .variable
+}

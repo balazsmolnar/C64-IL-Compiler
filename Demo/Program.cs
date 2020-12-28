@@ -85,13 +85,12 @@ namespace Demo
         static void Main()
         {
             x = 0;
-
-            C64.Interrupt += OnInterrupt;
+            ClearScreen();
             for (int i = x; i < 10; i++)
             {
                 Console.WriteLine("hello world");
             }
-            // RunBall();
+            RunBall();
         }
     }
 }

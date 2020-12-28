@@ -126,3 +126,8 @@
 !macro inc_var8 .variable {
         inc .variable
 }
+
+!macro init_var8 .variable, value  {
+        lda #<value
+        sta .variable
+}

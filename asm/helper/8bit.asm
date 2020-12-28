@@ -29,3 +29,7 @@
 !macro inc_var .variable {
     +inc_var8 .variable
 }
+
+!macro init_var .variable, value {
+    +init_var8 .variable, value
+}

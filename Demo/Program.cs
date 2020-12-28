@@ -86,7 +86,7 @@ namespace Demo
         {
             x = 0;
             ClearScreen();
-            for (int i = x; i < 10; i++)
+            for (int i = 0; i < 10; i++)
             {
                 Console.WriteLine("hello world");
             }

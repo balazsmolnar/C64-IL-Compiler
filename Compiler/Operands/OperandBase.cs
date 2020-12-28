@@ -74,7 +74,15 @@ namespace Compiler.Ops
         public OpPushBase(int parameterSize, string command) : base(parameterSize, command) { }
     }
 
-    class OpLdc_i4_const : OpPushBase
+    class OpLdConst : OpPushBase
+    {
+        public OpLdConst(int parameterSize) : base(parameterSize)
+        {
+
+        }
+    }
+
+    class OpLdc_i4_const : OpLdConst
     {
         private int _value;
         public OpLdc_i4_const(int value) : base(0)
@@ -88,7 +96,7 @@ namespace Compiler.Ops
         }
     }
 
-    class OpLdc_i4 : OpPushBase
+    class OpLdc_i4 : OpLdConst
     {
         public OpLdc_i4() : base(4)
         {
@@ -100,7 +108,7 @@ namespace Compiler.Ops
         }
     }
 
-    class OpLdc_i4_s : OpPushBase
+    class OpLdc_i4_s : OpLdConst
     {
         public OpLdc_i4_s() : base(1)
         {
@@ -248,6 +256,19 @@ namespace Compiler.Ops
         }
 
         public override object ConvertParameter(CompilerMethodContext context, int parameter) => $".{context.Method.GetLabel()}_var{_varIndex}";
+    }
+
+    class OpInitVar : OpBase
+    {
+        private int _varIndex;
+        private int _value;
+        public OpInitVar(int varIndex, int value) : base(0, "+init_var")
+        {
+            _varIndex = varIndex;
+            _value = value;
+        }
+
+        public override object ConvertParameter(CompilerMethodContext context, int parameter) => $".{context.Method.GetLabel()}_var{_varIndex}, {_value}";
     }
 
 }

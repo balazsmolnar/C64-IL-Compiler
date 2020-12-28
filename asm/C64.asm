@@ -53,7 +53,15 @@ C64_SetChar_Core:
 C64_GetChar_Core:
 
     ; Init
+    lda #$00
+    sta $30
+    lda #$04
+    sta $31
+
     jsr C64_Set_Screen_Ptr
+    ldy #0
+    lda ($30),y
+    sta $36
     rts
 
 C64_SetChar:

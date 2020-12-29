@@ -33,24 +33,26 @@ label_ClearScreen_10:    nop
   ;  +add
   ;  +stack_pull_int .Program_ClearScreen_var1
     +inc_var .Program_ClearScreen_var1
-label_ClearScreen_28:    +stack_push_var .Program_ClearScreen_var1
-    +stack_push_int 25
-    +compareLess
-    +stack_pull_int .Program_ClearScreen_var2
-    +stack_push_var .Program_ClearScreen_var2
-    +branch_true label_ClearScreen_10
+label_ClearScreen_28:  ;  +stack_push_var .Program_ClearScreen_var1
+  ;  +stack_push_int 25
+  ;  +compareLess
+  ;  +stack_pull_int .Program_ClearScreen_var2
+  ;  +stack_push_var .Program_ClearScreen_var2
+  ;  +branch_true label_ClearScreen_10
+    +branch_if_var_less .Program_ClearScreen_var1, 25, label_ClearScreen_10
     nop
   ;  +stack_push_var .Program_ClearScreen_var0
   ;  +stack_push_int 1
   ;  +add
   ;  +stack_pull_int .Program_ClearScreen_var0
     +inc_var .Program_ClearScreen_var0
-label_ClearScreen_42:    +stack_push_var .Program_ClearScreen_var0
-    +stack_push_int 40
-    +compareLess
-    +stack_pull_int .Program_ClearScreen_var3
-    +stack_push_var .Program_ClearScreen_var3
-    +branch_true label_ClearScreen_5
+label_ClearScreen_42:  ;  +stack_push_var .Program_ClearScreen_var0
+  ;  +stack_push_int 40
+  ;  +compareLess
+  ;  +stack_pull_int .Program_ClearScreen_var3
+  ;  +stack_push_var .Program_ClearScreen_var3
+  ;  +branch_true label_ClearScreen_5
+    +branch_if_var_less .Program_ClearScreen_var0, 40, label_ClearScreen_5
     +stack_return_to_saved_address .Program_ClearScreen_ReturnAddress
 .Program_ClearScreen_ReturnAddress !byte 0,0
 .Program_ClearScreen_var0 !byte 0,0
@@ -265,12 +267,13 @@ label_Main_17:    nop
   ;  +add
   ;  +stack_pull_int .Program_Main_var0
     +inc_var .Program_Main_var0
-label_Main_34:    +stack_push_var .Program_Main_var0
-    +stack_push_int 10
-    +compareLess
-    +stack_pull_int .Program_Main_var1
-    +stack_push_var .Program_Main_var1
-    +branch_true label_Main_17
+label_Main_34:  ;  +stack_push_var .Program_Main_var0
+  ;  +stack_push_int 10
+  ;  +compareLess
+  ;  +stack_pull_int .Program_Main_var1
+  ;  +stack_push_var .Program_Main_var1
+  ;  +branch_true label_Main_17
+    +branch_if_var_less .Program_Main_var0, 10, label_Main_17
     jsr Program_RunBall
     nop
     +stack_return_to_saved_address .Program_Main_ReturnAddress

@@ -38,6 +38,7 @@ namespace Compiler
                             new ILMethodLabelPass(),
                             new ILMethodIncOptimizer(),
                             new ILMethodSetVariableOptimizer(),
+                            new ILMethodBranchIfLessOptimizer(),
                             new ILMethodEmitPass(),
                             new ILMethodParameterInitPass(),
                             new ILMethodVariableInitPass()}),

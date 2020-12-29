@@ -122,13 +122,13 @@ namespace Compiler.Ops
 
     class OpLdloc : OpPushBase
     {
-        private int _varIndex;
+        public int VarIndex;
         public OpLdloc(int varIndex) : base(0, "+stack_push_var")
         {
-            _varIndex = varIndex;
+            VarIndex = varIndex;
         }
 
-        public override object ConvertParameter(CompilerMethodContext context, int parameter) => $".{context.Method.GetLabel()}_var{_varIndex}";
+        public override object ConvertParameter(CompilerMethodContext context, int parameter) => $".{context.Method.GetLabel()}_var{VarIndex}";
     }
 
     class OpLdloc_s : OpPushBase
@@ -271,4 +271,18 @@ namespace Compiler.Ops
         public override object ConvertParameter(CompilerMethodContext context, int parameter) => $".{context.Method.GetLabel()}_var{_varIndex}, {_value}";
     }
 
+    class OpBranchIfVarLess : OpBase
+    {
+        private int _varIndex;
+        private int _value;
+        private string _label;
+        public OpBranchIfVarLess(int varIndex, int value, string label) : base(0, "+branch_if_var_less")
+        {
+            _varIndex = varIndex;
+            _value = value;
+            _label = label;
+        }
+
+        public override object ConvertParameter(CompilerMethodContext context, int parameter) => $".{context.Method.GetLabel()}_var{_varIndex}, {_value}, {_label}";
+    }
 }

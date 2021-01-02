@@ -1,46 +1,46 @@
-!src ".\\asm\\helper\\loader.asm"
-!src ".\\asm\\helper\\stack.asm"
-!src ".\\asm\\helper\\branch.asm"
 
-+start_at $1000
-+stack_init .stack
-jmp x
+*=$1000
 
-!src ".\\asm\\helper\\arithmetic.asm"
-x
-        nop ;NOP
-        +stack_push_int 0 ;Push: 0
-        +stack_pull_int .var0 ;Pop: Var 0
-        jmp l1
+
+!macro dist label1, ~d {
+    !ifndef label1  {
+        !set d = 255
+    } else {
+        !set d = * - label1
+    }
+}
+
+!macro bne .label {
+    !set .d = 0
+    !ifndef .label  {
+        !set d = 255
+    } else {
+        !set d = * - .label
+    }
+    !if (.d < 127) {
+        bne .label
+    } else {
+        beq+
+        jmp .label
++       
+    }
+}
+
+!macro bne2 .labelxxx {
+    +bne .labelxxx
+}
+
+
+l2:
+        +bne2 l1
+        bne l1
+        beq l1
+        bne l2
         nop
-l0      +stack_push_pointer .string
-        jsr Console_WriteLine
         nop
-        nop     
-        +stack_push_var .var0
-        +stack_push_int 1
+        nop
+l1:     nop
+        nop
+        
 
-        +add16
 
-        +stack_pull_int .var0
-
-l1      +stack_push_var .var0
-        +stack_push_int 10
-        +compareLess16
-
-        +stack_pull_int .var1
-        +stack_push_var .var1
-        +stack_pull_int .var1
-
-        ; lda #1
-        ; CMP .var1
-        +branch_true l0
-        rts
- 
-.var0 !byte 0,0
-.var1 !byte 0,0
-
-!src ".\\asm\\system.asm"
-
-.string		!pet "hello world 2", 0
-.stack

@@ -51,7 +51,7 @@
     eor #$FF
     clc
     adc #$1
-+   sta $34
+    sta $34
     +stack_push_var $34
 }
 
@@ -118,7 +118,7 @@
         cmp $34
         bne ++
         ldx #1
-++      
+++
         stx $34
         +stack_push_var $34
 }

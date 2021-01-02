@@ -285,4 +285,20 @@ namespace Compiler.Ops
 
         public override object ConvertParameter(CompilerMethodContext context, int parameter) => $".{context.Method.GetLabel()}_var{_varIndex}, {_value}, {_label}";
     }
+
+    class OpBranchIfNotEqual : OpBase
+    {
+        private int _varIndex;
+        private int _value;
+        private string _label;
+        public OpBranchIfNotEqual(int varIndex, int value, string label) : base(0, "+branch_if_not_equal")
+        {
+            _varIndex = varIndex;
+            _value = value;
+            _label = label;
+        }
+
+        public override object ConvertParameter(CompilerMethodContext context, int parameter) => $".{context.Method.GetLabel()}_var{_varIndex}, {_value}, {_label}";
+    }
+
 }

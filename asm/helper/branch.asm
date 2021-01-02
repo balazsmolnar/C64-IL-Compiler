@@ -1,66 +1,26 @@
 
 !macro bne .label {
-    !set .d = 0
-    !ifndef .label  {
-        !set .d = 255
-    } else {
-        !set .d = * - .label
-    }
-    !if (.d < 127) {
-        bne .label
-    } else {
-        beq+
-        jmp .label
-+       
-    }
+            beq+
+            jmp .label
++
 }
 
 !macro bmi .label {
-    !set .d = 0
-    !ifndef .label  {
-        !set .d = 255
-    } else {
-        !set .d = * - .label
-    }
-    !if (.d < 127) {
-        bmi .label
-    } else {
-        bpl+
-        jmp .label
-+       
-    }
+            bpl+
+            jmp .label
++
 }
 
 !macro bpl .label {
-    !set .d = 0
-    !ifndef .label  {
-        !set .d = 255
-    } else {
-        !set .d = * - .label
-    }
-    !if (.d < 127) {
-        bpl .label
-    } else {
-        bmi+
-        jmp .label
-+       
-    }
+            bmi+
+            jmp .label
++
 }
 
 !macro beq .label {
-    !set .d = 0
-    !ifndef .label  {
-        !set d = 255
-    } else {
-        !set d = * - .label
-    }
-    !if (.d < 127) {
-        beq .label
-    } else {
-        bne+
-        jmp .label
-+       
-    }
+            bne+
+            jmp .label
++
 }
 
 !macro branch_true .label {
@@ -77,4 +37,10 @@
     lda .variable
     cmp #.value
     +bmi .label
+}
+
+!macro branch_if_not_equal .variable, .value, .label {
+    lda .variable
+    cmp #.value
+    +bne .label
 }

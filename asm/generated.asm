@@ -155,39 +155,43 @@ label_RunBall_14:    nop
     +negate
     +stack_pull_int .Program_RunBall_var3
     jmp label_RunBall_161
-label_RunBall_71:    +stack_push_var .Program_RunBall_var0
-    +stack_push_int 39
-    +compareEqual
-    +stack_pull_int .Program_RunBall_var6
-    +stack_push_var .Program_RunBall_var6
-    +branch_false label_RunBall_84
+label_RunBall_71:  ;  +stack_push_var .Program_RunBall_var0
+  ;  +stack_push_int 39
+  ;  +compareEqual
+  ;  +stack_pull_int .Program_RunBall_var6
+  ;  +stack_push_var .Program_RunBall_var6
+  ;  +branch_false label_RunBall_84
+    +branch_if_not_equal .Program_RunBall_var0, 39, label_RunBall_84
   ;  +stack_push_int 65535
   ;  +stack_pull_int .Program_RunBall_var2
     +init_var .Program_RunBall_var2, 65535
-label_RunBall_84:    +stack_push_var .Program_RunBall_var0
-    +stack_push_int 0
-    +compareEqual
-    +stack_pull_int .Program_RunBall_var7
-    +stack_push_var .Program_RunBall_var7
-    +branch_false label_RunBall_96
+label_RunBall_84:  ;  +stack_push_var .Program_RunBall_var0
+  ;  +stack_push_int 0
+  ;  +compareEqual
+  ;  +stack_pull_int .Program_RunBall_var7
+  ;  +stack_push_var .Program_RunBall_var7
+  ;  +branch_false label_RunBall_96
+    +branch_if_not_equal .Program_RunBall_var0, 0, label_RunBall_96
   ;  +stack_push_int 1
   ;  +stack_pull_int .Program_RunBall_var2
     +init_var .Program_RunBall_var2, 1
-label_RunBall_96:    +stack_push_var .Program_RunBall_var1
-    +stack_push_int 24
-    +compareEqual
-    +stack_pull_int .Program_RunBall_var8
-    +stack_push_var .Program_RunBall_var8
-    +branch_false label_RunBall_109
+label_RunBall_96:  ;  +stack_push_var .Program_RunBall_var1
+  ;  +stack_push_int 24
+  ;  +compareEqual
+  ;  +stack_pull_int .Program_RunBall_var8
+  ;  +stack_push_var .Program_RunBall_var8
+  ;  +branch_false label_RunBall_109
+    +branch_if_not_equal .Program_RunBall_var1, 24, label_RunBall_109
   ;  +stack_push_int 65535
   ;  +stack_pull_int .Program_RunBall_var3
     +init_var .Program_RunBall_var3, 65535
-label_RunBall_109:    +stack_push_var .Program_RunBall_var1
-    +stack_push_int 0
-    +compareEqual
-    +stack_pull_int .Program_RunBall_var9
-    +stack_push_var .Program_RunBall_var9
-    +branch_false label_RunBall_121
+label_RunBall_109:  ;  +stack_push_var .Program_RunBall_var1
+  ;  +stack_push_int 0
+  ;  +compareEqual
+  ;  +stack_pull_int .Program_RunBall_var9
+  ;  +stack_push_var .Program_RunBall_var9
+  ;  +branch_false label_RunBall_121
+    +branch_if_not_equal .Program_RunBall_var1, 0, label_RunBall_121
   ;  +stack_push_int 1
   ;  +stack_pull_int .Program_RunBall_var3
     +init_var .Program_RunBall_var3, 1

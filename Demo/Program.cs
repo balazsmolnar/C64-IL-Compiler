@@ -41,22 +41,16 @@ namespace Demo
             int vx = 1;
             int vy = 1;
             const int circle = 81;
-            const int space = 32;
             const int WIDTH = 39;
             const int HEIGHT = 24;
 
+            var oldChar = C64.GetChar(x, y);
             for (; ; )
             {
-                C64.SetChar(x, y, space, BallColor);
+                C64.SetChar(x, y, oldChar, BallColor);
                 x += vx;
                 y += vy;
-                var oldChar = C64.GetChar(x, y);
-                if (oldChar != 32)
-                {
-                    vx = -vx;
-                    vy = -vy;
-                    continue;
-                }
+                oldChar = C64.GetChar(x, y);
                 if (x == WIDTH)
                     vx = -1;
                 if (x == 0)

@@ -75,15 +75,35 @@ namespace Demo
             C64.SetBorderColor((Colors)(x));
         }
 
+        class A {
 
+            public int B { get; set; }
+            public int C { get; set; }
+            public void X() {
+                C64.SetBorderColor((Colors)C);
+                for (int i=0; i<B; i++)
+                    Console.WriteLine("instance");
+            }
+        }
         static void Main()
         {
-            x = 0;
+
             ClearScreen();
+
+            var a = new A();
+            a.B = 5;
+            a.C = 1;
+            var a2 = new A();
+            //  a2.B = 3;
+
+            a.X();
+
             for (int i = 0; i < 10; i++)
             {
                 Console.WriteLine("hello world");
             }
+//             a2.X();
+
             RunBall();
         }
     }

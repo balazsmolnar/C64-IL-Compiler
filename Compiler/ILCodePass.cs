@@ -42,15 +42,14 @@ namespace Compiler
                     pass.Execute(typeContext);
                 }
 
-                var methods = @type.GetMethods(BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public);
-                foreach (var method in methods)
+                var methods = @type.GetMethods(BindingFlags.Static | BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+                foreach (var method in methods.Where(m => m.DeclaringType == @type))
                 {
                     var methodContext = new CompilerMethodContext()
                     {
                         CompilerContext = context,
                         Lines = new List<ILLine>(),
                         Method = method,
-                        MethodParameters = method.GetParameters().OrderBy(x => x.Position).ToArray()
                     };
                     context.Methods.Add(methodContext);
 

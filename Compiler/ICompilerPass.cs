@@ -21,8 +21,7 @@ namespace Compiler
     class CompilerMethodContext
     {
         public CompilerContext CompilerContext { get; set; }
-        public MethodInfo Method { get; set; }
-        public ParameterInfo[] MethodParameters { get; set; }
+        public MethodBase Method { get; set; }
         public List<ILLine> Lines { get; set; }
     }
 

@@ -240,36 +240,132 @@ Program_OnInterrupt
 Program_Main 
 +stack_save_return_adress .Program_Main_ReturnAddress
     nop
-    +stack_push_int 0
-    +stack_pull_int .Program_field_67108865
     jsr Program_ClearScreen
     nop
+    +newObj 0
+    +stack_pull_int .Program_Main_var0
+    +stack_push_var .Program_Main_var0
+    +stack_push_int 5
+    jsr A_set_B
+    nop
+    +stack_push_var .Program_Main_var0
+    +stack_push_int 1
+    jsr A_set_C
+    nop
+    +newObj 0
+    +stack_pull_int .Program_Main_var1
+    +stack_push_var .Program_Main_var0
+    jsr A_X
+    nop
   ;  +stack_push_int 0
-  ;  +stack_pull_int .Program_Main_var0
-    +init_var .Program_Main_var0, 0
-    jmp label_Main_34
-label_Main_17:    nop
+  ;  +stack_pull_int .Program_Main_var2
+    +init_var .Program_Main_var2, 0
+    jmp label_Main_63
+label_Main_46:    nop
     +stack_push_pointer .string_1879048197
     jsr Console_WriteLine
     nop
     nop
-  ;  +stack_push_var .Program_Main_var0
+  ;  +stack_push_var .Program_Main_var2
   ;  +stack_push_int 1
   ;  +add
-  ;  +stack_pull_int .Program_Main_var0
-    +inc_var .Program_Main_var0
-label_Main_34:  ;  +stack_push_var .Program_Main_var0
+  ;  +stack_pull_int .Program_Main_var2
+    +inc_var .Program_Main_var2
+label_Main_63:  ;  +stack_push_var .Program_Main_var2
   ;  +stack_push_int 10
   ;  +compareLess
-  ;  +stack_pull_int .Program_Main_var1
-  ;  +stack_push_var .Program_Main_var1
-  ;  +branch_true label_Main_17
-    +branch_if_var_less .Program_Main_var0, 10, label_Main_17
+  ;  +stack_pull_int .Program_Main_var3
+  ;  +stack_push_var .Program_Main_var3
+  ;  +branch_true label_Main_46
+    +branch_if_var_less .Program_Main_var2, 10, label_Main_46
     jsr Program_RunBall
     nop
     +stack_return_to_saved_address .Program_Main_ReturnAddress
 .Program_Main_ReturnAddress !byte 0,0
 .Program_Main_var0 !byte 0,0
 .Program_Main_var1 !byte 0,0
+.Program_Main_var2 !byte 0,0
+.Program_Main_var3 !byte 0,0
+
+
+A_set_B 
++stack_save_return_adress .A_set_B_ReturnAddress
++stack_pull_int .A_set_B_this
++stack_pull_int .A_set_B_value
+    +stack_push_var .A_set_B_this
+    +stack_push_var .A_set_B_value
+    +stfld 0
+    +stack_return_to_saved_address .A_set_B_ReturnAddress
+.A_set_B_this !byte 0,0
+.A_set_B_value !byte 0,0
+.A_set_B_ReturnAddress !byte 0,0
+
+
+A_set_C 
++stack_save_return_adress .A_set_C_ReturnAddress
++stack_pull_int .A_set_C_this
++stack_pull_int .A_set_C_value
+    +stack_push_var .A_set_C_this
+    +stack_push_var .A_set_C_value
+    +stfld 1
+    +stack_return_to_saved_address .A_set_C_ReturnAddress
+.A_set_C_this !byte 0,0
+.A_set_C_value !byte 0,0
+.A_set_C_ReturnAddress !byte 0,0
+
+
+A_X 
++stack_save_return_adress .A_X_ReturnAddress
++stack_pull_int .A_X_this
+    nop
+    +stack_push_var .A_X_this
+    jsr A_get_C
+    jsr C64_SetBorderColor
+    nop
+  ;  +stack_push_int 0
+  ;  +stack_pull_int .A_X_var0
+    +init_var .A_X_var0, 0
+    jmp label_X_32
+label_X_17:    +stack_push_pointer .string_1879048221
+    jsr Console_WriteLine
+    nop
+  ;  +stack_push_var .A_X_var0
+  ;  +stack_push_int 1
+  ;  +add
+  ;  +stack_pull_int .A_X_var0
+    +inc_var .A_X_var0
+label_X_32:    +stack_push_var .A_X_var0
+    +stack_push_var .A_X_this
+    jsr A_get_B
+    +compareLess
+    +stack_pull_int .A_X_var1
+    +stack_push_var .A_X_var1
+    +branch_true label_X_17
+    +stack_return_to_saved_address .A_X_ReturnAddress
+.A_X_this !byte 0,0
+.A_X_ReturnAddress !byte 0,0
+.A_X_var0 !byte 0,0
+.A_X_var1 !byte 0,0
+
+
+A_get_B 
++stack_save_return_adress .A_get_B_ReturnAddress
++stack_pull_int .A_get_B_this
+    +stack_push_var .A_get_B_this
+    +ldfld 0
+    +stack_return_to_saved_address .A_get_B_ReturnAddress
+.A_get_B_this !byte 0,0
+.A_get_B_ReturnAddress !byte 0,0
+
+
+A_get_C 
++stack_save_return_adress .A_get_C_ReturnAddress
++stack_pull_int .A_get_C_this
+    +stack_push_var .A_get_C_this
+    +ldfld 1
+    +stack_return_to_saved_address .A_get_C_ReturnAddress
+.A_get_C_this !byte 0,0
+.A_get_C_ReturnAddress !byte 0,0
 .string_1879048193 !pet " ",0
 .string_1879048197 !pet "hello world",0
+.string_1879048221 !pet "instance",0

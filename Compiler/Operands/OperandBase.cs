@@ -1,3 +1,5 @@
+using System.Runtime.InteropServices;
+using System.Reflection;
 using Compiler;
 
 namespace Compiler.Ops
@@ -61,6 +63,90 @@ namespace Compiler.Ops
         public override object ConvertParameter(CompilerMethodContext context, int parameter)
         {
             return context.CompilerContext.Assembly.ManifestModule.ResolveMethod(parameter).GetLabel();
+        }
+    }
+
+    class OpNewObj : OpBase
+    {
+        public OpNewObj() : base(4, "+newObj")
+        {
+        }
+
+        public override object ConvertParameter(CompilerMethodContext context, int parameter)
+        {
+            var method = context.CompilerContext.Assembly.ManifestModule.ResolveMethod(parameter);
+            var t = method.DeclaringType;
+            var size = 0;
+            foreach (var f in t.GetFields())
+            {
+                if (f.FieldType == typeof(int) || f.FieldType == typeof(byte) || f.FieldType == typeof(bool))
+                {
+                    size += 1;
+                }
+                else 
+                {
+                    size += 2;
+                }
+            }
+            //var label = context.CompilerContext.Assembly.ManifestModule.ResolveMethod(parameter).GetLabel();
+            
+            return $"{size}"; 
+        }
+    }
+
+    class OpStfld : OpBase
+    {
+        public OpStfld() : base(4, "+stfld")
+        {
+        }
+
+        public override object ConvertParameter(CompilerMethodContext context, int parameter)
+        {
+            var field = context.CompilerContext.Assembly.ManifestModule.ResolveField(parameter);
+            var t = field.DeclaringType;
+            var pos = 0;
+            foreach (var f in t.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
+            {
+                if (f==field)
+                    break;
+                if (f.FieldType == typeof(string))
+                {
+                    pos += 2;
+                }
+                else 
+                {
+                    pos += 1;
+                }
+            }
+            return $"{pos}"; 
+        }
+    }
+
+    class OpLdfld : OpBase
+    {
+        public OpLdfld() : base(4, "+ldfld")
+        {
+        }
+
+        public override object ConvertParameter(CompilerMethodContext context, int parameter)
+        {
+            var field = context.CompilerContext.Assembly.ManifestModule.ResolveField(parameter);
+            var t = field.DeclaringType;
+            var pos = 0;
+            foreach (var f in t.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
+            {
+                if (f==field)
+                    break;
+                if (f.FieldType == typeof(string))
+                {
+                    pos += 2;
+                }
+                else 
+                {
+                    pos += 1;
+                }
+            }
+            return $"{pos}"; 
         }
     }
 
@@ -148,7 +234,17 @@ namespace Compiler.Ops
             _argIndex = argIndex;
         }
 
-        public override object ConvertParameter(CompilerMethodContext context, int parameter) => $".{context.Method.GetLabel()}_{context.Method.GetParameters()[_argIndex].Name}";
+        public override object ConvertParameter(CompilerMethodContext context, int parameter) {
+            string paramName ="";
+            bool isInstance = !context.Method.IsStatic;
+            if (isInstance && _argIndex == 0)
+                paramName = "this";
+            else if (isInstance)
+                paramName = context.Method.GetParameters()[_argIndex-1].Name;
+            else 
+                paramName = context.Method.GetParameters()[_argIndex].Name;
+             return $".{context.Method.GetLabel()}_{paramName}";
+        }
     }
 
     class OpLdsld : OpPushBase
@@ -300,5 +396,4 @@ namespace Compiler.Ops
 
         public override object ConvertParameter(CompilerMethodContext context, int parameter) => $".{context.Method.GetLabel()}_var{_varIndex}, {_value}, {_label}";
     }
-
 }

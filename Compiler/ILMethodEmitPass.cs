@@ -24,6 +24,11 @@ namespace Compiler
 
             output.WriteLine($"+stack_save_return_adress .{context.Method.GetLabel()}_ReturnAddress");
 
+            if (!context.Method.IsStatic)
+            {
+                string outputLine = $"+stack_pull_int .{context.Method.GetLabel()}_this";
+                output.WriteLine(outputLine);
+            }
             foreach (var param in context.Method.GetParameters())
             {
                 string outputLine = $"+stack_pull_int .{context.Method.GetLabel()}_{param.Name}";

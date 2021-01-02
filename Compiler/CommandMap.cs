@@ -12,6 +12,7 @@ namespace Compiler
             {
                 { ILOpCode.Ldstr, new OpLdstr() },
                 { ILOpCode.Call, new OpCall() },
+                { ILOpCode.Callvirt, new OpCall() },
                 { ILOpCode.Ldc_i4_0, new OpLdc_i4_const(0) },
                 { ILOpCode.Ldc_i4_1, new OpLdc_i4_const(1) },
                 { ILOpCode.Ldc_i4_2, new OpLdc_i4_const(2) },
@@ -25,7 +26,7 @@ namespace Compiler
                 { ILOpCode.Ldc_i4_s, new OpLdc_i4_s() },
                 { ILOpCode.Ldc_i4, new OpLdc_i4() },
                 { ILOpCode.Ldnull, new OpLdnull() },
-                { ILOpCode.Newobj, new OpLdc_i4() },  // TODO
+                { ILOpCode.Newobj, new OpNewObj() },
                 { ILOpCode.Ldftn, new OpLdftn() },
                 { ILOpCode.Stloc_0, new OpStloc(0) },
                 { ILOpCode.Stloc_1, new OpStloc(1) },
@@ -33,6 +34,8 @@ namespace Compiler
                 { ILOpCode.Stloc_3, new OpStloc(3) },
                 { ILOpCode.Stloc_s, new OpStloc_s() },
                 { ILOpCode.Stsfld, new OpStsfld() },
+                { ILOpCode.Stfld, new OpStfld() },
+                { ILOpCode.Ldfld, new OpLdfld() },
                 { ILOpCode.Ldloc_0, new OpLdloc(0) },
                 { ILOpCode.Ldloc_1, new OpLdloc(1) },
                 { ILOpCode.Ldloc_2, new OpLdloc(2) },

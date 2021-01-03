@@ -240,9 +240,7 @@ Program_OnInterrupt
 Program_Main 
 +stack_save_return_adress .Program_Main_ReturnAddress
     nop
-    jsr Program_ClearScreen
-    nop
-    +newObj 0
+    +newObj 2
     +stack_pull_int .Program_Main_var0
     +stack_push_var .Program_Main_var0
     +stack_push_int 5
@@ -252,16 +250,24 @@ Program_Main
     +stack_push_int 1
     jsr A_set_C
     nop
-    +newObj 0
+    +newObj 2
     +stack_pull_int .Program_Main_var1
+    +stack_push_var .Program_Main_var1
+    +stack_push_int 2
+    jsr A_set_B
+    nop
+    +stack_push_var .Program_Main_var1
+    +stack_push_int 2
+    jsr A_set_C
+    nop
     +stack_push_var .Program_Main_var0
     jsr A_X
     nop
   ;  +stack_push_int 0
   ;  +stack_pull_int .Program_Main_var2
     +init_var .Program_Main_var2, 0
-    jmp label_Main_63
-label_Main_46:    nop
+    jmp label_Main_73
+label_Main_56:    nop
     +stack_push_pointer .string_1879048197
     jsr Console_WriteLine
     nop
@@ -271,13 +277,16 @@ label_Main_46:    nop
   ;  +add
   ;  +stack_pull_int .Program_Main_var2
     +inc_var .Program_Main_var2
-label_Main_63:  ;  +stack_push_var .Program_Main_var2
+label_Main_73:  ;  +stack_push_var .Program_Main_var2
   ;  +stack_push_int 10
   ;  +compareLess
   ;  +stack_pull_int .Program_Main_var3
   ;  +stack_push_var .Program_Main_var3
-  ;  +branch_true label_Main_46
-    +branch_if_var_less .Program_Main_var2, 10, label_Main_46
+  ;  +branch_true label_Main_56
+    +branch_if_var_less .Program_Main_var2, 10, label_Main_56
+    +stack_push_var .Program_Main_var1
+    jsr A_X
+    nop
     jsr Program_RunBall
     nop
     +stack_return_to_saved_address .Program_Main_ReturnAddress

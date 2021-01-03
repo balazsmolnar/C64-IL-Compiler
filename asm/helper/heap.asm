@@ -1,4 +1,4 @@
-heapPointer = $23
+heapPointer = $fb
 tmpPointer = $25
 
 !macro initHeap .heap {
@@ -13,53 +13,54 @@ tmpPointer = $25
   lda #0
   cmp #.size
   beq +
-  ldx #1
+  ldx #0
 - inx
-  inx
-  cmp objTable,x
+  cmp objTableHigh,x
   bne -
 
   ldy #0
 - lda #0 
   sta (heapPointer),y
   iny
+  cpy #.size
   bne -
-  dex
++ lda heapPointer
+  sta objTableLow,x
+  lda heapPointer+1
+  sta objTableHigh,x
   lda heapPointer
+  clc
   adc #.size
   sta heapPointer
-  sta objTable,x
   bcc +
   inc heapPointer+1
-  inx
-  lda heapPointer+1
-  sta objTable,x
-+ 
   ;jsr .method
++ txa
+  pha
 }
 
 !macro stfld .pos {
-  +stack_pull_int $27
-  +stack_pull_int $28
+  +stack_pull_int $fe
+  +stack_pull_int $fd
 
-  ldx $27
-  lda heap,x
+  ldx $fe
+  lda objTableLow,x
   sta tmpPointer
-  lda heap+1,x
+  lda objTableHigh,x
   sta tmpPointer+1
 
   ldy #.pos
-  lda $28
+  lda $fd
   sta (tmpPointer),y 
 }
 
 !macro ldfld .pos {
-  +stack_pull_int $27
+  +stack_pull_int $fd
 
-  ldx $27
-  lda heap,x
+  ldx $fd
+  lda objTableLow,x
   sta tmpPointer
-  lda heap+1,x
+  lda objTableHigh,x
   sta tmpPointer+1
 
   ldy #.pos

@@ -88,13 +88,12 @@ namespace Demo
         static void Main()
         {
 
-            ClearScreen();
-
             var a = new A();
             a.B = 5;
             a.C = 1;
             var a2 = new A();
-            //  a2.B = 3;
+            a2.B = 2;
+            a2.C = 2;
 
             a.X();
 
@@ -102,7 +101,7 @@ namespace Demo
             {
                 Console.WriteLine("hello world");
             }
-//             a2.X();
+            a2.X();
 
             RunBall();
         }

@@ -19,8 +19,11 @@ rts
 !src ".\\asm\\system.asm"
 !src ".\\asm\\C64.asm"
 
-objTable
+objTableLow
 !fill 256, 0
+objTableHigh
+!fill 256, 0
+
 heap
 
 ;.stack 

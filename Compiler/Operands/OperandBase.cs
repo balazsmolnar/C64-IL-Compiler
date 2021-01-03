@@ -77,15 +77,15 @@ namespace Compiler.Ops
             var method = context.CompilerContext.Assembly.ManifestModule.ResolveMethod(parameter);
             var t = method.DeclaringType;
             var size = 0;
-            foreach (var f in t.GetFields())
+            foreach (var f in t.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
             {
-                if (f.FieldType == typeof(int) || f.FieldType == typeof(byte) || f.FieldType == typeof(bool))
+                if (f.FieldType == typeof(string))
                 {
-                    size += 1;
+                    size += 2;
                 }
                 else 
                 {
-                    size += 2;
+                    size += 1;
                 }
             }
             //var label = context.CompilerContext.Assembly.ManifestModule.ResolveMethod(parameter).GetLabel();

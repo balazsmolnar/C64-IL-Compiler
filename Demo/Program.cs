@@ -3,14 +3,8 @@ using C64Lib;
 
 namespace Demo
 {
-    class A
-    {
-
-    }
-
     class Program
     {
-        static Colors BallColor => Colors.Orange;
         static void ClearScreen()
         {
             for (int x = 0; x < 40; x++)
@@ -21,48 +15,34 @@ namespace Demo
                 }
             }
         }
-        static void Hello(string s)
-        {
-            Console.WriteLine(s);
-        }
-
-        static void WriteSpaces(int n)
-        {
-            for (int j = 0; j < n; j++)
-            {
-                Console.Write(" ");
-            }
-        }
 
         static void RunBall()
         {
-            int x = 0;
-            int y = 0;
-            int vx = 1;
-            int vy = 1;
-            const int circle = 81;
-            const int WIDTH = 39;
-            const int HEIGHT = 24;
+            var ball1 = new Ball();
+            ball1.VX = 1;
+            ball1.VY = 1;
+            ball1.BallColor = Colors.Red;
 
-            var oldChar = C64.GetChar(x, y);
+            var ball2 = new Ball();
+            ball2.VX = 2;
+            ball2.VY = 1;
+            ball2.BallColor = Colors.White;
+
+            var ball3 = new Ball();
+            ball3.VX = 1;
+            ball3.VY = 2;
+            ball1.BallColor = Colors.Yellow;
+
             for (; ; )
             {
-                C64.SetChar(x, y, oldChar, BallColor);
-                x += vx;
-                y += vy;
-                oldChar = C64.GetChar(x, y);
-                if (x == WIDTH)
-                    vx = -1;
-                if (x == 0)
-                    vx = 1;
-                if (y == HEIGHT)
-                    vy = -1;
-                if (y == 0)
-                    vy = 1;
-
-                C64.SetChar(x, y, circle, BallColor);
-
-                for (var ii = 0; ii < 100; ii++) ;
+                ball1.Clear();
+                ball2.Clear();
+                ball3.Clear();
+                ball1.Set();
+                ball2.Set();
+                ball3.Set();
+                for (var ii = 0; ii < 100; ii++)
+                    for (var jj=0; jj<3; jj++) ;
             }
 
         }
@@ -75,34 +55,13 @@ namespace Demo
             C64.SetBorderColor((Colors)(x));
         }
 
-        class A {
-
-            public int B { get; set; }
-            public int C { get; set; }
-            public void X() {
-                C64.SetBorderColor((Colors)C);
-                for (int i=0; i<B; i++)
-                    Console.WriteLine("instance");
-            }
-        }
         static void Main()
         {
-
-            var a = new A();
-            a.B = 5;
-            a.C = 1;
-            var a2 = new A();
-            a2.B = 2;
-            a2.C = 2;
-
-            a.X();
-
+            ClearScreen();
             for (int i = 0; i < 10; i++)
             {
                 Console.WriteLine("hello world");
             }
-            a2.X();
-
             RunBall();
         }
     }

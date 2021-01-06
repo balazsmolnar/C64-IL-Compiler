@@ -40,8 +40,8 @@ tmpPointer = $25
 }
 
 !macro stfld .pos {
-  +stack_pull_int $fe
   +stack_pull_int $fd
+  +stack_pull_int $fe
 
   ldx $fe
   lda objTableLow,x

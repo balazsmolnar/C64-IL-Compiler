@@ -18,6 +18,10 @@
     +compareLess8
 }
 
+!macro compareGreater {
+    +compareGreater8
+}
+
 !macro compareEqual {
     +compareEqual8
 }

@@ -19,32 +19,34 @@ namespace Demo
         static void RunBall()
         {
             var ball1 = new Ball();
+            ball1.Sprite = C64.Sprites.Sprite0;
             ball1.VX = 1;
             ball1.VY = 1;
+            ball1.Y = 70;
             ball1.BallColor = Colors.Red;
 
             var ball2 = new Ball();
-            ball2.VX = 2;
-            ball2.VY = 1;
-            ball2.BallColor = Colors.White;
+            ball2.Sprite = C64.Sprites.Sprite1;
+            ball2.VX = 1;
+            ball2.VY = 2;
+            ball2.X = 100;
+            ball2.BallColor = Colors.Yellow;
 
             var ball3 = new Ball();
-            ball3.VX = 1;
-            ball3.VY = 2;
-            ball1.BallColor = Colors.Yellow;
+            ball3.Sprite = C64.Sprites.Sprite2;
+            ball3.VX = 2;
+            ball3.VY = 1;
+            ball2.X = 120;
+            ball2.BallColor = Colors.Violet;
 
             for (; ; )
             {
-                ball1.Clear();
-                ball2.Clear();
-                ball3.Clear();
-                ball1.Set();
-                ball2.Set();
-                ball3.Set();
-                for (var ii = 0; ii < 100; ii++)
-                    for (var jj = 0; jj < 3; jj++) ;
-            }
+                ball1.Move();
+                ball2.Move();
+                ball3.Move();
 
+                for (uint i = 0; i < 255; i++) ;
+            }
         }
 
         static int x;
@@ -62,20 +64,7 @@ namespace Demo
             {
                 Console.WriteLine("hello world");
             }
-            // RunBall();
 
-            var sprite = C64.Sprites.Sprite0;
-
-            sprite.Visible = true;
-            sprite.Color = Colors.Yellow;
-            sprite.DataBlock = 0;
-
-            for (uint x = 0; x < 100; x++)
-            {
-                for (uint i = 0; i < 100; i++) ;
-
-                sprite.X = x;
-            }
             RunBall();
         }
     }

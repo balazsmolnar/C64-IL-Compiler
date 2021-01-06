@@ -3,38 +3,67 @@ using C64Lib;
 class Ball
 {
 
-    const int circle = 81;
-    const int WIDTH = 38;
-    const int HEIGHT = 24;
+    const uint MINX = 40;
+    const uint MAXX = 250;
+    const uint MINY = 40;
+    const uint MAXY = 200;
 
-    public int X { get; set; }
-    public int Y { get; set; }
+    private uint x_;
+    private uint y_;
+    public uint X
+    {
+        get { return x_; }
+        set
+        {
+            x_ = value;
+            _sprite.X = value;
+        }
+    }
+    public uint Y
+    {
+        get { return y_; }
+        set
+        {
+            y_ = value;
+            _sprite.Y = value;
+        }
+    }
     public int VX { get; set; }
     public int VY { get; set; }
-    public Colors BallColor { get; set; }
-    private int OldChar { get; set; }
-    public void Clear()
+    private Sprite _sprite;
+
+    public Sprite Sprite
     {
+        set
+        {
+            _sprite = value;
+            _sprite.DataBlock = 0;
 
-        if (OldChar != circle)
-            C64.SetChar(X, Y, OldChar);
-        X += VX;
-        Y += VY;
-        if (X == WIDTH)
-            VX = -VX;
-        if (X == 0)
-            VX = -VX;
-        if (Y == HEIGHT)
-            VY = -VY;
-        if (Y == 0)
-            VY = -VY;
-
+            X = MINX;
+            Y = MINY;
+            _sprite.Visible = true;
+        }
     }
 
-    public void Set()
+    public Colors BallColor
     {
-        OldChar = C64.GetChar(X, Y);
-        C64.SetChar(X, Y, circle, BallColor);
+        set
+        {
+            _sprite.Color = value;
+        }
     }
 
+    public void Move()
+    {
+        X = (uint)(VX + X);
+        Y = (uint)(VY + Y);
+        if (X > MAXX)
+            VX = -VX;
+        if (X < MINX)
+            VX = -VX;
+        if (Y > MAXY)
+            VY = -VY;
+        if (Y < MINY)
+            VY = -VY;
+    }
 }

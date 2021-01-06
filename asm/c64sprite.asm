@@ -12,6 +12,41 @@ SpriteCollection_get_Sprite0:
     +stack_push_int 0
     +stack_return_to_saved_address $20
 
+SpriteCollection_get_Sprite1:
+    +stack_save_return_adress $20
+    +stack_push_int 1
+    +stack_return_to_saved_address $20
+
+SpriteCollection_get_Sprite2:
+    +stack_save_return_adress $20
+    +stack_push_int 2
+    +stack_return_to_saved_address $20
+
+SpriteCollection_get_Sprite3:
+    +stack_save_return_adress $20
+    +stack_push_int 3
+    +stack_return_to_saved_address $20
+
+SpriteCollection_get_Sprite4:
+    +stack_save_return_adress $20
+    +stack_push_int 4
+    +stack_return_to_saved_address $20
+
+SpriteCollection_get_Sprite5:
+    +stack_save_return_adress $20
+    +stack_push_int 5
+    +stack_return_to_saved_address $20
+
+SpriteCollection_get_Sprite6:
+    +stack_save_return_adress $20
+    +stack_push_int 6
+    +stack_return_to_saved_address $20
+
+SpriteCollection_get_Sprite7:
+    +stack_save_return_adress $20
+    +stack_push_int 7
+    +stack_return_to_saved_address $20
+
 Sprite_set_Visible:
     +stack_save_return_adress $20
     +stack_pull_int $34
@@ -60,7 +95,9 @@ Sprite_set_X:
     +stack_save_return_adress $20
     +stack_pull_int $34
     +stack_pull_int $35
-    ldx $35
+    lda $35
+    asl
+    tax
     lda $34
     sta spriteX,x    
     +stack_return_to_saved_address $20
@@ -69,7 +106,9 @@ Sprite_set_Y:
     +stack_save_return_adress $20
     +stack_pull_int $34
     +stack_pull_int $35
-    ldx $35
+    lda $35
+    asl
+    tax
     lda $34
-    sta spriteY,x    
+    sta spriteY,x
     +stack_return_to_saved_address $20

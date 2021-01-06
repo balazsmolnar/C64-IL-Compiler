@@ -55,7 +55,13 @@ namespace Compiler
                 { ILOpCode.Ret, new OpRet()  },
                 { ILOpCode.Clt, new OpArithmetic2("+compareLess") },
                 { ILOpCode.Clt_un, new OpArithmetic2("+compareLess") },
+                { ILOpCode.Cgt, new OpArithmetic2("+compareGreater") },
+                { ILOpCode.Cgt_un, new OpArithmetic2("+compareGreater") },
+
                 { ILOpCode.Ceq, new OpArithmetic2("+compareEqual") },
+                { ILOpCode.Conv_i8, new OpBase(0, "nop  ;Conv_i8") },
+                { ILOpCode.Conv_u8, new OpBase(0, "nop ;Conv_u8") },
+                { ILOpCode.Conv_u4, new OpBase(0, "nop ;Conv_u4") },
             };
 
         public static bool Supported(ILOpCode code)

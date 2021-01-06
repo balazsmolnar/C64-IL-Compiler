@@ -24,6 +24,8 @@ objTableLow
 objTableHigh
 !fill 256, 0
 
+!src ".\\asm\\spritedata.asm"
+
 heap
 
 ;.stack 

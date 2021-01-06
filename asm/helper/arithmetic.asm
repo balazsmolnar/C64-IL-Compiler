@@ -1,4 +1,3 @@
-
 !macro add16 {
 
     +stack_pull_int $32
@@ -83,7 +82,7 @@
         ldx #0
         lda $32
         cmp $34
-        bpl +
+        bcs +
         ldx #1
 +       stx $34
         +stack_push_var $34

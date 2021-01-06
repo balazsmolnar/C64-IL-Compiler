@@ -28,5 +28,6 @@ namespace C64Lib
         public static void SetBorderColor(Colors color) { }
         public static Colors GetBorderColor() => Colors.Black;
         public static event EventHandler Interrupt;
+        public static SpriteCollection Sprites => null;
     }
 }

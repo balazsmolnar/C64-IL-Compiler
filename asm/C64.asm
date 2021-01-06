@@ -130,3 +130,5 @@ OnInterrupt:
 On_Interrupt_Ret
     jmp ($52)
     rti
+
+!src ".\\asm\\C64sprite.asm"

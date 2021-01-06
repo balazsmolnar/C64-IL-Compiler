@@ -54,6 +54,7 @@ namespace Compiler
                 { ILOpCode.Neg, new OpArithmetic1("+negate") },
                 { ILOpCode.Ret, new OpRet()  },
                 { ILOpCode.Clt, new OpArithmetic2("+compareLess") },
+                { ILOpCode.Clt_un, new OpArithmetic2("+compareLess") },
                 { ILOpCode.Ceq, new OpArithmetic2("+compareEqual") },
             };
 

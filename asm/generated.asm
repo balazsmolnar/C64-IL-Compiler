@@ -451,30 +451,85 @@ Program_Main
     jsr Program_ClearScreen
     nop
   ;  +stack_push_int 0
-  ;  +stack_pull_int .Program_Main_var0
-    +init_var .Program_Main_var0, 0
+  ;  +stack_pull_int .Program_Main_var1
+    +init_var .Program_Main_var1, 0
     jmp label_Main_28
 label_Main_11:    nop
     +stack_push_pointer .string_1879048193
     jsr Console_WriteLine
     nop
     nop
-  ;  +stack_push_var .Program_Main_var0
+  ;  +stack_push_var .Program_Main_var1
   ;  +stack_push_int 1
   ;  +add
-  ;  +stack_pull_int .Program_Main_var0
-    +inc_var .Program_Main_var0
-label_Main_28:  ;  +stack_push_var .Program_Main_var0
+  ;  +stack_pull_int .Program_Main_var1
+    +inc_var .Program_Main_var1
+label_Main_28:  ;  +stack_push_var .Program_Main_var1
   ;  +stack_push_int 10
   ;  +compareLess
-  ;  +stack_pull_int .Program_Main_var1
-  ;  +stack_push_var .Program_Main_var1
+  ;  +stack_pull_int .Program_Main_var2
+  ;  +stack_push_var .Program_Main_var2
   ;  +branch_true label_Main_11
-    +branch_if_var_less .Program_Main_var0, 10, label_Main_11
+    +branch_if_var_less .Program_Main_var1, 10, label_Main_11
+    jsr C64_get_Sprites
+    jsr SpriteCollection_get_Sprite0
+    +stack_pull_int .Program_Main_var0
+    +stack_push_var .Program_Main_var0
+    +stack_push_int 1
+    jsr Sprite_set_Visible
+    nop
+    +stack_push_var .Program_Main_var0
+    +stack_push_int 7
+    jsr Sprite_set_Color
+    nop
+    +stack_push_var .Program_Main_var0
+    +stack_push_int 0
+    jsr Sprite_set_DataBlock
+    nop
+  ;  +stack_push_int 0
+  ;  +stack_pull_int .Program_Main_var3
+    +init_var .Program_Main_var3, 0
+    jmp label_Main_114
+label_Main_76:    nop
+    +stack_push_int 0
+    +stack_pull_int .Program_Main_var4
+    jmp label_Main_89
+label_Main_82:    nop
+    +stack_push_var .Program_Main_var4
+    +stack_push_int 1
+    +add
+    +stack_pull_int .Program_Main_var4
+label_Main_89:    +stack_push_var .Program_Main_var4
+    +stack_push_int 100
+    +compareLess
+    +stack_pull_int .Program_Main_var5
+    +stack_push_var .Program_Main_var5
+    +branch_true label_Main_82
+    +stack_push_var .Program_Main_var0
+    +stack_push_var .Program_Main_var3
+    jsr Sprite_set_X
+    nop
+    nop
+  ;  +stack_push_var .Program_Main_var3
+  ;  +stack_push_int 1
+  ;  +add
+  ;  +stack_pull_int .Program_Main_var3
+    +inc_var .Program_Main_var3
+label_Main_114:    +stack_push_var .Program_Main_var3
+    +stack_push_int 100
+    +compareLess
+    +stack_pull_int .Program_Main_var6
+    +stack_push_var .Program_Main_var6
+    +branch_true label_Main_76
     jsr Program_RunBall
     nop
     +stack_return_to_saved_address .Program_Main_ReturnAddress
 .Program_Main_ReturnAddress !byte 0,0
 .Program_Main_var0 !byte 0,0
 .Program_Main_var1 !byte 0,0
+.Program_Main_var2 !byte 0,0
+.Program_Main_var3 !byte 0,0
+.Program_Main_var4 !byte 0,0
+.Program_Main_var5 !byte 0,0
+.Program_Main_var6 !byte 0,0
 .string_1879048193 !pet "hello world",0

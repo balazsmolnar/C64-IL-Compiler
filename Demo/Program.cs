@@ -42,7 +42,7 @@ namespace Demo
                 ball2.Set();
                 ball3.Set();
                 for (var ii = 0; ii < 100; ii++)
-                    for (var jj=0; jj<3; jj++) ;
+                    for (var jj = 0; jj < 3; jj++) ;
             }
 
         }
@@ -61,6 +61,20 @@ namespace Demo
             for (int i = 0; i < 10; i++)
             {
                 Console.WriteLine("hello world");
+            }
+            // RunBall();
+
+            var sprite = C64.Sprites.Sprite0;
+
+            sprite.Visible = true;
+            sprite.Color = Colors.Yellow;
+            sprite.DataBlock = 0;
+
+            for (uint x = 0; x < 100; x++)
+            {
+                for (uint i = 0; i < 100; i++) ;
+
+                sprite.X = x;
             }
             RunBall();
         }

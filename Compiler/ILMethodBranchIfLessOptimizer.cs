@@ -22,7 +22,7 @@ namespace Compiler
             {
                 if (lines[i].Operand is OpLdloc &&
                     lines[i + 1].Operand is OpLdConst &&
-                    lines[i + 2].OpCode == ILOpCode.Clt &&
+                    (lines[i + 2].OpCode == ILOpCode.Clt || lines[i + 2].OpCode == ILOpCode.Clt_un) &&
                     lines[i + 3].Operand is OpStloc &&
                     lines[i + 4].Operand is OpLdloc &&
                     (lines[i + 5].OpCode == ILOpCode.Brtrue || lines[i + 5].OpCode == ILOpCode.Brtrue_s))

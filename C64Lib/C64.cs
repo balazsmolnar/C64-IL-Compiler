@@ -21,6 +21,37 @@ namespace C64Lib
         LightBlue,
         Grey3
     }
+
+    public enum Keys
+    {
+        A,
+        B,
+        C,
+        D,
+        E,
+        F,
+        G,
+        H,
+        I,
+        J,
+        K,
+        L,
+        M,
+        N,
+        O,
+        P,
+        Q,
+        R,
+        S,
+        T,
+        U,
+        V,
+        W,
+        X,
+        Y,
+        Z
+    };
+
     public static class C64
     {
         public static void SetChar(int x, int y, int ch, Colors colors = Colors.LightBlue) { }
@@ -29,5 +60,6 @@ namespace C64Lib
         public static Colors GetBorderColor() => Colors.Black;
         public static event EventHandler Interrupt;
         public static SpriteCollection Sprites => null;
+        public static bool IsKeyPressed(Keys key) => false;
     }
 }

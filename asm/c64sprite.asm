@@ -54,7 +54,7 @@ Sprite_set_Visible:
     ldx $35
     
     lda #1
- -  asl
+-   asl
     dex
     bpl -
     lsr

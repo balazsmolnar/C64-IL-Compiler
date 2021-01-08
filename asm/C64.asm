@@ -132,3 +132,4 @@ On_Interrupt_Ret
     rti
 
 !src ".\\asm\\C64sprite.asm"
+!src ".\\asm\\C64Keys.asm"

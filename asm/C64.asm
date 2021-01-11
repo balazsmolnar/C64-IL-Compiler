@@ -88,11 +88,18 @@ C64_GetChar:
 C64_SetBorderColor:
     
     +stack_save_return_adress .C64_SetBorderColor_ReturnAddress
-    +stack_pull_int $34
-    lda $34
+    +stack_pull_int_a
     sta $D020
     +stack_return_to_saved_address .C64_SetBorderColor_ReturnAddress
 .C64_SetBorderColor_ReturnAddress !byte 0,0
+
+C64_SetBackgroundColor:
+    
+    +stack_save_return_adress .C64_SetBackgroundColor_ReturnAddress
+    +stack_pull_int_a
+    sta $D021
+    +stack_return_to_saved_address .C64_SetBackgroundColor_ReturnAddress
+.C64_SetBackgroundColor_ReturnAddress !byte 0,0
 
 C64_GetBorderColor:
     +stack_save_return_adress .C64_GetBorderColor_ReturnAddress

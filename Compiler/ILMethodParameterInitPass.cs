@@ -13,7 +13,7 @@ using System.Linq;
 
 namespace Compiler
 {
-    class ILMethodParameterInitPass: ICompilerMethodPass
+    class ILMethodParameterInitPass : ICompilerMethodPass
     {
         public void Execute(CompilerMethodContext context)
         {
@@ -29,5 +29,5 @@ namespace Compiler
                 context.CompilerContext.OutputFile.WriteLine(outputLine);
             }
         }
-    }    
+    }
 }

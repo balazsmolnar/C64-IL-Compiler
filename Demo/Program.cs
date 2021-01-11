@@ -7,9 +7,9 @@ namespace Demo
     {
         static void ClearScreen()
         {
-            for (int x = 0; x < 40; x++)
+            for (uint x = 0; x < 40; x++)
             {
-                for (int y = 0; y < 25; y++)
+                for (uint y = 0; y < 25; y++)
                 {
                     C64.SetChar(x, y, 32);
                 }
@@ -32,7 +32,18 @@ namespace Demo
                 Console.WriteLine("hello world");
             }
 
-            Ball.RunBalls();
+            var platform = new Platform()
+            {
+                X = 10,
+                Y = 10,
+                Color = Colors.Yellow,
+                Width = 10
+            };
+            platform.Draw();
+
+            Game g = new Game();
+            g.Init();
+            g.Run();
         }
     }
 }

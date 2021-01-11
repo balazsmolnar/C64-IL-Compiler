@@ -83,14 +83,14 @@ namespace Compiler.Ops
                 {
                     size += 2;
                 }
-                else 
+                else
                 {
                     size += 1;
                 }
             }
             //var label = context.CompilerContext.Assembly.ManifestModule.ResolveMethod(parameter).GetLabel();
-            
-            return $"{size}"; 
+
+            return $"{size}";
         }
     }
 
@@ -107,18 +107,18 @@ namespace Compiler.Ops
             var pos = 0;
             foreach (var f in t.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
             {
-                if (f==field)
+                if (f == field)
                     break;
                 if (f.FieldType == typeof(string))
                 {
                     pos += 2;
                 }
-                else 
+                else
                 {
                     pos += 1;
                 }
             }
-            return $"{pos}"; 
+            return $"{pos}";
         }
     }
 
@@ -135,18 +135,26 @@ namespace Compiler.Ops
             var pos = 0;
             foreach (var f in t.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
             {
-                if (f==field)
+                if (f == field)
                     break;
                 if (f.FieldType == typeof(string))
                 {
                     pos += 2;
                 }
-                else 
+                else
                 {
                     pos += 1;
                 }
             }
-            return $"{pos}"; 
+            return $"{pos}";
+        }
+    }
+
+    class OpDup : OpBase
+    {
+        public OpDup() : base(0, "+stack_duplicate")
+        {
+
         }
     }
 
@@ -234,16 +242,17 @@ namespace Compiler.Ops
             _argIndex = argIndex;
         }
 
-        public override object ConvertParameter(CompilerMethodContext context, int parameter) {
-            string paramName ="";
+        public override object ConvertParameter(CompilerMethodContext context, int parameter)
+        {
+            string paramName = "";
             bool isInstance = !context.Method.IsStatic;
             if (isInstance && _argIndex == 0)
                 paramName = "this";
             else if (isInstance)
-                paramName = context.Method.GetParameters()[_argIndex-1].Name;
-            else 
+                paramName = context.Method.GetParameters()[_argIndex - 1].Name;
+            else
                 paramName = context.Method.GetParameters()[_argIndex].Name;
-             return $".{context.Method.GetLabel()}_{paramName}";
+            return $".{context.Method.GetLabel()}_{paramName}";
         }
     }
 

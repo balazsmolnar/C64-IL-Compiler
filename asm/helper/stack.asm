@@ -52,6 +52,12 @@
   pha
 }
 
+!macro stack_duplicate {
+  pla
+  pha
+  pha
+}
+
 !macro stack_save_return_adress .variable {
   pla
   sta .variable+1
@@ -65,4 +71,8 @@
   lda .variable+1
   pha
   rts
+}
+
+!macro stack_pull_int_a {
+  pla
 }

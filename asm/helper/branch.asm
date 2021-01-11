@@ -28,6 +28,14 @@
     +bne .label
 }
 
+!macro branch_equal .label {
+    +stack_pull_int $30
+    +stack_pull_int $32
+    lda $30
+    cmp $32
+    +beq .label
+}
+
 !macro branch_false .label {
     +stack_pull_int $30
     +beq .label

@@ -25,6 +25,18 @@
     +stack_push_var $34
 }
 
+!macro sub8 {
+
+    +stack_pull_int $32
+    +stack_pull_int $34
+
+    sec
+    lda $34
+    sbc $32
+    sta $34
+    +stack_push_var $34
+}
+
 !macro negate16 {
 
     +stack_pull_int $34

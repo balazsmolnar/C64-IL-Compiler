@@ -13,19 +13,19 @@ using System.Linq;
 
 namespace Compiler
 {
-    class ILMethodVariableInitPass: ICompilerMethodPass
+    class ILMethodVariableInitPass : ICompilerMethodPass
     {
         public void Execute(CompilerMethodContext context)
         {
             var body = context.Method.GetMethodBody();
             var variables = body.LocalVariables;
 
-            context.CompilerContext.OutputFile.WriteLine($".{context.Method.GetLabel()}_ReturnAddress !byte 0,0"); 
+            context.CompilerContext.OutputFile.WriteLine($".{context.Method.GetLabel()}_ReturnAddress !byte 0,0");
             foreach (var variable in variables)
-            {              
-                string outputLine = $".{context.Method.GetLabel()}_var{variable.LocalIndex} !byte 0,0"; 
+            {
+                string outputLine = $".{context.Method.GetLabel()}_var{variable.LocalIndex} !byte 0,0";
                 context.CompilerContext.OutputFile.WriteLine(outputLine);
             }
         }
-    }    
+    }
 }

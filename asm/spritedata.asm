@@ -1,7 +1,5 @@
 
-!align 255, 0
-
-* = $3000
+!align 63, 0
 
 sprite0:
 
@@ -15,25 +13,21 @@ sprite0:
 !byte $80,$01,$ff,$00,$00,$7c,$00,$03
 
 sprite1:
-!byte $FF,$FF,$FF
-!byte $FF,$FF,$FF
-!byte $FF,$FF,$FF
-!byte $FF,$FF,$FF
-!byte $0,$0,$0
-!byte $0,$0,$0
-!byte $0,$0,$0
-!byte $0,$0,$0
-!byte $0,$0,$0
-!byte $0,$0,$0
-!byte $0,$0,$0
-!byte $0,$0,$0
-!byte $0,$0,$0
-!byte $0,$0,$0
-!byte $0,$0,$0
-!byte $0,$0,$0
-!byte $0,$0,$0
-!byte $0,$0,$0
-!byte $0,$0,$0
-!byte $0,$0,$0
-!byte $0,$0,$0
-!byte 0
+!byte $00,$00,$00,$00,$00,$00,$00,$00
+!byte $00,$00,$00,$00,$00,$00,$00,$00
+!byte $00,$00,$00,$00,$00,$00,$00,$00
+!byte $00,$7e,$00,$03,$ff,$c0,$0f,$ff
+!byte $f0,$1f,$ff,$f8,$3e,$7f,$3c,$3e
+!byte $7f,$3c,$7f,$ff,$fe,$7f,$ff,$fe
+!byte $ff,$ff,$ff,$fe,$03,$7f,$fc,$63
+!byte $3f,$fc,$60,$3f,$ff,$ff,$ff,$09
+
+sprite2:
+!byte $00,$00,$00,$00,$00,$00,$00,$00
+!byte $00,$00,$00,$00,$00,$00,$00,$00
+!byte $00,$00,$00,$00,$00,$00,$00,$00
+!byte $00,$7e,$00,$03,$ff,$c0,$0f,$ff
+!byte $f0,$1f,$ff,$f8,$3c,$fe,$7c,$3c
+!byte $fe,$7c,$7f,$ff,$fe,$7f,$ff,$fe
+!byte $ff,$ff,$ff,$ff,$ff,$ff,$fc,$63
+!byte $3f,$fc,$63,$3f,$ff,$ff,$ff,$09

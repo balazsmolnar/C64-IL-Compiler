@@ -30,6 +30,10 @@
     +add8
 }
 
+!macro sub {
+    +sub8
+}
+
 !macro inc_var .variable {
     +inc_var8 .variable
 }

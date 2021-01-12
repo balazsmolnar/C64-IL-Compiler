@@ -397,11 +397,15 @@ Game_Init
     nop
     +stfld 0
     +stack_push_var .Game_Init_this
-    +newObj 4
+    +newObj 8
     +stack_duplicate
     jsr C64_get_Sprites
     jsr SpriteCollection_get_Sprite4
     jsr Player_set_Sprite
+    nop
+    +stack_duplicate
+    +stack_push_int 100
+    jsr Player_set_Y
     nop
     +stfld 1
     +stack_return_to_saved_address .Game_Init_ReturnAddress
@@ -821,9 +825,9 @@ Player_set_Sprite
     nop
     +stack_push_var .Player_set_Sprite_this
     +stack_push_var .Player_set_Sprite_value
-    +stfld 3
+    +stfld 7
     +stack_push_var .Player_set_Sprite_this
-    +ldfld 3
+    +ldfld 7
     +stack_push_int 3
     jsr Sprite_set_DataBlock
     nop
@@ -831,85 +835,101 @@ Player_set_Sprite
     +stack_push_int 4
     +stfld 2
     +stack_push_var .Player_set_Sprite_this
-    +ldfld 3
+    +ldfld 7
     +stack_push_int 1
     jsr Sprite_set_MultiColor
     nop
     +stack_push_var .Player_set_Sprite_this
-    +ldfld 3
+    +ldfld 7
     +stack_push_int 1
     jsr Sprite_set_Visible
     nop
     +stack_push_var .Player_set_Sprite_this
-    +ldfld 3
+    +ldfld 7
     +stack_push_int 9
     jsr Sprite_set_Color
     nop
+    +stack_push_var .Player_set_Sprite_this
+    +stack_push_int 0
+    +stfld 3
+    +stack_push_var .Player_set_Sprite_this
+    +stack_push_int 0
+    +stfld 4
     +stack_return_to_saved_address .Player_set_Sprite_ReturnAddress
 .Player_set_Sprite_this !byte 0,0
 .Player_set_Sprite_value !byte 0,0
 .Player_set_Sprite_ReturnAddress !byte 0,0
 
 
+Player_set_Y 
++stack_save_return_adress .Player_set_Y_ReturnAddress
++stack_pull_int .Player_set_Y_value
++stack_pull_int .Player_set_Y_this
+    nop
+    +stack_push_var .Player_set_Y_this
+    +stack_push_var .Player_set_Y_value
+    +stfld 1
+    +stack_push_var .Player_set_Y_this
+    +ldfld 7
+    +stack_push_var .Player_set_Y_value
+    jsr Sprite_set_Y
+    nop
+    +stack_return_to_saved_address .Player_set_Y_ReturnAddress
+.Player_set_Y_this !byte 0,0
+.Player_set_Y_value !byte 0,0
+.Player_set_Y_ReturnAddress !byte 0,0
+
+
 Player_Move 
 +stack_save_return_adress .Player_Move_ReturnAddress
 +stack_pull_int .Player_Move_this
     nop
+    +stack_push_var .Player_Move_this
+    +ldfld 3
+    +branch_true label_Player_Move_26
+    +stack_push_var .Player_Move_this
+    +ldfld 4
+    +branch_true label_Player_Move_26
     +stack_push_int 22
     jsr C64_IsKeyPressed
-    +stack_pull_int .Player_Move_var0
+    jmp label_Player_Move_27
+label_Player_Move_26:    +stack_push_int 0
+label_Player_Move_27:    +stack_pull_int .Player_Move_var0
     +stack_push_var .Player_Move_var0
-    +branch_false label_Player_Move_29
-    +stack_push_var .Player_Move_this
-    jsr Player_get_Y
-    +stack_pull_int .Player_Move_var1
-    +stack_push_var .Player_Move_this
-    +stack_push_var .Player_Move_var1
-    +stack_push_int 1
-    +sub
-    jsr Player_set_Y
+    +branch_false label_Player_Move_47
     nop
-label_Player_Move_29:    +stack_push_int 0
+    +stack_push_var .Player_Move_this
+    +stack_push_int 1
+    +stfld 3
+    +stack_push_var .Player_Move_this
+    +stack_push_int 0
+    +stfld 5
+    nop
+label_Player_Move_47:    +stack_push_int 0
     jsr C64_IsKeyPressed
-    +stack_pull_int .Player_Move_var2
-    +stack_push_var .Player_Move_var2
-    +branch_false label_Player_Move_56
+    +stack_pull_int .Player_Move_var1
+    +stack_push_var .Player_Move_var1
+    +branch_false label_Player_Move_74
     +stack_push_var .Player_Move_this
     jsr Player_get_X
-    +stack_pull_int .Player_Move_var1
+    +stack_pull_int .Player_Move_var2
     +stack_push_var .Player_Move_this
-    +stack_push_var .Player_Move_var1
+    +stack_push_var .Player_Move_var2
     +stack_push_int 1
     +sub
     jsr Player_set_X
     nop
-label_Player_Move_56:    +stack_push_int 18
+label_Player_Move_74:    +stack_push_int 3
     jsr C64_IsKeyPressed
     +stack_pull_int .Player_Move_var3
     +stack_push_var .Player_Move_var3
-    +branch_false label_Player_Move_86
-    nop
-    +stack_push_var .Player_Move_this
-    jsr Player_get_Y
-    +stack_pull_int .Player_Move_var1
-    +stack_push_var .Player_Move_this
-    +stack_push_var .Player_Move_var1
-    +stack_push_int 1
-    +add
-    jsr Player_set_Y
-    nop
-    nop
-label_Player_Move_86:    +stack_push_int 3
-    jsr C64_IsKeyPressed
-    +stack_pull_int .Player_Move_var4
-    +stack_push_var .Player_Move_var4
-    +branch_false label_Player_Move_171
+    +branch_false label_Player_Move_187
     nop
     +stack_push_var .Player_Move_this
     jsr Player_get_X
-    +stack_pull_int .Player_Move_var1
+    +stack_pull_int .Player_Move_var2
     +stack_push_var .Player_Move_this
-    +stack_push_var .Player_Move_var1
+    +stack_push_var .Player_Move_var2
     +stack_push_int 1
     +add
     jsr Player_set_X
@@ -924,20 +944,121 @@ label_Player_Move_86:    +stack_push_int 3
     +ldfld 2
     +stack_push_int 6
     +compareEqual
-    +stack_pull_int .Player_Move_var5
-    +stack_push_var .Player_Move_var5
-    +branch_false label_Player_Move_152
+    +stack_pull_int .Player_Move_var4
+    +stack_push_var .Player_Move_var4
+    +branch_false label_Player_Move_138
     +stack_push_var .Player_Move_this
     +stack_push_int 2
     +stfld 2
-label_Player_Move_152:    +stack_push_var .Player_Move_this
+label_Player_Move_138:    +stack_push_var .Player_Move_this
     +ldfld 3
+    +branch_true label_Player_Move_154
+    +stack_push_var .Player_Move_this
+    +ldfld 4
+    jmp label_Player_Move_155
+label_Player_Move_154:    +stack_push_int 1
+label_Player_Move_155:    +stack_pull_int .Player_Move_var5
+    +stack_push_var .Player_Move_var5
+    +branch_false label_Player_Move_168
+    +stack_push_var .Player_Move_this
+    +stack_push_int 3
+    +stfld 2
+label_Player_Move_168:    +stack_push_var .Player_Move_this
+    +ldfld 7
     +stack_push_var .Player_Move_this
     +ldfld 2
     jsr Sprite_set_DataBlock
     nop
     nop
-label_Player_Move_171:    +stack_return_to_saved_address .Player_Move_ReturnAddress
+label_Player_Move_187:    +stack_push_var .Player_Move_this
+    +ldfld 3
+    +stack_pull_int .Player_Move_var6
+    +stack_push_var .Player_Move_var6
+    +branch_false label_Player_Move_285
+    nop
+    +stack_push_var .Player_Move_this
+    +stack_push_var .Player_Move_this
+    +ldfld 5
+    +stack_push_int 1
+    +add
+    +stfld 5
+    +stack_push_var .Player_Move_this
+    +stack_push_var .Player_Move_this
+    jsr Player_get_Y
+    nop ;Conv_u8
+    +stack_push_var .Player_Move_this
+    +ldfld 5
+    +stack_push_int 10
+    +branch_less label_Player_Move_235
+    +stack_push_int 2
+    jmp label_Player_Move_236
+label_Player_Move_235:    +stack_push_int 5
+label_Player_Move_236:    nop ;Conv_i8
+    +sub
+    nop ;Conv_u4
+    jsr Player_set_Y
+    nop
+    +stack_push_var .Player_Move_this
+    +ldfld 5
+    +stack_push_int 15
+    +compareEqual
+    +stack_pull_int .Player_Move_var7
+    +stack_push_var .Player_Move_var7
+    +branch_false label_Player_Move_284
+    nop
+    +stack_push_var .Player_Move_this
+    +stack_push_int 0
+    +stfld 3
+    +stack_push_var .Player_Move_this
+    +stack_push_int 1
+    +stfld 4
+    +stack_push_var .Player_Move_this
+    +stack_push_int 0
+    +stfld 6
+    nop
+label_Player_Move_284:    nop
+label_Player_Move_285:    +stack_push_var .Player_Move_this
+    +ldfld 4
+    +stack_pull_int .Player_Move_var8
+    +stack_push_var .Player_Move_var8
+    +branch_false label_Player_Move_368
+    nop
+    +stack_push_var .Player_Move_this
+    +stack_push_var .Player_Move_this
+    +ldfld 6
+    +stack_push_int 1
+    +add
+    +stfld 6
+    +stack_push_var .Player_Move_this
+    +stack_push_var .Player_Move_this
+    jsr Player_get_Y
+    nop ;Conv_u8
+    +stack_push_var .Player_Move_this
+    +ldfld 6
+    +stack_push_int 5
+    +branch_less label_Player_Move_332
+    +stack_push_int 5
+    jmp label_Player_Move_333
+label_Player_Move_332:    +stack_push_int 2
+label_Player_Move_333:    nop ;Conv_i8
+    +add
+    nop ;Conv_u4
+    jsr Player_set_Y
+    nop
+    +stack_push_var .Player_Move_this
+    +ldfld 6
+    +stack_push_int 15
+    +compareEqual
+    +stack_pull_int .Player_Move_var9
+    +stack_push_var .Player_Move_var9
+    +branch_false label_Player_Move_367
+    nop
+    +stack_push_var .Player_Move_this
+    +stack_push_int 0
+    +stfld 4
+    nop
+label_Player_Move_367:    nop
+label_Player_Move_368:    +stack_return_to_saved_address .Player_Move_ReturnAddress
 .Player_Move_this !byte 0,0
 .Player_Move_ReturnAddress !byte 0,0
 .Player_Move_var0 !byte 0,0
@@ -946,6 +1067,10 @@ label_Player_Move_171:    +stack_return_to_saved_address .Player_Move_ReturnAddr
 .Player_Move_var3 !byte 0,0
 .Player_Move_var4 !byte 0,0
 .Player_Move_var5 !byte 0,0
+.Player_Move_var6 !byte 0,0
+.Player_Move_var7 !byte 0,0
+.Player_Move_var8 !byte 0,0
+.Player_Move_var9 !byte 0,0
 
 
 Player_get_X 
@@ -972,7 +1097,7 @@ Player_set_X
     +stack_push_var .Player_set_X_value
     +stfld 0
     +stack_push_var .Player_set_X_this
-    +ldfld 3
+    +ldfld 7
     +stack_push_var .Player_set_X_value
     jsr Sprite_set_X
     nop
@@ -995,26 +1120,7 @@ label_Player_get_Y_10:    +stack_push_var .Player_get_Y_var0
 .Player_get_Y_this !byte 0,0
 .Player_get_Y_ReturnAddress !byte 0,0
 .Player_get_Y_var0 !byte 0,0
-
-
-Player_set_Y 
-+stack_save_return_adress .Player_set_Y_ReturnAddress
-+stack_pull_int .Player_set_Y_value
-+stack_pull_int .Player_set_Y_this
-    nop
-    +stack_push_var .Player_set_Y_this
-    +stack_push_var .Player_set_Y_value
-    +stfld 1
-    +stack_push_var .Player_set_Y_this
-    +ldfld 3
-    +stack_push_var .Player_set_Y_value
-    jsr Sprite_set_Y
-    nop
-    +stack_return_to_saved_address .Player_set_Y_ReturnAddress
-.Player_set_Y_this !byte 0,0
-.Player_set_Y_value !byte 0,0
-.Player_set_Y_ReturnAddress !byte 0,0
-.Program_field_67108896 !byte 0,0
+.Program_field_67108900 !byte 0,0
 
 
 Program_ClearScreen 
@@ -1075,11 +1181,11 @@ Program_OnInterrupt
 +stack_pull_int .Program_OnInterrupt_sender
 +stack_pull_int .Program_OnInterrupt_args
     nop
-    +stack_push_var .Program_field_67108896
+    +stack_push_var .Program_field_67108900
     +stack_push_int 1
     +add
-    +stack_pull_int .Program_field_67108896
-    +stack_push_var .Program_field_67108896
+    +stack_pull_int .Program_field_67108900
+    +stack_push_var .Program_field_67108900
     jsr C64_SetBorderColor
     nop
     +stack_return_to_saved_address .Program_OnInterrupt_ReturnAddress

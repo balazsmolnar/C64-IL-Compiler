@@ -20,7 +20,8 @@ class Game
 
         _player = new Player()
         {
-            Sprite = C64.Sprites.Sprite4
+            Sprite = C64.Sprites.Sprite4,
+            Y = 100
         };
     }
 

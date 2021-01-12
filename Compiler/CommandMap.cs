@@ -49,6 +49,8 @@ namespace Compiler
                 { ILOpCode.Br_s, new OpShortJump("jmp") },
                 { ILOpCode.Beq, new OpShortJump("+branch_equal") },
                 { ILOpCode.Beq_s, new OpShortJump("+branch_equal") },
+                { ILOpCode.Blt, new OpShortJump("+branch_less") },
+                { ILOpCode.Blt_s, new OpShortJump("+branch_less") },
                 { ILOpCode.Br, new OpLongJump("jmp") },
                 { ILOpCode.Brtrue_s, new OpShortJump("+branch_true") },
                 { ILOpCode.Brfalse_s, new OpShortJump("+branch_false") },

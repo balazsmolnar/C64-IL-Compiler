@@ -15,7 +15,7 @@ namespace Compiler
             for (int i = 0; i < lines.Count; i++)
             {
                 if (lines[i].Operand is OpLdConst &&
-                    lines[i + 1].Operand is OpStloc)
+                    lines[i + 1].Operand is OpStloc && string.IsNullOrEmpty(lines[i + 1].Label))
                 {
                     int variable = ((OpStloc)lines[i + 1].Operand).VarIndex;
                     int value = (int)lines[i].Parameter;

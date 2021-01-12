@@ -5,6 +5,8 @@ class Player
 
     private uint x_;
     private uint y_;
+
+    private int data_;
     public uint X
     {
         get { return x_; }
@@ -29,29 +31,35 @@ class Player
     {
         set
         {
-            _sprite = value;
-            _sprite.DataBlock = 0;
-            _sprite.Visible = true;
-        }
-    }
+            C64.Sprites.CommonColor1 = Colors.LightRed;
+            C64.Sprites.CommonColor2 = Colors.Blue;
 
-    public Colors PlayerColor
-    {
-        set
-        {
-            _sprite.Color = value;
+            _sprite = value;
+            _sprite.DataBlock = 3;
+            data_ = 4;
+            _sprite.MultiColor = true;
+            _sprite.Visible = true;
+            _sprite.Color = Colors.Brown;
         }
     }
 
     public void Move()
     {
         if (C64.IsKeyPressed(Keys.W))
-            Y += 255;
+            Y--;
         if (C64.IsKeyPressed(Keys.A))
-            X += 255;
+            X--;
         if (C64.IsKeyPressed(Keys.S))
+        {
             Y++;
+        }
         if (C64.IsKeyPressed(Keys.D))
+        {
             X++;
+            data_++;
+            if (data_ == 6)
+                data_ = 2;
+            _sprite.DataBlock = data_;
+        }
     }
 }

@@ -3,6 +3,7 @@ using C64Lib;
 class Game
 {
     PlatformEnemy _platformEnemy;
+    Player _player;
     public void Init()
     {
 
@@ -16,6 +17,11 @@ class Game
             Y = 100,
             Sprite = C64Lib.C64.Sprites.Sprite3
         };
+
+        _player = new Player()
+        {
+            Sprite = C64.Sprites.Sprite4
+        };
     }
 
     public void Run()
@@ -24,11 +30,12 @@ class Game
         {
             Step();
             for (uint i = 0; i < 100; i++)
-                for (uint j = 0; j < 10; j++) ;
+                for (uint j = 0; j < 20; j++) ;
         }
     }
     public void Step()
     {
         _platformEnemy.Move();
+        _player.Move();
     }
 }

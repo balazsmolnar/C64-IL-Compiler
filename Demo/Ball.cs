@@ -90,16 +90,12 @@ class Ball
         ball3.X = 120;
         ball3.BallColor = Colors.Violet;
 
-        var player = new Player();
-        player.Sprite = C64.Sprites.Sprite3;
-        player.PlayerColor = Colors.LightRed;
 
         for (; ; )
         {
             ball1.Move();
             ball2.Move();
             ball3.Move();
-            player.Move();
             for (uint i = 0; i < 255; i++) ;
         }
     }

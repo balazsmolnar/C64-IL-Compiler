@@ -10,13 +10,15 @@ namespace C64Lib
         public Sprite Sprite5 { get; }
         public Sprite Sprite6 { get; }
         public Sprite Sprite7 { get; }
-
+        public Colors CommonColor1 { get; set; }
+        public Colors CommonColor2 { get; set; }
     }
 
     public class Sprite
     {
         public bool Visible { get; set; }
         public Colors Color { get; set; }
+        public bool MultiColor { get; set; }
         public int DataBlock { get; set; }
         public uint X { get; set; }
         public uint Y { get; set; }

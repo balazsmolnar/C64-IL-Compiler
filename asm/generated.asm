@@ -325,19 +325,8 @@ Ball_RunBalls
     +stack_push_int 4
     jsr Ball_set_BallColor
     nop
-    +newObj 3
-    +stack_pull_int .Ball_RunBalls_var3
-    +stack_push_var .Ball_RunBalls_var3
-    jsr C64_get_Sprites
-    jsr SpriteCollection_get_Sprite3
-    jsr Player_set_Sprite
-    nop
-    +stack_push_var .Ball_RunBalls_var3
-    +stack_push_int 10
-    jsr Player_set_PlayerColor
-    nop
-    jmp label_Ball_RunBalls_260
-label_Ball_RunBalls_203:    nop
+    jmp label_Ball_RunBalls_217
+label_Ball_RunBalls_171:    nop
     +stack_push_var .Ball_RunBalls_var0
     jsr Ball_Move
     nop
@@ -347,32 +336,30 @@ label_Ball_RunBalls_203:    nop
     +stack_push_var .Ball_RunBalls_var2
     jsr Ball_Move
     nop
-    +stack_push_var .Ball_RunBalls_var3
-    jsr Player_Move
-    nop
-    +stack_push_int 0
-    +stack_pull_int .Ball_RunBalls_var4
-    jmp label_Ball_RunBalls_244
-label_Ball_RunBalls_237:    nop
-    +stack_push_var .Ball_RunBalls_var4
-    +stack_push_int 1
-    +add
-    +stack_pull_int .Ball_RunBalls_var4
-label_Ball_RunBalls_244:    +stack_push_var .Ball_RunBalls_var4
+  ;  +stack_push_int 0
+  ;  +stack_pull_int .Ball_RunBalls_var3
+    +init_var .Ball_RunBalls_var3, 0
+    jmp label_Ball_RunBalls_202
+label_Ball_RunBalls_197:    nop
+  ;  +stack_push_var .Ball_RunBalls_var3
+  ;  +stack_push_int 1
+  ;  +add
+  ;  +stack_pull_int .Ball_RunBalls_var3
+    +inc_var .Ball_RunBalls_var3
+label_Ball_RunBalls_202:    +stack_push_var .Ball_RunBalls_var3
     +stack_push_int 255
     +compareLess
-    +stack_pull_int .Ball_RunBalls_var5
-    +stack_push_var .Ball_RunBalls_var5
-    +branch_true label_Ball_RunBalls_237
+    +stack_pull_int .Ball_RunBalls_var4
+    +stack_push_var .Ball_RunBalls_var4
+    +branch_true label_Ball_RunBalls_197
     nop
-label_Ball_RunBalls_260:    jmp label_Ball_RunBalls_203
+label_Ball_RunBalls_217:    jmp label_Ball_RunBalls_171
 .Ball_RunBalls_ReturnAddress !byte 0,0
 .Ball_RunBalls_var0 !byte 0,0
 .Ball_RunBalls_var1 !byte 0,0
 .Ball_RunBalls_var2 !byte 0,0
 .Ball_RunBalls_var3 !byte 0,0
 .Ball_RunBalls_var4 !byte 0,0
-.Ball_RunBalls_var5 !byte 0,0
 
 
 Game_Init 
@@ -409,6 +396,14 @@ Game_Init
     jsr PlatformEnemy_set_Sprite
     nop
     +stfld 0
+    +stack_push_var .Game_Init_this
+    +newObj 4
+    +stack_duplicate
+    jsr C64_get_Sprites
+    jsr SpriteCollection_get_Sprite4
+    jsr Player_set_Sprite
+    nop
+    +stfld 1
     +stack_return_to_saved_address .Game_Init_ReturnAddress
 .Game_Init_this !byte 0,0
 .Game_Init_ReturnAddress !byte 0,0
@@ -438,12 +433,12 @@ label_Game_Run_19:    nop
   ;  +stack_pull_int .Game_Run_var1
     +inc_var .Game_Run_var1
 label_Game_Run_24:  ;  +stack_push_var .Game_Run_var1
-  ;  +stack_push_int 10
+  ;  +stack_push_int 20
   ;  +compareLess
   ;  +stack_pull_int .Game_Run_var2
   ;  +stack_push_var .Game_Run_var2
   ;  +branch_true label_Game_Run_19
-    +branch_if_var_less .Game_Run_var1, 10, label_Game_Run_19
+    +branch_if_var_less .Game_Run_var1, 20, label_Game_Run_19
   ;  +stack_push_var .Game_Run_var0
   ;  +stack_push_int 1
   ;  +add
@@ -473,6 +468,10 @@ Game_Step
     +stack_push_var .Game_Step_this
     +ldfld 0
     jsr PlatformEnemy_Move
+    nop
+    +stack_push_var .Game_Step_this
+    +ldfld 1
+    jsr Player_Move
     nop
     +stack_return_to_saved_address .Game_Step_ReturnAddress
 .Game_Step_this !byte 0,0
@@ -707,11 +706,11 @@ PlatformEnemy_get_MaxX
     +stack_return_to_saved_address .PlatformEnemy_get_MaxX_ReturnAddress
 .PlatformEnemy_get_MaxX_this !byte 0,0
 .PlatformEnemy_get_MaxX_ReturnAddress !byte 0,0
-.Platform_field_67108886 !byte 0,0
 .Platform_field_67108887 !byte 0,0
 .Platform_field_67108888 !byte 0,0
 .Platform_field_67108889 !byte 0,0
 .Platform_field_67108890 !byte 0,0
+.Platform_field_67108891 !byte 0,0
 
 
 Platform_Draw 
@@ -812,39 +811,44 @@ Player_set_Sprite
 +stack_pull_int .Player_set_Sprite_value
 +stack_pull_int .Player_set_Sprite_this
     nop
+    jsr C64_get_Sprites
+    +stack_push_int 10
+    jsr SpriteCollection_set_CommonColor1
+    nop
+    jsr C64_get_Sprites
+    +stack_push_int 6
+    jsr SpriteCollection_set_CommonColor2
+    nop
     +stack_push_var .Player_set_Sprite_this
     +stack_push_var .Player_set_Sprite_value
-    +stfld 2
+    +stfld 3
     +stack_push_var .Player_set_Sprite_this
-    +ldfld 2
-    +stack_push_int 0
+    +ldfld 3
+    +stack_push_int 3
     jsr Sprite_set_DataBlock
     nop
     +stack_push_var .Player_set_Sprite_this
-    +ldfld 2
+    +stack_push_int 4
+    +stfld 2
+    +stack_push_var .Player_set_Sprite_this
+    +ldfld 3
+    +stack_push_int 1
+    jsr Sprite_set_MultiColor
+    nop
+    +stack_push_var .Player_set_Sprite_this
+    +ldfld 3
     +stack_push_int 1
     jsr Sprite_set_Visible
+    nop
+    +stack_push_var .Player_set_Sprite_this
+    +ldfld 3
+    +stack_push_int 9
+    jsr Sprite_set_Color
     nop
     +stack_return_to_saved_address .Player_set_Sprite_ReturnAddress
 .Player_set_Sprite_this !byte 0,0
 .Player_set_Sprite_value !byte 0,0
 .Player_set_Sprite_ReturnAddress !byte 0,0
-
-
-Player_set_PlayerColor 
-+stack_save_return_adress .Player_set_PlayerColor_ReturnAddress
-+stack_pull_int .Player_set_PlayerColor_value
-+stack_pull_int .Player_set_PlayerColor_this
-    nop
-    +stack_push_var .Player_set_PlayerColor_this
-    +ldfld 2
-    +stack_push_var .Player_set_PlayerColor_value
-    jsr Sprite_set_Color
-    nop
-    +stack_return_to_saved_address .Player_set_PlayerColor_ReturnAddress
-.Player_set_PlayerColor_this !byte 0,0
-.Player_set_PlayerColor_value !byte 0,0
-.Player_set_PlayerColor_ReturnAddress !byte 0,0
 
 
 Player_Move 
@@ -855,55 +859,85 @@ Player_Move
     jsr C64_IsKeyPressed
     +stack_pull_int .Player_Move_var0
     +stack_push_var .Player_Move_var0
-    +branch_false label_Player_Move_31
-    +stack_push_var .Player_Move_this
+    +branch_false label_Player_Move_29
     +stack_push_var .Player_Move_this
     jsr Player_get_Y
-    +stack_push_int 255
-    +add
+    +stack_pull_int .Player_Move_var1
+    +stack_push_var .Player_Move_this
+    +stack_push_var .Player_Move_var1
+    +stack_push_int 1
+    +sub
     jsr Player_set_Y
     nop
-label_Player_Move_31:    +stack_push_int 0
-    jsr C64_IsKeyPressed
-    +stack_pull_int .Player_Move_var1
-    +stack_push_var .Player_Move_var1
-    +branch_false label_Player_Move_60
-    +stack_push_var .Player_Move_this
-    +stack_push_var .Player_Move_this
-    jsr Player_get_X
-    +stack_push_int 255
-    +add
-    jsr Player_set_X
-    nop
-label_Player_Move_60:    +stack_push_int 18
+label_Player_Move_29:    +stack_push_int 0
     jsr C64_IsKeyPressed
     +stack_pull_int .Player_Move_var2
     +stack_push_var .Player_Move_var2
-    +branch_false label_Player_Move_88
+    +branch_false label_Player_Move_56
+    +stack_push_var .Player_Move_this
+    jsr Player_get_X
+    +stack_pull_int .Player_Move_var1
+    +stack_push_var .Player_Move_this
+    +stack_push_var .Player_Move_var1
+    +stack_push_int 1
+    +sub
+    jsr Player_set_X
+    nop
+label_Player_Move_56:    +stack_push_int 18
+    jsr C64_IsKeyPressed
+    +stack_pull_int .Player_Move_var3
+    +stack_push_var .Player_Move_var3
+    +branch_false label_Player_Move_86
+    nop
     +stack_push_var .Player_Move_this
     jsr Player_get_Y
-    +stack_pull_int .Player_Move_var3
+    +stack_pull_int .Player_Move_var1
     +stack_push_var .Player_Move_this
-    +stack_push_var .Player_Move_var3
+    +stack_push_var .Player_Move_var1
     +stack_push_int 1
     +add
     jsr Player_set_Y
     nop
-label_Player_Move_88:    +stack_push_int 3
+    nop
+label_Player_Move_86:    +stack_push_int 3
     jsr C64_IsKeyPressed
     +stack_pull_int .Player_Move_var4
     +stack_push_var .Player_Move_var4
-    +branch_false label_Player_Move_117
+    +branch_false label_Player_Move_171
+    nop
     +stack_push_var .Player_Move_this
     jsr Player_get_X
-    +stack_pull_int .Player_Move_var3
+    +stack_pull_int .Player_Move_var1
     +stack_push_var .Player_Move_this
-    +stack_push_var .Player_Move_var3
+    +stack_push_var .Player_Move_var1
     +stack_push_int 1
     +add
     jsr Player_set_X
     nop
-label_Player_Move_117:    +stack_return_to_saved_address .Player_Move_ReturnAddress
+    +stack_push_var .Player_Move_this
+    +stack_push_var .Player_Move_this
+    +ldfld 2
+    +stack_push_int 1
+    +add
+    +stfld 2
+    +stack_push_var .Player_Move_this
+    +ldfld 2
+    +stack_push_int 6
+    +compareEqual
+    +stack_pull_int .Player_Move_var5
+    +stack_push_var .Player_Move_var5
+    +branch_false label_Player_Move_152
+    +stack_push_var .Player_Move_this
+    +stack_push_int 2
+    +stfld 2
+label_Player_Move_152:    +stack_push_var .Player_Move_this
+    +ldfld 3
+    +stack_push_var .Player_Move_this
+    +ldfld 2
+    jsr Sprite_set_DataBlock
+    nop
+    nop
+label_Player_Move_171:    +stack_return_to_saved_address .Player_Move_ReturnAddress
 .Player_Move_this !byte 0,0
 .Player_Move_ReturnAddress !byte 0,0
 .Player_Move_var0 !byte 0,0
@@ -911,6 +945,7 @@ label_Player_Move_117:    +stack_return_to_saved_address .Player_Move_ReturnAddr
 .Player_Move_var2 !byte 0,0
 .Player_Move_var3 !byte 0,0
 .Player_Move_var4 !byte 0,0
+.Player_Move_var5 !byte 0,0
 
 
 Player_get_X 
@@ -937,7 +972,7 @@ Player_set_X
     +stack_push_var .Player_set_X_value
     +stfld 0
     +stack_push_var .Player_set_X_this
-    +ldfld 2
+    +ldfld 3
     +stack_push_var .Player_set_X_value
     jsr Sprite_set_X
     nop
@@ -971,7 +1006,7 @@ Player_set_Y
     +stack_push_var .Player_set_Y_value
     +stfld 1
     +stack_push_var .Player_set_Y_this
-    +ldfld 2
+    +ldfld 3
     +stack_push_var .Player_set_Y_value
     jsr Sprite_set_Y
     nop
@@ -979,7 +1014,7 @@ Player_set_Y
 .Player_set_Y_this !byte 0,0
 .Player_set_Y_value !byte 0,0
 .Player_set_Y_ReturnAddress !byte 0,0
-.Program_field_67108894 !byte 0,0
+.Program_field_67108896 !byte 0,0
 
 
 Program_ClearScreen 
@@ -1040,11 +1075,11 @@ Program_OnInterrupt
 +stack_pull_int .Program_OnInterrupt_sender
 +stack_pull_int .Program_OnInterrupt_args
     nop
-    +stack_push_var .Program_field_67108894
+    +stack_push_var .Program_field_67108896
     +stack_push_int 1
     +add
-    +stack_pull_int .Program_field_67108894
-    +stack_push_var .Program_field_67108894
+    +stack_pull_int .Program_field_67108896
+    +stack_push_var .Program_field_67108896
     jsr C64_SetBorderColor
     nop
     +stack_return_to_saved_address .Program_OnInterrupt_ReturnAddress
@@ -1096,7 +1131,7 @@ label_Program_Main_28:  ;  +stack_push_var .Program_Main_var2
     +stack_push_var .Program_Main_var0
     jsr Platform_Draw
     nop
-    +newObj 1
+    +newObj 2
     +stack_pull_int .Program_Main_var1
     +stack_push_var .Program_Main_var1
     jsr Game_Init

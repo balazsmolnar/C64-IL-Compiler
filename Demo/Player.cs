@@ -65,7 +65,10 @@ class Player
             if (data_ == 6)
                 data_ = 2;
             if (jump_ || freefall_)
+            {
+                X++;
                 data_ = 3;
+            }
             sprite_.DataBlock = data_;
         }
 
@@ -73,7 +76,7 @@ class Player
         {
             jumpCounter_++;
 
-            Y -= jumpCounter_ < 10 ? 5 : 2;
+            Y -= jumpCounter_ < 10 ? 3 : 1;
             if (jumpCounter_ == 15)
             {
                 jump_ = false;
@@ -85,7 +88,7 @@ class Player
         if (freefall_)
         {
             freefallCounter_++;
-            Y += freefallCounter_ < 5 ? 2 : 5;
+            Y += freefallCounter_ < 5 ? 1 : 3;
             if (freefallCounter_ == 15)
             {
                 freefall_ = false;

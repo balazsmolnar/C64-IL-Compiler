@@ -19,12 +19,12 @@ rts
 !src ".\\asm\\system.asm"
 !src ".\\asm\\C64.asm"
 
+!src ".\\asm\\spritedata.asm"
+
 objTableLow
 !fill 256, 0
 objTableHigh
 !fill 256, 0
-
-!src ".\\asm\\spritedata.asm"
 
 heap
 

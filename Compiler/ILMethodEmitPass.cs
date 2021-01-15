@@ -24,7 +24,7 @@ namespace Compiler
 
             output.WriteLine($"+stack_save_return_adress .{context.Method.GetLabel()}_ReturnAddress");
 
-            foreach (var param in context.Method.GetParameters())
+            foreach (var param in context.Method.GetParameters().Reverse())
             {
                 string outputLine = $"+stack_pull_int .{context.Method.GetLabel()}_{param.Name}";
                 output.WriteLine(outputLine);

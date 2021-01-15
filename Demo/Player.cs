@@ -8,9 +8,7 @@ class Player
 
     private int data_;
     private bool jump_;
-    private bool freefall_;
     private int jumpCounter_;
-    private int freefallCounter_;
     public uint X
     {
         get { return x_; }
@@ -45,15 +43,17 @@ class Player
             sprite_.Visible = true;
             sprite_.Color = Colors.Brown;
             jump_ = false;
-            freefall_ = false;
         }
     }
 
-    public void Move()
+    public void Move(uint distanceToPlatform)
     {
         C64.SetBorderColor(sprite_.IsInCollision ? Colors.Red : Colors.Black);
+        var freefall = false;
+        if (!jump_ && distanceToPlatform > 4)
+            freefall = true;
 
-        if (!jump_ && !freefall_ && C64.IsKeyPressed(Keys.W))
+        if (!jump_ && !freefall && C64.IsKeyPressed(Keys.W))
         {
             jump_ = true;
             jumpCounter_ = 0;
@@ -66,7 +66,12 @@ class Player
             data_++;
             if (data_ == 6)
                 data_ = 2;
-            if (jump_ || freefall_)
+            if (jump_)
+            {
+                X++;
+                data_ = 3;
+            }
+            if (freefall)
             {
                 X++;
                 data_ = 3;
@@ -79,23 +84,15 @@ class Player
             jumpCounter_++;
 
             Y -= jumpCounter_ < 10 ? 3 : 1;
-            if (jumpCounter_ == 15)
+            if (jumpCounter_ == 16)
             {
                 jump_ = false;
-                freefall_ = true;
-                freefallCounter_ = 0;
             }
         }
 
-        if (freefall_)
+        if (freefall)
         {
-            freefallCounter_++;
-            Y += freefallCounter_ < 5 ? 1 : 3;
-            if (freefallCounter_ == 15)
-            {
-                freefall_ = false;
-            }
+            Y += 3;
         }
-
     }
 }

@@ -6,6 +6,10 @@ class Platform
 {
     public uint X;
     public uint Y;
+
+    public uint YPixel;
+    public uint XMinPixel;
+    public uint XMaxPixel;
     public uint Width;
     public Colors Color;
 
@@ -22,6 +26,9 @@ class Platform
         var max = X + Width;
         var y1 = Y;
         var y2 = Y + 1;
+        YPixel = (y1 << 3) + 33;
+        XMinPixel = (min << 3) + 3;
+        XMaxPixel = (max << 3) + 20;
         for (uint i = min; i < max; i++)
         {
             C64.SetChar(i, y1, Line, Color);
@@ -31,6 +38,18 @@ class Platform
         C64.SetChar(X, y2, LDCorner, Color);
         C64.SetChar(max, y1, RUCorner, Color);
         C64.SetChar(max, y2, RDCorner, Color);
+    }
+
+    public uint DistanceToPlatform(uint x, uint y)
+    {
+        if (x < XMinPixel)
+            return 255;
+        if (x > XMaxPixel)
+            return 255;
+        if (y > YPixel)
+            return 255;
+        var res = YPixel - y;
+        return res;
     }
 
 }

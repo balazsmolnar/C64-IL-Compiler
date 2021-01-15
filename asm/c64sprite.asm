@@ -125,20 +125,20 @@ Sprite_set_Color:
 
 Sprite_set_X:
     +stack_save_return_adress $20
-    +stack_pull_int $34
+    +stack_pull_int_y
     +stack_pull_int_a
     asl
     tax
-    lda $34
+    tya
     sta spriteX,x    
     +stack_return_to_saved_address $20
 
 Sprite_set_Y:
     +stack_save_return_adress $20
-    +stack_pull_int $34
+    +stack_pull_int_y
     +stack_pull_int_a
     asl
     tax
-    lda $34
+    tya
     sta spriteY,x
     +stack_return_to_saved_address $20

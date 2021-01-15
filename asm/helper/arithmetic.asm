@@ -155,3 +155,14 @@
         lda #<value
         sta .variable
 }
+
+!macro shl {
+
+    +stack_pull_int_x
+    +stack_pull_int_a
+    
+ -  asl
+    dex
+    bne -
+    +stack_push_int_a
+}

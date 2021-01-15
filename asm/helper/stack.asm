@@ -82,6 +82,11 @@
   tax
 }
 
+!macro stack_pull_int_y {
+  pla
+  tay
+}
+
 !macro stack_push_int_a {
   pha
 }

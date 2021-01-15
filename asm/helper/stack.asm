@@ -76,3 +76,12 @@
 !macro stack_pull_int_a {
   pla
 }
+
+!macro stack_pull_int_x {
+  pla
+  tax
+}
+
+!macro stack_push_int_a {
+  pha
+}

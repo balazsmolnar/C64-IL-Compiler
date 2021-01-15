@@ -1,4 +1,5 @@
 spriteEnabled = $D015
+spriteCollision = $D01E
 spriteMultiColor = $D01C
 spriteCommonColor1 = $D025
 spriteCommonColor2 = $D026
@@ -64,9 +65,8 @@ SpriteCollection_set_CommonColor2:
 
 Sprite_set_Visible:
     +stack_save_return_adress $20
-    +stack_pull_int $34
-    +stack_pull_int $35
-    ldx $35
+    +stack_pull_int_a
+    +stack_pull_int_x
     
     lda #1
 -   asl
@@ -77,11 +77,23 @@ Sprite_set_Visible:
     sta spriteEnabled
     +stack_return_to_saved_address $20
 
+Sprite_get_IsInCollision:
+    +stack_save_return_adress $20
+    +stack_pull_int_x
+    
+    lda #1
+-   asl
+    dex
+    bpl -
+    lsr
+    and spriteCollision
+    +stack_push_int_a
+    +stack_return_to_saved_address $20
+
 Sprite_set_MultiColor:
     +stack_save_return_adress $20
-    +stack_pull_int $34
-    +stack_pull_int $35
-    ldx $35
+    +stack_pull_int_a
+    +stack_pull_int_x
     
     lda #1
 -   asl
@@ -95,8 +107,7 @@ Sprite_set_MultiColor:
 Sprite_set_DataBlock:
     +stack_save_return_adress $20
     +stack_pull_int $34
-    +stack_pull_int $35
-    ldx $35
+    +stack_pull_int_x
 
     lda #<(sprite0 / 64)
     clc
@@ -107,10 +118,8 @@ Sprite_set_DataBlock:
 
 Sprite_set_Color:
     +stack_save_return_adress $20
-    +stack_pull_int $34
-    +stack_pull_int $35
-    ldx $35
-    lda $34
+    +stack_pull_int_a
+    +stack_pull_int_x
     sta spriteColor,x    
     +stack_return_to_saved_address $20
 

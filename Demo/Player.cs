@@ -51,6 +51,8 @@ class Player
 
     public void Move()
     {
+        C64.SetBorderColor(sprite_.IsInCollision ? Colors.Red : Colors.Black);
+
         if (!jump_ && !freefall_ && C64.IsKeyPressed(Keys.W))
         {
             jump_ = true;

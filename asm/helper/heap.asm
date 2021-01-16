@@ -8,6 +8,7 @@ tmpPointer = $25
   sta heapPointer+1
 }
 
+
 !macro newObj .size {
 
   lda #0
@@ -15,7 +16,7 @@ tmpPointer = $25
   beq +
   ldx #0
 - inx
-  cmp objTableHigh,x
+  lda objTableHigh,x
   bne -
 
   ldy #0
@@ -24,7 +25,9 @@ tmpPointer = $25
   iny
   cpy #.size
   bne -
-+ lda heapPointer
++ lda #.size
+  sta objTableSize,x
+  lda heapPointer
   sta objTableLow,x
   lda heapPointer+1
   sta objTableHigh,x
@@ -39,17 +42,60 @@ tmpPointer = $25
   pha
 }
 
+!macro newArr {
+
+  +stack_pull_int $34
+  ldx #0
+- inx
+  lda objTableHigh,x
+  bne -
+
+  ldy #0
+- lda #0 
+  sta (heapPointer),y
+  iny
+  cpy $34
+  bne -
+  lda $34
+  sta objTableSize,x
+  lda heapPointer
+  sta objTableLow,x
+  lda heapPointer+1
+  sta objTableHigh,x
+  lda heapPointer
+  clc
+  adc $34
+  sta heapPointer
+  bcc +
+  inc heapPointer+1
++ txa
+  +stack_push_int_a
+}
+
 !macro stfld .pos {
   +stack_pull_int $fd
-  +stack_pull_int $fe
+  +stack_pull_int_x
 
-  ldx $fe
   lda objTableLow,x
   sta tmpPointer
   lda objTableHigh,x
   sta tmpPointer+1
 
   ldy #.pos
+  lda $fd
+  sta (tmpPointer),y 
+}
+
+!macro stelemRef {
+  +stack_pull_int $fd   ; value
+  +stack_pull_int_y     ; index
+  +stack_pull_int_x     ; object refernce to array
+
+  lda objTableLow,x
+  sta tmpPointer
+  lda objTableHigh,x
+  sta tmpPointer+1
+
   lda $fd
   sta (tmpPointer),y 
 }
@@ -67,4 +113,24 @@ tmpPointer = $25
   lda (tmpPointer),y
 
   pha
+}
+
+!macro ldelemRef  {
+  +stack_pull_int_y
+  +stack_pull_int_x
+
+  lda objTableLow,x
+  sta tmpPointer
+  lda objTableHigh,x
+  sta tmpPointer+1
+
+  lda (tmpPointer),y
+
+  +stack_push_int_a
+}
+
+!macro ldlen  {
+  +stack_pull_int_x
+  lda objTableSize,x
+  +stack_push_int_a
 }

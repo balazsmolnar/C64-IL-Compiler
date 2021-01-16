@@ -27,6 +27,7 @@ namespace Compiler
                 { ILOpCode.Ldc_i4, new OpLdc_i4() },
                 { ILOpCode.Ldnull, new OpLdnull() },
                 { ILOpCode.Newobj, new OpNewObj() },
+                { ILOpCode.Newarr, new OpNewArr() },
                 { ILOpCode.Ldftn, new OpLdftn() },
                 { ILOpCode.Dup, new OpDup() },
                 { ILOpCode.Stloc_0, new OpStloc(0) },
@@ -36,6 +37,9 @@ namespace Compiler
                 { ILOpCode.Stloc_s, new OpStloc_s() },
                 { ILOpCode.Stsfld, new OpStsfld() },
                 { ILOpCode.Stfld, new OpStfld() },
+                { ILOpCode.Stelem_ref, new OpBase(0, "+stelemRef") },
+                { ILOpCode.Ldelem_ref, new OpBase(0, "+ldelemRef") },
+                { ILOpCode.Ldlen, new OpBase(0, "+ldlen") },
                 { ILOpCode.Ldfld, new OpLdfld() },
                 { ILOpCode.Ldloc_0, new OpLdloc(0) },
                 { ILOpCode.Ldloc_1, new OpLdloc(1) },
@@ -71,6 +75,7 @@ namespace Compiler
                 { ILOpCode.Conv_i8, new OpBase(0, "nop ;Conv_i8") },
                 { ILOpCode.Conv_u8, new OpBase(0, "nop ;Conv_u8") },
                 { ILOpCode.Conv_u4, new OpBase(0, "nop ;Conv_u4") },
+                { ILOpCode.Conv_i4, new OpBase(0, "nop ;Conv_i4") },
             };
 
         public static bool Supported(ILOpCode code)

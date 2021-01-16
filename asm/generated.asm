@@ -427,6 +427,10 @@ Game_InitPlatforms
 +stack_pull_int .Game_InitPlatforms_this
     nop
     +stack_push_var .Game_InitPlatforms_this
+    +stack_push_int 4
+    +newArr 
+    +stack_duplicate
+    +stack_push_int 0
     +newObj 7
     +stack_duplicate
     +stack_push_int 10
@@ -440,12 +444,9 @@ Game_InitPlatforms
     +stack_duplicate
     +stack_push_int 10
     +stfld 5
-    +stfld 2
-    +stack_push_var .Game_InitPlatforms_this
-    +ldfld 2
-    jsr Platform_Draw
-    nop
-    +stack_push_var .Game_InitPlatforms_this
+    +stelemRef
+    +stack_duplicate
+    +stack_push_int 1
     +newObj 7
     +stack_duplicate
     +stack_push_int 1
@@ -459,12 +460,9 @@ Game_InitPlatforms
     +stack_duplicate
     +stack_push_int 10
     +stfld 5
-    +stfld 3
-    +stack_push_var .Game_InitPlatforms_this
-    +ldfld 3
-    jsr Platform_Draw
-    nop
-    +stack_push_var .Game_InitPlatforms_this
+    +stelemRef
+    +stack_duplicate
+    +stack_push_int 2
     +newObj 7
     +stack_duplicate
     +stack_push_int 12
@@ -478,12 +476,9 @@ Game_InitPlatforms
     +stack_duplicate
     +stack_push_int 3
     +stfld 5
-    +stfld 4
-    +stack_push_var .Game_InitPlatforms_this
-    +ldfld 4
-    jsr Platform_Draw
-    nop
-    +stack_push_var .Game_InitPlatforms_this
+    +stelemRef
+    +stack_duplicate
+    +stack_push_int 3
     +newObj 7
     +stack_duplicate
     +stack_push_int 17
@@ -497,14 +492,39 @@ Game_InitPlatforms
     +stack_duplicate
     +stack_push_int 3
     +stfld 5
-    +stfld 5
-    +stack_push_var .Game_InitPlatforms_this
-    +ldfld 5
+    +stelemRef
+    +stfld 2
+  ;  +stack_push_int 0
+  ;  +stack_pull_int .Game_InitPlatforms_var0
+    +init_var .Game_InitPlatforms_var0, 0
+    jmp label_Game_InitPlatforms_188
+label_Game_InitPlatforms_170:    +stack_push_var .Game_InitPlatforms_this
+    +ldfld 2
+    +stack_push_var .Game_InitPlatforms_var0
+    +ldelemRef
     jsr Platform_Draw
     nop
+  ;  +stack_push_var .Game_InitPlatforms_var0
+  ;  +stack_push_int 1
+  ;  +add
+  ;  +stack_pull_int .Game_InitPlatforms_var0
+    +inc_var .Game_InitPlatforms_var0
+label_Game_InitPlatforms_188:    +stack_push_var .Game_InitPlatforms_var0
+    nop ;Conv_u8
+    +stack_push_var .Game_InitPlatforms_this
+    +ldfld 2
+    +ldlen
+    nop ;Conv_i4
+    nop ;Conv_i8
+    +compareLess
+    +stack_pull_int .Game_InitPlatforms_var1
+    +stack_push_var .Game_InitPlatforms_var1
+    +branch_true label_Game_InitPlatforms_170
     +stack_return_to_saved_address .Game_InitPlatforms_ReturnAddress
 .Game_InitPlatforms_this !byte 0,0
 .Game_InitPlatforms_ReturnAddress !byte 0,0
+.Game_InitPlatforms_var0 !byte 0,0
+.Game_InitPlatforms_var1 !byte 0,0
 
 
 Game_Run 
@@ -570,8 +590,15 @@ Game_Step
   ;  +stack_push_int 255
   ;  +stack_pull_int .Game_Step_var0
     +init_var .Game_Step_var0, 255
+  ;  +stack_push_int 0
+  ;  +stack_pull_int .Game_Step_var1
+    +init_var .Game_Step_var1, 0
+    jmp label_Game_Step_75
+label_Game_Step_23:    nop
     +stack_push_var .Game_Step_this
     +ldfld 2
+    +stack_push_var .Game_Step_var1
+    +ldelemRef
     +stack_push_var .Game_Step_this
     +ldfld 1
     jsr Player_get_X
@@ -579,70 +606,31 @@ Game_Step
     +ldfld 1
     jsr Player_get_Y
     jsr Platform_DistanceToPlatform
-    +stack_pull_int .Game_Step_var1
-    +stack_push_var .Game_Step_var1
-    +stack_push_var .Game_Step_var0
-    +compareLess
     +stack_pull_int .Game_Step_var2
     +stack_push_var .Game_Step_var2
-    +branch_false label_Game_Step_63
-    +stack_push_var .Game_Step_var1
-    +stack_pull_int .Game_Step_var0
-label_Game_Step_63:    +stack_push_var .Game_Step_this
-    +ldfld 3
-    +stack_push_var .Game_Step_this
-    +ldfld 1
-    jsr Player_get_X
-    +stack_push_var .Game_Step_this
-    +ldfld 1
-    jsr Player_get_Y
-    jsr Platform_DistanceToPlatform
-    +stack_pull_int .Game_Step_var1
-    +stack_push_var .Game_Step_var1
     +stack_push_var .Game_Step_var0
     +compareLess
     +stack_pull_int .Game_Step_var3
     +stack_push_var .Game_Step_var3
-    +branch_false label_Game_Step_107
-    +stack_push_var .Game_Step_var1
+    +branch_false label_Game_Step_70
+    +stack_push_var .Game_Step_var2
     +stack_pull_int .Game_Step_var0
-label_Game_Step_107:    +stack_push_var .Game_Step_this
-    +ldfld 4
+label_Game_Step_70:    nop
+  ;  +stack_push_var .Game_Step_var1
+  ;  +stack_push_int 1
+  ;  +add
+  ;  +stack_pull_int .Game_Step_var1
+    +inc_var .Game_Step_var1
+label_Game_Step_75:    +stack_push_var .Game_Step_var1
     +stack_push_var .Game_Step_this
-    +ldfld 1
-    jsr Player_get_X
-    +stack_push_var .Game_Step_this
-    +ldfld 1
-    jsr Player_get_Y
-    jsr Platform_DistanceToPlatform
-    +stack_pull_int .Game_Step_var1
-    +stack_push_var .Game_Step_var1
-    +stack_push_var .Game_Step_var0
+    +ldfld 2
+    +ldlen
+    nop ;Conv_i4
     +compareLess
     +stack_pull_int .Game_Step_var4
     +stack_push_var .Game_Step_var4
-    +branch_false label_Game_Step_153
-    +stack_push_var .Game_Step_var1
-    +stack_pull_int .Game_Step_var0
-label_Game_Step_153:    +stack_push_var .Game_Step_this
-    +ldfld 5
+    +branch_true label_Game_Step_23
     +stack_push_var .Game_Step_this
-    +ldfld 1
-    jsr Player_get_X
-    +stack_push_var .Game_Step_this
-    +ldfld 1
-    jsr Player_get_Y
-    jsr Platform_DistanceToPlatform
-    +stack_pull_int .Game_Step_var1
-    +stack_push_var .Game_Step_var1
-    +stack_push_var .Game_Step_var0
-    +compareLess
-    +stack_pull_int .Game_Step_var5
-    +stack_push_var .Game_Step_var5
-    +branch_false label_Game_Step_199
-    +stack_push_var .Game_Step_var1
-    +stack_pull_int .Game_Step_var0
-label_Game_Step_199:    +stack_push_var .Game_Step_this
     +ldfld 1
     +stack_push_var .Game_Step_var0
     jsr Player_Move
@@ -655,7 +643,6 @@ label_Game_Step_199:    +stack_push_var .Game_Step_this
 .Game_Step_var2 !byte 0,0
 .Game_Step_var3 !byte 0,0
 .Game_Step_var4 !byte 0,0
-.Game_Step_var5 !byte 0,0
 
 
 Game_ClearScreen 
@@ -939,11 +926,11 @@ PlatformEnemy_get_MaxX
     +stack_return_to_saved_address .PlatformEnemy_get_MaxX_ReturnAddress
 .PlatformEnemy_get_MaxX_this !byte 0,0
 .PlatformEnemy_get_MaxX_ReturnAddress !byte 0,0
-.Platform_field_67108897 !byte 0,0
-.Platform_field_67108898 !byte 0,0
-.Platform_field_67108899 !byte 0,0
-.Platform_field_67108900 !byte 0,0
-.Platform_field_67108901 !byte 0,0
+.Platform_field_67108891 !byte 0,0
+.Platform_field_67108892 !byte 0,0
+.Platform_field_67108893 !byte 0,0
+.Platform_field_67108894 !byte 0,0
+.Platform_field_67108895 !byte 0,0
 
 
 Platform_Draw 
@@ -1446,7 +1433,7 @@ label_Player_Move_390:    +stack_return_to_saved_address .Player_Move_ReturnAddr
 .Player_Move_var9 !byte 0,0
 .Player_Move_var10 !byte 0,0
 .Player_Move_var11 !byte 0,0
-.Program_field_67108908 !byte 0,0
+.Program_field_67108902 !byte 0,0
 
 
 Program_OnInterrupt 
@@ -1454,11 +1441,11 @@ Program_OnInterrupt
 +stack_pull_int .Program_OnInterrupt_args
 +stack_pull_int .Program_OnInterrupt_sender
     nop
-    +stack_push_var .Program_field_67108908
+    +stack_push_var .Program_field_67108902
     +stack_push_int 1
     +add
-    +stack_pull_int .Program_field_67108908
-    +stack_push_var .Program_field_67108908
+    +stack_pull_int .Program_field_67108902
+    +stack_push_var .Program_field_67108902
     jsr C64_SetBorderColor
     nop
     +stack_return_to_saved_address .Program_OnInterrupt_ReturnAddress
@@ -1470,7 +1457,7 @@ Program_OnInterrupt
 Program_Main 
 +stack_save_return_adress .Program_Main_ReturnAddress
     nop
-    +newObj 9
+    +newObj 3
     +stack_pull_int .Program_Main_var0
     +stack_push_var .Program_Main_var0
     jsr Game_Init

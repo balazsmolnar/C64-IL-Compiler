@@ -4,7 +4,7 @@ class Game
 {
     PlatformEnemy platformEnemy_;
     Player player_;
-    Platform platform1_, platform2_, platform3_, platform4_, platform5_, platform6_, platform7_;
+    Platform[] platforms_;
     public void Init()
     {
         ClearScreen();
@@ -30,44 +30,40 @@ class Game
 
     private void InitPlatforms()
     {
-        platform1_ = new Platform()
-        {
-            X = 10,
-            Y = 10,
-            Color = Colors.Yellow,
-            Width = 10
+        platforms_ = new Platform[] {
+            new Platform()
+                    {
+                        X = 10,
+                        Y = 10,
+                        Color = Colors.Yellow,
+                        Width = 10
+                    },
+                    new Platform()
+                    {
+                        X = 1,
+                        Y = 23,
+                        Color = Colors.Green,
+                        Width = 10
+                    },
+                    new Platform()
+                    {
+                        X = 12,
+                        Y = 20,
+                        Color = Colors.Green,
+                        Width = 3
+                    },
+                    new Platform()
+                    {
+                        X = 17,
+                        Y = 20,
+                        Color = Colors.Green,
+                        Width = 3
+                    }
         };
-        platform1_.Draw();
 
-        platform2_ = new Platform()
-        {
-            X = 1,
-            Y = 23,
-            Color = Colors.Green,
-            Width = 10
-        };
-        platform2_.Draw();
-
-        platform3_ = new Platform()
-        {
-            X = 12,
-            Y = 20,
-            Color = Colors.Green,
-            Width = 3
-        };
-        platform3_.Draw();
-
-        platform4_ = new Platform()
-        {
-            X = 17,
-            Y = 20,
-            Color = Colors.Green,
-            Width = 3
-        };
-        platform4_.Draw();
-
+        for (uint i = 0; i < platforms_.Length; i++)
+            platforms_[i].Draw();
     }
-
     public void Run()
     {
         for (; ; )
@@ -81,18 +77,13 @@ class Game
     {
         platformEnemy_.Move();
         uint min = 255;
-        var d = platform1_.DistanceToPlatform(player_.X, player_.Y);
-        if (d < min)
-            min = d;
-        d = platform2_.DistanceToPlatform(player_.X, player_.Y);
-        if (d < min)
-            min = d;
-        d = platform3_.DistanceToPlatform(player_.X, player_.Y);
-        if (d < min)
-            min = d;
-        d = platform4_.DistanceToPlatform(player_.X, player_.Y);
-        if (d < min)
-            min = d;
+        for (int i = 0; i < platforms_.Length; i++)
+        {
+            var d = platforms_[i].DistanceToPlatform(player_.X, player_.Y);
+            if (d < min)
+                min = d;
+        }
+        d
         player_.Move(min);
     }
 

@@ -94,6 +94,18 @@ namespace Compiler.Ops
         }
     }
 
+    class OpNewArr : OpBase
+    {
+        public OpNewArr() : base(4, "+newArr")
+        {
+        }
+
+        public override object ConvertParameter(CompilerMethodContext context, int parameter)
+        {
+            return "";
+        }
+    }
+
     class OpStfld : OpBase
     {
         public OpStfld() : base(4, "+stfld")
@@ -119,6 +131,13 @@ namespace Compiler.Ops
                 }
             }
             return $"{pos}";
+        }
+    }
+
+    class OpStElem_ref : OpBase
+    {
+        public OpStElem_ref() : base(0, "+stelemRef")
+        {
         }
     }
 

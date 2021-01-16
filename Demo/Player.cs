@@ -43,12 +43,19 @@ class Player
             sprite_.Visible = true;
             sprite_.Color = Colors.Brown;
             jump_ = false;
+            Y = 200;
+            X = 20;
         }
     }
 
     public void Move(uint distanceToPlatform)
     {
-        C64.SetBorderColor(sprite_.IsInCollision ? Colors.Red : Colors.Black);
+        if (sprite_.IsInCollision || Y > 240)
+        {
+            Die();
+            return;
+        }
+
         var freefall = false;
         if (!jump_ && distanceToPlatform > 4)
             freefall = true;
@@ -59,22 +66,41 @@ class Player
             jumpCounter_ = 0;
         }
         if (C64.IsKeyPressed(Keys.A))
+        {
             X--;
+            if (data_ < 5)
+                data_ = 5;
+            data_++;
+            if (data_ == 9)
+                data_ = 6;
+            if (jump_)
+            {
+                X--;
+                data_ = 7;
+            }
+            if (freefall)
+            {
+                X--;
+                data_ = 7;
+            }
+            sprite_.DataBlock = data_;
+
+        }
         if (C64.IsKeyPressed(Keys.D))
         {
             X++;
             data_++;
-            if (data_ == 6)
-                data_ = 2;
+            if (data_ > 4)
+                data_ = 1;
             if (jump_)
             {
                 X++;
-                data_ = 3;
+                data_ = 2;
             }
             if (freefall)
             {
                 X++;
-                data_ = 3;
+                data_ = 2;
             }
             sprite_.DataBlock = data_;
         }
@@ -94,5 +120,16 @@ class Player
         {
             Y += 3;
         }
+    }
+
+    private void Die()
+    {
+        C64.SetBorderColor(Colors.Red);
+        for (int i = 0; i < 100; i++)
+            for (int j = 0; j < 100; j++) ;
+        C64.SetBorderColor(Colors.Black);
+
+        Y = 200;
+        X = 20;
     }
 }

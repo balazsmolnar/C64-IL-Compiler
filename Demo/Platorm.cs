@@ -6,16 +6,13 @@ class Platform
 {
     public uint X;
     public uint Y;
-
     public uint YPixel;
     public uint XMinPixel;
     public uint XMaxPixel;
     public uint Width;
     public Colors Color;
-
     const uint LUCorner = 0x55;
     const uint RUCorner = 0x49;
-
     const uint RDCorner = 0x4b;
     const uint LDCorner = 0x4a;
 

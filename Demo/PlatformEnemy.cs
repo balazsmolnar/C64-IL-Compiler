@@ -5,7 +5,9 @@ class PlatformEnemy
 
     private uint _x;
     private uint _y;
-    private int _spriteData;
+    public int SpriteData;
+    public uint VRight;
+    public uint VLeft;
     public uint X
     {
         get { return _x; }
@@ -35,12 +37,22 @@ class PlatformEnemy
         set
         {
             _sprite = value;
-            _sprite.DataBlock = 1;
+            _sprite.DataBlock = SpriteData;
 
             _right = true;
             X = MinX;
             Y = Y;
             _sprite.Visible = true;
+        }
+    }
+
+    public Platform Platform
+    {
+        set
+        {
+            MinX = value.XMinPixel + 20;
+            MaxX = value.XMaxPixel - 20;
+            _y = value.YPixel - 2;
         }
     }
 
@@ -56,18 +68,15 @@ class PlatformEnemy
     {
         if (_right)
         {
-            X++;
+            X += VRight;
             if (X > MaxX)
                 _right = false;
         }
         else
         {
-            X--;
+            X -= VLeft;
             if (X < MinX)
                 _right = true;
         }
-
-        // _spriteData = _spriteData == 1 ? 2 : 1;
-        // _sprite.DataBlock = _spriteData;
     }
 }

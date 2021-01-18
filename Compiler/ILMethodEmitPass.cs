@@ -20,24 +20,28 @@ namespace Compiler
             var output = context.CompilerContext.OutputFile;
             output.WriteLine("");
             output.WriteLine("");
+            output.WriteLine(";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;");
+            output.WriteLine($"; TYPE: {context.Method.DeclaringType.FullName}");
+            output.WriteLine($"; METHOD: {context.Method.Name}");
+            output.WriteLine(";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;");
             output.WriteLine($"{context.Method.GetLabel()} ");
 
-            output.WriteLine($"+stack_save_return_adress .{context.Method.GetLabel()}_ReturnAddress");
+            output.WriteLine($"    +stack_save_return_adress .{context.Method.GetLabel()}_ReturnAddress");
 
             foreach (var param in context.Method.GetParameters().Reverse())
             {
-                string outputLine = $"+stack_pull_int .{context.Method.GetLabel()}_{param.Name}";
+                string outputLine = $"    +stack_pull_int .{context.Method.GetLabel()}_{param.Name}";
                 output.WriteLine(outputLine);
             }
             if (!context.Method.IsStatic)
             {
-                string outputLine = $"+stack_pull_int .{context.Method.GetLabel()}_this";
+                string outputLine = $"    +stack_pull_int .{context.Method.GetLabel()}_this";
                 output.WriteLine(outputLine);
             }
 
             foreach (var line in context.Lines)
             {
-                string outputLine = $"{(line.Label == null ? "" : line.Label + ":")}  {(line.Optimized ? ";" : "")}  {line.Operand.Emit(context, line.Parameter)}";
+                string outputLine = $"{(line.Label == null ? "" : line.Label + ":")}  {(line.Optimized ? "; OPT " : "")}  {line.Operand.Emit(context, line.Parameter)} ; {line.OpCode}";
                 output.WriteLine(outputLine);
             }
         }

@@ -31,17 +31,17 @@ class Game
                 Sprite = C64Lib.C64.Sprites.Sprite5,
                 Color = C64Lib.Colors.Red,
             },
-            new PlatformEnemy()
-            {
-                MaxX = 250,
-                MinX = 50,
-                Y = 60,
-                VLeft = 4,
-                VRight = 4,
-                SpriteData = 9,
-                Sprite = C64Lib.C64.Sprites.Sprite1,
-                Color = C64Lib.Colors.Yellow,
-            },
+            // new PlatformEnemy()
+            // {
+            //     MaxX = 250,
+            //     MinX = 50,
+            //     Y = 60,
+            //     VLeft = 4,
+            //     VRight = 4,
+            //     SpriteData = 9,
+            //     Sprite = C64Lib.C64.Sprites.Sprite1,
+            //     Color = C64Lib.Colors.Yellow,
+            // },
             // new PlatformEnemy()
             // {
             //     Platform = platforms_[5],

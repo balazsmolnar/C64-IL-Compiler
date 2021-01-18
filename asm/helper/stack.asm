@@ -27,7 +27,6 @@
   pha
 }
 
-
 !macro stack_pull_int16 .address {
   pla
   sta .address+1

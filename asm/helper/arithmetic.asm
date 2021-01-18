@@ -161,7 +161,7 @@
     +stack_pull_int_x
     +stack_pull_int_a
     
- -  asl
+-   asl
     dex
     bne -
     +stack_push_int_a

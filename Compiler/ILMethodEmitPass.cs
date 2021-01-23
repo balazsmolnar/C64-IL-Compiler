@@ -30,7 +30,8 @@ namespace Compiler
 
             foreach (var param in context.Method.GetParameters().Reverse())
             {
-                string outputLine = $"    +stack_pull_int .{context.Method.GetLabel()}_{param.Name}";
+                var isRef = param.ParameterType.IsReferenceCounted() ? "1" : "0";
+                string outputLine = $"    +stack_pull_int_ref .{context.Method.GetLabel()}_{param.Name}, {isRef}";
                 output.WriteLine(outputLine);
             }
             if (!context.Method.IsStatic)

@@ -11,9 +11,6 @@ tmpPointer = $25
 
 !macro newObj .size {
 
-  lda #0
-  cmp #.size
-  beq +
   ldx #0
 - inx
   lda objTableHigh,x
@@ -84,6 +81,16 @@ tmpPointer = $25
   ldy #.pos
   lda $fd
   sta (tmpPointer),y 
+}
+
+!macro stsfld .address {
+
+  ldx .address
+  dec objTableRootCount, x
+
+  +stack_pull_int_x
+  inc objTableRootCount, x
+  stx .address
 }
 
 !macro stelemRef {

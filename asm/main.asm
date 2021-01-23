@@ -27,6 +27,8 @@ objTableHigh
 !fill 256, 0
 objTableSize
 !fill 256, 0
+objTableRootCount
+!fill 256, 0
 
 heap
 

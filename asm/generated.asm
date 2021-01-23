@@ -1,7 +1,3 @@
-.Ball_field_67108865 !byte 0
-.Ball_field_67108866 !byte 0
-.Ball_field_67108867 !byte 0
-.Ball_field_67108868 !byte 0
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -14,13 +10,13 @@ Ball_get_X
     nop ; Nop
     +stack_push_var .Ball_get_X_this ; Ldarg_0
     +ldfld 0 ; Ldfld
-    +stack_pull_int .Ball_get_X_var0 ; Stloc_0
+    +stack_pull_int_ref .Ball_get_X_var0, 0 ; Stloc_0
     jmp label_Ball_get_X_10 ; Br_s
 label_Ball_get_X_10:    +stack_push_var .Ball_get_X_var0 ; Ldloc_0
     +stack_return_to_saved_address .Ball_get_X_ReturnAddress ; Ret
-.Ball_get_X_this !byte 0
+.Ball_get_X_this !byte 0, 0
 .Ball_get_X_ReturnAddress !byte 0,0
-.Ball_get_X_var0 !byte 0
+.Ball_get_X_var0 !byte 0,0
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -29,7 +25,7 @@ label_Ball_get_X_10:    +stack_push_var .Ball_get_X_var0 ; Ldloc_0
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 Ball_set_X 
     +stack_save_return_adress .Ball_set_X_ReturnAddress
-    +stack_pull_int .Ball_set_X_value
+    +stack_pull_int_ref .Ball_set_X_value, 0
     +stack_pull_int .Ball_set_X_this
     nop ; Nop
     +stack_push_var .Ball_set_X_this ; Ldarg_0
@@ -41,8 +37,8 @@ Ball_set_X
     jsr Sprite_set_X ; Callvirt
     nop ; Nop
     +stack_return_to_saved_address .Ball_set_X_ReturnAddress ; Ret
-.Ball_set_X_this !byte 0
-.Ball_set_X_value !byte 0
+.Ball_set_X_this !byte 0, 0
+.Ball_set_X_value !byte 0, 0
 .Ball_set_X_ReturnAddress !byte 0,0
 
 
@@ -56,13 +52,13 @@ Ball_get_Y
     nop ; Nop
     +stack_push_var .Ball_get_Y_this ; Ldarg_0
     +ldfld 1 ; Ldfld
-    +stack_pull_int .Ball_get_Y_var0 ; Stloc_0
+    +stack_pull_int_ref .Ball_get_Y_var0, 0 ; Stloc_0
     jmp label_Ball_get_Y_10 ; Br_s
 label_Ball_get_Y_10:    +stack_push_var .Ball_get_Y_var0 ; Ldloc_0
     +stack_return_to_saved_address .Ball_get_Y_ReturnAddress ; Ret
-.Ball_get_Y_this !byte 0
+.Ball_get_Y_this !byte 0, 0
 .Ball_get_Y_ReturnAddress !byte 0,0
-.Ball_get_Y_var0 !byte 0
+.Ball_get_Y_var0 !byte 0,0
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -71,7 +67,7 @@ label_Ball_get_Y_10:    +stack_push_var .Ball_get_Y_var0 ; Ldloc_0
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 Ball_set_Y 
     +stack_save_return_adress .Ball_set_Y_ReturnAddress
-    +stack_pull_int .Ball_set_Y_value
+    +stack_pull_int_ref .Ball_set_Y_value, 0
     +stack_pull_int .Ball_set_Y_this
     nop ; Nop
     +stack_push_var .Ball_set_Y_this ; Ldarg_0
@@ -83,8 +79,8 @@ Ball_set_Y
     jsr Sprite_set_Y ; Callvirt
     nop ; Nop
     +stack_return_to_saved_address .Ball_set_Y_ReturnAddress ; Ret
-.Ball_set_Y_this !byte 0
-.Ball_set_Y_value !byte 0
+.Ball_set_Y_this !byte 0, 0
+.Ball_set_Y_value !byte 0, 0
 .Ball_set_Y_ReturnAddress !byte 0,0
 
 
@@ -98,7 +94,7 @@ Ball_get_VX
     +stack_push_var .Ball_get_VX_this ; Ldarg_0
     +ldfld 2 ; Ldfld
     +stack_return_to_saved_address .Ball_get_VX_ReturnAddress ; Ret
-.Ball_get_VX_this !byte 0
+.Ball_get_VX_this !byte 0, 0
 .Ball_get_VX_ReturnAddress !byte 0,0
 
 
@@ -108,14 +104,14 @@ Ball_get_VX
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 Ball_set_VX 
     +stack_save_return_adress .Ball_set_VX_ReturnAddress
-    +stack_pull_int .Ball_set_VX_value
+    +stack_pull_int_ref .Ball_set_VX_value, 0
     +stack_pull_int .Ball_set_VX_this
     +stack_push_var .Ball_set_VX_this ; Ldarg_0
     +stack_push_var .Ball_set_VX_value ; Ldarg_1
     +stfld 2 ; Stfld
     +stack_return_to_saved_address .Ball_set_VX_ReturnAddress ; Ret
-.Ball_set_VX_this !byte 0
-.Ball_set_VX_value !byte 0
+.Ball_set_VX_this !byte 0, 0
+.Ball_set_VX_value !byte 0, 0
 .Ball_set_VX_ReturnAddress !byte 0,0
 
 
@@ -129,7 +125,7 @@ Ball_get_VY
     +stack_push_var .Ball_get_VY_this ; Ldarg_0
     +ldfld 3 ; Ldfld
     +stack_return_to_saved_address .Ball_get_VY_ReturnAddress ; Ret
-.Ball_get_VY_this !byte 0
+.Ball_get_VY_this !byte 0, 0
 .Ball_get_VY_ReturnAddress !byte 0,0
 
 
@@ -139,14 +135,14 @@ Ball_get_VY
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 Ball_set_VY 
     +stack_save_return_adress .Ball_set_VY_ReturnAddress
-    +stack_pull_int .Ball_set_VY_value
+    +stack_pull_int_ref .Ball_set_VY_value, 0
     +stack_pull_int .Ball_set_VY_this
     +stack_push_var .Ball_set_VY_this ; Ldarg_0
     +stack_push_var .Ball_set_VY_value ; Ldarg_1
     +stfld 3 ; Stfld
     +stack_return_to_saved_address .Ball_set_VY_ReturnAddress ; Ret
-.Ball_set_VY_this !byte 0
-.Ball_set_VY_value !byte 0
+.Ball_set_VY_this !byte 0, 0
+.Ball_set_VY_value !byte 0, 0
 .Ball_set_VY_ReturnAddress !byte 0,0
 
 
@@ -156,7 +152,7 @@ Ball_set_VY
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 Ball_set_Sprite 
     +stack_save_return_adress .Ball_set_Sprite_ReturnAddress
-    +stack_pull_int .Ball_set_Sprite_value
+    +stack_pull_int_ref .Ball_set_Sprite_value, 0
     +stack_pull_int .Ball_set_Sprite_this
     nop ; Nop
     +stack_push_var .Ball_set_Sprite_this ; Ldarg_0
@@ -181,8 +177,8 @@ Ball_set_Sprite
     jsr Sprite_set_Visible ; Callvirt
     nop ; Nop
     +stack_return_to_saved_address .Ball_set_Sprite_ReturnAddress ; Ret
-.Ball_set_Sprite_this !byte 0
-.Ball_set_Sprite_value !byte 0
+.Ball_set_Sprite_this !byte 0, 0
+.Ball_set_Sprite_value !byte 0, 0
 .Ball_set_Sprite_ReturnAddress !byte 0,0
 
 
@@ -192,7 +188,7 @@ Ball_set_Sprite
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 Ball_set_BallColor 
     +stack_save_return_adress .Ball_set_BallColor_ReturnAddress
-    +stack_pull_int .Ball_set_BallColor_value
+    +stack_pull_int_ref .Ball_set_BallColor_value, 0
     +stack_pull_int .Ball_set_BallColor_this
     nop ; Nop
     +stack_push_var .Ball_set_BallColor_this ; Ldarg_0
@@ -201,8 +197,8 @@ Ball_set_BallColor
     jsr Sprite_set_Color ; Callvirt
     nop ; Nop
     +stack_return_to_saved_address .Ball_set_BallColor_ReturnAddress ; Ret
-.Ball_set_BallColor_this !byte 0
-.Ball_set_BallColor_value !byte 0
+.Ball_set_BallColor_this !byte 0, 0
+.Ball_set_BallColor_value !byte 0, 0
 .Ball_set_BallColor_ReturnAddress !byte 0,0
 
 
@@ -240,7 +236,7 @@ Ball_Move
     jsr Ball_get_X ; Call
     +stack_push_int 250 ; Ldc_i4
     +compareGreater ; Cgt_un
-    +stack_pull_int .Ball_Move_var0 ; Stloc_0
+    +stack_pull_int_ref .Ball_Move_var0, 0 ; Stloc_0
     +stack_push_var .Ball_Move_var0 ; Ldloc_0
     +branch_false label_Ball_Move_78 ; Brfalse_s
     +stack_push_var .Ball_Move_this ; Ldarg_0
@@ -253,7 +249,7 @@ label_Ball_Move_78:    +stack_push_var .Ball_Move_this ; Ldarg_0
     jsr Ball_get_X ; Call
     +stack_push_int 20 ; Ldc_i4_s
     +compareLess ; Clt_un
-    +stack_pull_int .Ball_Move_var1 ; Stloc_1
+    +stack_pull_int_ref .Ball_Move_var1, 0 ; Stloc_1
     +stack_push_var .Ball_Move_var1 ; Ldloc_1
     +branch_false label_Ball_Move_106 ; Brfalse_s
     +stack_push_var .Ball_Move_this ; Ldarg_0
@@ -266,7 +262,7 @@ label_Ball_Move_106:    +stack_push_var .Ball_Move_this ; Ldarg_0
     jsr Ball_get_Y ; Call
     +stack_push_int 228 ; Ldc_i4
     +compareGreater ; Cgt_un
-    +stack_pull_int .Ball_Move_var2 ; Stloc_2
+    +stack_pull_int_ref .Ball_Move_var2, 0 ; Stloc_2
     +stack_push_var .Ball_Move_var2 ; Ldloc_2
     +branch_false label_Ball_Move_137 ; Brfalse_s
     +stack_push_var .Ball_Move_this ; Ldarg_0
@@ -279,7 +275,7 @@ label_Ball_Move_137:    +stack_push_var .Ball_Move_this ; Ldarg_0
     jsr Ball_get_Y ; Call
     +stack_push_int 45 ; Ldc_i4_s
     +compareLess ; Clt_un
-    +stack_pull_int .Ball_Move_var3 ; Stloc_3
+    +stack_pull_int_ref .Ball_Move_var3, 0 ; Stloc_3
     +stack_push_var .Ball_Move_var3 ; Ldloc_3
     +branch_false label_Ball_Move_165 ; Brfalse_s
     +stack_push_var .Ball_Move_this ; Ldarg_0
@@ -289,12 +285,12 @@ label_Ball_Move_137:    +stack_push_var .Ball_Move_this ; Ldarg_0
     jsr Ball_set_VY ; Call
     nop ; Nop
 label_Ball_Move_165:    +stack_return_to_saved_address .Ball_Move_ReturnAddress ; Ret
-.Ball_Move_this !byte 0
+.Ball_Move_this !byte 0, 0
 .Ball_Move_ReturnAddress !byte 0,0
-.Ball_Move_var0 !byte 0
-.Ball_Move_var1 !byte 0
-.Ball_Move_var2 !byte 0
-.Ball_Move_var3 !byte 0
+.Ball_Move_var0 !byte 0,0
+.Ball_Move_var1 !byte 0,0
+.Ball_Move_var2 !byte 0,0
+.Ball_Move_var3 !byte 0,0
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -305,7 +301,7 @@ Ball_RunBalls
     +stack_save_return_adress .Ball_RunBalls_ReturnAddress
     nop ; Nop
     +newObj 5 ; Newobj
-    +stack_pull_int .Ball_RunBalls_var0 ; Stloc_0
+    +stack_pull_int_ref .Ball_RunBalls_var0, 1 ; Stloc_0
     +stack_push_var .Ball_RunBalls_var0 ; Ldloc_0
     jsr C64_get_Sprites ; Call
     jsr SpriteCollection_get_Sprite0 ; Callvirt
@@ -328,7 +324,7 @@ Ball_RunBalls
     jsr Ball_set_BallColor ; Callvirt
     nop ; Nop
     +newObj 5 ; Newobj
-    +stack_pull_int .Ball_RunBalls_var1 ; Stloc_1
+    +stack_pull_int_ref .Ball_RunBalls_var1, 1 ; Stloc_1
     +stack_push_var .Ball_RunBalls_var1 ; Ldloc_1
     jsr C64_get_Sprites ; Call
     jsr SpriteCollection_get_Sprite1 ; Callvirt
@@ -351,7 +347,7 @@ Ball_RunBalls
     jsr Ball_set_BallColor ; Callvirt
     nop ; Nop
     +newObj 5 ; Newobj
-    +stack_pull_int .Ball_RunBalls_var2 ; Stloc_2
+    +stack_pull_int_ref .Ball_RunBalls_var2, 1 ; Stloc_2
     +stack_push_var .Ball_RunBalls_var2 ; Ldloc_2
     jsr C64_get_Sprites ; Call
     jsr SpriteCollection_get_Sprite2 ; Callvirt
@@ -385,29 +381,29 @@ label_Ball_RunBalls_171:    nop ; Nop
     jsr Ball_Move ; Callvirt
     nop ; Nop
   ; OPT   +stack_push_int 0 ; Ldc_i4_0
-  ; OPT   +stack_pull_int .Ball_RunBalls_var3 ; Stloc_3
+  ; OPT   +stack_pull_int_ref .Ball_RunBalls_var3, 0 ; Stloc_3
     +init_var .Ball_RunBalls_var3, 0 ; Nop
     jmp label_Ball_RunBalls_202 ; Br_s
 label_Ball_RunBalls_197:    nop ; Nop
   ; OPT   +stack_push_var .Ball_RunBalls_var3 ; Ldloc_3
   ; OPT   +stack_push_int 1 ; Ldc_i4_1
   ; OPT   +add ; Add
-  ; OPT   +stack_pull_int .Ball_RunBalls_var3 ; Stloc_3
+  ; OPT   +stack_pull_int_ref .Ball_RunBalls_var3, 0 ; Stloc_3
     +inc_var .Ball_RunBalls_var3 ; Nop
 label_Ball_RunBalls_202:    +stack_push_var .Ball_RunBalls_var3 ; Ldloc_3
     +stack_push_int 255 ; Ldc_i4
     +compareLess ; Clt_un
-    +stack_pull_int .Ball_RunBalls_var4 ; Stloc_s
+    +stack_pull_int_ref .Ball_RunBalls_var4, 0 ; Stloc_s
     +stack_push_var .Ball_RunBalls_var4 ; Ldloc_s
     +branch_true label_Ball_RunBalls_197 ; Brtrue_s
     nop ; Nop
 label_Ball_RunBalls_217:    jmp label_Ball_RunBalls_171 ; Br_s
 .Ball_RunBalls_ReturnAddress !byte 0,0
-.Ball_RunBalls_var0 !byte 0
-.Ball_RunBalls_var1 !byte 0
-.Ball_RunBalls_var2 !byte 0
-.Ball_RunBalls_var3 !byte 0
-.Ball_RunBalls_var4 !byte 0
+.Ball_RunBalls_var0 !byte 0,0
+.Ball_RunBalls_var1 !byte 0,0
+.Ball_RunBalls_var2 !byte 0,0
+.Ball_RunBalls_var3 !byte 0,0
+.Ball_RunBalls_var4 !byte 0,0
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -500,7 +496,7 @@ Game_Init
     nop ; Nop
     +stfld 1 ; Stfld
     +stack_return_to_saved_address .Game_Init_ReturnAddress ; Ret
-.Game_Init_this !byte 0
+.Game_Init_this !byte 0, 0
 .Game_Init_ReturnAddress !byte 0,0
 
 
@@ -693,7 +689,7 @@ Game_InitPlatforms
     +stelemRef ; Stelem_ref
     +stfld 2 ; Stfld
   ; OPT   +stack_push_int 0 ; Ldc_i4_0
-  ; OPT   +stack_pull_int .Game_InitPlatforms_var0 ; Stloc_0
+  ; OPT   +stack_pull_int_ref .Game_InitPlatforms_var0, 0 ; Stloc_0
     +init_var .Game_InitPlatforms_var0, 0 ; Nop
     jmp label_Game_InitPlatforms_455 ; Br_s
 label_Game_InitPlatforms_437:    +stack_push_var .Game_InitPlatforms_this ; Ldarg_0
@@ -705,7 +701,7 @@ label_Game_InitPlatforms_437:    +stack_push_var .Game_InitPlatforms_this ; Ldar
   ; OPT   +stack_push_var .Game_InitPlatforms_var0 ; Ldloc_0
   ; OPT   +stack_push_int 1 ; Ldc_i4_1
   ; OPT   +add ; Add
-  ; OPT   +stack_pull_int .Game_InitPlatforms_var0 ; Stloc_0
+  ; OPT   +stack_pull_int_ref .Game_InitPlatforms_var0, 0 ; Stloc_0
     +inc_var .Game_InitPlatforms_var0 ; Nop
 label_Game_InitPlatforms_455:    +stack_push_var .Game_InitPlatforms_var0 ; Ldloc_0
     nop ;Conv_u8 ; Conv_u8
@@ -715,14 +711,14 @@ label_Game_InitPlatforms_455:    +stack_push_var .Game_InitPlatforms_var0 ; Ldlo
     nop ;Conv_i4 ; Conv_i4
     nop ;Conv_i8 ; Conv_i8
     +compareLess ; Clt
-    +stack_pull_int .Game_InitPlatforms_var1 ; Stloc_1
+    +stack_pull_int_ref .Game_InitPlatforms_var1, 0 ; Stloc_1
     +stack_push_var .Game_InitPlatforms_var1 ; Ldloc_1
     +branch_true label_Game_InitPlatforms_437 ; Brtrue_s
     +stack_return_to_saved_address .Game_InitPlatforms_ReturnAddress ; Ret
-.Game_InitPlatforms_this !byte 0
+.Game_InitPlatforms_this !byte 0, 0
 .Game_InitPlatforms_ReturnAddress !byte 0,0
-.Game_InitPlatforms_var0 !byte 0
-.Game_InitPlatforms_var1 !byte 0
+.Game_InitPlatforms_var0 !byte 0,0
+.Game_InitPlatforms_var1 !byte 0,0
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -739,46 +735,46 @@ label_Game_Run_3:    nop ; Nop
     jsr Game_Step ; Call
     nop ; Nop
   ; OPT   +stack_push_int 0 ; Ldc_i4_0
-  ; OPT   +stack_pull_int .Game_Run_var0 ; Stloc_0
+  ; OPT   +stack_pull_int_ref .Game_Run_var0, 0 ; Stloc_0
     +init_var .Game_Run_var0, 0 ; Nop
     jmp label_Game_Run_37 ; Br_s
 label_Game_Run_15:  ; OPT   +stack_push_int 0 ; Ldc_i4_0
-  ; OPT   +stack_pull_int .Game_Run_var1 ; Stloc_1
+  ; OPT   +stack_pull_int_ref .Game_Run_var1, 0 ; Stloc_1
     +init_var .Game_Run_var1, 0 ; Nop
     jmp label_Game_Run_24 ; Br_s
 label_Game_Run_19:    nop ; Nop
   ; OPT   +stack_push_var .Game_Run_var1 ; Ldloc_1
   ; OPT   +stack_push_int 1 ; Ldc_i4_1
   ; OPT   +add ; Add
-  ; OPT   +stack_pull_int .Game_Run_var1 ; Stloc_1
+  ; OPT   +stack_pull_int_ref .Game_Run_var1, 0 ; Stloc_1
     +inc_var .Game_Run_var1 ; Nop
 label_Game_Run_24:  ; OPT   +stack_push_var .Game_Run_var1 ; Ldloc_1
   ; OPT   +stack_push_int 15 ; Ldc_i4_s
   ; OPT   +compareLess ; Clt_un
-  ; OPT   +stack_pull_int .Game_Run_var2 ; Stloc_2
+  ; OPT   +stack_pull_int_ref .Game_Run_var2, 0 ; Stloc_2
   ; OPT   +stack_push_var .Game_Run_var2 ; Ldloc_2
   ; OPT   +branch_true label_Game_Run_19 ; Brtrue_s
     +branch_if_var_less .Game_Run_var1, 15, label_Game_Run_19 ; Nop
   ; OPT   +stack_push_var .Game_Run_var0 ; Ldloc_0
   ; OPT   +stack_push_int 1 ; Ldc_i4_1
   ; OPT   +add ; Add
-  ; OPT   +stack_pull_int .Game_Run_var0 ; Stloc_0
+  ; OPT   +stack_pull_int_ref .Game_Run_var0, 0 ; Stloc_0
     +inc_var .Game_Run_var0 ; Nop
 label_Game_Run_37:  ; OPT   +stack_push_var .Game_Run_var0 ; Ldloc_0
   ; OPT   +stack_push_int 100 ; Ldc_i4_s
   ; OPT   +compareLess ; Clt_un
-  ; OPT   +stack_pull_int .Game_Run_var3 ; Stloc_3
+  ; OPT   +stack_pull_int_ref .Game_Run_var3, 0 ; Stloc_3
   ; OPT   +stack_push_var .Game_Run_var3 ; Ldloc_3
   ; OPT   +branch_true label_Game_Run_15 ; Brtrue_s
     +branch_if_var_less .Game_Run_var0, 100, label_Game_Run_15 ; Nop
     nop ; Nop
 label_Game_Run_47:    jmp label_Game_Run_3 ; Br_s
-.Game_Run_this !byte 0
+.Game_Run_this !byte 0, 0
 .Game_Run_ReturnAddress !byte 0,0
-.Game_Run_var0 !byte 0
-.Game_Run_var1 !byte 0
-.Game_Run_var2 !byte 0
-.Game_Run_var3 !byte 0
+.Game_Run_var0 !byte 0,0
+.Game_Run_var1 !byte 0,0
+.Game_Run_var2 !byte 0,0
+.Game_Run_var3 !byte 0,0
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -790,7 +786,7 @@ Game_Step
     +stack_pull_int .Game_Step_this
     nop ; Nop
   ; OPT   +stack_push_int 0 ; Ldc_i4_0
-  ; OPT   +stack_pull_int .Game_Step_var1 ; Stloc_1
+  ; OPT   +stack_pull_int_ref .Game_Step_var1, 0 ; Stloc_1
     +init_var .Game_Step_var1, 0 ; Nop
     jmp label_Game_Step_23 ; Br_s
 label_Game_Step_5:    +stack_push_var .Game_Step_this ; Ldarg_0
@@ -802,7 +798,7 @@ label_Game_Step_5:    +stack_push_var .Game_Step_this ; Ldarg_0
   ; OPT   +stack_push_var .Game_Step_var1 ; Ldloc_1
   ; OPT   +stack_push_int 1 ; Ldc_i4_1
   ; OPT   +add ; Add
-  ; OPT   +stack_pull_int .Game_Step_var1 ; Stloc_1
+  ; OPT   +stack_pull_int_ref .Game_Step_var1, 0 ; Stloc_1
     +inc_var .Game_Step_var1 ; Nop
 label_Game_Step_23:    +stack_push_var .Game_Step_var1 ; Ldloc_1
     +stack_push_var .Game_Step_this ; Ldarg_0
@@ -810,14 +806,14 @@ label_Game_Step_23:    +stack_push_var .Game_Step_var1 ; Ldloc_1
     +ldlen ; Ldlen
     nop ;Conv_i4 ; Conv_i4
     +compareLess ; Clt
-    +stack_pull_int .Game_Step_var2 ; Stloc_2
+    +stack_pull_int_ref .Game_Step_var2, 0 ; Stloc_2
     +stack_push_var .Game_Step_var2 ; Ldloc_2
     +branch_true label_Game_Step_5 ; Brtrue_s
   ; OPT   +stack_push_int 255 ; Ldc_i4
-  ; OPT   +stack_pull_int .Game_Step_var0 ; Stloc_0
+  ; OPT   +stack_pull_int_ref .Game_Step_var0, 0 ; Stloc_0
     +init_var .Game_Step_var0, 255 ; Nop
   ; OPT   +stack_push_int 0 ; Ldc_i4_0
-  ; OPT   +stack_pull_int .Game_Step_var3 ; Stloc_3
+  ; OPT   +stack_pull_int_ref .Game_Step_var3, 0 ; Stloc_3
     +init_var .Game_Step_var3, 0 ; Nop
     jmp label_Game_Step_105 ; Br_s
 label_Game_Step_48:    nop ; Nop
@@ -832,20 +828,20 @@ label_Game_Step_48:    nop ; Nop
     +ldfld 1 ; Ldfld
     jsr Player_get_Y ; Callvirt
     jsr Platform_DistanceToPlatform ; Callvirt
-    +stack_pull_int .Game_Step_var4 ; Stloc_s
+    +stack_pull_int_ref .Game_Step_var4, 0 ; Stloc_s
     +stack_push_var .Game_Step_var4 ; Ldloc_s
     +stack_push_var .Game_Step_var0 ; Ldloc_0
     +compareLess ; Clt_un
-    +stack_pull_int .Game_Step_var5 ; Stloc_s
+    +stack_pull_int_ref .Game_Step_var5, 0 ; Stloc_s
     +stack_push_var .Game_Step_var5 ; Ldloc_s
     +branch_false label_Game_Step_100 ; Brfalse_s
     +stack_push_var .Game_Step_var4 ; Ldloc_s
-    +stack_pull_int .Game_Step_var0 ; Stloc_0
+    +stack_pull_int_ref .Game_Step_var0, 0 ; Stloc_0
 label_Game_Step_100:    nop ; Nop
   ; OPT   +stack_push_var .Game_Step_var3 ; Ldloc_3
   ; OPT   +stack_push_int 1 ; Ldc_i4_1
   ; OPT   +add ; Add
-  ; OPT   +stack_pull_int .Game_Step_var3 ; Stloc_3
+  ; OPT   +stack_pull_int_ref .Game_Step_var3, 0 ; Stloc_3
     +inc_var .Game_Step_var3 ; Nop
 label_Game_Step_105:    +stack_push_var .Game_Step_var3 ; Ldloc_3
     +stack_push_var .Game_Step_this ; Ldarg_0
@@ -853,7 +849,7 @@ label_Game_Step_105:    +stack_push_var .Game_Step_var3 ; Ldloc_3
     +ldlen ; Ldlen
     nop ;Conv_i4 ; Conv_i4
     +compareLess ; Clt
-    +stack_pull_int .Game_Step_var6 ; Stloc_s
+    +stack_pull_int_ref .Game_Step_var6, 0 ; Stloc_s
     +stack_push_var .Game_Step_var6 ; Ldloc_s
     +branch_true label_Game_Step_48 ; Brtrue_s
     +stack_push_var .Game_Step_this ; Ldarg_0
@@ -862,15 +858,15 @@ label_Game_Step_105:    +stack_push_var .Game_Step_var3 ; Ldloc_3
     jsr Player_Move ; Callvirt
     nop ; Nop
     +stack_return_to_saved_address .Game_Step_ReturnAddress ; Ret
-.Game_Step_this !byte 0
+.Game_Step_this !byte 0, 0
 .Game_Step_ReturnAddress !byte 0,0
-.Game_Step_var0 !byte 0
-.Game_Step_var1 !byte 0
-.Game_Step_var2 !byte 0
-.Game_Step_var3 !byte 0
-.Game_Step_var4 !byte 0
-.Game_Step_var5 !byte 0
-.Game_Step_var6 !byte 0
+.Game_Step_var0 !byte 0,0
+.Game_Step_var1 !byte 0,0
+.Game_Step_var2 !byte 0,0
+.Game_Step_var3 !byte 0,0
+.Game_Step_var4 !byte 0,0
+.Game_Step_var5 !byte 0,0
+.Game_Step_var6 !byte 0,0
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -881,12 +877,12 @@ Game_ClearScreen
     +stack_save_return_adress .Game_ClearScreen_ReturnAddress
     nop ; Nop
   ; OPT   +stack_push_int 0 ; Ldc_i4_0
-  ; OPT   +stack_pull_int .Game_ClearScreen_var0 ; Stloc_0
+  ; OPT   +stack_pull_int_ref .Game_ClearScreen_var0, 0 ; Stloc_0
     +init_var .Game_ClearScreen_var0, 0 ; Nop
     jmp label_Game_ClearScreen_42 ; Br_s
 label_Game_ClearScreen_5:    nop ; Nop
   ; OPT   +stack_push_int 0 ; Ldc_i4_0
-  ; OPT   +stack_pull_int .Game_ClearScreen_var1 ; Stloc_1
+  ; OPT   +stack_pull_int_ref .Game_ClearScreen_var1, 0 ; Stloc_1
     +init_var .Game_ClearScreen_var1, 0 ; Nop
     jmp label_Game_ClearScreen_28 ; Br_s
 label_Game_ClearScreen_10:    nop ; Nop
@@ -900,12 +896,12 @@ label_Game_ClearScreen_10:    nop ; Nop
   ; OPT   +stack_push_var .Game_ClearScreen_var1 ; Ldloc_1
   ; OPT   +stack_push_int 1 ; Ldc_i4_1
   ; OPT   +add ; Add
-  ; OPT   +stack_pull_int .Game_ClearScreen_var1 ; Stloc_1
+  ; OPT   +stack_pull_int_ref .Game_ClearScreen_var1, 0 ; Stloc_1
     +inc_var .Game_ClearScreen_var1 ; Nop
 label_Game_ClearScreen_28:  ; OPT   +stack_push_var .Game_ClearScreen_var1 ; Ldloc_1
   ; OPT   +stack_push_int 25 ; Ldc_i4_s
   ; OPT   +compareLess ; Clt_un
-  ; OPT   +stack_pull_int .Game_ClearScreen_var2 ; Stloc_2
+  ; OPT   +stack_pull_int_ref .Game_ClearScreen_var2, 0 ; Stloc_2
   ; OPT   +stack_push_var .Game_ClearScreen_var2 ; Ldloc_2
   ; OPT   +branch_true label_Game_ClearScreen_10 ; Brtrue_s
     +branch_if_var_less .Game_ClearScreen_var1, 25, label_Game_ClearScreen_10 ; Nop
@@ -913,21 +909,21 @@ label_Game_ClearScreen_28:  ; OPT   +stack_push_var .Game_ClearScreen_var1 ; Ldl
   ; OPT   +stack_push_var .Game_ClearScreen_var0 ; Ldloc_0
   ; OPT   +stack_push_int 1 ; Ldc_i4_1
   ; OPT   +add ; Add
-  ; OPT   +stack_pull_int .Game_ClearScreen_var0 ; Stloc_0
+  ; OPT   +stack_pull_int_ref .Game_ClearScreen_var0, 0 ; Stloc_0
     +inc_var .Game_ClearScreen_var0 ; Nop
 label_Game_ClearScreen_42:  ; OPT   +stack_push_var .Game_ClearScreen_var0 ; Ldloc_0
   ; OPT   +stack_push_int 40 ; Ldc_i4_s
   ; OPT   +compareLess ; Clt_un
-  ; OPT   +stack_pull_int .Game_ClearScreen_var3 ; Stloc_3
+  ; OPT   +stack_pull_int_ref .Game_ClearScreen_var3, 0 ; Stloc_3
   ; OPT   +stack_push_var .Game_ClearScreen_var3 ; Ldloc_3
   ; OPT   +branch_true label_Game_ClearScreen_5 ; Brtrue_s
     +branch_if_var_less .Game_ClearScreen_var0, 40, label_Game_ClearScreen_5 ; Nop
     +stack_return_to_saved_address .Game_ClearScreen_ReturnAddress ; Ret
 .Game_ClearScreen_ReturnAddress !byte 0,0
-.Game_ClearScreen_var0 !byte 0
-.Game_ClearScreen_var1 !byte 0
-.Game_ClearScreen_var2 !byte 0
-.Game_ClearScreen_var3 !byte 0
+.Game_ClearScreen_var0 !byte 0,0
+.Game_ClearScreen_var1 !byte 0,0
+.Game_ClearScreen_var2 !byte 0,0
+.Game_ClearScreen_var3 !byte 0,0
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -936,7 +932,7 @@ label_Game_ClearScreen_42:  ; OPT   +stack_push_var .Game_ClearScreen_var0 ; Ldl
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 PlatformEnemy_set_Platform 
     +stack_save_return_adress .PlatformEnemy_set_Platform_ReturnAddress
-    +stack_pull_int .PlatformEnemy_set_Platform_value
+    +stack_pull_int_ref .PlatformEnemy_set_Platform_value, 1
     +stack_pull_int .PlatformEnemy_set_Platform_this
     nop ; Nop
     +stack_push_var .PlatformEnemy_set_Platform_this ; Ldarg_0
@@ -959,9 +955,10 @@ PlatformEnemy_set_Platform
     +stack_push_int 2 ; Ldc_i4_2
     +sub ; Sub
     +stfld 1 ; Stfld
+    +deref .PlatformEnemy_set_Platform_value ; Nop
     +stack_return_to_saved_address .PlatformEnemy_set_Platform_ReturnAddress ; Ret
-.PlatformEnemy_set_Platform_this !byte 0
-.PlatformEnemy_set_Platform_value !byte 0
+.PlatformEnemy_set_Platform_this !byte 0, 0
+.PlatformEnemy_set_Platform_value !byte 0, 0
 .PlatformEnemy_set_Platform_ReturnAddress !byte 0,0
 
 
@@ -971,7 +968,7 @@ PlatformEnemy_set_Platform
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 PlatformEnemy_set_Sprite 
     +stack_save_return_adress .PlatformEnemy_set_Sprite_ReturnAddress
-    +stack_pull_int .PlatformEnemy_set_Sprite_value
+    +stack_pull_int_ref .PlatformEnemy_set_Sprite_value, 0
     +stack_pull_int .PlatformEnemy_set_Sprite_this
     nop ; Nop
     +stack_push_var .PlatformEnemy_set_Sprite_this ; Ldarg_0
@@ -1002,8 +999,8 @@ PlatformEnemy_set_Sprite
     jsr Sprite_set_Visible ; Callvirt
     nop ; Nop
     +stack_return_to_saved_address .PlatformEnemy_set_Sprite_ReturnAddress ; Ret
-.PlatformEnemy_set_Sprite_this !byte 0
-.PlatformEnemy_set_Sprite_value !byte 0
+.PlatformEnemy_set_Sprite_this !byte 0, 0
+.PlatformEnemy_set_Sprite_value !byte 0, 0
 .PlatformEnemy_set_Sprite_ReturnAddress !byte 0,0
 
 
@@ -1013,7 +1010,7 @@ PlatformEnemy_set_Sprite
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 PlatformEnemy_set_Color 
     +stack_save_return_adress .PlatformEnemy_set_Color_ReturnAddress
-    +stack_pull_int .PlatformEnemy_set_Color_value
+    +stack_pull_int_ref .PlatformEnemy_set_Color_value, 0
     +stack_pull_int .PlatformEnemy_set_Color_this
     nop ; Nop
     +stack_push_var .PlatformEnemy_set_Color_this ; Ldarg_0
@@ -1022,8 +1019,8 @@ PlatformEnemy_set_Color
     jsr Sprite_set_Color ; Callvirt
     nop ; Nop
     +stack_return_to_saved_address .PlatformEnemy_set_Color_ReturnAddress ; Ret
-.PlatformEnemy_set_Color_this !byte 0
-.PlatformEnemy_set_Color_value !byte 0
+.PlatformEnemy_set_Color_this !byte 0, 0
+.PlatformEnemy_set_Color_value !byte 0, 0
 .PlatformEnemy_set_Color_ReturnAddress !byte 0,0
 
 
@@ -1037,7 +1034,7 @@ PlatformEnemy_Move
     nop ; Nop
     +stack_push_var .PlatformEnemy_Move_this ; Ldarg_0
     +ldfld 7 ; Ldfld
-    +stack_pull_int .PlatformEnemy_Move_var0 ; Stloc_0
+    +stack_pull_int_ref .PlatformEnemy_Move_var0, 0 ; Stloc_0
     +stack_push_var .PlatformEnemy_Move_var0 ; Ldloc_0
     +branch_false label_PlatformEnemy_Move_60 ; Brfalse_s
     nop ; Nop
@@ -1054,7 +1051,7 @@ PlatformEnemy_Move
     +stack_push_var .PlatformEnemy_Move_this ; Ldarg_0
     jsr PlatformEnemy_get_MaxX ; Call
     +compareGreater ; Cgt_un
-    +stack_pull_int .PlatformEnemy_Move_var1 ; Stloc_1
+    +stack_pull_int_ref .PlatformEnemy_Move_var1, 0 ; Stloc_1
     +stack_push_var .PlatformEnemy_Move_var1 ; Ldloc_1
     +branch_false label_PlatformEnemy_Move_57 ; Brfalse_s
     +stack_push_var .PlatformEnemy_Move_this ; Ldarg_0
@@ -1076,7 +1073,7 @@ label_PlatformEnemy_Move_60:    nop ; Nop
     +stack_push_var .PlatformEnemy_Move_this ; Ldarg_0
     jsr PlatformEnemy_get_MinX ; Call
     +compareLess ; Clt_un
-    +stack_pull_int .PlatformEnemy_Move_var2 ; Stloc_2
+    +stack_pull_int_ref .PlatformEnemy_Move_var2, 0 ; Stloc_2
     +stack_push_var .PlatformEnemy_Move_var2 ; Ldloc_2
     +branch_false label_PlatformEnemy_Move_106 ; Brfalse_s
     +stack_push_var .PlatformEnemy_Move_this ; Ldarg_0
@@ -1084,11 +1081,11 @@ label_PlatformEnemy_Move_60:    nop ; Nop
     +stfld 7 ; Stfld
 label_PlatformEnemy_Move_106:    nop ; Nop
 label_PlatformEnemy_Move_107:    +stack_return_to_saved_address .PlatformEnemy_Move_ReturnAddress ; Ret
-.PlatformEnemy_Move_this !byte 0
+.PlatformEnemy_Move_this !byte 0, 0
 .PlatformEnemy_Move_ReturnAddress !byte 0,0
-.PlatformEnemy_Move_var0 !byte 0
-.PlatformEnemy_Move_var1 !byte 0
-.PlatformEnemy_Move_var2 !byte 0
+.PlatformEnemy_Move_var0 !byte 0,0
+.PlatformEnemy_Move_var1 !byte 0,0
+.PlatformEnemy_Move_var2 !byte 0,0
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1101,13 +1098,13 @@ PlatformEnemy_get_X
     nop ; Nop
     +stack_push_var .PlatformEnemy_get_X_this ; Ldarg_0
     +ldfld 0 ; Ldfld
-    +stack_pull_int .PlatformEnemy_get_X_var0 ; Stloc_0
+    +stack_pull_int_ref .PlatformEnemy_get_X_var0, 0 ; Stloc_0
     jmp label_PlatformEnemy_get_X_10 ; Br_s
 label_PlatformEnemy_get_X_10:    +stack_push_var .PlatformEnemy_get_X_var0 ; Ldloc_0
     +stack_return_to_saved_address .PlatformEnemy_get_X_ReturnAddress ; Ret
-.PlatformEnemy_get_X_this !byte 0
+.PlatformEnemy_get_X_this !byte 0, 0
 .PlatformEnemy_get_X_ReturnAddress !byte 0,0
-.PlatformEnemy_get_X_var0 !byte 0
+.PlatformEnemy_get_X_var0 !byte 0,0
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1116,7 +1113,7 @@ label_PlatformEnemy_get_X_10:    +stack_push_var .PlatformEnemy_get_X_var0 ; Ldl
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 PlatformEnemy_set_X 
     +stack_save_return_adress .PlatformEnemy_set_X_ReturnAddress
-    +stack_pull_int .PlatformEnemy_set_X_value
+    +stack_pull_int_ref .PlatformEnemy_set_X_value, 0
     +stack_pull_int .PlatformEnemy_set_X_this
     nop ; Nop
     +stack_push_var .PlatformEnemy_set_X_this ; Ldarg_0
@@ -1128,8 +1125,8 @@ PlatformEnemy_set_X
     jsr Sprite_set_X ; Callvirt
     nop ; Nop
     +stack_return_to_saved_address .PlatformEnemy_set_X_ReturnAddress ; Ret
-.PlatformEnemy_set_X_this !byte 0
-.PlatformEnemy_set_X_value !byte 0
+.PlatformEnemy_set_X_this !byte 0, 0
+.PlatformEnemy_set_X_value !byte 0, 0
 .PlatformEnemy_set_X_ReturnAddress !byte 0,0
 
 
@@ -1143,13 +1140,13 @@ PlatformEnemy_get_Y
     nop ; Nop
     +stack_push_var .PlatformEnemy_get_Y_this ; Ldarg_0
     +ldfld 1 ; Ldfld
-    +stack_pull_int .PlatformEnemy_get_Y_var0 ; Stloc_0
+    +stack_pull_int_ref .PlatformEnemy_get_Y_var0, 0 ; Stloc_0
     jmp label_PlatformEnemy_get_Y_10 ; Br_s
 label_PlatformEnemy_get_Y_10:    +stack_push_var .PlatformEnemy_get_Y_var0 ; Ldloc_0
     +stack_return_to_saved_address .PlatformEnemy_get_Y_ReturnAddress ; Ret
-.PlatformEnemy_get_Y_this !byte 0
+.PlatformEnemy_get_Y_this !byte 0, 0
 .PlatformEnemy_get_Y_ReturnAddress !byte 0,0
-.PlatformEnemy_get_Y_var0 !byte 0
+.PlatformEnemy_get_Y_var0 !byte 0,0
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1158,7 +1155,7 @@ label_PlatformEnemy_get_Y_10:    +stack_push_var .PlatformEnemy_get_Y_var0 ; Ldl
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 PlatformEnemy_set_Y 
     +stack_save_return_adress .PlatformEnemy_set_Y_ReturnAddress
-    +stack_pull_int .PlatformEnemy_set_Y_value
+    +stack_pull_int_ref .PlatformEnemy_set_Y_value, 0
     +stack_pull_int .PlatformEnemy_set_Y_this
     nop ; Nop
     +stack_push_var .PlatformEnemy_set_Y_this ; Ldarg_0
@@ -1170,8 +1167,8 @@ PlatformEnemy_set_Y
     jsr Sprite_set_Y ; Callvirt
     nop ; Nop
     +stack_return_to_saved_address .PlatformEnemy_set_Y_ReturnAddress ; Ret
-.PlatformEnemy_set_Y_this !byte 0
-.PlatformEnemy_set_Y_value !byte 0
+.PlatformEnemy_set_Y_this !byte 0, 0
+.PlatformEnemy_set_Y_value !byte 0, 0
 .PlatformEnemy_set_Y_ReturnAddress !byte 0,0
 
 
@@ -1185,7 +1182,7 @@ PlatformEnemy_get_MinX
     +stack_push_var .PlatformEnemy_get_MinX_this ; Ldarg_0
     +ldfld 5 ; Ldfld
     +stack_return_to_saved_address .PlatformEnemy_get_MinX_ReturnAddress ; Ret
-.PlatformEnemy_get_MinX_this !byte 0
+.PlatformEnemy_get_MinX_this !byte 0, 0
 .PlatformEnemy_get_MinX_ReturnAddress !byte 0,0
 
 
@@ -1195,14 +1192,14 @@ PlatformEnemy_get_MinX
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 PlatformEnemy_set_MinX 
     +stack_save_return_adress .PlatformEnemy_set_MinX_ReturnAddress
-    +stack_pull_int .PlatformEnemy_set_MinX_value
+    +stack_pull_int_ref .PlatformEnemy_set_MinX_value, 0
     +stack_pull_int .PlatformEnemy_set_MinX_this
     +stack_push_var .PlatformEnemy_set_MinX_this ; Ldarg_0
     +stack_push_var .PlatformEnemy_set_MinX_value ; Ldarg_1
     +stfld 5 ; Stfld
     +stack_return_to_saved_address .PlatformEnemy_set_MinX_ReturnAddress ; Ret
-.PlatformEnemy_set_MinX_this !byte 0
-.PlatformEnemy_set_MinX_value !byte 0
+.PlatformEnemy_set_MinX_this !byte 0, 0
+.PlatformEnemy_set_MinX_value !byte 0, 0
 .PlatformEnemy_set_MinX_ReturnAddress !byte 0,0
 
 
@@ -1216,7 +1213,7 @@ PlatformEnemy_get_MaxX
     +stack_push_var .PlatformEnemy_get_MaxX_this ; Ldarg_0
     +ldfld 6 ; Ldfld
     +stack_return_to_saved_address .PlatformEnemy_get_MaxX_ReturnAddress ; Ret
-.PlatformEnemy_get_MaxX_this !byte 0
+.PlatformEnemy_get_MaxX_this !byte 0, 0
 .PlatformEnemy_get_MaxX_ReturnAddress !byte 0,0
 
 
@@ -1226,20 +1223,15 @@ PlatformEnemy_get_MaxX
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 PlatformEnemy_set_MaxX 
     +stack_save_return_adress .PlatformEnemy_set_MaxX_ReturnAddress
-    +stack_pull_int .PlatformEnemy_set_MaxX_value
+    +stack_pull_int_ref .PlatformEnemy_set_MaxX_value, 0
     +stack_pull_int .PlatformEnemy_set_MaxX_this
     +stack_push_var .PlatformEnemy_set_MaxX_this ; Ldarg_0
     +stack_push_var .PlatformEnemy_set_MaxX_value ; Ldarg_1
     +stfld 6 ; Stfld
     +stack_return_to_saved_address .PlatformEnemy_set_MaxX_ReturnAddress ; Ret
-.PlatformEnemy_set_MaxX_this !byte 0
-.PlatformEnemy_set_MaxX_value !byte 0
+.PlatformEnemy_set_MaxX_this !byte 0, 0
+.PlatformEnemy_set_MaxX_value !byte 0, 0
 .PlatformEnemy_set_MaxX_ReturnAddress !byte 0,0
-.Platform_field_67108893 !byte 0
-.Platform_field_67108894 !byte 0
-.Platform_field_67108895 !byte 0
-.Platform_field_67108896 !byte 0
-.Platform_field_67108897 !byte 0
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1254,21 +1246,21 @@ Platform_Draw
     +ldfld 0 ; Ldfld
     +stack_push_int 1 ; Ldc_i4_1
     +add ; Add
-    +stack_pull_int .Platform_Draw_var0 ; Stloc_0
+    +stack_pull_int_ref .Platform_Draw_var0, 0 ; Stloc_0
     +stack_push_var .Platform_Draw_this ; Ldarg_0
     +ldfld 0 ; Ldfld
     +stack_push_var .Platform_Draw_this ; Ldarg_0
     +ldfld 5 ; Ldfld
     +add ; Add
-    +stack_pull_int .Platform_Draw_var1 ; Stloc_1
+    +stack_pull_int_ref .Platform_Draw_var1, 0 ; Stloc_1
     +stack_push_var .Platform_Draw_this ; Ldarg_0
     +ldfld 1 ; Ldfld
-    +stack_pull_int .Platform_Draw_var2 ; Stloc_2
+    +stack_pull_int_ref .Platform_Draw_var2, 0 ; Stloc_2
     +stack_push_var .Platform_Draw_this ; Ldarg_0
     +ldfld 1 ; Ldfld
     +stack_push_int 1 ; Ldc_i4_1
     +add ; Add
-    +stack_pull_int .Platform_Draw_var3 ; Stloc_3
+    +stack_pull_int_ref .Platform_Draw_var3, 0 ; Stloc_3
     +stack_push_var .Platform_Draw_this ; Ldarg_0
     +stack_push_var .Platform_Draw_var2 ; Ldloc_2
     +stack_push_int 3 ; Ldc_i4_3
@@ -1291,7 +1283,7 @@ Platform_Draw
     +add ; Add
     +stfld 4 ; Stfld
     +stack_push_var .Platform_Draw_var0 ; Ldloc_0
-    +stack_pull_int .Platform_Draw_var4 ; Stloc_s
+    +stack_pull_int_ref .Platform_Draw_var4, 0 ; Stloc_s
     jmp label_Platform_Draw_122 ; Br_s
 label_Platform_Draw_80:    nop ; Nop
     +stack_push_var .Platform_Draw_var4 ; Ldloc_s
@@ -1312,11 +1304,11 @@ label_Platform_Draw_80:    nop ; Nop
     +stack_push_var .Platform_Draw_var4 ; Ldloc_s
     +stack_push_int 1 ; Ldc_i4_1
     +add ; Add
-    +stack_pull_int .Platform_Draw_var4 ; Stloc_s
+    +stack_pull_int_ref .Platform_Draw_var4, 0 ; Stloc_s
 label_Platform_Draw_122:    +stack_push_var .Platform_Draw_var4 ; Ldloc_s
     +stack_push_var .Platform_Draw_var1 ; Ldloc_1
     +compareLess ; Clt_un
-    +stack_pull_int .Platform_Draw_var5 ; Stloc_s
+    +stack_pull_int_ref .Platform_Draw_var5, 0 ; Stloc_s
     +stack_push_var .Platform_Draw_var5 ; Ldloc_s
     +branch_true label_Platform_Draw_80 ; Brtrue_s
     +stack_push_var .Platform_Draw_this ; Ldarg_0
@@ -1350,14 +1342,14 @@ label_Platform_Draw_122:    +stack_push_var .Platform_Draw_var4 ; Ldloc_s
     jsr C64_SetChar ; Call
     nop ; Nop
     +stack_return_to_saved_address .Platform_Draw_ReturnAddress ; Ret
-.Platform_Draw_this !byte 0
+.Platform_Draw_this !byte 0, 0
 .Platform_Draw_ReturnAddress !byte 0,0
-.Platform_Draw_var0 !byte 0
-.Platform_Draw_var1 !byte 0
-.Platform_Draw_var2 !byte 0
-.Platform_Draw_var3 !byte 0
-.Platform_Draw_var4 !byte 0
-.Platform_Draw_var5 !byte 0
+.Platform_Draw_var0 !byte 0,0
+.Platform_Draw_var1 !byte 0,0
+.Platform_Draw_var2 !byte 0,0
+.Platform_Draw_var3 !byte 0,0
+.Platform_Draw_var4 !byte 0,0
+.Platform_Draw_var5 !byte 0,0
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1366,62 +1358,62 @@ label_Platform_Draw_122:    +stack_push_var .Platform_Draw_var4 ; Ldloc_s
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 Platform_DistanceToPlatform 
     +stack_save_return_adress .Platform_DistanceToPlatform_ReturnAddress
-    +stack_pull_int .Platform_DistanceToPlatform_y
-    +stack_pull_int .Platform_DistanceToPlatform_x
+    +stack_pull_int_ref .Platform_DistanceToPlatform_y, 0
+    +stack_pull_int_ref .Platform_DistanceToPlatform_x, 0
     +stack_pull_int .Platform_DistanceToPlatform_this
     nop ; Nop
     +stack_push_var .Platform_DistanceToPlatform_x ; Ldarg_1
     +stack_push_var .Platform_DistanceToPlatform_this ; Ldarg_0
     +ldfld 3 ; Ldfld
     +compareLess ; Clt_un
-    +stack_pull_int .Platform_DistanceToPlatform_var1 ; Stloc_1
+    +stack_pull_int_ref .Platform_DistanceToPlatform_var1, 0 ; Stloc_1
     +stack_push_var .Platform_DistanceToPlatform_var1 ; Ldloc_1
     +branch_false label_Platform_DistanceToPlatform_22 ; Brfalse_s
   ; OPT   +stack_push_int 255 ; Ldc_i4
-  ; OPT   +stack_pull_int .Platform_DistanceToPlatform_var2 ; Stloc_2
+  ; OPT   +stack_pull_int_ref .Platform_DistanceToPlatform_var2, 0 ; Stloc_2
     +init_var .Platform_DistanceToPlatform_var2, 255 ; Nop
     jmp label_Platform_DistanceToPlatform_79 ; Br_s
 label_Platform_DistanceToPlatform_22:    +stack_push_var .Platform_DistanceToPlatform_x ; Ldarg_1
     +stack_push_var .Platform_DistanceToPlatform_this ; Ldarg_0
     +ldfld 4 ; Ldfld
     +compareGreater ; Cgt_un
-    +stack_pull_int .Platform_DistanceToPlatform_var3 ; Stloc_3
+    +stack_pull_int_ref .Platform_DistanceToPlatform_var3, 0 ; Stloc_3
     +stack_push_var .Platform_DistanceToPlatform_var3 ; Ldloc_3
     +branch_false label_Platform_DistanceToPlatform_43 ; Brfalse_s
   ; OPT   +stack_push_int 255 ; Ldc_i4
-  ; OPT   +stack_pull_int .Platform_DistanceToPlatform_var2 ; Stloc_2
+  ; OPT   +stack_pull_int_ref .Platform_DistanceToPlatform_var2, 0 ; Stloc_2
     +init_var .Platform_DistanceToPlatform_var2, 255 ; Nop
     jmp label_Platform_DistanceToPlatform_79 ; Br_s
 label_Platform_DistanceToPlatform_43:    +stack_push_var .Platform_DistanceToPlatform_y ; Ldarg_2
     +stack_push_var .Platform_DistanceToPlatform_this ; Ldarg_0
     +ldfld 2 ; Ldfld
     +compareGreater ; Cgt_un
-    +stack_pull_int .Platform_DistanceToPlatform_var4 ; Stloc_s
+    +stack_pull_int_ref .Platform_DistanceToPlatform_var4, 0 ; Stloc_s
     +stack_push_var .Platform_DistanceToPlatform_var4 ; Ldloc_s
     +branch_false label_Platform_DistanceToPlatform_66 ; Brfalse_s
   ; OPT   +stack_push_int 255 ; Ldc_i4
-  ; OPT   +stack_pull_int .Platform_DistanceToPlatform_var2 ; Stloc_2
+  ; OPT   +stack_pull_int_ref .Platform_DistanceToPlatform_var2, 0 ; Stloc_2
     +init_var .Platform_DistanceToPlatform_var2, 255 ; Nop
     jmp label_Platform_DistanceToPlatform_79 ; Br_s
 label_Platform_DistanceToPlatform_66:    +stack_push_var .Platform_DistanceToPlatform_this ; Ldarg_0
     +ldfld 2 ; Ldfld
     +stack_push_var .Platform_DistanceToPlatform_y ; Ldarg_2
     +sub ; Sub
-    +stack_pull_int .Platform_DistanceToPlatform_var0 ; Stloc_0
+    +stack_pull_int_ref .Platform_DistanceToPlatform_var0, 0 ; Stloc_0
     +stack_push_var .Platform_DistanceToPlatform_var0 ; Ldloc_0
-    +stack_pull_int .Platform_DistanceToPlatform_var2 ; Stloc_2
+    +stack_pull_int_ref .Platform_DistanceToPlatform_var2, 0 ; Stloc_2
     jmp label_Platform_DistanceToPlatform_79 ; Br_s
 label_Platform_DistanceToPlatform_79:    +stack_push_var .Platform_DistanceToPlatform_var2 ; Ldloc_2
     +stack_return_to_saved_address .Platform_DistanceToPlatform_ReturnAddress ; Ret
-.Platform_DistanceToPlatform_this !byte 0
-.Platform_DistanceToPlatform_x !byte 0
-.Platform_DistanceToPlatform_y !byte 0
+.Platform_DistanceToPlatform_this !byte 0, 0
+.Platform_DistanceToPlatform_x !byte 0, 0
+.Platform_DistanceToPlatform_y !byte 0, 0
 .Platform_DistanceToPlatform_ReturnAddress !byte 0,0
-.Platform_DistanceToPlatform_var0 !byte 0
-.Platform_DistanceToPlatform_var1 !byte 0
-.Platform_DistanceToPlatform_var2 !byte 0
-.Platform_DistanceToPlatform_var3 !byte 0
-.Platform_DistanceToPlatform_var4 !byte 0
+.Platform_DistanceToPlatform_var0 !byte 0,0
+.Platform_DistanceToPlatform_var1 !byte 0,0
+.Platform_DistanceToPlatform_var2 !byte 0,0
+.Platform_DistanceToPlatform_var3 !byte 0,0
+.Platform_DistanceToPlatform_var4 !byte 0,0
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1430,7 +1422,7 @@ label_Platform_DistanceToPlatform_79:    +stack_push_var .Platform_DistanceToPla
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 Player_set_Sprite 
     +stack_save_return_adress .Player_set_Sprite_ReturnAddress
-    +stack_pull_int .Player_set_Sprite_value
+    +stack_pull_int_ref .Player_set_Sprite_value, 0
     +stack_pull_int .Player_set_Sprite_this
     nop ; Nop
     jsr C64_get_Sprites ; Call
@@ -1479,8 +1471,8 @@ Player_set_Sprite
     jsr Player_set_X ; Call
     nop ; Nop
     +stack_return_to_saved_address .Player_set_Sprite_ReturnAddress ; Ret
-.Player_set_Sprite_this !byte 0
-.Player_set_Sprite_value !byte 0
+.Player_set_Sprite_this !byte 0, 0
+.Player_set_Sprite_value !byte 0, 0
 .Player_set_Sprite_ReturnAddress !byte 0,0
 
 
@@ -1494,13 +1486,13 @@ Player_get_X
     nop ; Nop
     +stack_push_var .Player_get_X_this ; Ldarg_0
     +ldfld 0 ; Ldfld
-    +stack_pull_int .Player_get_X_var0 ; Stloc_0
+    +stack_pull_int_ref .Player_get_X_var0, 0 ; Stloc_0
     jmp label_Player_get_X_10 ; Br_s
 label_Player_get_X_10:    +stack_push_var .Player_get_X_var0 ; Ldloc_0
     +stack_return_to_saved_address .Player_get_X_ReturnAddress ; Ret
-.Player_get_X_this !byte 0
+.Player_get_X_this !byte 0, 0
 .Player_get_X_ReturnAddress !byte 0,0
-.Player_get_X_var0 !byte 0
+.Player_get_X_var0 !byte 0,0
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1513,13 +1505,13 @@ Player_get_Y
     nop ; Nop
     +stack_push_var .Player_get_Y_this ; Ldarg_0
     +ldfld 1 ; Ldfld
-    +stack_pull_int .Player_get_Y_var0 ; Stloc_0
+    +stack_pull_int_ref .Player_get_Y_var0, 0 ; Stloc_0
     jmp label_Player_get_Y_10 ; Br_s
 label_Player_get_Y_10:    +stack_push_var .Player_get_Y_var0 ; Ldloc_0
     +stack_return_to_saved_address .Player_get_Y_ReturnAddress ; Ret
-.Player_get_Y_this !byte 0
+.Player_get_Y_this !byte 0, 0
 .Player_get_Y_ReturnAddress !byte 0,0
-.Player_get_Y_var0 !byte 0
+.Player_get_Y_var0 !byte 0,0
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1528,7 +1520,7 @@ label_Player_get_Y_10:    +stack_push_var .Player_get_Y_var0 ; Ldloc_0
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 Player_Move 
     +stack_save_return_adress .Player_Move_ReturnAddress
-    +stack_pull_int .Player_Move_distanceToPlatform
+    +stack_pull_int_ref .Player_Move_distanceToPlatform, 0
     +stack_pull_int .Player_Move_this
     nop ; Nop
     +stack_push_var .Player_Move_this ; Ldarg_0
@@ -1541,7 +1533,7 @@ Player_Move
     +compareGreater ; Cgt_un
     jmp label_Player_Move_30 ; Br_s
 label_Player_Move_29:    +stack_push_int 1 ; Ldc_i4_1
-label_Player_Move_30:    +stack_pull_int .Player_Move_var1 ; Stloc_1
+label_Player_Move_30:    +stack_pull_int_ref .Player_Move_var1, 0 ; Stloc_1
     +stack_push_var .Player_Move_var1 ; Ldloc_1
     +branch_false label_Player_Move_47 ; Brfalse_s
     nop ; Nop
@@ -1550,7 +1542,7 @@ label_Player_Move_30:    +stack_pull_int .Player_Move_var1 ; Stloc_1
     nop ; Nop
     jmp label_Player_Move_572 ; Br
 label_Player_Move_47:  ; OPT   +stack_push_int 0 ; Ldc_i4_0
-  ; OPT   +stack_pull_int .Player_Move_var0 ; Stloc_0
+  ; OPT   +stack_pull_int_ref .Player_Move_var0, 0 ; Stloc_0
     +init_var .Player_Move_var0, 0 ; Nop
     +stack_push_var .Player_Move_this ; Ldarg_0
     +ldfld 3 ; Ldfld
@@ -1560,11 +1552,11 @@ label_Player_Move_47:  ; OPT   +stack_push_int 0 ; Ldc_i4_0
     +compareGreater ; Cgt_un
     jmp label_Player_Move_64 ; Br_s
 label_Player_Move_63:    +stack_push_int 0 ; Ldc_i4_0
-label_Player_Move_64:    +stack_pull_int .Player_Move_var2 ; Stloc_2
+label_Player_Move_64:    +stack_pull_int_ref .Player_Move_var2, 0 ; Stloc_2
     +stack_push_var .Player_Move_var2 ; Ldloc_2
     +branch_false label_Player_Move_70 ; Brfalse_s
   ; OPT   +stack_push_int 1 ; Ldc_i4_1
-  ; OPT   +stack_pull_int .Player_Move_var0 ; Stloc_0
+  ; OPT   +stack_pull_int_ref .Player_Move_var0, 0 ; Stloc_0
     +init_var .Player_Move_var0, 1 ; Nop
 label_Player_Move_70:    +stack_push_var .Player_Move_this ; Ldarg_0
     +ldfld 3 ; Ldfld
@@ -1575,7 +1567,7 @@ label_Player_Move_70:    +stack_push_var .Player_Move_this ; Ldarg_0
     jsr C64_IsKeyPressed ; Call
     jmp label_Player_Move_91 ; Br_s
 label_Player_Move_90:    +stack_push_int 0 ; Ldc_i4_0
-label_Player_Move_91:    +stack_pull_int .Player_Move_var3 ; Stloc_3
+label_Player_Move_91:    +stack_pull_int_ref .Player_Move_var3, 0 ; Stloc_3
     +stack_push_var .Player_Move_var3 ; Ldloc_3
     +branch_false label_Player_Move_111 ; Brfalse_s
     nop ; Nop
@@ -1588,13 +1580,13 @@ label_Player_Move_91:    +stack_pull_int .Player_Move_var3 ; Stloc_3
     nop ; Nop
 label_Player_Move_111:    +stack_push_int 0 ; Ldc_i4_0
     jsr C64_IsKeyPressed ; Call
-    +stack_pull_int .Player_Move_var4 ; Stloc_s
+    +stack_pull_int_ref .Player_Move_var4, 0 ; Stloc_s
     +stack_push_var .Player_Move_var4 ; Ldloc_s
     +branch_false label_Player_Move_299 ; Brfalse
     nop ; Nop
     +stack_push_var .Player_Move_this ; Ldarg_0
     jsr Player_get_X ; Call
-    +stack_pull_int .Player_Move_var5 ; Stloc_s
+    +stack_pull_int_ref .Player_Move_var5, 0 ; Stloc_s
     +stack_push_var .Player_Move_this ; Ldarg_0
     +stack_push_var .Player_Move_var5 ; Ldloc_s
     +stack_push_int 1 ; Ldc_i4_1
@@ -1605,7 +1597,7 @@ label_Player_Move_111:    +stack_push_int 0 ; Ldc_i4_0
     +ldfld 2 ; Ldfld
     +stack_push_int 5 ; Ldc_i4_5
     +compareLess ; Clt
-    +stack_pull_int .Player_Move_var6 ; Stloc_s
+    +stack_pull_int_ref .Player_Move_var6, 0 ; Stloc_s
     +stack_push_var .Player_Move_var6 ; Ldloc_s
     +branch_false label_Player_Move_168 ; Brfalse_s
     +stack_push_var .Player_Move_this ; Ldarg_0
@@ -1621,7 +1613,7 @@ label_Player_Move_168:    +stack_push_var .Player_Move_this ; Ldarg_0
     +ldfld 2 ; Ldfld
     +stack_push_int 9 ; Ldc_i4_s
     +compareEqual ; Ceq
-    +stack_pull_int .Player_Move_var7 ; Stloc_s
+    +stack_pull_int_ref .Player_Move_var7, 0 ; Stloc_s
     +stack_push_var .Player_Move_var7 ; Ldloc_s
     +branch_false label_Player_Move_205 ; Brfalse_s
     +stack_push_var .Player_Move_this ; Ldarg_0
@@ -1629,13 +1621,13 @@ label_Player_Move_168:    +stack_push_var .Player_Move_this ; Ldarg_0
     +stfld 2 ; Stfld
 label_Player_Move_205:    +stack_push_var .Player_Move_this ; Ldarg_0
     +ldfld 3 ; Ldfld
-    +stack_pull_int .Player_Move_var8 ; Stloc_s
+    +stack_pull_int_ref .Player_Move_var8, 0 ; Stloc_s
     +stack_push_var .Player_Move_var8 ; Ldloc_s
     +branch_false label_Player_Move_245 ; Brfalse_s
     nop ; Nop
     +stack_push_var .Player_Move_this ; Ldarg_0
     jsr Player_get_X ; Call
-    +stack_pull_int .Player_Move_var5 ; Stloc_s
+    +stack_pull_int_ref .Player_Move_var5, 0 ; Stloc_s
     +stack_push_var .Player_Move_this ; Ldarg_0
     +stack_push_var .Player_Move_var5 ; Ldloc_s
     +stack_push_int 1 ; Ldc_i4_1
@@ -1647,13 +1639,13 @@ label_Player_Move_205:    +stack_push_var .Player_Move_this ; Ldarg_0
     +stfld 2 ; Stfld
     nop ; Nop
 label_Player_Move_245:    +stack_push_var .Player_Move_var0 ; Ldloc_0
-    +stack_pull_int .Player_Move_var9 ; Stloc_s
+    +stack_pull_int_ref .Player_Move_var9, 0 ; Stloc_s
     +stack_push_var .Player_Move_var9 ; Ldloc_s
     +branch_false label_Player_Move_280 ; Brfalse_s
     nop ; Nop
     +stack_push_var .Player_Move_this ; Ldarg_0
     jsr Player_get_X ; Call
-    +stack_pull_int .Player_Move_var5 ; Stloc_s
+    +stack_pull_int_ref .Player_Move_var5, 0 ; Stloc_s
     +stack_push_var .Player_Move_this ; Ldarg_0
     +stack_push_var .Player_Move_var5 ; Ldloc_s
     +stack_push_int 1 ; Ldc_i4_1
@@ -1673,13 +1665,13 @@ label_Player_Move_280:    +stack_push_var .Player_Move_this ; Ldarg_0
     nop ; Nop
 label_Player_Move_299:    +stack_push_int 3 ; Ldc_i4_3
     jsr C64_IsKeyPressed ; Call
-    +stack_pull_int .Player_Move_var10 ; Stloc_s
+    +stack_pull_int_ref .Player_Move_var10, 0 ; Stloc_s
     +stack_push_var .Player_Move_var10 ; Ldloc_s
     +branch_false label_Player_Move_464 ; Brfalse
     nop ; Nop
     +stack_push_var .Player_Move_this ; Ldarg_0
     jsr Player_get_X ; Call
-    +stack_pull_int .Player_Move_var5 ; Stloc_s
+    +stack_pull_int_ref .Player_Move_var5, 0 ; Stloc_s
     +stack_push_var .Player_Move_this ; Ldarg_0
     +stack_push_var .Player_Move_var5 ; Ldloc_s
     +stack_push_int 1 ; Ldc_i4_1
@@ -1696,7 +1688,7 @@ label_Player_Move_299:    +stack_push_int 3 ; Ldc_i4_3
     +ldfld 2 ; Ldfld
     +stack_push_int 4 ; Ldc_i4_4
     +compareGreater ; Cgt
-    +stack_pull_int .Player_Move_var11 ; Stloc_s
+    +stack_pull_int_ref .Player_Move_var11, 0 ; Stloc_s
     +stack_push_var .Player_Move_var11 ; Ldloc_s
     +branch_false label_Player_Move_370 ; Brfalse_s
     +stack_push_var .Player_Move_this ; Ldarg_0
@@ -1704,13 +1696,13 @@ label_Player_Move_299:    +stack_push_int 3 ; Ldc_i4_3
     +stfld 2 ; Stfld
 label_Player_Move_370:    +stack_push_var .Player_Move_this ; Ldarg_0
     +ldfld 3 ; Ldfld
-    +stack_pull_int .Player_Move_var12 ; Stloc_s
+    +stack_pull_int_ref .Player_Move_var12, 0 ; Stloc_s
     +stack_push_var .Player_Move_var12 ; Ldloc_s
     +branch_false label_Player_Move_410 ; Brfalse_s
     nop ; Nop
     +stack_push_var .Player_Move_this ; Ldarg_0
     jsr Player_get_X ; Call
-    +stack_pull_int .Player_Move_var5 ; Stloc_s
+    +stack_pull_int_ref .Player_Move_var5, 0 ; Stloc_s
     +stack_push_var .Player_Move_this ; Ldarg_0
     +stack_push_var .Player_Move_var5 ; Ldloc_s
     +stack_push_int 1 ; Ldc_i4_1
@@ -1722,13 +1714,13 @@ label_Player_Move_370:    +stack_push_var .Player_Move_this ; Ldarg_0
     +stfld 2 ; Stfld
     nop ; Nop
 label_Player_Move_410:    +stack_push_var .Player_Move_var0 ; Ldloc_0
-    +stack_pull_int .Player_Move_var13 ; Stloc_s
+    +stack_pull_int_ref .Player_Move_var13, 0 ; Stloc_s
     +stack_push_var .Player_Move_var13 ; Ldloc_s
     +branch_false label_Player_Move_445 ; Brfalse_s
     nop ; Nop
     +stack_push_var .Player_Move_this ; Ldarg_0
     jsr Player_get_X ; Call
-    +stack_pull_int .Player_Move_var5 ; Stloc_s
+    +stack_pull_int_ref .Player_Move_var5, 0 ; Stloc_s
     +stack_push_var .Player_Move_this ; Ldarg_0
     +stack_push_var .Player_Move_var5 ; Ldloc_s
     +stack_push_int 1 ; Ldc_i4_1
@@ -1748,7 +1740,7 @@ label_Player_Move_445:    +stack_push_var .Player_Move_this ; Ldarg_0
     nop ; Nop
 label_Player_Move_464:    +stack_push_var .Player_Move_this ; Ldarg_0
     +ldfld 3 ; Ldfld
-    +stack_pull_int .Player_Move_var14 ; Stloc_s
+    +stack_pull_int_ref .Player_Move_var14, 0 ; Stloc_s
     +stack_push_var .Player_Move_var14 ; Ldloc_s
     +branch_false label_Player_Move_548 ; Brfalse_s
     nop ; Nop
@@ -1778,7 +1770,7 @@ label_Player_Move_513:    nop ;Conv_i8 ; Conv_i8
     +ldfld 4 ; Ldfld
     +stack_push_int 16 ; Ldc_i4_s
     +compareEqual ; Ceq
-    +stack_pull_int .Player_Move_var15 ; Stloc_s
+    +stack_pull_int_ref .Player_Move_var15, 0 ; Stloc_s
     +stack_push_var .Player_Move_var15 ; Ldloc_s
     +branch_false label_Player_Move_547 ; Brfalse_s
     nop ; Nop
@@ -1788,7 +1780,7 @@ label_Player_Move_513:    nop ;Conv_i8 ; Conv_i8
     nop ; Nop
 label_Player_Move_547:    nop ; Nop
 label_Player_Move_548:    +stack_push_var .Player_Move_var0 ; Ldloc_0
-    +stack_pull_int .Player_Move_var16 ; Stloc_s
+    +stack_pull_int_ref .Player_Move_var16, 0 ; Stloc_s
     +stack_push_var .Player_Move_var16 ; Ldloc_s
     +branch_false label_Player_Move_572 ; Brfalse_s
     nop ; Nop
@@ -1801,26 +1793,26 @@ label_Player_Move_548:    +stack_push_var .Player_Move_var0 ; Ldloc_0
     nop ; Nop
     nop ; Nop
 label_Player_Move_572:    +stack_return_to_saved_address .Player_Move_ReturnAddress ; Ret
-.Player_Move_this !byte 0
-.Player_Move_distanceToPlatform !byte 0
+.Player_Move_this !byte 0, 0
+.Player_Move_distanceToPlatform !byte 0, 0
 .Player_Move_ReturnAddress !byte 0,0
-.Player_Move_var0 !byte 0
-.Player_Move_var1 !byte 0
-.Player_Move_var2 !byte 0
-.Player_Move_var3 !byte 0
-.Player_Move_var4 !byte 0
-.Player_Move_var5 !byte 0
-.Player_Move_var6 !byte 0
-.Player_Move_var7 !byte 0
-.Player_Move_var8 !byte 0
-.Player_Move_var9 !byte 0
-.Player_Move_var10 !byte 0
-.Player_Move_var11 !byte 0
-.Player_Move_var12 !byte 0
-.Player_Move_var13 !byte 0
-.Player_Move_var14 !byte 0
-.Player_Move_var15 !byte 0
-.Player_Move_var16 !byte 0
+.Player_Move_var0 !byte 0,0
+.Player_Move_var1 !byte 0,0
+.Player_Move_var2 !byte 0,0
+.Player_Move_var3 !byte 0,0
+.Player_Move_var4 !byte 0,0
+.Player_Move_var5 !byte 0,0
+.Player_Move_var6 !byte 0,0
+.Player_Move_var7 !byte 0,0
+.Player_Move_var8 !byte 0,0
+.Player_Move_var9 !byte 0,0
+.Player_Move_var10 !byte 0,0
+.Player_Move_var11 !byte 0,0
+.Player_Move_var12 !byte 0,0
+.Player_Move_var13 !byte 0,0
+.Player_Move_var14 !byte 0,0
+.Player_Move_var15 !byte 0,0
+.Player_Move_var16 !byte 0,0
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1829,7 +1821,7 @@ label_Player_Move_572:    +stack_return_to_saved_address .Player_Move_ReturnAddr
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 Player_set_X 
     +stack_save_return_adress .Player_set_X_ReturnAddress
-    +stack_pull_int .Player_set_X_value
+    +stack_pull_int_ref .Player_set_X_value, 0
     +stack_pull_int .Player_set_X_this
     nop ; Nop
     +stack_push_var .Player_set_X_this ; Ldarg_0
@@ -1841,8 +1833,8 @@ Player_set_X
     jsr Sprite_set_X ; Callvirt
     nop ; Nop
     +stack_return_to_saved_address .Player_set_X_ReturnAddress ; Ret
-.Player_set_X_this !byte 0
-.Player_set_X_value !byte 0
+.Player_set_X_this !byte 0, 0
+.Player_set_X_value !byte 0, 0
 .Player_set_X_ReturnAddress !byte 0,0
 
 
@@ -1852,7 +1844,7 @@ Player_set_X
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 Player_set_Y 
     +stack_save_return_adress .Player_set_Y_ReturnAddress
-    +stack_pull_int .Player_set_Y_value
+    +stack_pull_int_ref .Player_set_Y_value, 0
     +stack_pull_int .Player_set_Y_this
     nop ; Nop
     +stack_push_var .Player_set_Y_this ; Ldarg_0
@@ -1864,8 +1856,8 @@ Player_set_Y
     jsr Sprite_set_Y ; Callvirt
     nop ; Nop
     +stack_return_to_saved_address .Player_set_Y_ReturnAddress ; Ret
-.Player_set_Y_this !byte 0
-.Player_set_Y_value !byte 0
+.Player_set_Y_this !byte 0, 0
+.Player_set_Y_value !byte 0, 0
 .Player_set_Y_ReturnAddress !byte 0,0
 
 
@@ -1881,35 +1873,35 @@ Player_Die
     jsr C64_SetBorderColor ; Call
     nop ; Nop
   ; OPT   +stack_push_int 0 ; Ldc_i4_0
-  ; OPT   +stack_pull_int .Player_Die_var0 ; Stloc_0
+  ; OPT   +stack_pull_int_ref .Player_Die_var0, 0 ; Stloc_0
     +init_var .Player_Die_var0, 0 ; Nop
     jmp label_Player_Die_34 ; Br_s
 label_Player_Die_12:  ; OPT   +stack_push_int 0 ; Ldc_i4_0
-  ; OPT   +stack_pull_int .Player_Die_var1 ; Stloc_1
+  ; OPT   +stack_pull_int_ref .Player_Die_var1, 0 ; Stloc_1
     +init_var .Player_Die_var1, 0 ; Nop
     jmp label_Player_Die_21 ; Br_s
 label_Player_Die_16:    nop ; Nop
   ; OPT   +stack_push_var .Player_Die_var1 ; Ldloc_1
   ; OPT   +stack_push_int 1 ; Ldc_i4_1
   ; OPT   +add ; Add
-  ; OPT   +stack_pull_int .Player_Die_var1 ; Stloc_1
+  ; OPT   +stack_pull_int_ref .Player_Die_var1, 0 ; Stloc_1
     +inc_var .Player_Die_var1 ; Nop
 label_Player_Die_21:  ; OPT   +stack_push_var .Player_Die_var1 ; Ldloc_1
   ; OPT   +stack_push_int 100 ; Ldc_i4_s
   ; OPT   +compareLess ; Clt
-  ; OPT   +stack_pull_int .Player_Die_var2 ; Stloc_2
+  ; OPT   +stack_pull_int_ref .Player_Die_var2, 0 ; Stloc_2
   ; OPT   +stack_push_var .Player_Die_var2 ; Ldloc_2
   ; OPT   +branch_true label_Player_Die_16 ; Brtrue_s
     +branch_if_var_less .Player_Die_var1, 100, label_Player_Die_16 ; Nop
   ; OPT   +stack_push_var .Player_Die_var0 ; Ldloc_0
   ; OPT   +stack_push_int 1 ; Ldc_i4_1
   ; OPT   +add ; Add
-  ; OPT   +stack_pull_int .Player_Die_var0 ; Stloc_0
+  ; OPT   +stack_pull_int_ref .Player_Die_var0, 0 ; Stloc_0
     +inc_var .Player_Die_var0 ; Nop
 label_Player_Die_34:  ; OPT   +stack_push_var .Player_Die_var0 ; Ldloc_0
   ; OPT   +stack_push_int 100 ; Ldc_i4_s
   ; OPT   +compareLess ; Clt
-  ; OPT   +stack_pull_int .Player_Die_var3 ; Stloc_3
+  ; OPT   +stack_pull_int_ref .Player_Die_var3, 0 ; Stloc_3
   ; OPT   +stack_push_var .Player_Die_var3 ; Ldloc_3
   ; OPT   +branch_true label_Player_Die_12 ; Brtrue_s
     +branch_if_var_less .Player_Die_var0, 100, label_Player_Die_12 ; Nop
@@ -1925,13 +1917,15 @@ label_Player_Die_34:  ; OPT   +stack_push_var .Player_Die_var0 ; Ldloc_0
     jsr Player_set_X ; Call
     nop ; Nop
     +stack_return_to_saved_address .Player_Die_ReturnAddress ; Ret
-.Player_Die_this !byte 0
+.Player_Die_this !byte 0, 0
 .Player_Die_ReturnAddress !byte 0,0
-.Player_Die_var0 !byte 0
-.Player_Die_var1 !byte 0
-.Player_Die_var2 !byte 0
-.Player_Die_var3 !byte 0
-.Program_field_67108904 !byte 0
+.Player_Die_var0 !byte 0,0
+.Player_Die_var1 !byte 0,0
+.Player_Die_var2 !byte 0,0
+.Player_Die_var3 !byte 0,0
+.Program_field_x !byte 0
+.Program_field_a1 !byte 0
+.Program_field_a2 !byte 0
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1940,20 +1934,49 @@ label_Player_Die_34:  ; OPT   +stack_push_var .Player_Die_var0 ; Ldloc_0
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 Program_OnInterrupt 
     +stack_save_return_adress .Program_OnInterrupt_ReturnAddress
-    +stack_pull_int .Program_OnInterrupt_args
-    +stack_pull_int .Program_OnInterrupt_sender
+    +stack_pull_int_ref .Program_OnInterrupt_args, 1
+    +stack_pull_int_ref .Program_OnInterrupt_sender, 1
     nop ; Nop
-    +stack_push_var .Program_field_67108904 ; Ldsfld
+    +stack_push_var .Program_field_x ; Ldsfld
     +stack_push_int 1 ; Ldc_i4_1
     +add ; Add
-    +stack_pull_int .Program_field_67108904 ; Stsfld
-    +stack_push_var .Program_field_67108904 ; Ldsfld
+    +stack_pull_int_ref .Program_field_x, 0 ; Stsfld
+    +stack_push_var .Program_field_x ; Ldsfld
     jsr C64_SetBorderColor ; Call
     nop ; Nop
+    +deref .Program_OnInterrupt_sender ; Nop
+    +deref .Program_OnInterrupt_args ; Nop
     +stack_return_to_saved_address .Program_OnInterrupt_ReturnAddress ; Ret
-.Program_OnInterrupt_sender !byte 0
-.Program_OnInterrupt_args !byte 0
+.Program_OnInterrupt_sender !byte 0, 0
+.Program_OnInterrupt_args !byte 0, 0
 .Program_OnInterrupt_ReturnAddress !byte 0,0
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; TYPE: Demo.Program
+; METHOD: F
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+Program_F 
+    +stack_save_return_adress .Program_F_ReturnAddress
+    +stack_pull_int_ref .Program_F_a3, 1
+    nop ; Nop
+    jsr C64_get_Debug ; Call
+    +stack_push_var .Program_F_a3 ; Ldarg_0
+    jsr Debug_GetObjectRoots ; Callvirt
+    +stack_pull_int_ref .Program_F_var0, 0 ; Stloc_0
+    +stack_push_int 0 ; Ldc_i4_0
+    +stack_push_int 1 ; Ldc_i4_1
+    +stack_push_int 48 ; Ldc_i4_s
+    +stack_push_var .Program_F_var0 ; Ldloc_0
+    +add ; Add
+    +stack_push_int 14 ; Ldc_i4_s
+    jsr C64_SetChar ; Call
+    nop ; Nop
+    +deref .Program_F_a3 ; Nop
+    +stack_return_to_saved_address .Program_F_ReturnAddress ; Ret
+.Program_F_a3 !byte 0, 0
+.Program_F_ReturnAddress !byte 0,0
+.Program_F_var0 !byte 0,0
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1964,13 +1987,14 @@ Program_Main
     +stack_save_return_adress .Program_Main_ReturnAddress
     nop ; Nop
     +newObj 3 ; Newobj
-    +stack_pull_int .Program_Main_var0 ; Stloc_0
+    +stack_pull_int_ref .Program_Main_var0, 1 ; Stloc_0
     +stack_push_var .Program_Main_var0 ; Ldloc_0
     jsr Game_Init ; Callvirt
     nop ; Nop
     +stack_push_var .Program_Main_var0 ; Ldloc_0
     jsr Game_Run ; Callvirt
     nop ; Nop
+    +deref .Program_Main_var0 ; Nop
     +stack_return_to_saved_address .Program_Main_ReturnAddress ; Ret
 .Program_Main_ReturnAddress !byte 0,0
-.Program_Main_var0 !byte 0
+.Program_Main_var0 !byte 0,0

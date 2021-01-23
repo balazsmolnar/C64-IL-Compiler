@@ -140,3 +140,4 @@ On_Interrupt_Ret
 
 !src ".\\asm\\C64sprite.asm"
 !src ".\\asm\\C64Keys.asm"
+!src ".\\asm\\C64Debug.asm"

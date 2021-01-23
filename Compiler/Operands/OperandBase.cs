@@ -281,7 +281,11 @@ namespace Compiler.Ops
         {
         }
 
-        public override object ConvertParameter(CompilerMethodContext context, int parameter) => $".{context.Method.DeclaringType.Name}_field_{parameter}";
+        public override object ConvertParameter(CompilerMethodContext context, int parameter)
+        {
+            var field = context.Method.DeclaringType.Module.ResolveField(parameter);
+            return $".{context.Method.DeclaringType.Name}_field_{field.Name}";
+        }
     }
 
     class OpLdnull : OpPushBase
@@ -301,33 +305,52 @@ namespace Compiler.Ops
         }
     }
 
-    class OpStloc : OpPullBase
+    class OpStloc : OpBase
     {
         public int VarIndex { get; }
-        public OpStloc(int varIndex) : base(0)
+        public OpStloc(int varIndex) : base(0, "+stack_pull_int_ref")
         {
             VarIndex = varIndex;
         }
 
-        public override object ConvertParameter(CompilerMethodContext context, int parameter) => $".{context.Method.GetLabel()}_var{VarIndex}";
+        public override object ConvertParameter(CompilerMethodContext context, int parameter)
+        {
+
+            var body = context.Method.GetMethodBody();
+            var variables = body.LocalVariables;
+            var isRef = variables[VarIndex].LocalType.IsReferenceCounted() ? "1" : "0";
+            return $".{context.Method.GetLabel()}_var{VarIndex}, {isRef}";
+        }
     }
 
-    class OpStsfld : OpPullBase
+    class OpStsfld : OpBase
     {
-        public OpStsfld() : base(4)
+        public OpStsfld() : base(4, "+stack_pull_int_ref")
+        {
+        }
+        public override object ConvertParameter(CompilerMethodContext context, int parameter)
+        {
+            var field = context.Method.DeclaringType.Module.ResolveField(parameter);
+            var address = $".{context.Method.DeclaringType.Name}_field_{field.Name}";
+            string isRef = field.FieldType.IsReferenceCounted() ? "1" : "0";
+            return $"{address}, {isRef}";
+        }
+    }
+
+    class OpStloc_s : OpBase
+    {
+        public OpStloc_s() : base(1, "+stack_pull_int_ref")
         {
         }
 
-        public override object ConvertParameter(CompilerMethodContext context, int parameter) => $".{context.Method.DeclaringType.Name}_field_{parameter}";
-    }
-
-    class OpStloc_s : OpPullBase
-    {
-        public OpStloc_s() : base(1)
+        public override object ConvertParameter(CompilerMethodContext context, int parameter)
         {
+            var body = context.Method.GetMethodBody();
+            var variables = body.LocalVariables;
+            var isRef = variables[parameter].LocalType.IsReferenceCounted() ? "1" : "0";
+            return $".{context.Method.GetLabel()}_var{parameter}, {isRef}";
         }
 
-        public override object ConvertParameter(CompilerMethodContext context, int parameter) => $".{context.Method.GetLabel()}_var{parameter}";
     }
 
     class OpShortJump : OpBase
@@ -408,6 +431,34 @@ namespace Compiler.Ops
         }
 
         public override object ConvertParameter(CompilerMethodContext context, int parameter) => $".{context.Method.GetLabel()}_var{_varIndex}, {_value}, {_label}";
+    }
+
+    class OpDeref : OpBase
+    {
+        private int _varIndex;
+        public OpDeref(int varIndex) : base(0, "+deref")
+        {
+            _varIndex = varIndex;
+        }
+
+        public override object ConvertParameter(CompilerMethodContext context, int parameter)
+        {
+            return $".{context.Method.GetLabel()}_var{_varIndex}";
+        }
+    }
+
+    class OpDerefParam : OpBase
+    {
+        private string _parameterName;
+        public OpDerefParam(string parameterName) : base(0, "+deref")
+        {
+            _parameterName = parameterName;
+        }
+
+        public override object ConvertParameter(CompilerMethodContext context, int parameter)
+        {
+            return $".{context.Method.GetLabel()}_{_parameterName}";
+        }
     }
 
     class OpBranchIfNotEqual : OpBase

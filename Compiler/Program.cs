@@ -36,6 +36,7 @@ namespace Compiler
                         new ICompilerMethodPass[] {
                             new ILMethodCodePass(),
                             new ILMethodLabelPass(),
+                            new ILMethodDerefLocals(),
                             new ILMethodIncOptimizer(),
                             new ILMethodSetVariableOptimizer(),
                             new ILMethodBranchIfLessOptimizer(),

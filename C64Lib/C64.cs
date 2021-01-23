@@ -61,6 +61,8 @@ namespace C64Lib
         public static Colors GetBorderColor() => Colors.Black;
         public static event EventHandler Interrupt;
         public static SpriteCollection Sprites => null;
+
+        public static Debug Debug => null;
         public static bool IsKeyPressed(Keys key) => false;
     }
 }

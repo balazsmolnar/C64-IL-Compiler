@@ -89,3 +89,26 @@
 !macro stack_push_int_a {
   pha
 }
+
+!macro stack_pull_int_ref .address, .ref {
+
+  ; deref
+  !if .ref = 1 {
+    +deref .address
+  }
+  
+  ; store
+  pla
+  sta .address
+
+  ; ref
+  !if .ref = 1 {
+    tax
+    inc objTableRootCount, x
+  }
+}
+
+!macro deref .address {
+    ldx .address
+    dec objTableRootCount, x
+}

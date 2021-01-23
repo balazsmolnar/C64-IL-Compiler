@@ -23,7 +23,7 @@ namespace Compiler
             context.CompilerContext.OutputFile.WriteLine($".{context.Method.GetLabel()}_ReturnAddress !byte 0,0");
             foreach (var variable in variables)
             {
-                string outputLine = $".{context.Method.GetLabel()}_var{variable.LocalIndex} !byte 0";
+                string outputLine = $".{context.Method.GetLabel()}_var{variable.LocalIndex} !byte 0,0";
                 context.CompilerContext.OutputFile.WriteLine(outputLine);
             }
         }

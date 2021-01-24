@@ -90,6 +90,11 @@
   pha
 }
 
+!macro stack_push_int_x {
+  txa
+  pha
+}
+
 !macro stack_pull_int_ref .address, .ref {
 
   ; deref

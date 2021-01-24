@@ -8,64 +8,30 @@ tmpPointer = $25
   sta heapPointer+1
 }
 
+;
+; Creates a new object on the heap
+; Inputs:
+; .size: Size of the object on the heap
+; .referenceFields: Number of .fields references to other objects (always the first fields)
+; Output:
+; Newly created object id on the stack
+;
+!macro newObj .size, .referenceFields {
 
-!macro newObj .size {
+  lda #.size
+  ldy #.referenceFields
 
-  ldx #0
-- inx
-  lda objTableHigh,x
-  bne -
+  jsr newObj
 
-  ldy #0
-- lda #0 
-  sta (heapPointer),y
-  iny
-  cpy #.size
-  bne -
-+ lda #.size
-  sta objTableSize,x
-  lda heapPointer
-  sta objTableLow,x
-  lda heapPointer+1
-  sta objTableHigh,x
-  lda heapPointer
-  clc
-  adc #.size
-  sta heapPointer
-  bcc +
-  inc heapPointer+1
-  ;jsr .method
-+ txa
-  pha
+  +stack_push_int_a
 }
 
 !macro newArr {
 
-  +stack_pull_int $34
-  ldx #0
-- inx
-  lda objTableHigh,x
-  bne -
+  +stack_pull_int_a  ; size
+  tay                ; reference fields
+  jsr newObj
 
-  ldy #0
-- lda #0 
-  sta (heapPointer),y
-  iny
-  cpy $34
-  bne -
-  lda $34
-  sta objTableSize,x
-  lda heapPointer
-  sta objTableLow,x
-  lda heapPointer+1
-  sta objTableHigh,x
-  lda heapPointer
-  clc
-  adc $34
-  sta heapPointer
-  bcc +
-  inc heapPointer+1
-+ txa
   +stack_push_int_a
 }
 

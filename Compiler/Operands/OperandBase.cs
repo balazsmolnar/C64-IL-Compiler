@@ -77,6 +77,7 @@ namespace Compiler.Ops
             var method = context.CompilerContext.Assembly.ManifestModule.ResolveMethod(parameter);
             var t = method.DeclaringType;
             var size = 0;
+            var referenceFields = 0;
             foreach (var f in t.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
             {
                 if (f.FieldType == typeof(string))
@@ -87,10 +88,12 @@ namespace Compiler.Ops
                 {
                     size += 1;
                 }
+                if (f.FieldType.IsReferenceCounted())
+                    referenceFields++;
             }
             //var label = context.CompilerContext.Assembly.ManifestModule.ResolveMethod(parameter).GetLabel();
 
-            return $"{size}";
+            return $"{size}, {referenceFields}";
         }
     }
 

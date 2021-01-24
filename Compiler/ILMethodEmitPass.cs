@@ -20,10 +20,10 @@ namespace Compiler
             var output = context.CompilerContext.OutputFile;
             output.WriteLine("");
             output.WriteLine("");
-            output.WriteLine(";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;");
+            output.WriteLine(";----------------------------------------");
             output.WriteLine($"; TYPE: {context.Method.DeclaringType.FullName}");
             output.WriteLine($"; METHOD: {context.Method.Name}");
-            output.WriteLine(";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;");
+            output.WriteLine(";----------------------------------------");
             output.WriteLine($"{context.Method.GetLabel()} ");
 
             output.WriteLine($"    +stack_save_return_adress .{context.Method.GetLabel()}_ReturnAddress");

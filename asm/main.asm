@@ -17,6 +17,7 @@ rts
 !src ".\\asm\\generated.asm"
 
 !src ".\\asm\\system.asm"
+!src ".\\asm\\helper\\object.asm"
 !src ".\\asm\\C64.asm"
 
 !src ".\\asm\\spritedata.asm"
@@ -26,6 +27,8 @@ objTableLow
 objTableHigh
 !fill 256, 0
 objTableSize
+!fill 256, 0
+objTableReferences
 !fill 256, 0
 objTableRootCount
 !fill 256, 0

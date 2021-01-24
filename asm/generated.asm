@@ -1,9 +1,9 @@
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 ; TYPE: Ball
 ; METHOD: get_X
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 Ball_get_X 
     +stack_save_return_adress .Ball_get_X_ReturnAddress
     +stack_pull_int .Ball_get_X_this
@@ -19,10 +19,10 @@ label_Ball_get_X_10:    +stack_push_var .Ball_get_X_var0 ; Ldloc_0
 .Ball_get_X_var0 !byte 0,0
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 ; TYPE: Ball
 ; METHOD: set_X
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 Ball_set_X 
     +stack_save_return_adress .Ball_set_X_ReturnAddress
     +stack_pull_int_ref .Ball_set_X_value, 0
@@ -42,10 +42,10 @@ Ball_set_X
 .Ball_set_X_ReturnAddress !byte 0,0
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 ; TYPE: Ball
 ; METHOD: get_Y
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 Ball_get_Y 
     +stack_save_return_adress .Ball_get_Y_ReturnAddress
     +stack_pull_int .Ball_get_Y_this
@@ -61,10 +61,10 @@ label_Ball_get_Y_10:    +stack_push_var .Ball_get_Y_var0 ; Ldloc_0
 .Ball_get_Y_var0 !byte 0,0
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 ; TYPE: Ball
 ; METHOD: set_Y
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 Ball_set_Y 
     +stack_save_return_adress .Ball_set_Y_ReturnAddress
     +stack_pull_int_ref .Ball_set_Y_value, 0
@@ -84,10 +84,10 @@ Ball_set_Y
 .Ball_set_Y_ReturnAddress !byte 0,0
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 ; TYPE: Ball
 ; METHOD: get_VX
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 Ball_get_VX 
     +stack_save_return_adress .Ball_get_VX_ReturnAddress
     +stack_pull_int .Ball_get_VX_this
@@ -98,10 +98,10 @@ Ball_get_VX
 .Ball_get_VX_ReturnAddress !byte 0,0
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 ; TYPE: Ball
 ; METHOD: set_VX
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 Ball_set_VX 
     +stack_save_return_adress .Ball_set_VX_ReturnAddress
     +stack_pull_int_ref .Ball_set_VX_value, 0
@@ -115,10 +115,10 @@ Ball_set_VX
 .Ball_set_VX_ReturnAddress !byte 0,0
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 ; TYPE: Ball
 ; METHOD: get_VY
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 Ball_get_VY 
     +stack_save_return_adress .Ball_get_VY_ReturnAddress
     +stack_pull_int .Ball_get_VY_this
@@ -129,10 +129,10 @@ Ball_get_VY
 .Ball_get_VY_ReturnAddress !byte 0,0
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 ; TYPE: Ball
 ; METHOD: set_VY
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 Ball_set_VY 
     +stack_save_return_adress .Ball_set_VY_ReturnAddress
     +stack_pull_int_ref .Ball_set_VY_value, 0
@@ -146,10 +146,10 @@ Ball_set_VY
 .Ball_set_VY_ReturnAddress !byte 0,0
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 ; TYPE: Ball
 ; METHOD: set_Sprite
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 Ball_set_Sprite 
     +stack_save_return_adress .Ball_set_Sprite_ReturnAddress
     +stack_pull_int_ref .Ball_set_Sprite_value, 0
@@ -182,10 +182,10 @@ Ball_set_Sprite
 .Ball_set_Sprite_ReturnAddress !byte 0,0
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 ; TYPE: Ball
 ; METHOD: set_BallColor
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 Ball_set_BallColor 
     +stack_save_return_adress .Ball_set_BallColor_ReturnAddress
     +stack_pull_int_ref .Ball_set_BallColor_value, 0
@@ -202,10 +202,10 @@ Ball_set_BallColor
 .Ball_set_BallColor_ReturnAddress !byte 0,0
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 ; TYPE: Ball
 ; METHOD: Move
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 Ball_Move 
     +stack_save_return_adress .Ball_Move_ReturnAddress
     +stack_pull_int .Ball_Move_this
@@ -293,14 +293,14 @@ label_Ball_Move_165:    +stack_return_to_saved_address .Ball_Move_ReturnAddress 
 .Ball_Move_var3 !byte 0,0
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 ; TYPE: Ball
 ; METHOD: RunBalls
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 Ball_RunBalls 
     +stack_save_return_adress .Ball_RunBalls_ReturnAddress
     nop ; Nop
-    +newObj 5 ; Newobj
+    +newObj 5, 0 ; Newobj
     +stack_pull_int_ref .Ball_RunBalls_var0, 1 ; Stloc_0
     +stack_push_var .Ball_RunBalls_var0 ; Ldloc_0
     jsr C64_get_Sprites ; Call
@@ -323,7 +323,7 @@ Ball_RunBalls
     +stack_push_int 2 ; Ldc_i4_2
     jsr Ball_set_BallColor ; Callvirt
     nop ; Nop
-    +newObj 5 ; Newobj
+    +newObj 5, 0 ; Newobj
     +stack_pull_int_ref .Ball_RunBalls_var1, 1 ; Stloc_1
     +stack_push_var .Ball_RunBalls_var1 ; Ldloc_1
     jsr C64_get_Sprites ; Call
@@ -346,7 +346,7 @@ Ball_RunBalls
     +stack_push_int 7 ; Ldc_i4_7
     jsr Ball_set_BallColor ; Callvirt
     nop ; Nop
-    +newObj 5 ; Newobj
+    +newObj 5, 0 ; Newobj
     +stack_pull_int_ref .Ball_RunBalls_var2, 1 ; Stloc_2
     +stack_push_var .Ball_RunBalls_var2 ; Ldloc_2
     jsr C64_get_Sprites ; Call
@@ -406,10 +406,10 @@ label_Ball_RunBalls_217:    jmp label_Ball_RunBalls_171 ; Br_s
 .Ball_RunBalls_var4 !byte 0,0
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 ; TYPE: Game
 ; METHOD: Init
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 Game_Init 
     +stack_save_return_adress .Game_Init_ReturnAddress
     +stack_pull_int .Game_Init_this
@@ -430,7 +430,7 @@ Game_Init
     +newArr  ; Newarr
     +stack_duplicate ; Dup
     +stack_push_int 0 ; Ldc_i4_0
-    +newObj 9 ; Newobj
+    +newObj 9, 0 ; Newobj
     +stack_duplicate ; Dup
     +stack_push_var .Game_Init_this ; Ldarg_0
     +ldfld 2 ; Ldfld
@@ -459,7 +459,7 @@ Game_Init
     +stelemRef ; Stelem_ref
     +stack_duplicate ; Dup
     +stack_push_int 1 ; Ldc_i4_1
-    +newObj 9 ; Newobj
+    +newObj 9, 0 ; Newobj
     +stack_duplicate ; Dup
     +stack_push_var .Game_Init_this ; Ldarg_0
     +ldfld 2 ; Ldfld
@@ -488,7 +488,7 @@ Game_Init
     +stelemRef ; Stelem_ref
     +stfld 0 ; Stfld
     +stack_push_var .Game_Init_this ; Ldarg_0
-    +newObj 6 ; Newobj
+    +newObj 6, 0 ; Newobj
     +stack_duplicate ; Dup
     jsr C64_get_Sprites ; Call
     jsr SpriteCollection_get_Sprite4 ; Callvirt
@@ -500,10 +500,10 @@ Game_Init
 .Game_Init_ReturnAddress !byte 0,0
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 ; TYPE: Game
 ; METHOD: InitPlatforms
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 Game_InitPlatforms 
     +stack_save_return_adress .Game_InitPlatforms_ReturnAddress
     +stack_pull_int .Game_InitPlatforms_this
@@ -513,7 +513,7 @@ Game_InitPlatforms
     +newArr  ; Newarr
     +stack_duplicate ; Dup
     +stack_push_int 0 ; Ldc_i4_0
-    +newObj 7 ; Newobj
+    +newObj 7, 0 ; Newobj
     +stack_duplicate ; Dup
     +stack_push_int 10 ; Ldc_i4_s
     +stfld 0 ; Stfld
@@ -529,7 +529,7 @@ Game_InitPlatforms
     +stelemRef ; Stelem_ref
     +stack_duplicate ; Dup
     +stack_push_int 1 ; Ldc_i4_1
-    +newObj 7 ; Newobj
+    +newObj 7, 0 ; Newobj
     +stack_duplicate ; Dup
     +stack_push_int 1 ; Ldc_i4_1
     +stfld 0 ; Stfld
@@ -545,7 +545,7 @@ Game_InitPlatforms
     +stelemRef ; Stelem_ref
     +stack_duplicate ; Dup
     +stack_push_int 2 ; Ldc_i4_2
-    +newObj 7 ; Newobj
+    +newObj 7, 0 ; Newobj
     +stack_duplicate ; Dup
     +stack_push_int 12 ; Ldc_i4_s
     +stfld 0 ; Stfld
@@ -561,7 +561,7 @@ Game_InitPlatforms
     +stelemRef ; Stelem_ref
     +stack_duplicate ; Dup
     +stack_push_int 3 ; Ldc_i4_3
-    +newObj 7 ; Newobj
+    +newObj 7, 0 ; Newobj
     +stack_duplicate ; Dup
     +stack_push_int 23 ; Ldc_i4_s
     +stfld 0 ; Stfld
@@ -577,7 +577,7 @@ Game_InitPlatforms
     +stelemRef ; Stelem_ref
     +stack_duplicate ; Dup
     +stack_push_int 4 ; Ldc_i4_4
-    +newObj 7 ; Newobj
+    +newObj 7, 0 ; Newobj
     +stack_duplicate ; Dup
     +stack_push_int 26 ; Ldc_i4_s
     +stfld 0 ; Stfld
@@ -593,7 +593,7 @@ Game_InitPlatforms
     +stelemRef ; Stelem_ref
     +stack_duplicate ; Dup
     +stack_push_int 5 ; Ldc_i4_5
-    +newObj 7 ; Newobj
+    +newObj 7, 0 ; Newobj
     +stack_duplicate ; Dup
     +stack_push_int 0 ; Ldc_i4_0
     +stfld 0 ; Stfld
@@ -609,7 +609,7 @@ Game_InitPlatforms
     +stelemRef ; Stelem_ref
     +stack_duplicate ; Dup
     +stack_push_int 6 ; Ldc_i4_6
-    +newObj 7 ; Newobj
+    +newObj 7, 0 ; Newobj
     +stack_duplicate ; Dup
     +stack_push_int 9 ; Ldc_i4_s
     +stfld 0 ; Stfld
@@ -625,7 +625,7 @@ Game_InitPlatforms
     +stelemRef ; Stelem_ref
     +stack_duplicate ; Dup
     +stack_push_int 7 ; Ldc_i4_7
-    +newObj 7 ; Newobj
+    +newObj 7, 0 ; Newobj
     +stack_duplicate ; Dup
     +stack_push_int 15 ; Ldc_i4_s
     +stfld 0 ; Stfld
@@ -641,7 +641,7 @@ Game_InitPlatforms
     +stelemRef ; Stelem_ref
     +stack_duplicate ; Dup
     +stack_push_int 8 ; Ldc_i4_8
-    +newObj 7 ; Newobj
+    +newObj 7, 0 ; Newobj
     +stack_duplicate ; Dup
     +stack_push_int 21 ; Ldc_i4_s
     +stfld 0 ; Stfld
@@ -657,7 +657,7 @@ Game_InitPlatforms
     +stelemRef ; Stelem_ref
     +stack_duplicate ; Dup
     +stack_push_int 9 ; Ldc_i4_s
-    +newObj 7 ; Newobj
+    +newObj 7, 0 ; Newobj
     +stack_duplicate ; Dup
     +stack_push_int 27 ; Ldc_i4_s
     +stfld 0 ; Stfld
@@ -673,7 +673,7 @@ Game_InitPlatforms
     +stelemRef ; Stelem_ref
     +stack_duplicate ; Dup
     +stack_push_int 10 ; Ldc_i4_s
-    +newObj 7 ; Newobj
+    +newObj 7, 0 ; Newobj
     +stack_duplicate ; Dup
     +stack_push_int 33 ; Ldc_i4_s
     +stfld 0 ; Stfld
@@ -721,10 +721,10 @@ label_Game_InitPlatforms_455:    +stack_push_var .Game_InitPlatforms_var0 ; Ldlo
 .Game_InitPlatforms_var1 !byte 0,0
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 ; TYPE: Game
 ; METHOD: Run
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 Game_Run 
     +stack_save_return_adress .Game_Run_ReturnAddress
     +stack_pull_int .Game_Run_this
@@ -777,10 +777,10 @@ label_Game_Run_47:    jmp label_Game_Run_3 ; Br_s
 .Game_Run_var3 !byte 0,0
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 ; TYPE: Game
 ; METHOD: Step
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 Game_Step 
     +stack_save_return_adress .Game_Step_ReturnAddress
     +stack_pull_int .Game_Step_this
@@ -869,10 +869,10 @@ label_Game_Step_105:    +stack_push_var .Game_Step_var3 ; Ldloc_3
 .Game_Step_var6 !byte 0,0
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 ; TYPE: Game
 ; METHOD: ClearScreen
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 Game_ClearScreen 
     +stack_save_return_adress .Game_ClearScreen_ReturnAddress
     nop ; Nop
@@ -926,10 +926,10 @@ label_Game_ClearScreen_42:  ; OPT   +stack_push_var .Game_ClearScreen_var0 ; Ldl
 .Game_ClearScreen_var3 !byte 0,0
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 ; TYPE: PlatformEnemy
 ; METHOD: set_Platform
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 PlatformEnemy_set_Platform 
     +stack_save_return_adress .PlatformEnemy_set_Platform_ReturnAddress
     +stack_pull_int_ref .PlatformEnemy_set_Platform_value, 1
@@ -962,10 +962,10 @@ PlatformEnemy_set_Platform
 .PlatformEnemy_set_Platform_ReturnAddress !byte 0,0
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 ; TYPE: PlatformEnemy
 ; METHOD: set_Sprite
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 PlatformEnemy_set_Sprite 
     +stack_save_return_adress .PlatformEnemy_set_Sprite_ReturnAddress
     +stack_pull_int_ref .PlatformEnemy_set_Sprite_value, 0
@@ -1004,10 +1004,10 @@ PlatformEnemy_set_Sprite
 .PlatformEnemy_set_Sprite_ReturnAddress !byte 0,0
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 ; TYPE: PlatformEnemy
 ; METHOD: set_Color
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 PlatformEnemy_set_Color 
     +stack_save_return_adress .PlatformEnemy_set_Color_ReturnAddress
     +stack_pull_int_ref .PlatformEnemy_set_Color_value, 0
@@ -1024,10 +1024,10 @@ PlatformEnemy_set_Color
 .PlatformEnemy_set_Color_ReturnAddress !byte 0,0
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 ; TYPE: PlatformEnemy
 ; METHOD: Move
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 PlatformEnemy_Move 
     +stack_save_return_adress .PlatformEnemy_Move_ReturnAddress
     +stack_pull_int .PlatformEnemy_Move_this
@@ -1088,10 +1088,10 @@ label_PlatformEnemy_Move_107:    +stack_return_to_saved_address .PlatformEnemy_M
 .PlatformEnemy_Move_var2 !byte 0,0
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 ; TYPE: PlatformEnemy
 ; METHOD: get_X
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 PlatformEnemy_get_X 
     +stack_save_return_adress .PlatformEnemy_get_X_ReturnAddress
     +stack_pull_int .PlatformEnemy_get_X_this
@@ -1107,10 +1107,10 @@ label_PlatformEnemy_get_X_10:    +stack_push_var .PlatformEnemy_get_X_var0 ; Ldl
 .PlatformEnemy_get_X_var0 !byte 0,0
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 ; TYPE: PlatformEnemy
 ; METHOD: set_X
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 PlatformEnemy_set_X 
     +stack_save_return_adress .PlatformEnemy_set_X_ReturnAddress
     +stack_pull_int_ref .PlatformEnemy_set_X_value, 0
@@ -1130,10 +1130,10 @@ PlatformEnemy_set_X
 .PlatformEnemy_set_X_ReturnAddress !byte 0,0
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 ; TYPE: PlatformEnemy
 ; METHOD: get_Y
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 PlatformEnemy_get_Y 
     +stack_save_return_adress .PlatformEnemy_get_Y_ReturnAddress
     +stack_pull_int .PlatformEnemy_get_Y_this
@@ -1149,10 +1149,10 @@ label_PlatformEnemy_get_Y_10:    +stack_push_var .PlatformEnemy_get_Y_var0 ; Ldl
 .PlatformEnemy_get_Y_var0 !byte 0,0
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 ; TYPE: PlatformEnemy
 ; METHOD: set_Y
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 PlatformEnemy_set_Y 
     +stack_save_return_adress .PlatformEnemy_set_Y_ReturnAddress
     +stack_pull_int_ref .PlatformEnemy_set_Y_value, 0
@@ -1172,10 +1172,10 @@ PlatformEnemy_set_Y
 .PlatformEnemy_set_Y_ReturnAddress !byte 0,0
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 ; TYPE: PlatformEnemy
 ; METHOD: get_MinX
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 PlatformEnemy_get_MinX 
     +stack_save_return_adress .PlatformEnemy_get_MinX_ReturnAddress
     +stack_pull_int .PlatformEnemy_get_MinX_this
@@ -1186,10 +1186,10 @@ PlatformEnemy_get_MinX
 .PlatformEnemy_get_MinX_ReturnAddress !byte 0,0
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 ; TYPE: PlatformEnemy
 ; METHOD: set_MinX
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 PlatformEnemy_set_MinX 
     +stack_save_return_adress .PlatformEnemy_set_MinX_ReturnAddress
     +stack_pull_int_ref .PlatformEnemy_set_MinX_value, 0
@@ -1203,10 +1203,10 @@ PlatformEnemy_set_MinX
 .PlatformEnemy_set_MinX_ReturnAddress !byte 0,0
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 ; TYPE: PlatformEnemy
 ; METHOD: get_MaxX
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 PlatformEnemy_get_MaxX 
     +stack_save_return_adress .PlatformEnemy_get_MaxX_ReturnAddress
     +stack_pull_int .PlatformEnemy_get_MaxX_this
@@ -1217,10 +1217,10 @@ PlatformEnemy_get_MaxX
 .PlatformEnemy_get_MaxX_ReturnAddress !byte 0,0
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 ; TYPE: PlatformEnemy
 ; METHOD: set_MaxX
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 PlatformEnemy_set_MaxX 
     +stack_save_return_adress .PlatformEnemy_set_MaxX_ReturnAddress
     +stack_pull_int_ref .PlatformEnemy_set_MaxX_value, 0
@@ -1234,10 +1234,10 @@ PlatformEnemy_set_MaxX
 .PlatformEnemy_set_MaxX_ReturnAddress !byte 0,0
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 ; TYPE: Platform
 ; METHOD: Draw
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 Platform_Draw 
     +stack_save_return_adress .Platform_Draw_ReturnAddress
     +stack_pull_int .Platform_Draw_this
@@ -1352,10 +1352,10 @@ label_Platform_Draw_122:    +stack_push_var .Platform_Draw_var4 ; Ldloc_s
 .Platform_Draw_var5 !byte 0,0
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 ; TYPE: Platform
 ; METHOD: DistanceToPlatform
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 Platform_DistanceToPlatform 
     +stack_save_return_adress .Platform_DistanceToPlatform_ReturnAddress
     +stack_pull_int_ref .Platform_DistanceToPlatform_y, 0
@@ -1416,10 +1416,10 @@ label_Platform_DistanceToPlatform_79:    +stack_push_var .Platform_DistanceToPla
 .Platform_DistanceToPlatform_var4 !byte 0,0
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 ; TYPE: Player
 ; METHOD: set_Sprite
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 Player_set_Sprite 
     +stack_save_return_adress .Player_set_Sprite_ReturnAddress
     +stack_pull_int_ref .Player_set_Sprite_value, 0
@@ -1476,10 +1476,10 @@ Player_set_Sprite
 .Player_set_Sprite_ReturnAddress !byte 0,0
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 ; TYPE: Player
 ; METHOD: get_X
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 Player_get_X 
     +stack_save_return_adress .Player_get_X_ReturnAddress
     +stack_pull_int .Player_get_X_this
@@ -1495,10 +1495,10 @@ label_Player_get_X_10:    +stack_push_var .Player_get_X_var0 ; Ldloc_0
 .Player_get_X_var0 !byte 0,0
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 ; TYPE: Player
 ; METHOD: get_Y
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 Player_get_Y 
     +stack_save_return_adress .Player_get_Y_ReturnAddress
     +stack_pull_int .Player_get_Y_this
@@ -1514,10 +1514,10 @@ label_Player_get_Y_10:    +stack_push_var .Player_get_Y_var0 ; Ldloc_0
 .Player_get_Y_var0 !byte 0,0
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 ; TYPE: Player
 ; METHOD: Move
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 Player_Move 
     +stack_save_return_adress .Player_Move_ReturnAddress
     +stack_pull_int_ref .Player_Move_distanceToPlatform, 0
@@ -1815,10 +1815,10 @@ label_Player_Move_572:    +stack_return_to_saved_address .Player_Move_ReturnAddr
 .Player_Move_var16 !byte 0,0
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 ; TYPE: Player
 ; METHOD: set_X
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 Player_set_X 
     +stack_save_return_adress .Player_set_X_ReturnAddress
     +stack_pull_int_ref .Player_set_X_value, 0
@@ -1838,10 +1838,10 @@ Player_set_X
 .Player_set_X_ReturnAddress !byte 0,0
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 ; TYPE: Player
 ; METHOD: set_Y
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 Player_set_Y 
     +stack_save_return_adress .Player_set_Y_ReturnAddress
     +stack_pull_int_ref .Player_set_Y_value, 0
@@ -1861,10 +1861,10 @@ Player_set_Y
 .Player_set_Y_ReturnAddress !byte 0,0
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 ; TYPE: Player
 ; METHOD: Die
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 Player_Die 
     +stack_save_return_adress .Player_Die_ReturnAddress
     +stack_pull_int .Player_Die_this
@@ -1923,15 +1923,15 @@ label_Player_Die_34:  ; OPT   +stack_push_var .Player_Die_var0 ; Ldloc_0
 .Player_Die_var1 !byte 0,0
 .Player_Die_var2 !byte 0,0
 .Player_Die_var3 !byte 0,0
-.Program_field_x !byte 0
 .Program_field_a1 !byte 0
 .Program_field_a2 !byte 0
+.Program_field_x !byte 0
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 ; TYPE: Demo.Program
 ; METHOD: OnInterrupt
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 Program_OnInterrupt 
     +stack_save_return_adress .Program_OnInterrupt_ReturnAddress
     +stack_pull_int_ref .Program_OnInterrupt_args, 1
@@ -1952,10 +1952,10 @@ Program_OnInterrupt
 .Program_OnInterrupt_ReturnAddress !byte 0,0
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 ; TYPE: Demo.Program
 ; METHOD: F
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 Program_F 
     +stack_save_return_adress .Program_F_ReturnAddress
     +stack_pull_int_ref .Program_F_a3, 1
@@ -1979,14 +1979,14 @@ Program_F
 .Program_F_var0 !byte 0,0
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 ; TYPE: Demo.Program
 ; METHOD: Main
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;----------------------------------------
 Program_Main 
     +stack_save_return_adress .Program_Main_ReturnAddress
     nop ; Nop
-    +newObj 3 ; Newobj
+    +newObj 3, 3 ; Newobj
     +stack_pull_int_ref .Program_Main_var0, 1 ; Stloc_0
     +stack_push_var .Program_Main_var0 ; Ldloc_0
     jsr Game_Init ; Callvirt
@@ -1994,7 +1994,33 @@ Program_Main
     +stack_push_var .Program_Main_var0 ; Ldloc_0
     jsr Game_Run ; Callvirt
     nop ; Nop
+    +newObj 1, 0 ; Newobj
+    +stack_pull_int_ref .Program_Main_var1, 1 ; Stloc_1
+    +newObj 1, 0 ; Newobj
+    +stack_pull_int_ref .Program_Main_var2, 1 ; Stloc_2
+    jsr C64_get_Debug ; Call
+    +stack_push_var .Program_Main_var2 ; Ldloc_2
+    jsr Debug_GetObjectId ; Callvirt
+    +stack_pull_int_ref .Program_Main_var3, 0 ; Stloc_3
+    jsr C64_get_Debug ; Call
+    +stack_push_var .Program_Main_var3 ; Ldloc_3
+    jsr Debug_GetObjectRoots ; Callvirt
+    +stack_pull_int_ref .Program_Main_var4, 0 ; Stloc_s
+    +stack_push_int 0 ; Ldc_i4_0
+    +stack_push_int 2 ; Ldc_i4_2
+    +stack_push_int 48 ; Ldc_i4_s
+    +stack_push_var .Program_Main_var4 ; Ldloc_s
+    +add ; Add
+    +stack_push_int 14 ; Ldc_i4_s
+    jsr C64_SetChar ; Call
+    nop ; Nop
     +deref .Program_Main_var0 ; Nop
+    +deref .Program_Main_var1 ; Nop
+    +deref .Program_Main_var2 ; Nop
     +stack_return_to_saved_address .Program_Main_ReturnAddress ; Ret
 .Program_Main_ReturnAddress !byte 0,0
 .Program_Main_var0 !byte 0,0
+.Program_Main_var1 !byte 0,0
+.Program_Main_var2 !byte 0,0
+.Program_Main_var3 !byte 0,0
+.Program_Main_var4 !byte 0,0

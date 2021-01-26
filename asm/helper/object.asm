@@ -17,6 +17,7 @@ newObj:
   ; Find an empty entry in the object table --> X
   ldx #0
 - inx
+  beq .out_of_memory
   lda objTableHigh,x
   bne -
 
@@ -33,6 +34,8 @@ newObj:
   sta objTableSize,x
   lda $35
   sta objTableReferences,x
+  lda #0
+  sta objTableRootCount, x
   lda heapPointer
   sta objTableLow,x
   lda heapPointer+1
@@ -47,3 +50,5 @@ newObj:
   inc heapPointer+1
 + txa
   rts
+.out_of_memory
+  brk

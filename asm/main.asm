@@ -17,6 +17,7 @@ rts
 !src ".\\asm\\generated.asm"
 
 !src ".\\asm\\system.asm"
+!src ".\\asm\\GC.asm"
 !src ".\\asm\\helper\\object.asm"
 !src ".\\asm\\C64.asm"
 

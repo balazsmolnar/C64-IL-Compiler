@@ -116,4 +116,6 @@
 !macro deref .address {
     ldx .address
     dec objTableRootCount, x
+    lda #0
+    sta .address
 }

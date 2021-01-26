@@ -2,10 +2,18 @@ heapPointer = $fb
 tmpPointer = $25
 
 !macro initHeap .heap {
-  lda #<.heap
+  lda #<heap
   sta heapPointer
-  lda #>.heap
+  lda #>heap
   sta heapPointer+1
+  ldx #0
+  lda #0
+- sta objTableSize,x
+  sta objTableRootCount,x
+  sta objTableLow,x
+  sta objTableHigh,x
+  inx
+  bne -
 }
 
 ;

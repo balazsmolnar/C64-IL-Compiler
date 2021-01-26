@@ -924,6 +924,245 @@ label_Game_ClearScreen_42:  ; OPT   +stack_push_var .Game_ClearScreen_var0 ; Ldl
 .Game_ClearScreen_var1 !byte 0,0
 .Game_ClearScreen_var2 !byte 0,0
 .Game_ClearScreen_var3 !byte 0,0
+.GCTest_field_a1 !byte 0
+.GCTest_field_a2 !byte 0
+
+
+;----------------------------------------
+; TYPE: GCTest
+; METHOD: Two_Instances_First_GCd_Static_Field
+;----------------------------------------
+GCTest_Two_Instances_First_GCd_Static_Field 
+    +stack_save_return_adress .GCTest_Two_Instances_First_GCd_Static_Field_ReturnAddress
+    nop ; Nop
+    +newObj 2, 1 ; Newobj
+    +stack_duplicate ; Dup
+    +stack_push_int 4 ; Ldc_i4_4
+    +stfld 0 ; Stfld
+    +stack_pull_int_ref .GCTest_field_a1, 1 ; Stsfld
+    +newObj 2, 1 ; Newobj
+    +stack_duplicate ; Dup
+    +stack_push_int 5 ; Ldc_i4_5
+    +stfld 0 ; Stfld
+    +stack_pull_int_ref .GCTest_field_a2, 1 ; Stsfld
+    jsr C64_get_Debug ; Call
+    +stack_push_var .GCTest_field_a1 ; Ldsfld
+    jsr Debug_GetObjectId ; Callvirt
+    +stack_pull_int_ref .GCTest_Two_Instances_First_GCd_Static_Field_var0, 0 ; Stloc_0
+    jsr C64_get_Debug ; Call
+    +stack_push_var .GCTest_field_a2 ; Ldsfld
+    jsr Debug_GetObjectId ; Callvirt
+    +stack_pull_int_ref .GCTest_Two_Instances_First_GCd_Static_Field_var1, 0 ; Stloc_1
+    jsr C64_get_Debug ; Call
+    +stack_push_var .GCTest_Two_Instances_First_GCd_Static_Field_var0 ; Ldloc_0
+    jsr Debug_IsAlive ; Callvirt
+    +stack_push_int 0 ; Ldc_i4_0
+    +compareEqual ; Ceq
+    +stack_pull_int_ref .GCTest_Two_Instances_First_GCd_Static_Field_var2, 0 ; Stloc_2
+    +stack_push_var .GCTest_Two_Instances_First_GCd_Static_Field_var2 ; Ldloc_2
+    +branch_false label_GCTest_Two_Instances_First_GCd_Static_Field_102 ; Brfalse_s
+    nop ; Nop
+    +stack_push_pointer .string_1879048193 ; Ldstr
+    jsr Console_WriteLine ; Call
+    nop ; Nop
+    jmp label_GCTest_Two_Instances_First_GCd_Static_Field_236 ; Br
+label_GCTest_Two_Instances_First_GCd_Static_Field_102:    +stack_push_int 0 ; Ldnull
+    +stack_pull_int_ref .GCTest_field_a1, 1 ; Stsfld
+    jsr GC_Collect ; Call
+    nop ; Nop
+    jsr C64_get_Debug ; Call
+    +stack_push_var .GCTest_Two_Instances_First_GCd_Static_Field_var0 ; Ldloc_0
+    jsr Debug_IsAlive ; Callvirt
+    +stack_pull_int_ref .GCTest_Two_Instances_First_GCd_Static_Field_var3, 0 ; Stloc_3
+    +stack_push_var .GCTest_Two_Instances_First_GCd_Static_Field_var3 ; Ldloc_3
+    +branch_false label_GCTest_Two_Instances_First_GCd_Static_Field_140 ; Brfalse_s
+    +stack_push_pointer .string_1879048213 ; Ldstr
+    jsr Console_WriteLine ; Call
+    nop ; Nop
+label_GCTest_Two_Instances_First_GCd_Static_Field_140:    jsr C64_get_Debug ; Call
+    +stack_push_var .GCTest_Two_Instances_First_GCd_Static_Field_var1 ; Ldloc_1
+    jsr Debug_IsAlive ; Callvirt
+    +stack_push_int 0 ; Ldc_i4_0
+    +compareEqual ; Ceq
+    +stack_pull_int_ref .GCTest_Two_Instances_First_GCd_Static_Field_var4, 0 ; Stloc_s
+    +stack_push_var .GCTest_Two_Instances_First_GCd_Static_Field_var4 ; Ldloc_s
+    +branch_false label_GCTest_Two_Instances_First_GCd_Static_Field_171 ; Brfalse_s
+    +stack_push_pointer .string_1879048245 ; Ldstr
+    jsr Console_WriteLine ; Call
+    nop ; Nop
+label_GCTest_Two_Instances_First_GCd_Static_Field_171:    +stack_push_var .GCTest_field_a2 ; Ldsfld
+    +ldfld 0 ; Ldfld
+    +stack_push_int 5 ; Ldc_i4_5
+    +compareEqual ; Ceq
+    +stack_push_int 0 ; Ldc_i4_0
+    +compareEqual ; Ceq
+    +stack_pull_int_ref .GCTest_Two_Instances_First_GCd_Static_Field_var5, 0 ; Stloc_s
+    +stack_push_var .GCTest_Two_Instances_First_GCd_Static_Field_var5 ; Ldloc_s
+    +branch_false label_GCTest_Two_Instances_First_GCd_Static_Field_204 ; Brfalse_s
+    +stack_push_pointer .string_1879048273 ; Ldstr
+    jsr Console_WriteLine ; Call
+    nop ; Nop
+label_GCTest_Two_Instances_First_GCd_Static_Field_204:    +stack_push_int 0 ; Ldc_i4_0
+    +stack_push_int 1 ; Ldc_i4_1
+    +stack_push_var .GCTest_field_a2 ; Ldsfld
+    +ldfld 0 ; Ldfld
+    +stack_push_int 14 ; Ldc_i4_s
+    jsr C64_SetChar ; Call
+    nop ; Nop
+    +stack_push_int 0 ; Ldnull
+    +stack_duplicate ; Dup
+    +stack_pull_int_ref .GCTest_field_a2, 1 ; Stsfld
+    +stack_pull_int_ref .GCTest_field_a1, 1 ; Stsfld
+label_GCTest_Two_Instances_First_GCd_Static_Field_236:    +stack_return_to_saved_address .GCTest_Two_Instances_First_GCd_Static_Field_ReturnAddress ; Ret
+.GCTest_Two_Instances_First_GCd_Static_Field_ReturnAddress !byte 0,0
+.GCTest_Two_Instances_First_GCd_Static_Field_var0 !byte 0,0
+.GCTest_Two_Instances_First_GCd_Static_Field_var1 !byte 0,0
+.GCTest_Two_Instances_First_GCd_Static_Field_var2 !byte 0,0
+.GCTest_Two_Instances_First_GCd_Static_Field_var3 !byte 0,0
+.GCTest_Two_Instances_First_GCd_Static_Field_var4 !byte 0,0
+.GCTest_Two_Instances_First_GCd_Static_Field_var5 !byte 0,0
+
+
+;----------------------------------------
+; TYPE: GCTest
+; METHOD: Start
+;----------------------------------------
+GCTest_Start 
+    +stack_save_return_adress .GCTest_Start_ReturnAddress
+    nop ; Nop
+    jsr GCTest_Two_Instances_First_GCd_Static_Field ; Call
+    nop ; Nop
+    +newObj 2, 1 ; Newobj
+    +stack_duplicate ; Dup
+    +stack_push_int 1 ; Ldc_i4_1
+    +stfld 0 ; Stfld
+    +stack_duplicate ; Dup
+    +newObj 2, 1 ; Newobj
+    +stfld 1 ; Stfld
+    +stack_pull_int_ref .GCTest_Start_var0, 1 ; Stloc_0
+    +newObj 2, 1 ; Newobj
+    +stack_duplicate ; Dup
+    +stack_push_int 4 ; Ldc_i4_4
+    +stfld 0 ; Stfld
+    +stack_pull_int_ref .GCTest_Start_var1, 1 ; Stloc_1
+    +newObj 2, 1 ; Newobj
+    +stack_duplicate ; Dup
+    +stack_push_int 2 ; Ldc_i4_2
+    +stfld 0 ; Stfld
+    +stack_duplicate ; Dup
+    +stack_push_var .GCTest_Start_var0 ; Ldloc_0
+    +stfld 1 ; Stfld
+    +stack_pull_int_ref .GCTest_Start_var2, 1 ; Stloc_2
+    +newObj 2, 1 ; Newobj
+    +stack_duplicate ; Dup
+    +stack_push_int 5 ; Ldc_i4_5
+    +stfld 0 ; Stfld
+    +stack_duplicate ; Dup
+    +stack_push_var .GCTest_Start_var1 ; Ldloc_1
+    +stfld 1 ; Stfld
+    +stack_pull_int_ref .GCTest_Start_var3, 1 ; Stloc_3
+    +newObj 2, 1 ; Newobj
+    +stack_duplicate ; Dup
+    +stack_push_int 3 ; Ldc_i4_3
+    +stfld 0 ; Stfld
+    +stack_duplicate ; Dup
+    +stack_push_var .GCTest_Start_var2 ; Ldloc_2
+    +stfld 1 ; Stfld
+    +stack_pull_int_ref .GCTest_Start_var4, 1 ; Stloc_s
+    +newObj 2, 1 ; Newobj
+    +stack_duplicate ; Dup
+    +stack_push_int 6 ; Ldc_i4_6
+    +stfld 0 ; Stfld
+    +stack_duplicate ; Dup
+    +stack_push_var .GCTest_Start_var3 ; Ldloc_3
+    +stfld 1 ; Stfld
+    +stack_pull_int_ref .GCTest_Start_var5, 1 ; Stloc_s
+    +stack_push_int 0 ; Ldnull
+    +stack_duplicate ; Dup
+    +stack_pull_int_ref .GCTest_Start_var4, 1 ; Stloc_s
+    +stack_duplicate ; Dup
+    +stack_pull_int_ref .GCTest_Start_var2, 1 ; Stloc_2
+    +stack_pull_int_ref .GCTest_Start_var0, 1 ; Stloc_0
+    +stack_push_int 0 ; Ldnull
+    +stack_duplicate ; Dup
+    +stack_pull_int_ref .GCTest_Start_var3, 1 ; Stloc_3
+    +stack_pull_int_ref .GCTest_Start_var1, 1 ; Stloc_1
+    +stack_push_var .GCTest_Start_var5 ; Ldloc_s
+    +ldfld 1 ; Ldfld
+    +ldfld 1 ; Ldfld
+    +ldfld 0 ; Ldfld
+    +stack_push_int 4 ; Ldc_i4_4
+    +compareEqual ; Ceq
+    +stack_push_int 0 ; Ldc_i4_0
+    +compareEqual ; Ceq
+    +stack_pull_int_ref .GCTest_Start_var6, 0 ; Stloc_s
+    +stack_push_var .GCTest_Start_var6 ; Ldloc_s
+    +branch_false label_GCTest_Start_177 ; Brfalse_s
+    +stack_push_pointer .string_1879048299 ; Ldstr
+    jsr Console_WriteLine ; Call
+    nop ; Nop
+label_GCTest_Start_177:    jsr GC_Collect ; Call
+    nop ; Nop
+    +stack_push_var .GCTest_Start_var5 ; Ldloc_s
+    +ldfld 0 ; Ldfld
+    +stack_push_int 6 ; Ldc_i4_6
+    +compareEqual ; Ceq
+    +stack_push_int 0 ; Ldc_i4_0
+    +compareEqual ; Ceq
+    +stack_pull_int_ref .GCTest_Start_var7, 0 ; Stloc_s
+    +stack_push_var .GCTest_Start_var7 ; Ldloc_s
+    +branch_false label_GCTest_Start_213 ; Brfalse_s
+    +stack_push_pointer .string_1879048345 ; Ldstr
+    jsr Console_WriteLine ; Call
+    nop ; Nop
+label_GCTest_Start_213:    +stack_push_var .GCTest_Start_var5 ; Ldloc_s
+    +ldfld 1 ; Ldfld
+    +ldfld 0 ; Ldfld
+    +stack_push_int 5 ; Ldc_i4_5
+    +compareEqual ; Ceq
+    +stack_push_int 0 ; Ldc_i4_0
+    +compareEqual ; Ceq
+    +stack_pull_int_ref .GCTest_Start_var8, 0 ; Stloc_s
+    +stack_push_var .GCTest_Start_var8 ; Ldloc_s
+    +branch_false label_GCTest_Start_248 ; Brfalse_s
+    +stack_push_pointer .string_1879048367 ; Ldstr
+    jsr Console_WriteLine ; Call
+    nop ; Nop
+label_GCTest_Start_248:    +stack_push_var .GCTest_Start_var5 ; Ldloc_s
+    +ldfld 1 ; Ldfld
+    +ldfld 1 ; Ldfld
+    +ldfld 0 ; Ldfld
+    +stack_push_int 4 ; Ldc_i4_4
+    +compareEqual ; Ceq
+    +stack_push_int 0 ; Ldc_i4_0
+    +compareEqual ; Ceq
+    +stack_pull_int_ref .GCTest_Start_var9, 0 ; Stloc_s
+    +stack_push_var .GCTest_Start_var9 ; Ldloc_s
+    +branch_false label_GCTest_Start_288 ; Brfalse_s
+    +stack_push_pointer .string_1879048299 ; Ldstr
+    jsr Console_WriteLine ; Call
+    nop ; Nop
+label_GCTest_Start_288:    +stack_push_pointer .string_1879048401 ; Ldstr
+    jsr Console_WriteLine ; Call
+    nop ; Nop
+    +deref .GCTest_Start_var0 ; Nop
+    +deref .GCTest_Start_var1 ; Nop
+    +deref .GCTest_Start_var2 ; Nop
+    +deref .GCTest_Start_var3 ; Nop
+    +deref .GCTest_Start_var4 ; Nop
+    +deref .GCTest_Start_var5 ; Nop
+    +stack_return_to_saved_address .GCTest_Start_ReturnAddress ; Ret
+.GCTest_Start_ReturnAddress !byte 0,0
+.GCTest_Start_var0 !byte 0,0
+.GCTest_Start_var1 !byte 0,0
+.GCTest_Start_var2 !byte 0,0
+.GCTest_Start_var3 !byte 0,0
+.GCTest_Start_var4 !byte 0,0
+.GCTest_Start_var5 !byte 0,0
+.GCTest_Start_var6 !byte 0,0
+.GCTest_Start_var7 !byte 0,0
+.GCTest_Start_var8 !byte 0,0
+.GCTest_Start_var9 !byte 0,0
 
 
 ;----------------------------------------
@@ -1923,8 +2162,6 @@ label_Player_Die_34:  ; OPT   +stack_push_var .Player_Die_var0 ; Ldloc_0
 .Player_Die_var1 !byte 0,0
 .Player_Die_var2 !byte 0,0
 .Player_Die_var3 !byte 0,0
-.Program_field_a1 !byte 0
-.Program_field_a2 !byte 0
 .Program_field_x !byte 0
 
 
@@ -1954,73 +2191,20 @@ Program_OnInterrupt
 
 ;----------------------------------------
 ; TYPE: Demo.Program
-; METHOD: F
-;----------------------------------------
-Program_F 
-    +stack_save_return_adress .Program_F_ReturnAddress
-    +stack_pull_int_ref .Program_F_a3, 1
-    nop ; Nop
-    jsr C64_get_Debug ; Call
-    +stack_push_var .Program_F_a3 ; Ldarg_0
-    jsr Debug_GetObjectRoots ; Callvirt
-    +stack_pull_int_ref .Program_F_var0, 0 ; Stloc_0
-    +stack_push_int 0 ; Ldc_i4_0
-    +stack_push_int 1 ; Ldc_i4_1
-    +stack_push_int 48 ; Ldc_i4_s
-    +stack_push_var .Program_F_var0 ; Ldloc_0
-    +add ; Add
-    +stack_push_int 14 ; Ldc_i4_s
-    jsr C64_SetChar ; Call
-    nop ; Nop
-    +deref .Program_F_a3 ; Nop
-    +stack_return_to_saved_address .Program_F_ReturnAddress ; Ret
-.Program_F_a3 !byte 0, 0
-.Program_F_ReturnAddress !byte 0,0
-.Program_F_var0 !byte 0,0
-
-
-;----------------------------------------
-; TYPE: Demo.Program
 ; METHOD: Main
 ;----------------------------------------
 Program_Main 
     +stack_save_return_adress .Program_Main_ReturnAddress
     nop ; Nop
-    +newObj 3, 3 ; Newobj
-    +stack_pull_int_ref .Program_Main_var0, 1 ; Stloc_0
-    +stack_push_var .Program_Main_var0 ; Ldloc_0
-    jsr Game_Init ; Callvirt
+    jsr GCTest_Start ; Call
     nop ; Nop
-    +stack_push_var .Program_Main_var0 ; Ldloc_0
-    jsr Game_Run ; Callvirt
-    nop ; Nop
-    +newObj 1, 0 ; Newobj
-    +stack_pull_int_ref .Program_Main_var1, 1 ; Stloc_1
-    +newObj 1, 0 ; Newobj
-    +stack_pull_int_ref .Program_Main_var2, 1 ; Stloc_2
-    jsr C64_get_Debug ; Call
-    +stack_push_var .Program_Main_var2 ; Ldloc_2
-    jsr Debug_GetObjectId ; Callvirt
-    +stack_pull_int_ref .Program_Main_var3, 0 ; Stloc_3
-    jsr C64_get_Debug ; Call
-    +stack_push_var .Program_Main_var3 ; Ldloc_3
-    jsr Debug_GetObjectRoots ; Callvirt
-    +stack_pull_int_ref .Program_Main_var4, 0 ; Stloc_s
-    +stack_push_int 0 ; Ldc_i4_0
-    +stack_push_int 2 ; Ldc_i4_2
-    +stack_push_int 48 ; Ldc_i4_s
-    +stack_push_var .Program_Main_var4 ; Ldloc_s
-    +add ; Add
-    +stack_push_int 14 ; Ldc_i4_s
-    jsr C64_SetChar ; Call
-    nop ; Nop
-    +deref .Program_Main_var0 ; Nop
-    +deref .Program_Main_var1 ; Nop
-    +deref .Program_Main_var2 ; Nop
     +stack_return_to_saved_address .Program_Main_ReturnAddress ; Ret
 .Program_Main_ReturnAddress !byte 0,0
-.Program_Main_var0 !byte 0,0
-.Program_Main_var1 !byte 0,0
-.Program_Main_var2 !byte 0,0
-.Program_Main_var3 !byte 0,0
-.Program_Main_var4 !byte 0,0
+.string_1879048193 !pet "not alive",0
+.string_1879048213 !pet "a1 still alive!",0
+.string_1879048245 !pet "a2 not alive!",0
+.string_1879048273 !pet "a2 corrupted",0
+.string_1879048299 !pet "b3.child.child.id != 4",0
+.string_1879048345 !pet "b3.id != 4",0
+.string_1879048367 !pet "b3.child.id != 5",0
+.string_1879048401 !pet "finished",0

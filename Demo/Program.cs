@@ -15,31 +15,17 @@ namespace Demo
 
         class A
         {
-            int a;
+            public A child1;
+            public A child2;
         }
 
-        static A a1;
-        static A a2;
-
-        static void F(A a3)
-        {
-            var r1 = C64.Debug.GetObjectRoots(a3);
-            C64.SetChar(0, 1, 48 + r1);
-        }
         static void Main()
         {
 
-            Game g = new Game();
-            g.Init();
-            g.Run();
-            var b = new A();
-            var a = new A();
-            // F(a);
-            var id = C64.Debug.GetObjectId(a);
-            // a = null;
-            var r1 = C64.Debug.GetObjectRoots(id);
-            // uint r1 = 0;
-            C64.SetChar(0, 2, 48 + r1);
+            // Game g = new Game();
+            // g.Init();
+            // g.Run();
+            GCTest.Start();
         }
     }
 }

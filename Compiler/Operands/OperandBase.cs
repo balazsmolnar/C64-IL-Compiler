@@ -37,7 +37,8 @@ namespace Compiler.Ops
 
         public override object ConvertParameter(CompilerMethodContext context, int parameter)
         {
-            context.CompilerContext.StringValues.Add(parameter, context.CompilerContext.Assembly.ManifestModule.ResolveString(parameter));
+            if (!context.CompilerContext.StringValues.ContainsKey(parameter))
+                context.CompilerContext.StringValues.Add(parameter, context.CompilerContext.Assembly.ManifestModule.ResolveString(parameter));
             return $".string_{parameter}";
         }
     }

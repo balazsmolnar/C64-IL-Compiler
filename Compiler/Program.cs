@@ -26,7 +26,8 @@ namespace Compiler
                 var context = new CompilerContext
                 {
                     Assembly = asm,
-                    OutputFile = outputFile
+                    GlobalOutputFile = outputFile,
+                    OutputDirectory = output
                 };
                 var passes = new List<ICompilerPass> {
                     new ILCodePass(

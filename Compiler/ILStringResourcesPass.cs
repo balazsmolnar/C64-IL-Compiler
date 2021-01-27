@@ -8,7 +8,7 @@ namespace Compiler
             {
 
                 string outputLine = $".string_{stringResource.Key} !pet \"{stringResource.Value}\",0";
-                context.OutputFile.WriteLine(outputLine);
+                context.GlobalOutputFile.WriteLine(outputLine);
             }
         }
     }

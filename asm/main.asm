@@ -21,7 +21,7 @@ rts
 
 !src ".\\asm\\spritedata.asm"
 
-!src ".\\asm\\generated.asm"
+!src ".\\asm\\generated\\generated.asm"
 
 
 

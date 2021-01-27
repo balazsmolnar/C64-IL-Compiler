@@ -9,9 +9,11 @@ namespace Compiler
     class CompilerContext
     {
         public Assembly Assembly { get; set; }
-        public StreamWriter OutputFile { get; set; }
+        public StreamWriter GlobalOutputFile { get; set; }
         public IList<CompilerMethodContext> Methods { get; set; }
         public Dictionary<int, string> StringValues { get; set; } = new Dictionary<int, string>();
+
+        public string OutputDirectory { get; set; }
 
         public int GetFieldPosition(FieldInfo field)
         {
@@ -39,10 +41,12 @@ namespace Compiler
     {
         public CompilerContext CompilerContext { get; set; }
         public Type Type { get; set; }
+        public StreamWriter OutputFile { get; set; }
     }
     class CompilerMethodContext
     {
         public CompilerContext CompilerContext { get; set; }
+        public CompilerTypeContext TypeContext { get; set; }
         public MethodBase Method { get; set; }
         public List<ILLine> Lines { get; set; }
     }

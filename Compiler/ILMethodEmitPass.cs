@@ -17,7 +17,7 @@ namespace Compiler
     {
         public void Execute(CompilerMethodContext context)
         {
-            var output = context.CompilerContext.OutputFile;
+            var output = context.TypeContext.OutputFile;
             output.WriteLine("");
             output.WriteLine("");
             output.WriteLine(";----------------------------------------");

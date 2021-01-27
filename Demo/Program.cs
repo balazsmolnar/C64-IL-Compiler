@@ -13,19 +13,14 @@ namespace Demo
             C64.SetBorderColor((Colors)(x));
         }
 
-        class A
-        {
-            public A child1;
-            public A child2;
-        }
 
         static void Main()
         {
 
-            // Game g = new Game();
-            // g.Init();
-            // g.Run();
-            GCTest.Start();
+            Game g = new Game();
+            g.Init();
+            g.Run();
+            // GCTest.Start();
         }
     }
 }

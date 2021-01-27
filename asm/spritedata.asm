@@ -1,8 +1,8 @@
 
 !align 63, 0
 
+* = $2000
 sprite0
-
 
 ; sprite 0 / singlecolor / color: $09
 !byte $00,$00,$00,$00,$00,$00,$00,$00

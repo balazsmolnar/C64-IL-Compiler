@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 
 namespace Compiler
@@ -11,6 +12,27 @@ namespace Compiler
         public StreamWriter OutputFile { get; set; }
         public IList<CompilerMethodContext> Methods { get; set; }
         public Dictionary<int, string> StringValues { get; set; } = new Dictionary<int, string>();
+
+        public int GetFieldPosition(FieldInfo field)
+        {
+            var t = field.DeclaringType;
+            var pos = 0;
+            var fields = t.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            foreach (var f in fields.Where(f => !f.IsLiteral).OrderBy(f => f.FieldType.IsReferenceCounted() ? 0 : 1))
+            {
+                if (f == field)
+                    break;
+                if (f.FieldType == typeof(string))
+                {
+                    pos += 2;
+                }
+                else
+                {
+                    pos += 1;
+                }
+            }
+            return pos;
+        }
     }
 
     class CompilerTypeContext

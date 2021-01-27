@@ -3,26 +3,27 @@ using C64Lib;
 public class Test
 {
     public int Id;
+
     public Test Child;
 }
 
 public class GCTest
 {
-    static Test a1 = new Test();
-    static Test a2;
+    static Test s_a1;
+    static Test s_a2;
     public static void Two_Instances_First_GCd_Static_Field()
     {
-        a1 = new Test() { Id = 4 };
-        a2 = new Test() { Id = 5 };
+        s_a1 = new Test() { Id = 4 };
+        s_a2 = new Test() { Id = 5 };
 
-        var objId = C64.Debug.GetObjectId(a1);
-        var objId2 = C64.Debug.GetObjectId(a2);
+        var objId = C64.Debug.GetObjectId(s_a1);
+        var objId2 = C64.Debug.GetObjectId(s_a2);
         if (!C64.Debug.IsAlive(objId))
         {
             Console.WriteLine("not alive");
             return;
         }
-        a1 = null;
+        s_a1 = null;
         GC.Collect();
 
         if (C64.Debug.IsAlive(objId))
@@ -31,14 +32,46 @@ public class GCTest
         if (!C64.Debug.IsAlive(objId2))
             Console.WriteLine("a2 not alive!");
 
-        if (a2.Id != 5)
+        if (s_a2.Id != 5)
             Console.WriteLine("a2 corrupted");
-        C64Lib.C64.SetChar(0, 1, (uint)a2.Id);
-        a1 = a2 = null;
+        C64Lib.C64.SetChar(0, 1, (uint)s_a2.Id);
+        s_a1 = s_a2 = null;
     }
-    public static void Start()
+
+    public static void Single_Instance_GC()
     {
-        Two_Instances_First_GCd_Static_Field();
+        var a = new Test();
+        var aid = C64.Debug.GetObjectId(a);
+        a = null;
+        if (!C64.Debug.IsAlive(aid))
+            Console.WriteLine("a is not alive!");
+    }
+
+    public static void Change_Ref_Local_Variable()
+    {
+        var a = new Test();
+        var aid = C64.Debug.GetObjectId(a);
+        a = new Test();
+        if (!C64.Debug.IsAlive(aid))
+            Console.WriteLine("a is not alive!");
+    }
+
+    public static void Array_Root_in_Local_Var()
+    {
+        var a = new Test[] { new Test() { Id = 23 } };
+        var aid = C64.Debug.GetObjectId(a[0]);
+        GC.Collect();
+        if (!C64.Debug.IsAlive(aid))
+            Console.WriteLine("a is not alive!");
+        a = null;
+        GC.Collect();
+        if (C64.Debug.IsAlive(aid))
+            Console.WriteLine("a is still alive!");
+
+    }
+
+    public static void Hierarchies_Local_Variable_Root()
+    {
         var a1 = new Test() { Id = 1, Child = new Test() };
         var b1 = new Test() { Id = 4 };
         var a2 = new Test() { Id = 2, Child = a1 };
@@ -47,7 +80,15 @@ public class GCTest
         var b3 = new Test() { Id = 6, Child = b2 };
 
         a1 = a2 = a3 = null;
-        b1 = b2 = null;
+        // b1 = b2 = null;
+
+        var a1id = C64.Debug.GetObjectId(a1);
+        var a2id = C64.Debug.GetObjectId(a2);
+        var a3id = C64.Debug.GetObjectId(a3);
+
+        var b1id = C64.Debug.GetObjectId(b1);
+        var b2id = C64.Debug.GetObjectId(b2);
+        var b3id = C64.Debug.GetObjectId(b3);
 
         GC.Collect();
 
@@ -60,6 +101,31 @@ public class GCTest
         if (b3.Child.Child.Id != 4)
             Console.WriteLine("b3.child.child.id != 4");
 
-        Console.WriteLine("finished");
+        if (!C64.Debug.IsAlive(b1id))
+            Console.WriteLine("b1 is not alive!");
+
+        if (!C64.Debug.IsAlive(b2id))
+            Console.WriteLine("b2 is not alive!");
+
+        if (!C64.Debug.IsAlive(b3id))
+            Console.WriteLine("b3 is not alive!");
+
+        if (C64.Debug.IsAlive(a1id))
+            Console.WriteLine("a1 is alive!");
+
+        if (C64.Debug.IsAlive(a2id))
+            Console.WriteLine("a2 is alive!");
+
+        if (C64.Debug.IsAlive(a3id))
+            Console.WriteLine("a3 is alive!");
+    }
+
+    public static void Start()
+    {
+        Single_Instance_GC();
+        Change_Ref_Local_Variable();
+        Two_Instances_First_GCd_Static_Field();
+        Array_Root_in_Local_Var();
+        Hierarchies_Local_Variable_Root();
     }
 }

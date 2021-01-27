@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Reflection;
+using System.Linq;
 using Compiler;
 
 namespace Compiler.Ops
@@ -119,22 +120,7 @@ namespace Compiler.Ops
         public override object ConvertParameter(CompilerMethodContext context, int parameter)
         {
             var field = context.CompilerContext.Assembly.ManifestModule.ResolveField(parameter);
-            var t = field.DeclaringType;
-            var pos = 0;
-            foreach (var f in t.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
-            {
-                if (f == field)
-                    break;
-                if (f.FieldType == typeof(string))
-                {
-                    pos += 2;
-                }
-                else
-                {
-                    pos += 1;
-                }
-            }
-            return $"{pos}";
+            var pos = context.CompilerContext.GetFieldPosition(field); return $"{pos}";
         }
     }
 
@@ -154,21 +140,7 @@ namespace Compiler.Ops
         public override object ConvertParameter(CompilerMethodContext context, int parameter)
         {
             var field = context.CompilerContext.Assembly.ManifestModule.ResolveField(parameter);
-            var t = field.DeclaringType;
-            var pos = 0;
-            foreach (var f in t.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
-            {
-                if (f == field)
-                    break;
-                if (f.FieldType == typeof(string))
-                {
-                    pos += 2;
-                }
-                else
-                {
-                    pos += 1;
-                }
-            }
+            var pos = context.CompilerContext.GetFieldPosition(field);
             return $"{pos}";
         }
     }

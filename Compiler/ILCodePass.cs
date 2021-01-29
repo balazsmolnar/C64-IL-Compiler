@@ -33,9 +33,9 @@ namespace Compiler
             context.Methods = new List<CompilerMethodContext>();
             foreach (var @type in context.Assembly.GetTypes())
             {
-                // context.GlobalOutputFile.WriteLine($"!src \".\\\\{type.Name}.asm\"");
-                var import = $"\"{context.OutputDirectory}\\{ type.Name}.asm\"";
-                context.GlobalOutputFile.WriteLine($"!src {import.Replace("\\", "\\\\")}");
+                // context.GlobalOutputFile.WriteLine($".include \".\\\\{type.Name}.asm\"");
+                var import = $"\"./{type.Name}.asm\"";
+                context.GlobalOutputFile.WriteLine($".include {import}");
                 using (var outputFile = File.CreateText(Path.Combine(context.OutputDirectory, $"{type.Name}.asm")))
                 {
 

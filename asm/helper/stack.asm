@@ -1,121 +1,120 @@
 ; Use C64 native stack
 ; less space, but faster
 ;
-!macro stack_push_pointer .ptr {
-  lda # < .ptr
+stack_push_pointer .macro ptr
+  lda # < \ptr
   pha
-  lda # > .ptr
+  lda # > \ptr
   pha
-}
+.endm
 
-!macro stack_pull_pointer .address {
+stack_pull_pointer .macro address 
   pla
-  sta .address+1
+  sta \address+1
   pla
-  sta .address
-}
+  sta \address
+.endm
 
-!macro stack_push_int16 value {
-  lda # < value
+stack_push_int16 .macro value 
+  lda # < \value
   pha
-  lda # > value
+  lda # > \value
   pha
-}
+.endm
 
-!macro stack_push_int8 value {
-  lda # < value
+stack_push_int8 .macro value 
+  lda # < \value
   pha
-}
+.endm
 
-!macro stack_pull_int16 .address {
+stack_pull_int16 .macro address 
   pla
-  sta .address+1
+  sta \address+1
   pla
-  sta .address
-}
+  sta \address
+.endm
 
-!macro stack_pull_int8 .address {
+stack_pull_int8 .macro address 
   pla
-  sta .address
-}
+  sta \address
+.endm
 
-!macro stack_push_var16 .address {
-  lda .address
+stack_push_var16 .macro address 
+  lda \address
   pha
-  lda .address+1
+  lda \address+1
   pha
-}
+.endm
 
-!macro stack_push_var8 .address {
-  lda .address
+stack_push_var8 .macro address 
+  lda \address
   pha
-}
+.endm
 
-!macro stack_duplicate {
+stack_duplicate .macro
   pla
   pha
   pha
-}
+.endm
 
-!macro stack_save_return_adress .variable {
+stack_save_return_adress .macro variable 
   pla
-  sta .variable+1
+  sta \variable+1
   pla
-  sta .variable
-}
+  sta \variable
+.endm
 
-!macro stack_return_to_saved_address .variable {
-  lda .variable
+stack_return_to_saved_address .macro  variable 
+  lda \variable
   pha
-  lda .variable+1
+  lda \variable+1
   pha
   rts
-}
+.endm
 
-!macro stack_pull_int_a {
+stack_pull_int_a .macro 
   pla
-}
+.endm
 
-!macro stack_pull_int_x {
+stack_pull_int_x .macro
   pla
   tax
-}
+.endm
 
-!macro stack_pull_int_y {
+stack_pull_int_y .macro 
   pla
   tay
-}
+.endm
 
-!macro stack_push_int_a {
+stack_push_int_a .macro
   pha
-}
+.endm
 
-!macro stack_push_int_x {
+stack_push_int_x .macro
   txa
   pha
-}
+.endm
 
-!macro stack_pull_int_ref .address, .ref {
+stack_pull_int_ref .macro address, ref 
 
   ; deref
-  !if .ref = 1 {
-    +deref .address
-  }
-  
+  .if \ref == 1 
+    #deref \address
+  .endif
   ; store
   pla
-  sta .address
+  sta \address
 
   ; ref
-  !if .ref = 1 {
+  .if \ref == 1 
     tax
     inc objTableRootCount, x
-  }
-}
+  .endif
+.endm
 
-!macro deref .address {
-    ldx .address
+deref .macro address 
+    ldx \address
     dec objTableRootCount, x
     lda #0
-    sta .address
-}
+    sta \address
+.endm

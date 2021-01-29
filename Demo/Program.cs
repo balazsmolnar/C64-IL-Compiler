@@ -16,11 +16,13 @@ namespace Demo
 
         static void Main()
         {
+            // Console.WriteLine("HELLO");
+            // C64.Interrupt += OnInterrupt;
 
-            Game g = new Game();
-            g.Init();
-            g.Run();
-            // GCTest.Start();
+            // Game g = new Game();
+            // g.Init();
+            // g.Run();
+            GCTest.Start();
         }
     }
 }

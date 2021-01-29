@@ -8,7 +8,7 @@
 ; Newly created object id --> A
 ;
 ; Destroys: X, Y, A
-newObj:
+newObjL
 
   ; store input parameters
   sta $34  ; Size
@@ -17,7 +17,7 @@ newObj:
   ; Find an empty entry in the object table --> X
   ldx #0
 - inx
-  beq .out_of_memory
+  beq out_of_memory
   lda objTableHigh,x
   bne -
 
@@ -50,5 +50,5 @@ newObj:
   inc heapPointer+1
 + txa
   rts
-.out_of_memory
+out_of_memory
   brk

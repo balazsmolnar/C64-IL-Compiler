@@ -1,6 +1,6 @@
 
 
-GC_Collect:
+GC_Collect
     jsr trackObjects
     jsr fillSortTable
     jsr quicksort
@@ -11,7 +11,7 @@ GC_Collect:
 ; Input: None
 ; Output: None
 ; Sets the high bit of root table if the object can be tracked
-trackObjects:
+trackObjects
 
     ; push 0 to stack, if we reach the algorithm can stop
     lda #0
@@ -34,8 +34,8 @@ trackObjects:
     inx
     bne -
 
---  pla
-    beq ++                  ; end algorithm 
+l2  pla
+    beq endtrack                  ; end algorithm 
     tax
     lda objTableLow,X
     sta $33
@@ -46,7 +46,7 @@ trackObjects:
 
     ldy #0
 -   cpy $35
-    beq --
+    beq l2
     lda ($33), y
     tax
     lda objTableRootCount, x
@@ -59,7 +59,8 @@ trackObjects:
     pha
 +   iny
     bne -
-++  rts
+endtrack
+    rts
 
 ;
 ; Creates a table with active objects at the end to the heap
@@ -106,9 +107,9 @@ quicksort:
     tya
     pha
 
-.start:                 ; start main loop
+start:                 ; start main loop
     pla
-    beq .end            ; reached end signal
+    beq end            ; reached end signal
     sta HIGH_INDEX
     pla
     sta LOW_INDEX
@@ -127,14 +128,14 @@ quicksort:
     ; push (partition_index+1, high_index)
     inx
     txa
-    beq .start
+    beq start
     cmp HIGH_INDEX
-    beq .start
+    beq start
     pha
     lda HIGH_INDEX
     pha
-    jmp .start
-.end
+    jmp start
+end
     rts
 
 partition:
@@ -158,12 +159,12 @@ partition:
     ldx HIGH_INDEX
     inx
     stx PARTITION_HIGH_INDEX
---
+l4
 
     inc PARTITION_LOW_INDEX
     ldy PARTITION_LOW_INDEX
     jsr compare
-    bcc --
+    bcc l4
 
 -   
     dec PARTITION_HIGH_INDEX
@@ -184,12 +185,12 @@ partition:
     txa
     ldy PARTITION_HIGH_INDEX
     sta (heapPointer),y
-    jmp --
+    jmp l4
 +
     ldx PARTITION_HIGH_INDEX
     rts
 
-compare:
+compare
     lda (heapPointer),y
     tay
     lda objTableHigh,y
@@ -208,7 +209,7 @@ HEAP_POINTER_ORIG_HIGH = $35
 TMP = $36
 
 
-sweepAndCompact:
+sweepAndCompact
 
     lda #<heap
     sta HEAP_POINTER_COMPACTED_LOW
@@ -216,9 +217,9 @@ sweepAndCompact:
     sta HEAP_POINTER_COMPACTED_HIGH
     ldy #0
 
-.loop:
+loop:
     lda (heapPointer),y
-    beq .sweepend                       ; trailing zero found
+    beq sweepend                       ; trailing zero found
     tax
     lda objTableRootCount, X
     and #$80                             
@@ -229,7 +230,7 @@ sweepAndCompact:
     sta objTableHigh,x
     sta objTableSize,x
     iny
-    jmp .loop
+    jmp loop
 +   lda objTableHigh, X                 ; keep object, but copy data, move pointer
     sta HEAP_POINTER_ORIG_HIGH
     lda objTableLow, x
@@ -242,7 +243,7 @@ sweepAndCompact:
     tya
     pha
     lda objTableSize, X
-    beq ++
+    beq l1
     sta TMP
     ldy #$00
 -   lda (HEAP_POINTER_ORIG_LOW), y
@@ -250,7 +251,7 @@ sweepAndCompact:
     iny
     cpy TMP
     bne -    
-++  lda objTableSize, X
+l1  lda objTableSize, X
     clc
     adc HEAP_POINTER_COMPACTED_LOW
     sta HEAP_POINTER_COMPACTED_LOW
@@ -259,8 +260,8 @@ sweepAndCompact:
 +   pla
     tay
     iny
-    jmp .loop
-.sweepend
+    jmp loop
+sweepend
     lda HEAP_POINTER_COMPACTED_LOW
     sta heapPointer
     lda HEAP_POINTER_COMPACTED_HIGH

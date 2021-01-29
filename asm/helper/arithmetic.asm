@@ -1,7 +1,7 @@
-!macro add16 {
+add16 .macro 
 
-    +stack_pull_int $32
-    +stack_pull_int $34
+    #stack_pull_int $32
+    #stack_pull_int $34
 
     clc
     lda $34
@@ -10,36 +10,36 @@
     lda $35
     adc $33
     sta $35
-    +stack_push_var $34
-}
+    #stack_push_var $34
+.endm
 
-!macro add8 {
+add8 .macro
 
-    +stack_pull_int $32
-    +stack_pull_int $34
+    #stack_pull_int $32
+    #stack_pull_int $34
 
     clc
     lda $34
     adc $32
     sta $34
-    +stack_push_var $34
-}
+    #stack_push_var $34
+.endm
 
-!macro sub8 {
+sub8 .macro 
 
-    +stack_pull_int $32
-    +stack_pull_int $34
+    #stack_pull_int $32
+    #stack_pull_int $34
 
     sec
     lda $34
     sbc $32
     sta $34
-    +stack_push_var $34
-}
+    #stack_push_var $34
+.endm
 
-!macro negate16 {
+negate16 .macro 
 
-    +stack_pull_int $34
+    #stack_pull_int $34
 
     lda $35
     eor #$FF
@@ -51,45 +51,45 @@
     bcc +
     inc $35
 +   sta $34
-    +stack_push_var $34
-}
+    #stack_push_var $34
+.endm
 
-!macro negate8 {
+negate8 .macro  
 
-    +stack_pull_int $34
+    #stack_pull_int $34
 
     lda $34
     eor #$FF
     clc
     adc #$1
     sta $34
-    +stack_push_var $34
-}
+    #stack_push_var $34
+.endm
 
-!macro compareLess16 {
-        +stack_pull_int $34
-        +stack_pull_int $32
+compareLess16 .macro 
+        #stack_pull_int $34
+        #stack_pull_int $32
 
         clc
         ldx #0
         lda $33
         cmp $35
         bcc +
-        bne ++
+        bne l1
         lda $32
         cmp $34
-        bcs ++
+        bcs l1
 +       ldx #1
-++      stx $34
+l1      stx $34
 
         ldx #0
         stx $35
-        +stack_push_var $34
-}
+        #stack_push_var $34
+.endm
 
-!macro compareLess8 {
-        +stack_pull_int $34
-        +stack_pull_int $32
+compareLess8 .macro 
+        #stack_pull_int $34
+        #stack_pull_int $32
 
         ldx #0
         lda $32
@@ -97,12 +97,12 @@
         bcs +
         ldx #1
 +       stx $34
-        +stack_push_var $34
-}
+        #stack_push_var $34
+.endm
 
-!macro compareGreater8 {
-        +stack_pull_int $34
-        +stack_pull_int $32
+compareGreater8 .macro 
+        #stack_pull_int $34
+        #stack_pull_int $32
 
         ldx #0
         lda $32
@@ -110,12 +110,12 @@
         bcc +
         ldx #1
 +       stx $34
-        +stack_push_var $34
-}
+        #stack_push_var $34
+.endm
 
-!macro compareEqual16 {
-        +stack_pull_int $34
-        +stack_pull_int $32
+compareEqual16 .macro 
+        #stack_pull_int $34
+        #stack_pull_int $32
 
         clc
         ldx #0
@@ -130,39 +130,39 @@
 
         ldx #0
         stx $35
-        +stack_push_var $34
-}
+        #stack_push_var $34
+.endm
 
-!macro compareEqual8 {
-        +stack_pull_int $34
-        +stack_pull_int $32
+compareEqual8 .macro
+        #stack_pull_int $34
+        #stack_pull_int $32
 
         ldx #0
         lda $32
         cmp $34
-        bne ++
+        bne +
         ldx #1
-++
++
         stx $34
-        +stack_push_var $34
-}
+        #stack_push_var $34
+.endm
 
-!macro inc_var8 .variable {
-        inc .variable
-}
+inc_var8 .macro variable 
+        inc \variable
+.endm
 
-!macro init_var8 .variable, value  {
-        lda #<value
-        sta .variable
-}
+init_var8 .macro  variable, value  
+        lda #<\value
+        sta \variable
+.endm
 
-!macro shl {
+shift_left .macro 
 
-    +stack_pull_int_x
-    +stack_pull_int_a
+    #stack_pull_int_x
+    #stack_pull_int_a
     
 -   asl
     dex
     bne -
-    +stack_push_int_a
-}
+    #stack_push_int_a
+.endm

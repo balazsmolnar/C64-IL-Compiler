@@ -1,10 +1,10 @@
 heapPointer = $fb
 tmpPointer = $25
 
-!macro initHeap .heap {
-  lda #<heap
+initHeap .macro heap 
+  lda #<\heap
   sta heapPointer
-  lda #>heap
+  lda #>\heap
   sta heapPointer+1
   ldx #0
   lda #0
@@ -14,63 +14,63 @@ tmpPointer = $25
   sta objTableHigh,x
   inx
   bne -
-}
+.endm
 
 ;
 ; Creates a new object on the heap
 ; Inputs:
-; .size: Size of the object on the heap
-; .referenceFields: Number of .fields references to other objects (always the first fields)
+; size: Size of the object on the heap
+; referenceFields: Number of fields references to other objects (always the first fields)
 ; Output:
 ; Newly created object id on the stack
 ;
-!macro newObj .size, .referenceFields {
+newObj .macro size, referenceFields 
 
-  lda #.size
-  ldy #.referenceFields
+  lda #\size
+  ldy #\referenceFields
 
-  jsr newObj
+  jsr newObjL
 
-  +stack_push_int_a
-}
+  #stack_push_int_a
+.endm
 
-!macro newArr {
+newArr .macro  
 
-  +stack_pull_int_a  ; size
+  #stack_pull_int_a  ; size
   tay                ; reference fields
-  jsr newObj
+  jsr newObjL
 
-  +stack_push_int_a
-}
+  #stack_push_int_a
+.endm
 
-!macro stfld .pos {
-  +stack_pull_int $fd
-  +stack_pull_int_x
+stfld .macro  pos 
+  #stack_pull_int $fd
+  #stack_pull_int_x
 
   lda objTableLow,x
   sta tmpPointer
   lda objTableHigh,x
   sta tmpPointer+1
 
-  ldy #.pos
+  ldy #\pos
   lda $fd
   sta (tmpPointer),y 
-}
+.endm
 
-!macro stsfld .address {
+stsfld .macro address 
 
-  ldx .address
+  ldx \address
   dec objTableRootCount, x
 
-  +stack_pull_int_x
+  #stack_pull_int_x
   inc objTableRootCount, x
-  stx .address
-}
+  stx \address
+.endm
 
-!macro stelemRef {
-  +stack_pull_int $fd   ; value
-  +stack_pull_int_y     ; index
-  +stack_pull_int_x     ; object refernce to array
+stelemRef .macro  
+  #stack_pull_int $fd   ; value
+  #stack_pull_int_y     ; index
+  #stack_pull_int_x     ; object refernce to array
 
   lda objTableLow,x
   sta tmpPointer
@@ -79,10 +79,10 @@ tmpPointer = $25
 
   lda $fd
   sta (tmpPointer),y 
-}
+.endm
 
-!macro ldfld .pos {
-  +stack_pull_int $fd
+ldfld .macro pos 
+  #stack_pull_int $fd
 
   ldx $fd
   lda objTableLow,x
@@ -90,15 +90,15 @@ tmpPointer = $25
   lda objTableHigh,x
   sta tmpPointer+1
 
-  ldy #.pos
+  ldy #\pos
   lda (tmpPointer),y
 
   pha
-}
+.endm
 
-!macro ldelemRef  {
-  +stack_pull_int_y
-  +stack_pull_int_x
+ldelemRef .macro   
+  #stack_pull_int_y
+  #stack_pull_int_x
 
   lda objTableLow,x
   sta tmpPointer
@@ -107,11 +107,11 @@ tmpPointer = $25
 
   lda (tmpPointer),y
 
-  +stack_push_int_a
-}
+  #stack_push_int_a
+.endm
 
-!macro ldlen  {
-  +stack_pull_int_x
+ldlen .macro  
+  #stack_pull_int_x
   lda objTableSize,x
-  +stack_push_int_a
-}
+  #stack_push_int_a
+.endm

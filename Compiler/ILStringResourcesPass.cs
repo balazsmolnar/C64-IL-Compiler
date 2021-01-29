@@ -7,7 +7,7 @@ namespace Compiler
             foreach (var stringResource in context.StringValues)
             {
 
-                string outputLine = $".string_{stringResource.Key} !pet \"{stringResource.Value}\",0";
+                string outputLine = $"string_{stringResource.Key} .text \"{stringResource.Value}\",0";
                 context.GlobalOutputFile.WriteLine(outputLine);
             }
         }

@@ -1,40 +1,40 @@
-!src ".\\asm\\helper\\loader.asm"
-!src ".\\asm\\helper\\stack.asm"
-!src ".\\asm\\helper\\heap.asm"
-!src ".\\asm\\helper\\arithmetic.asm"
-!src ".\\asm\\helper\\branch.asm"
+.include "./helper/loader.asm"
+.include "./helper/stack.asm"
+.include "./helper/heap.asm"
+.include "./helper/arithmetic.asm"
+.include "./helper/branch.asm"
 
-!src ".\\asm\\helper\\8bit.asm"
+.include "./helper/8bit.asm"
 
-+start_at $1000
-+initHeap heap
+#start_at $1000
+#initHeap heap
 
 ;+stack_init .stack
 
 jsr Program_Main
 rts
 
-!src ".\\asm\\system.asm"
-!src ".\\asm\\GC.asm"
-!src ".\\asm\\helper\\object.asm"
-!src ".\\asm\\C64.asm"
+.include "./system.asm"
+.include "./GC.asm"
+.include "./helper/object.asm"
+.include "./C64.asm"
 
-!src ".\\asm\\spritedata.asm"
+.include "./spritedata.asm"
 
-!src ".\\asm\\generated\\generated.asm"
+.include "./generated/generated.asm"
 
 
 
 objTableLow
-!fill 256, 0
+.fill 256, 0
 objTableHigh
-!fill 256, 0
+.fill 256, 0
 objTableSize
-!fill 256, 0
+.fill 256, 0
 objTableReferences
-!fill 256, 0
+.fill 256, 0
 objTableRootCount
-!fill 256, 0
+.fill 256, 0
 
 heap
 

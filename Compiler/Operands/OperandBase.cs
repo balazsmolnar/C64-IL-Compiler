@@ -32,7 +32,7 @@ namespace Compiler.Ops
 
     class OpLdstr : OpBase
     {
-        public OpLdstr() : base(4, "+stack_push_pointer")
+        public OpLdstr() : base(4, "#stack_push_pointer")
         {
         }
 
@@ -40,13 +40,13 @@ namespace Compiler.Ops
         {
             if (!context.CompilerContext.StringValues.ContainsKey(parameter))
                 context.CompilerContext.StringValues.Add(parameter, context.CompilerContext.Assembly.ManifestModule.ResolveString(parameter));
-            return $".string_{parameter}";
+            return $"string_{parameter}";
         }
     }
 
     class OpLdftn : OpBase
     {
-        public OpLdftn() : base(4, "+stack_push_pointer")
+        public OpLdftn() : base(4, "#stack_push_pointer")
         {
         }
 
@@ -70,7 +70,7 @@ namespace Compiler.Ops
 
     class OpNewObj : OpBase
     {
-        public OpNewObj() : base(4, "+newObj")
+        public OpNewObj() : base(4, "#newObj")
         {
         }
 
@@ -101,7 +101,7 @@ namespace Compiler.Ops
 
     class OpNewArr : OpBase
     {
-        public OpNewArr() : base(4, "+newArr")
+        public OpNewArr() : base(4, "#newArr")
         {
         }
 
@@ -113,7 +113,7 @@ namespace Compiler.Ops
 
     class OpStfld : OpBase
     {
-        public OpStfld() : base(4, "+stfld")
+        public OpStfld() : base(4, "#stfld")
         {
         }
 
@@ -126,14 +126,14 @@ namespace Compiler.Ops
 
     class OpStElem_ref : OpBase
     {
-        public OpStElem_ref() : base(0, "+stelemRef")
+        public OpStElem_ref() : base(0, "#stelemRef")
         {
         }
     }
 
     class OpLdfld : OpBase
     {
-        public OpLdfld() : base(4, "+ldfld")
+        public OpLdfld() : base(4, "#ldfld")
         {
         }
 
@@ -147,7 +147,7 @@ namespace Compiler.Ops
 
     class OpDup : OpBase
     {
-        public OpDup() : base(0, "+stack_duplicate")
+        public OpDup() : base(0, "#stack_duplicate")
         {
 
         }
@@ -155,7 +155,7 @@ namespace Compiler.Ops
 
     class OpPushBase : OpBase
     {
-        public OpPushBase(int parameterSize) : base(parameterSize, "+stack_push_int")
+        public OpPushBase(int parameterSize) : base(parameterSize, "#stack_push_int")
         {
 
         }
@@ -212,27 +212,27 @@ namespace Compiler.Ops
     class OpLdloc : OpPushBase
     {
         public int VarIndex;
-        public OpLdloc(int varIndex) : base(0, "+stack_push_var")
+        public OpLdloc(int varIndex) : base(0, "#stack_push_var")
         {
             VarIndex = varIndex;
         }
 
-        public override object ConvertParameter(CompilerMethodContext context, int parameter) => $".{context.Method.GetLabel()}_var{VarIndex}";
+        public override object ConvertParameter(CompilerMethodContext context, int parameter) => $"{context.Method.GetLabel()}_var{VarIndex}";
     }
 
     class OpLdloc_s : OpPushBase
     {
-        public OpLdloc_s() : base(1, "+stack_push_var")
+        public OpLdloc_s() : base(1, "#stack_push_var")
         {
         }
 
-        public override object ConvertParameter(CompilerMethodContext context, int parameter) => $".{context.Method.GetLabel()}_var{parameter}";
+        public override object ConvertParameter(CompilerMethodContext context, int parameter) => $"{context.Method.GetLabel()}_var{parameter}";
     }
 
     class OpLdarg : OpPushBase
     {
         private int _argIndex;
-        public OpLdarg(int argIndex) : base(0, "+stack_push_var")
+        public OpLdarg(int argIndex) : base(0, "#stack_push_var")
         {
             _argIndex = argIndex;
         }
@@ -247,20 +247,20 @@ namespace Compiler.Ops
                 paramName = context.Method.GetParameters()[_argIndex - 1].Name;
             else
                 paramName = context.Method.GetParameters()[_argIndex].Name;
-            return $".{context.Method.GetLabel()}_{paramName}";
+            return $"{context.Method.GetLabel()}_{paramName}";
         }
     }
 
     class OpLdsld : OpPushBase
     {
-        public OpLdsld() : base(4, "+stack_push_var")
+        public OpLdsld() : base(4, "#stack_push_var")
         {
         }
 
         public override object ConvertParameter(CompilerMethodContext context, int parameter)
         {
             var field = context.Method.DeclaringType.Module.ResolveField(parameter);
-            return $".{context.Method.DeclaringType.Name}_field_{field.Name}";
+            return $"{context.Method.DeclaringType.Name}_field_{field.Name}";
         }
     }
 
@@ -275,7 +275,7 @@ namespace Compiler.Ops
 
     class OpPullBase : OpBase
     {
-        public OpPullBase(int parameterSize) : base(parameterSize, "+stack_pull_int")
+        public OpPullBase(int parameterSize) : base(parameterSize, "#stack_pull_int")
         {
 
         }
@@ -284,7 +284,7 @@ namespace Compiler.Ops
     class OpStloc : OpBase
     {
         public int VarIndex { get; }
-        public OpStloc(int varIndex) : base(0, "+stack_pull_int_ref")
+        public OpStloc(int varIndex) : base(0, "#stack_pull_int_ref")
         {
             VarIndex = varIndex;
         }
@@ -295,19 +295,19 @@ namespace Compiler.Ops
             var body = context.Method.GetMethodBody();
             var variables = body.LocalVariables;
             var isRef = variables[VarIndex].LocalType.IsReferenceCounted() ? "1" : "0";
-            return $".{context.Method.GetLabel()}_var{VarIndex}, {isRef}";
+            return $"{context.Method.GetLabel()}_var{VarIndex}, {isRef}";
         }
     }
 
     class OpStsfld : OpBase
     {
-        public OpStsfld() : base(4, "+stack_pull_int_ref")
+        public OpStsfld() : base(4, "#stack_pull_int_ref")
         {
         }
         public override object ConvertParameter(CompilerMethodContext context, int parameter)
         {
             var field = context.Method.DeclaringType.Module.ResolveField(parameter);
-            var address = $".{context.Method.DeclaringType.Name}_field_{field.Name}";
+            var address = $"{context.Method.DeclaringType.Name}_field_{field.Name}";
             string isRef = field.FieldType.IsReferenceCounted() ? "1" : "0";
             return $"{address}, {isRef}";
         }
@@ -315,7 +315,7 @@ namespace Compiler.Ops
 
     class OpStloc_s : OpBase
     {
-        public OpStloc_s() : base(1, "+stack_pull_int_ref")
+        public OpStloc_s() : base(1, "#stack_pull_int_ref")
         {
         }
 
@@ -324,7 +324,7 @@ namespace Compiler.Ops
             var body = context.Method.GetMethodBody();
             var variables = body.LocalVariables;
             var isRef = variables[parameter].LocalType.IsReferenceCounted() ? "1" : "0";
-            return $".{context.Method.GetLabel()}_var{parameter}, {isRef}";
+            return $"{context.Method.GetLabel()}_var{parameter}, {isRef}";
         }
 
     }
@@ -363,35 +363,35 @@ namespace Compiler.Ops
 
     class OpRet : OpBase
     {
-        public OpRet() : base(0, "+stack_return_to_saved_address")
+        public OpRet() : base(0, "#stack_return_to_saved_address")
         {
         }
 
-        public override object ConvertParameter(CompilerMethodContext context, int parameter) => $".{context.Method.GetLabel()}_ReturnAddress";
+        public override object ConvertParameter(CompilerMethodContext context, int parameter) => $"{context.Method.GetLabel()}_ReturnAddress";
     }
 
     class OpIncVar : OpBase
     {
         private int _varIndex;
-        public OpIncVar(int varIndex) : base(0, "+inc_var")
+        public OpIncVar(int varIndex) : base(0, "#inc_var")
         {
             _varIndex = varIndex;
         }
 
-        public override object ConvertParameter(CompilerMethodContext context, int parameter) => $".{context.Method.GetLabel()}_var{_varIndex}";
+        public override object ConvertParameter(CompilerMethodContext context, int parameter) => $"{context.Method.GetLabel()}_var{_varIndex}";
     }
 
     class OpInitVar : OpBase
     {
         private int _varIndex;
         private int _value;
-        public OpInitVar(int varIndex, int value) : base(0, "+init_var")
+        public OpInitVar(int varIndex, int value) : base(0, "#init_var")
         {
             _varIndex = varIndex;
             _value = value;
         }
 
-        public override object ConvertParameter(CompilerMethodContext context, int parameter) => $".{context.Method.GetLabel()}_var{_varIndex}, {_value}";
+        public override object ConvertParameter(CompilerMethodContext context, int parameter) => $"{context.Method.GetLabel()}_var{_varIndex}, {_value}";
     }
 
     class OpBranchIfVarLess : OpBase
@@ -399,41 +399,41 @@ namespace Compiler.Ops
         private int _varIndex;
         private int _value;
         private string _label;
-        public OpBranchIfVarLess(int varIndex, int value, string label) : base(0, "+branch_if_var_less")
+        public OpBranchIfVarLess(int varIndex, int value, string label) : base(0, "#branch_if_var_less")
         {
             _varIndex = varIndex;
             _value = value;
             _label = label;
         }
 
-        public override object ConvertParameter(CompilerMethodContext context, int parameter) => $".{context.Method.GetLabel()}_var{_varIndex}, {_value}, {_label}";
+        public override object ConvertParameter(CompilerMethodContext context, int parameter) => $"{context.Method.GetLabel()}_var{_varIndex}, {_value}, {_label}";
     }
 
     class OpDeref : OpBase
     {
         private int _varIndex;
-        public OpDeref(int varIndex) : base(0, "+deref")
+        public OpDeref(int varIndex) : base(0, "#deref")
         {
             _varIndex = varIndex;
         }
 
         public override object ConvertParameter(CompilerMethodContext context, int parameter)
         {
-            return $".{context.Method.GetLabel()}_var{_varIndex}";
+            return $"{context.Method.GetLabel()}_var{_varIndex}";
         }
     }
 
     class OpDerefParam : OpBase
     {
         private string _parameterName;
-        public OpDerefParam(string parameterName) : base(0, "+deref")
+        public OpDerefParam(string parameterName) : base(0, "#deref")
         {
             _parameterName = parameterName;
         }
 
         public override object ConvertParameter(CompilerMethodContext context, int parameter)
         {
-            return $".{context.Method.GetLabel()}_{_parameterName}";
+            return $"{context.Method.GetLabel()}_{_parameterName}";
         }
     }
 
@@ -442,13 +442,13 @@ namespace Compiler.Ops
         private int _varIndex;
         private int _value;
         private string _label;
-        public OpBranchIfNotEqual(int varIndex, int value, string label) : base(0, "+branch_if_not_equal")
+        public OpBranchIfNotEqual(int varIndex, int value, string label) : base(0, "#branch_if_not_equal")
         {
             _varIndex = varIndex;
             _value = value;
             _label = label;
         }
 
-        public override object ConvertParameter(CompilerMethodContext context, int parameter) => $".{context.Method.GetLabel()}_var{_varIndex}, {_value}, {_label}";
+        public override object ConvertParameter(CompilerMethodContext context, int parameter) => $"{context.Method.GetLabel()}_var{_varIndex}, {_value}, {_label}";
     }
 }

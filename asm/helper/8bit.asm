@@ -1,43 +1,43 @@
-!macro stack_push_int value {
-  +stack_push_int8 value
-}
+stack_push_int .macro value 
+  #stack_push_int8 \value
+.endm
 
-!macro stack_push_var .address {
-  +stack_push_var8 .address
-}
+stack_push_var .macro address 
+  #stack_push_var8 \address
+.endm
 
-!macro stack_pull_int .address {
-  +stack_pull_int8 .address
-}
+stack_pull_int .macro address 
+  #stack_pull_int8 \address
+.endm
 
-!macro negate {
-    +negate8
-}
+negate .macro
+    #negate8
+.endm
 
-!macro compareLess {
-    +compareLess8
-}
+compareLess .macro
+    #compareLess8
+.endm
 
-!macro compareGreater {
-    +compareGreater8
-}
+compareGreater .macro
+    #compareGreater8
+.endm
 
-!macro compareEqual {
-    +compareEqual8
-}
+compareEqual .macro
+    #compareEqual8
+.endm
 
-!macro add {
-    +add8
-}
+add .macro
+    #add8
+.endm
 
-!macro sub {
-    +sub8
-}
+sub .macro
+    #sub8
+.endm
 
-!macro inc_var .variable {
-    +inc_var8 .variable
-}
+inc_var .macro variable 
+    #inc_var8 \variable
+.endm
 
-!macro init_var .variable, value {
-    +init_var8 .variable, value
-}
+init_var .macro variable, value 
+    #init_var8 \variable, \value
+.endm

@@ -145,6 +145,23 @@ namespace Compiler.Ops
         }
     }
 
+    class OpIncfld : OpBase
+    {
+        private readonly string thisVar;
+        private readonly string pos;
+
+        public OpIncfld(string thisVar, string pos) : base(0, "#incfld")
+        {
+            this.thisVar = thisVar;
+            this.pos = pos;
+        }
+
+        public override object ConvertParameter(CompilerMethodContext context, int parameter)
+        {
+            return $"{thisVar}, {pos}";
+        }
+    }
+
     class OpDup : OpBase
     {
         public OpDup() : base(0, "#stack_duplicate")

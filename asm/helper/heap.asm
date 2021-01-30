@@ -82,9 +82,7 @@ stelemRef .macro
 .endm
 
 ldfld .macro pos 
-  #stack_pull_int $fd
-
-  ldx $fd
+  #stack_pull_int_x
   lda objTableLow,x
   sta tmpPointer
   lda objTableHigh,x
@@ -94,6 +92,22 @@ ldfld .macro pos
   lda (tmpPointer),y
 
   pha
+.endm
+
+incfld .macro obj, pos 
+
+  ldx \obj
+  lda objTableLow,x
+  sta tmpPointer
+  lda objTableHigh,x
+  sta tmpPointer+1
+
+  ldy #\pos
+  lda (tmpPointer),y
+  clc
+  adc #1
+  sta (tmpPointer),y
+
 .endm
 
 ldelemRef .macro   

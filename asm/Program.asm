@@ -32,7 +32,15 @@ Program_OnInterrupt_ReturnAddress .byte 0,0
 Program_Main 
     #stack_save_return_adress Program_Main_ReturnAddress
     nop ; Nop
-    jsr GCTest_Start ; Call
+    #newObj 3, 3 ; Newobj
+    #stack_pull_int_ref Program_Main_var0, 1 ; Stloc_0
+    #stack_push_var Program_Main_var0 ; Ldloc_0
+    jsr Game_Init ; Callvirt
     nop ; Nop
+    #stack_push_var Program_Main_var0 ; Ldloc_0
+    jsr Game_Run ; Callvirt
+    nop ; Nop
+    #deref Program_Main_var0 ; Nop
     #stack_return_to_saved_address Program_Main_ReturnAddress ; Ret
 Program_Main_ReturnAddress .byte 0,0
+Program_Main_var0 .byte 0,0

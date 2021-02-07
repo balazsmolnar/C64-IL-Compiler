@@ -26,8 +26,9 @@ Game_Init
     #stack_push_int 0 ; Ldc_i4_0
     #newObj 9, 0 ; Newobj
     #stack_duplicate ; Dup
-    #stack_push_var Game_Init_this ; Ldarg_0
-    #ldfld 2 ; Ldfld
+  ; OPT   #stack_push_var Game_Init_this ; Ldarg_0
+  ; OPT   #ldfld 2 ; Ldfld
+    #pushfld Game_Init_this, 2 ; Nop
     #stack_push_int 0 ; Ldc_i4_0
     #ldelemRef ; Ldelem_ref
     jsr PlatformEnemy_set_Platform ; Callvirt
@@ -55,8 +56,9 @@ Game_Init
     #stack_push_int 1 ; Ldc_i4_1
     #newObj 9, 0 ; Newobj
     #stack_duplicate ; Dup
-    #stack_push_var Game_Init_this ; Ldarg_0
-    #ldfld 2 ; Ldfld
+  ; OPT   #stack_push_var Game_Init_this ; Ldarg_0
+  ; OPT   #ldfld 2 ; Ldfld
+    #pushfld Game_Init_this, 2 ; Nop
     #stack_push_int 2 ; Ldc_i4_2
     #ldelemRef ; Ldelem_ref
     jsr PlatformEnemy_set_Platform ; Callvirt
@@ -286,8 +288,9 @@ Game_InitPlatforms
   ; OPT   #stack_pull_int_ref Game_InitPlatforms_var0, 0 ; Stloc_0
     #init_var Game_InitPlatforms_var0, 0 ; Nop
     jmp label_Game_InitPlatforms_455 ; Br_s
-label_Game_InitPlatforms_437:    #stack_push_var Game_InitPlatforms_this ; Ldarg_0
-    #ldfld 2 ; Ldfld
+label_Game_InitPlatforms_437:  ; OPT   #stack_push_var Game_InitPlatforms_this ; Ldarg_0
+  ; OPT   #ldfld 2 ; Ldfld
+    #pushfld Game_InitPlatforms_this, 2 ; Nop
     #stack_push_var Game_InitPlatforms_var0 ; Ldloc_0
     #ldelemRef ; Ldelem_ref
     jsr Platform_Draw ; Callvirt
@@ -299,8 +302,9 @@ label_Game_InitPlatforms_437:    #stack_push_var Game_InitPlatforms_this ; Ldarg
     #inc_var Game_InitPlatforms_var0 ; Nop
 label_Game_InitPlatforms_455:    #stack_push_var Game_InitPlatforms_var0 ; Ldloc_0
     nop ;Conv_u8 ; Conv_u8
-    #stack_push_var Game_InitPlatforms_this ; Ldarg_0
-    #ldfld 2 ; Ldfld
+  ; OPT   #stack_push_var Game_InitPlatforms_this ; Ldarg_0
+  ; OPT   #ldfld 2 ; Ldfld
+    #pushfld Game_InitPlatforms_this, 2 ; Nop
     #ldlen ; Ldlen
     nop ;Conv_i4 ; Conv_i4
     nop ;Conv_i8 ; Conv_i8
@@ -383,8 +387,9 @@ Game_Step
   ; OPT   #stack_pull_int_ref Game_Step_var1, 0 ; Stloc_1
     #init_var Game_Step_var1, 0 ; Nop
     jmp label_Game_Step_23 ; Br_s
-label_Game_Step_5:    #stack_push_var Game_Step_this ; Ldarg_0
-    #ldfld 0 ; Ldfld
+label_Game_Step_5:  ; OPT   #stack_push_var Game_Step_this ; Ldarg_0
+  ; OPT   #ldfld 0 ; Ldfld
+    #pushfld Game_Step_this, 0 ; Nop
     #stack_push_var Game_Step_var1 ; Ldloc_1
     #ldelemRef ; Ldelem_ref
     jsr PlatformEnemy_Move ; Callvirt
@@ -395,8 +400,9 @@ label_Game_Step_5:    #stack_push_var Game_Step_this ; Ldarg_0
   ; OPT   #stack_pull_int_ref Game_Step_var1, 0 ; Stloc_1
     #inc_var Game_Step_var1 ; Nop
 label_Game_Step_23:    #stack_push_var Game_Step_var1 ; Ldloc_1
-    #stack_push_var Game_Step_this ; Ldarg_0
-    #ldfld 0 ; Ldfld
+  ; OPT   #stack_push_var Game_Step_this ; Ldarg_0
+  ; OPT   #ldfld 0 ; Ldfld
+    #pushfld Game_Step_this, 0 ; Nop
     #ldlen ; Ldlen
     nop ;Conv_i4 ; Conv_i4
     #compareLess ; Clt
@@ -411,15 +417,18 @@ label_Game_Step_23:    #stack_push_var Game_Step_var1 ; Ldloc_1
     #init_var Game_Step_var3, 0 ; Nop
     jmp label_Game_Step_105 ; Br_s
 label_Game_Step_48:    nop ; Nop
-    #stack_push_var Game_Step_this ; Ldarg_0
-    #ldfld 2 ; Ldfld
+  ; OPT   #stack_push_var Game_Step_this ; Ldarg_0
+  ; OPT   #ldfld 2 ; Ldfld
+    #pushfld Game_Step_this, 2 ; Nop
     #stack_push_var Game_Step_var3 ; Ldloc_3
     #ldelemRef ; Ldelem_ref
-    #stack_push_var Game_Step_this ; Ldarg_0
-    #ldfld 1 ; Ldfld
+  ; OPT   #stack_push_var Game_Step_this ; Ldarg_0
+  ; OPT   #ldfld 1 ; Ldfld
+    #pushfld Game_Step_this, 1 ; Nop
     jsr Player_get_X ; Callvirt
-    #stack_push_var Game_Step_this ; Ldarg_0
-    #ldfld 1 ; Ldfld
+  ; OPT   #stack_push_var Game_Step_this ; Ldarg_0
+  ; OPT   #ldfld 1 ; Ldfld
+    #pushfld Game_Step_this, 1 ; Nop
     jsr Player_get_Y ; Callvirt
     jsr Platform_DistanceToPlatform ; Callvirt
     #stack_pull_int_ref Game_Step_var4, 0 ; Stloc_s
@@ -438,16 +447,18 @@ label_Game_Step_100:    nop ; Nop
   ; OPT   #stack_pull_int_ref Game_Step_var3, 0 ; Stloc_3
     #inc_var Game_Step_var3 ; Nop
 label_Game_Step_105:    #stack_push_var Game_Step_var3 ; Ldloc_3
-    #stack_push_var Game_Step_this ; Ldarg_0
-    #ldfld 2 ; Ldfld
+  ; OPT   #stack_push_var Game_Step_this ; Ldarg_0
+  ; OPT   #ldfld 2 ; Ldfld
+    #pushfld Game_Step_this, 2 ; Nop
     #ldlen ; Ldlen
     nop ;Conv_i4 ; Conv_i4
     #compareLess ; Clt
     #stack_pull_int_ref Game_Step_var6, 0 ; Stloc_s
     #stack_push_var Game_Step_var6 ; Ldloc_s
     #branch_true label_Game_Step_48 ; Brtrue_s
-    #stack_push_var Game_Step_this ; Ldarg_0
-    #ldfld 1 ; Ldfld
+  ; OPT   #stack_push_var Game_Step_this ; Ldarg_0
+  ; OPT   #ldfld 1 ; Ldfld
+    #pushfld Game_Step_this, 1 ; Nop
     #stack_push_var Game_Step_var0 ; Ldloc_0
     jsr Player_Move ; Callvirt
     nop ; Nop

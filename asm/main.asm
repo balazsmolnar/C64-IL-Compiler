@@ -21,6 +21,7 @@ rts
 
 .include "./spritedata.asm"
 
+* = $3000
 .include "./generated/generated.asm"
 
 
@@ -36,6 +37,7 @@ objTableReferences
 objTableRootCount
 .fill 256, 0
 
+localsStack
+.fill 256, 0 
 heap
 
-;.stack 

@@ -118,3 +118,4 @@ deref .macro address
     lda #0
     sta \address
 .endm
+

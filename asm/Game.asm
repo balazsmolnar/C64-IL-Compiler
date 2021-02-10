@@ -5,8 +5,8 @@
 ; METHOD: Init
 ;----------------------------------------
 Game_Init 
-    #stack_save_return_adress Game_Init_ReturnAddress
-    #stack_pull_int Game_Init_this
+    #locals_init_locals 0
+    #locals_pull_param_8 0
     nop ; Nop
     jsr Game_ClearScreen ; Call
     nop ; Nop
@@ -16,19 +16,18 @@ Game_Init
     #stack_push_int 0 ; Ldc_i4_0
     jsr C64_SetBackgroundColor ; Call
     nop ; Nop
-    #stack_push_var Game_Init_this ; Ldarg_0
+    #locals_push_value_8 1 ; Ldarg_0
     jsr Game_InitPlatforms ; Call
     nop ; Nop
-    #stack_push_var Game_Init_this ; Ldarg_0
+    #locals_push_value_8 1 ; Ldarg_0
     #stack_push_int 2 ; Ldc_i4_2
     #newArr  ; Newarr
     #stack_duplicate ; Dup
     #stack_push_int 0 ; Ldc_i4_0
     #newObj 9, 0 ; Newobj
     #stack_duplicate ; Dup
-  ; OPT   #stack_push_var Game_Init_this ; Ldarg_0
-  ; OPT   #ldfld 2 ; Ldfld
-    #pushfld Game_Init_this, 2 ; Nop
+    #locals_push_value_8 1 ; Ldarg_0
+    #ldfld 2 ; Ldfld
     #stack_push_int 0 ; Ldc_i4_0
     #ldelemRef ; Ldelem_ref
     jsr PlatformEnemy_set_Platform ; Callvirt
@@ -56,9 +55,8 @@ Game_Init
     #stack_push_int 1 ; Ldc_i4_1
     #newObj 9, 0 ; Newobj
     #stack_duplicate ; Dup
-  ; OPT   #stack_push_var Game_Init_this ; Ldarg_0
-  ; OPT   #ldfld 2 ; Ldfld
-    #pushfld Game_Init_this, 2 ; Nop
+    #locals_push_value_8 1 ; Ldarg_0
+    #ldfld 2 ; Ldfld
     #stack_push_int 2 ; Ldc_i4_2
     #ldelemRef ; Ldelem_ref
     jsr PlatformEnemy_set_Platform ; Callvirt
@@ -83,7 +81,7 @@ Game_Init
     nop ; Nop
     #stelemRef ; Stelem_ref
     #stfld 0 ; Stfld
-    #stack_push_var Game_Init_this ; Ldarg_0
+    #locals_push_value_8 1 ; Ldarg_0
     #newObj 6, 0 ; Newobj
     #stack_duplicate ; Dup
     jsr C64_get_Sprites ; Call
@@ -91,7 +89,7 @@ Game_Init
     jsr Player_set_Sprite ; Callvirt
     nop ; Nop
     #stfld 1 ; Stfld
-    #stack_return_to_saved_address Game_Init_ReturnAddress ; Ret
+    #locals_method_exit 3 ; Ret
 Game_Init_this .byte 0, 0
 Game_Init_ReturnAddress .byte 0,0
 
@@ -101,10 +99,10 @@ Game_Init_ReturnAddress .byte 0,0
 ; METHOD: InitPlatforms
 ;----------------------------------------
 Game_InitPlatforms 
-    #stack_save_return_adress Game_InitPlatforms_ReturnAddress
-    #stack_pull_int Game_InitPlatforms_this
+    #locals_init_locals 2
+    #locals_pull_param_8 0
     nop ; Nop
-    #stack_push_var Game_InitPlatforms_this ; Ldarg_0
+    #locals_push_value_8 1 ; Ldarg_0
     #stack_push_int 11 ; Ldc_i4_s
     #newArr  ; Newarr
     #stack_duplicate ; Dup
@@ -284,35 +282,31 @@ Game_InitPlatforms
     #stfld 5 ; Stfld
     #stelemRef ; Stelem_ref
     #stfld 2 ; Stfld
-  ; OPT   #stack_push_int 0 ; Ldc_i4_0
-  ; OPT   #stack_pull_int_ref Game_InitPlatforms_var0, 0 ; Stloc_0
-    #init_var Game_InitPlatforms_var0, 0 ; Nop
+    #stack_push_int 0 ; Ldc_i4_0
+    #locals_pull_value_8 2, 0 ; Stloc_0
     jmp label_Game_InitPlatforms_455 ; Br_s
-label_Game_InitPlatforms_437:  ; OPT   #stack_push_var Game_InitPlatforms_this ; Ldarg_0
-  ; OPT   #ldfld 2 ; Ldfld
-    #pushfld Game_InitPlatforms_this, 2 ; Nop
-    #stack_push_var Game_InitPlatforms_var0 ; Ldloc_0
+label_Game_InitPlatforms_437:    #locals_push_value_8 1 ; Ldarg_0
+    #ldfld 2 ; Ldfld
+    #locals_push_value_8 2 ; Ldloc_0
     #ldelemRef ; Ldelem_ref
     jsr Platform_Draw ; Callvirt
     nop ; Nop
-  ; OPT   #stack_push_var Game_InitPlatforms_var0 ; Ldloc_0
-  ; OPT   #stack_push_int 1 ; Ldc_i4_1
-  ; OPT   #add ; Add
-  ; OPT   #stack_pull_int_ref Game_InitPlatforms_var0, 0 ; Stloc_0
-    #inc_var Game_InitPlatforms_var0 ; Nop
-label_Game_InitPlatforms_455:    #stack_push_var Game_InitPlatforms_var0 ; Ldloc_0
+    #locals_push_value_8 2 ; Ldloc_0
+    #stack_push_int 1 ; Ldc_i4_1
+    #add ; Add
+    #locals_pull_value_8 2, 0 ; Stloc_0
+label_Game_InitPlatforms_455:    #locals_push_value_8 2 ; Ldloc_0
     nop ;Conv_u8 ; Conv_u8
-  ; OPT   #stack_push_var Game_InitPlatforms_this ; Ldarg_0
-  ; OPT   #ldfld 2 ; Ldfld
-    #pushfld Game_InitPlatforms_this, 2 ; Nop
+    #locals_push_value_8 1 ; Ldarg_0
+    #ldfld 2 ; Ldfld
     #ldlen ; Ldlen
     nop ;Conv_i4 ; Conv_i4
     nop ;Conv_i8 ; Conv_i8
     #compareLess ; Clt
-    #stack_pull_int_ref Game_InitPlatforms_var1, 0 ; Stloc_1
-    #stack_push_var Game_InitPlatforms_var1 ; Ldloc_1
+    #locals_pull_value_8 3, 0 ; Stloc_1
+    #locals_push_value_8 3 ; Ldloc_1
     #branch_true label_Game_InitPlatforms_437 ; Brtrue_s
-    #stack_return_to_saved_address Game_InitPlatforms_ReturnAddress ; Ret
+    #locals_method_exit 5 ; Ret
 Game_InitPlatforms_this .byte 0, 0
 Game_InitPlatforms_ReturnAddress .byte 0,0
 Game_InitPlatforms_var0 .byte 0,0
@@ -324,47 +318,41 @@ Game_InitPlatforms_var1 .byte 0,0
 ; METHOD: Run
 ;----------------------------------------
 Game_Run 
-    #stack_save_return_adress Game_Run_ReturnAddress
-    #stack_pull_int Game_Run_this
+    #locals_init_locals 4
+    #locals_pull_param_8 0
     nop ; Nop
     jmp label_Game_Run_47 ; Br_s
 label_Game_Run_3:    nop ; Nop
-    #stack_push_var Game_Run_this ; Ldarg_0
+    #locals_push_value_8 1 ; Ldarg_0
     jsr Game_Step ; Call
     nop ; Nop
-  ; OPT   #stack_push_int 0 ; Ldc_i4_0
-  ; OPT   #stack_pull_int_ref Game_Run_var0, 0 ; Stloc_0
-    #init_var Game_Run_var0, 0 ; Nop
+    #stack_push_int 0 ; Ldc_i4_0
+    #locals_pull_value_8 2, 0 ; Stloc_0
     jmp label_Game_Run_37 ; Br_s
-label_Game_Run_15:  ; OPT   #stack_push_int 0 ; Ldc_i4_0
-  ; OPT   #stack_pull_int_ref Game_Run_var1, 0 ; Stloc_1
-    #init_var Game_Run_var1, 0 ; Nop
+label_Game_Run_15:    #stack_push_int 0 ; Ldc_i4_0
+    #locals_pull_value_8 3, 0 ; Stloc_1
     jmp label_Game_Run_24 ; Br_s
 label_Game_Run_19:    nop ; Nop
-  ; OPT   #stack_push_var Game_Run_var1 ; Ldloc_1
-  ; OPT   #stack_push_int 1 ; Ldc_i4_1
-  ; OPT   #add ; Add
-  ; OPT   #stack_pull_int_ref Game_Run_var1, 0 ; Stloc_1
-    #inc_var Game_Run_var1 ; Nop
-label_Game_Run_24:  ; OPT   #stack_push_var Game_Run_var1 ; Ldloc_1
-  ; OPT   #stack_push_int 15 ; Ldc_i4_s
-  ; OPT   #compareLess ; Clt_un
-  ; OPT   #stack_pull_int_ref Game_Run_var2, 0 ; Stloc_2
-  ; OPT   #stack_push_var Game_Run_var2 ; Ldloc_2
-  ; OPT   #branch_true label_Game_Run_19 ; Brtrue_s
-    #branch_if_var_less Game_Run_var1, 15, label_Game_Run_19 ; Nop
-  ; OPT   #stack_push_var Game_Run_var0 ; Ldloc_0
-  ; OPT   #stack_push_int 1 ; Ldc_i4_1
-  ; OPT   #add ; Add
-  ; OPT   #stack_pull_int_ref Game_Run_var0, 0 ; Stloc_0
-    #inc_var Game_Run_var0 ; Nop
-label_Game_Run_37:  ; OPT   #stack_push_var Game_Run_var0 ; Ldloc_0
-  ; OPT   #stack_push_int 100 ; Ldc_i4_s
-  ; OPT   #compareLess ; Clt_un
-  ; OPT   #stack_pull_int_ref Game_Run_var3, 0 ; Stloc_3
-  ; OPT   #stack_push_var Game_Run_var3 ; Ldloc_3
-  ; OPT   #branch_true label_Game_Run_15 ; Brtrue_s
-    #branch_if_var_less Game_Run_var0, 100, label_Game_Run_15 ; Nop
+    #locals_push_value_8 3 ; Ldloc_1
+    #stack_push_int 1 ; Ldc_i4_1
+    #add ; Add
+    #locals_pull_value_8 3, 0 ; Stloc_1
+label_Game_Run_24:    #locals_push_value_8 3 ; Ldloc_1
+    #stack_push_int 15 ; Ldc_i4_s
+    #compareLess ; Clt_un
+    #locals_pull_value_8 4, 0 ; Stloc_2
+    #locals_push_value_8 4 ; Ldloc_2
+    #branch_true label_Game_Run_19 ; Brtrue_s
+    #locals_push_value_8 2 ; Ldloc_0
+    #stack_push_int 1 ; Ldc_i4_1
+    #add ; Add
+    #locals_pull_value_8 2, 0 ; Stloc_0
+label_Game_Run_37:    #locals_push_value_8 2 ; Ldloc_0
+    #stack_push_int 100 ; Ldc_i4_s
+    #compareLess ; Clt_un
+    #locals_pull_value_8 5, 0 ; Stloc_3
+    #locals_push_value_8 5 ; Ldloc_3
+    #branch_true label_Game_Run_15 ; Brtrue_s
     nop ; Nop
 label_Game_Run_47:    jmp label_Game_Run_3 ; Br_s
 Game_Run_this .byte 0, 0
@@ -380,89 +368,77 @@ Game_Run_var3 .byte 0,0
 ; METHOD: Step
 ;----------------------------------------
 Game_Step 
-    #stack_save_return_adress Game_Step_ReturnAddress
-    #stack_pull_int Game_Step_this
+    #locals_init_locals 7
+    #locals_pull_param_8 0
     nop ; Nop
-  ; OPT   #stack_push_int 0 ; Ldc_i4_0
-  ; OPT   #stack_pull_int_ref Game_Step_var1, 0 ; Stloc_1
-    #init_var Game_Step_var1, 0 ; Nop
+    #stack_push_int 0 ; Ldc_i4_0
+    #locals_pull_value_8 3, 0 ; Stloc_1
     jmp label_Game_Step_23 ; Br_s
-label_Game_Step_5:  ; OPT   #stack_push_var Game_Step_this ; Ldarg_0
-  ; OPT   #ldfld 0 ; Ldfld
-    #pushfld Game_Step_this, 0 ; Nop
-    #stack_push_var Game_Step_var1 ; Ldloc_1
+label_Game_Step_5:    #locals_push_value_8 1 ; Ldarg_0
+    #ldfld 0 ; Ldfld
+    #locals_push_value_8 3 ; Ldloc_1
     #ldelemRef ; Ldelem_ref
     jsr PlatformEnemy_Move ; Callvirt
     nop ; Nop
-  ; OPT   #stack_push_var Game_Step_var1 ; Ldloc_1
-  ; OPT   #stack_push_int 1 ; Ldc_i4_1
-  ; OPT   #add ; Add
-  ; OPT   #stack_pull_int_ref Game_Step_var1, 0 ; Stloc_1
-    #inc_var Game_Step_var1 ; Nop
-label_Game_Step_23:    #stack_push_var Game_Step_var1 ; Ldloc_1
-  ; OPT   #stack_push_var Game_Step_this ; Ldarg_0
-  ; OPT   #ldfld 0 ; Ldfld
-    #pushfld Game_Step_this, 0 ; Nop
+    #locals_push_value_8 3 ; Ldloc_1
+    #stack_push_int 1 ; Ldc_i4_1
+    #add ; Add
+    #locals_pull_value_8 3, 0 ; Stloc_1
+label_Game_Step_23:    #locals_push_value_8 3 ; Ldloc_1
+    #locals_push_value_8 1 ; Ldarg_0
+    #ldfld 0 ; Ldfld
     #ldlen ; Ldlen
     nop ;Conv_i4 ; Conv_i4
     #compareLess ; Clt
-    #stack_pull_int_ref Game_Step_var2, 0 ; Stloc_2
-    #stack_push_var Game_Step_var2 ; Ldloc_2
+    #locals_pull_value_8 4, 0 ; Stloc_2
+    #locals_push_value_8 4 ; Ldloc_2
     #branch_true label_Game_Step_5 ; Brtrue_s
-  ; OPT   #stack_push_int 255 ; Ldc_i4
-  ; OPT   #stack_pull_int_ref Game_Step_var0, 0 ; Stloc_0
-    #init_var Game_Step_var0, 255 ; Nop
-  ; OPT   #stack_push_int 0 ; Ldc_i4_0
-  ; OPT   #stack_pull_int_ref Game_Step_var3, 0 ; Stloc_3
-    #init_var Game_Step_var3, 0 ; Nop
+    #stack_push_int 255 ; Ldc_i4
+    #locals_pull_value_8 2, 0 ; Stloc_0
+    #stack_push_int 0 ; Ldc_i4_0
+    #locals_pull_value_8 5, 0 ; Stloc_3
     jmp label_Game_Step_105 ; Br_s
 label_Game_Step_48:    nop ; Nop
-  ; OPT   #stack_push_var Game_Step_this ; Ldarg_0
-  ; OPT   #ldfld 2 ; Ldfld
-    #pushfld Game_Step_this, 2 ; Nop
-    #stack_push_var Game_Step_var3 ; Ldloc_3
+    #locals_push_value_8 1 ; Ldarg_0
+    #ldfld 2 ; Ldfld
+    #locals_push_value_8 5 ; Ldloc_3
     #ldelemRef ; Ldelem_ref
-  ; OPT   #stack_push_var Game_Step_this ; Ldarg_0
-  ; OPT   #ldfld 1 ; Ldfld
-    #pushfld Game_Step_this, 1 ; Nop
+    #locals_push_value_8 1 ; Ldarg_0
+    #ldfld 1 ; Ldfld
     jsr Player_get_X ; Callvirt
-  ; OPT   #stack_push_var Game_Step_this ; Ldarg_0
-  ; OPT   #ldfld 1 ; Ldfld
-    #pushfld Game_Step_this, 1 ; Nop
+    #locals_push_value_8 1 ; Ldarg_0
+    #ldfld 1 ; Ldfld
     jsr Player_get_Y ; Callvirt
     jsr Platform_DistanceToPlatform ; Callvirt
-    #stack_pull_int_ref Game_Step_var4, 0 ; Stloc_s
-    #stack_push_var Game_Step_var4 ; Ldloc_s
-    #stack_push_var Game_Step_var0 ; Ldloc_0
+    #locals_pull_value_8 6, 0 ; Stloc_s
+    #locals_push_value_8 6 ; Ldloc_s
+    #locals_push_value_8 2 ; Ldloc_0
     #compareLess ; Clt_un
-    #stack_pull_int_ref Game_Step_var5, 0 ; Stloc_s
-    #stack_push_var Game_Step_var5 ; Ldloc_s
+    #locals_pull_value_8 7, 0 ; Stloc_s
+    #locals_push_value_8 7 ; Ldloc_s
     #branch_false label_Game_Step_100 ; Brfalse_s
-    #stack_push_var Game_Step_var4 ; Ldloc_s
-    #stack_pull_int_ref Game_Step_var0, 0 ; Stloc_0
+    #locals_push_value_8 6 ; Ldloc_s
+    #locals_pull_value_8 2, 0 ; Stloc_0
 label_Game_Step_100:    nop ; Nop
-  ; OPT   #stack_push_var Game_Step_var3 ; Ldloc_3
-  ; OPT   #stack_push_int 1 ; Ldc_i4_1
-  ; OPT   #add ; Add
-  ; OPT   #stack_pull_int_ref Game_Step_var3, 0 ; Stloc_3
-    #inc_var Game_Step_var3 ; Nop
-label_Game_Step_105:    #stack_push_var Game_Step_var3 ; Ldloc_3
-  ; OPT   #stack_push_var Game_Step_this ; Ldarg_0
-  ; OPT   #ldfld 2 ; Ldfld
-    #pushfld Game_Step_this, 2 ; Nop
+    #locals_push_value_8 5 ; Ldloc_3
+    #stack_push_int 1 ; Ldc_i4_1
+    #add ; Add
+    #locals_pull_value_8 5, 0 ; Stloc_3
+label_Game_Step_105:    #locals_push_value_8 5 ; Ldloc_3
+    #locals_push_value_8 1 ; Ldarg_0
+    #ldfld 2 ; Ldfld
     #ldlen ; Ldlen
     nop ;Conv_i4 ; Conv_i4
     #compareLess ; Clt
-    #stack_pull_int_ref Game_Step_var6, 0 ; Stloc_s
-    #stack_push_var Game_Step_var6 ; Ldloc_s
+    #locals_pull_value_8 8, 0 ; Stloc_s
+    #locals_push_value_8 8 ; Ldloc_s
     #branch_true label_Game_Step_48 ; Brtrue_s
-  ; OPT   #stack_push_var Game_Step_this ; Ldarg_0
-  ; OPT   #ldfld 1 ; Ldfld
-    #pushfld Game_Step_this, 1 ; Nop
-    #stack_push_var Game_Step_var0 ; Ldloc_0
+    #locals_push_value_8 1 ; Ldarg_0
+    #ldfld 1 ; Ldfld
+    #locals_push_value_8 2 ; Ldloc_0
     jsr Player_Move ; Callvirt
     nop ; Nop
-    #stack_return_to_saved_address Game_Step_ReturnAddress ; Ret
+    #locals_method_exit 10 ; Ret
 Game_Step_this .byte 0, 0
 Game_Step_ReturnAddress .byte 0,0
 Game_Step_var0 .byte 0,0
@@ -479,51 +455,45 @@ Game_Step_var6 .byte 0,0
 ; METHOD: ClearScreen
 ;----------------------------------------
 Game_ClearScreen 
-    #stack_save_return_adress Game_ClearScreen_ReturnAddress
+    #locals_init_locals 4
     nop ; Nop
-  ; OPT   #stack_push_int 0 ; Ldc_i4_0
-  ; OPT   #stack_pull_int_ref Game_ClearScreen_var0, 0 ; Stloc_0
-    #init_var Game_ClearScreen_var0, 0 ; Nop
+    #stack_push_int 0 ; Ldc_i4_0
+    #locals_pull_value_8 1, 0 ; Stloc_0
     jmp label_Game_ClearScreen_42 ; Br_s
 label_Game_ClearScreen_5:    nop ; Nop
-  ; OPT   #stack_push_int 0 ; Ldc_i4_0
-  ; OPT   #stack_pull_int_ref Game_ClearScreen_var1, 0 ; Stloc_1
-    #init_var Game_ClearScreen_var1, 0 ; Nop
+    #stack_push_int 0 ; Ldc_i4_0
+    #locals_pull_value_8 2, 0 ; Stloc_1
     jmp label_Game_ClearScreen_28 ; Br_s
 label_Game_ClearScreen_10:    nop ; Nop
-    #stack_push_var Game_ClearScreen_var0 ; Ldloc_0
-    #stack_push_var Game_ClearScreen_var1 ; Ldloc_1
+    #locals_push_value_8 1 ; Ldloc_0
+    #locals_push_value_8 2 ; Ldloc_1
     #stack_push_int 32 ; Ldc_i4_s
     #stack_push_int 14 ; Ldc_i4_s
     jsr C64_SetChar ; Call
     nop ; Nop
     nop ; Nop
-  ; OPT   #stack_push_var Game_ClearScreen_var1 ; Ldloc_1
-  ; OPT   #stack_push_int 1 ; Ldc_i4_1
-  ; OPT   #add ; Add
-  ; OPT   #stack_pull_int_ref Game_ClearScreen_var1, 0 ; Stloc_1
-    #inc_var Game_ClearScreen_var1 ; Nop
-label_Game_ClearScreen_28:  ; OPT   #stack_push_var Game_ClearScreen_var1 ; Ldloc_1
-  ; OPT   #stack_push_int 25 ; Ldc_i4_s
-  ; OPT   #compareLess ; Clt_un
-  ; OPT   #stack_pull_int_ref Game_ClearScreen_var2, 0 ; Stloc_2
-  ; OPT   #stack_push_var Game_ClearScreen_var2 ; Ldloc_2
-  ; OPT   #branch_true label_Game_ClearScreen_10 ; Brtrue_s
-    #branch_if_var_less Game_ClearScreen_var1, 25, label_Game_ClearScreen_10 ; Nop
+    #locals_push_value_8 2 ; Ldloc_1
+    #stack_push_int 1 ; Ldc_i4_1
+    #add ; Add
+    #locals_pull_value_8 2, 0 ; Stloc_1
+label_Game_ClearScreen_28:    #locals_push_value_8 2 ; Ldloc_1
+    #stack_push_int 25 ; Ldc_i4_s
+    #compareLess ; Clt_un
+    #locals_pull_value_8 3, 0 ; Stloc_2
+    #locals_push_value_8 3 ; Ldloc_2
+    #branch_true label_Game_ClearScreen_10 ; Brtrue_s
     nop ; Nop
-  ; OPT   #stack_push_var Game_ClearScreen_var0 ; Ldloc_0
-  ; OPT   #stack_push_int 1 ; Ldc_i4_1
-  ; OPT   #add ; Add
-  ; OPT   #stack_pull_int_ref Game_ClearScreen_var0, 0 ; Stloc_0
-    #inc_var Game_ClearScreen_var0 ; Nop
-label_Game_ClearScreen_42:  ; OPT   #stack_push_var Game_ClearScreen_var0 ; Ldloc_0
-  ; OPT   #stack_push_int 40 ; Ldc_i4_s
-  ; OPT   #compareLess ; Clt_un
-  ; OPT   #stack_pull_int_ref Game_ClearScreen_var3, 0 ; Stloc_3
-  ; OPT   #stack_push_var Game_ClearScreen_var3 ; Ldloc_3
-  ; OPT   #branch_true label_Game_ClearScreen_5 ; Brtrue_s
-    #branch_if_var_less Game_ClearScreen_var0, 40, label_Game_ClearScreen_5 ; Nop
-    #stack_return_to_saved_address Game_ClearScreen_ReturnAddress ; Ret
+    #locals_push_value_8 1 ; Ldloc_0
+    #stack_push_int 1 ; Ldc_i4_1
+    #add ; Add
+    #locals_pull_value_8 1, 0 ; Stloc_0
+label_Game_ClearScreen_42:    #locals_push_value_8 1 ; Ldloc_0
+    #stack_push_int 40 ; Ldc_i4_s
+    #compareLess ; Clt_un
+    #locals_pull_value_8 4, 0 ; Stloc_3
+    #locals_push_value_8 4 ; Ldloc_3
+    #branch_true label_Game_ClearScreen_5 ; Brtrue_s
+    #locals_method_exit 6 ; Ret
 Game_ClearScreen_ReturnAddress .byte 0,0
 Game_ClearScreen_var0 .byte 0,0
 Game_ClearScreen_var1 .byte 0,0

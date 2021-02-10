@@ -15,5 +15,12 @@ namespace Compiler
                 return false;
             return true;
         }
+
+        static public int GetStorageBytes(this Type type)
+        {
+            if (type == typeof(string))
+                return 2;
+            return 1;
+        }
     }
 }

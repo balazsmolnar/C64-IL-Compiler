@@ -1,5 +1,6 @@
 .include "./helper/loader.asm"
 .include "./helper/stack.asm"
+.include "./helper/localsstack.asm"
 .include "./helper/heap.asm"
 .include "./helper/arithmetic.asm"
 .include "./helper/branch.asm"
@@ -9,7 +10,7 @@
 #start_at $1000
 #initHeap heap
 
-;+stack_init .stack
+#locals_stack_init
 
 jsr Program_Main
 rts

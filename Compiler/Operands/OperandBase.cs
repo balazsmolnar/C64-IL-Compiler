@@ -175,7 +175,7 @@ namespace Compiler.Ops
 
         public override object ConvertParameter(CompilerMethodContext context, int parameter)
         {
-            return $"{thisVar}, {pos}";
+            return $"{pos}";
         }
     }
 
@@ -246,42 +246,45 @@ namespace Compiler.Ops
     class OpLdloc : OpPushBase
     {
         public int VarIndex;
-        public OpLdloc(int varIndex) : base(0, "#stack_push_var")
+        public OpLdloc(int varIndex) : base(0, "#locals_push_value_8")
         {
             VarIndex = varIndex;
         }
 
-        public override object ConvertParameter(CompilerMethodContext context, int parameter) => $"{context.Method.GetLabel()}_var{VarIndex}";
+        public override object ConvertParameter(CompilerMethodContext context, int parameter)
+        {
+
+            int relPos = context.GetLocalVariableReferencePosition(VarIndex);
+            return $"{relPos}";
+        }
     }
 
     class OpLdloc_s : OpPushBase
     {
-        public OpLdloc_s() : base(1, "#stack_push_var")
+        public OpLdloc_s() : base(1, "#locals_push_value_8")
         {
         }
 
-        public override object ConvertParameter(CompilerMethodContext context, int parameter) => $"{context.Method.GetLabel()}_var{parameter}";
+        public override object ConvertParameter(CompilerMethodContext context, int parameter)
+        {
+
+            int relPos = context.GetLocalVariableReferencePosition(parameter);
+            return $"{relPos}";
+        }
     }
 
     class OpLdarg : OpPushBase
     {
         private int _argIndex;
-        public OpLdarg(int argIndex) : base(0, "#stack_push_var")
+        public OpLdarg(int argIndex) : base(0, "#locals_push_value_8")
         {
             _argIndex = argIndex;
         }
 
         public override object ConvertParameter(CompilerMethodContext context, int parameter)
         {
-            string paramName = "";
-            bool isInstance = !context.Method.IsStatic;
-            if (isInstance && _argIndex == 0)
-                paramName = "this";
-            else if (isInstance)
-                paramName = context.Method.GetParameters()[_argIndex - 1].Name;
-            else
-                paramName = context.Method.GetParameters()[_argIndex].Name;
-            return $"{context.Method.GetLabel()}_{paramName}";
+            int relPos = context.GetParameterReferencePosition(_argIndex);
+            return $"{relPos}";
         }
     }
 
@@ -318,18 +321,18 @@ namespace Compiler.Ops
     class OpStloc : OpBase
     {
         public int VarIndex { get; }
-        public OpStloc(int varIndex) : base(0, "#stack_pull_int_ref")
+        public OpStloc(int varIndex) : base(0, "#locals_pull_value_8")
         {
             VarIndex = varIndex;
         }
 
         public override object ConvertParameter(CompilerMethodContext context, int parameter)
         {
-
             var body = context.Method.GetMethodBody();
             var variables = body.LocalVariables;
+            var index = context.GetLocalVariableReferencePosition(VarIndex);
             var isRef = variables[VarIndex].LocalType.IsReferenceCounted() ? "1" : "0";
-            return $"{context.Method.GetLabel()}_var{VarIndex}, {isRef}";
+            return $"{index}, {isRef}";
         }
     }
 
@@ -349,7 +352,7 @@ namespace Compiler.Ops
 
     class OpStloc_s : OpBase
     {
-        public OpStloc_s() : base(1, "#stack_pull_int_ref")
+        public OpStloc_s() : base(1, "#locals_pull_value_8")
         {
         }
 
@@ -357,10 +360,10 @@ namespace Compiler.Ops
         {
             var body = context.Method.GetMethodBody();
             var variables = body.LocalVariables;
+            var index = context.GetLocalVariableReferencePosition(parameter);
             var isRef = variables[parameter].LocalType.IsReferenceCounted() ? "1" : "0";
-            return $"{context.Method.GetLabel()}_var{parameter}, {isRef}";
+            return $"{index}, {isRef}";
         }
-
     }
 
     class OpShortJump : OpBase
@@ -397,11 +400,11 @@ namespace Compiler.Ops
 
     class OpRet : OpBase
     {
-        public OpRet() : base(0, "#stack_return_to_saved_address")
+        public OpRet() : base(0, "#locals_method_exit")
         {
         }
 
-        public override object ConvertParameter(CompilerMethodContext context, int parameter) => $"{context.Method.GetLabel()}_ReturnAddress";
+        public override object ConvertParameter(CompilerMethodContext context, int parameter) => $"{context.GetLocalStackSize()}";
     }
 
     class OpIncVar : OpBase
@@ -412,7 +415,11 @@ namespace Compiler.Ops
             _varIndex = varIndex;
         }
 
-        public override object ConvertParameter(CompilerMethodContext context, int parameter) => $"{context.Method.GetLabel()}_var{_varIndex}";
+        public override object ConvertParameter(CompilerMethodContext context, int parameter)
+        {
+            var refPos = context.GetLocalVariableReferencePosition(_varIndex);
+            return $"{refPos}";
+        }
     }
 
     class OpInitVar : OpBase
@@ -425,7 +432,11 @@ namespace Compiler.Ops
             _value = value;
         }
 
-        public override object ConvertParameter(CompilerMethodContext context, int parameter) => $"{context.Method.GetLabel()}_var{_varIndex}, {_value}";
+        public override object ConvertParameter(CompilerMethodContext context, int parameter)
+        {
+            var refPos = context.GetLocalVariableReferencePosition(_varIndex);
+            return $"{refPos}, {_value}";
+        }
     }
 
     class OpBranchIfVarLess : OpBase

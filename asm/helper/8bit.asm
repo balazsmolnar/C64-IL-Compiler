@@ -33,11 +33,3 @@ add .macro
 sub .macro
     #sub8
 .endm
-
-inc_var .macro variable 
-    #inc_var8 \variable
-.endm
-
-init_var .macro variable, value 
-    #init_var8 \variable, \value
-.endm

@@ -110,20 +110,6 @@ incfld .macro obj, pos
 
 .endm
 
-pushfld .macro obj, pos 
-
-  ldx \obj
-  lda objTableLow,x
-  sta tmpPointer
-  lda objTableHigh,x
-  sta tmpPointer+1
-
-  ldy #\pos
-  lda (tmpPointer),y
-  pha
-
-.endm
-
 ldelemRef .macro   
   #stack_pull_int_y
   #stack_pull_int_x

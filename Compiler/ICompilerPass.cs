@@ -49,6 +49,60 @@ namespace Compiler
         public CompilerTypeContext TypeContext { get; set; }
         public MethodBase Method { get; set; }
         public List<ILLine> Lines { get; set; }
+
+        public int GetLocalVariableReferencePosition(int index)
+        {
+            bool isInstance = !Method.IsStatic;
+            int relPos = isInstance ? 1 : 0;
+            for (int i = 0; i < Method.GetParameters().Length; i++)
+                relPos += Method.GetParameters()[i].ParameterType.GetStorageBytes();
+
+            var body = Method.GetMethodBody();
+            var variables = body.LocalVariables;
+            for (int i = 0; i <= index; i++)
+                relPos += variables[i].LocalType.GetStorageBytes();
+            return relPos;
+        }
+
+        public int GetParameterReferencePosition(int index)
+        {
+            int relPos = 0;
+            var parameters = Method.GetParameters();
+            bool isInstance = !Method.IsStatic;
+
+            if (isInstance && index == 0)
+                return 1;
+
+            if (isInstance)
+                relPos = 1;
+
+            for (int i = 0; i <= index - (isInstance ? 1 : 0); i++)
+            {
+                relPos += parameters[i].ParameterType.GetStorageBytes();
+            }
+            return relPos;
+        }
+
+        public int GetLocalStackSize()
+        {
+            bool isInstance = !Method.IsStatic;
+            int relPos = isInstance ? 1 : 0;
+            for (int i = 0; i < Method.GetParameters().Length; i++)
+                relPos += Method.GetParameters()[i].ParameterType.GetStorageBytes();
+
+            relPos += GetLocalsSize();
+            return relPos + 2;
+        }
+
+        public int GetLocalsSize()
+        {
+            int size = 0;
+            var body = Method.GetMethodBody();
+            var variables = body.LocalVariables;
+            for (int i = 0; i < variables.Count; i++)
+                size += variables[i].LocalType.GetStorageBytes();
+            return size;
+        }
     }
 
     interface ICompilerPass

@@ -147,15 +147,6 @@ compareEqual8 .macro
         #stack_push_var $34
 .endm
 
-inc_var8 .macro variable 
-        inc \variable
-.endm
-
-init_var8 .macro  variable, value  
-        lda #<\value
-        sta \variable
-.endm
-
 shift_left .macro 
 
     #stack_pull_int_x

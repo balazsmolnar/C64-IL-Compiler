@@ -38,7 +38,7 @@ namespace Compiler
                     lines[i + 3].Optimized = true;
                     lines[i + 4].Optimized = true;
                 }
-                else if (lines[i].Operand is OpLdarg &&
+                else if (lines[i].OpCode == ILOpCode.Ldarg_0 &&
                   lines[i + 1].Operand is OpLdfld)
                 {
                     ILLine newLine = new ILLine

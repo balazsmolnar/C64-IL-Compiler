@@ -158,7 +158,7 @@ namespace Compiler.Ops
 
         public override object ConvertParameter(CompilerMethodContext context, int parameter)
         {
-            return $"{thisVar}, {pos}";
+            return $"{pos}";
         }
     }
 
@@ -451,7 +451,11 @@ namespace Compiler.Ops
             _label = label;
         }
 
-        public override object ConvertParameter(CompilerMethodContext context, int parameter) => $"{context.Method.GetLabel()}_var{_varIndex}, {_value}, {_label}";
+        public override object ConvertParameter(CompilerMethodContext context, int parameter)
+        {
+            var refPos = context.GetLocalVariableReferencePosition(_varIndex);
+            return $"{refPos}, {_value}, {_label}";
+        }
     }
 
     class OpDeref : OpBase
@@ -494,6 +498,10 @@ namespace Compiler.Ops
             _label = label;
         }
 
-        public override object ConvertParameter(CompilerMethodContext context, int parameter) => $"{context.Method.GetLabel()}_var{_varIndex}, {_value}, {_label}";
+        public override object ConvertParameter(CompilerMethodContext context, int parameter)
+        {
+            var refPos = context.GetLocalVariableReferencePosition(_varIndex);
+            return $"{refPos}, {_value}, {_label}";
+        }
     }
 }

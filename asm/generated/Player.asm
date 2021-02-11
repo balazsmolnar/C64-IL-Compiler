@@ -461,23 +461,25 @@ label_Player_Die_16:    nop ; Nop
   ; OPT   #add ; Add
   ; OPT   #locals_pull_value_8 3, 0 ; Stloc_1
     #inc_var 3 ; Nop
-label_Player_Die_21:    #locals_push_value_8 3 ; Ldloc_1
-    #stack_push_int 100 ; Ldc_i4_s
-    #compareLess ; Clt
-    #locals_pull_value_8 4, 0 ; Stloc_2
-    #locals_push_value_8 4 ; Ldloc_2
-    #branch_true label_Player_Die_16 ; Brtrue_s
+label_Player_Die_21:  ; OPT   #locals_push_value_8 3 ; Ldloc_1
+  ; OPT   #stack_push_int 100 ; Ldc_i4_s
+  ; OPT   #compareLess ; Clt
+  ; OPT   #locals_pull_value_8 4, 0 ; Stloc_2
+  ; OPT   #locals_push_value_8 4 ; Ldloc_2
+  ; OPT   #branch_true label_Player_Die_16 ; Brtrue_s
+    #branch_if_var_less 3, 100, label_Player_Die_16 ; Nop
   ; OPT   #locals_push_value_8 2 ; Ldloc_0
   ; OPT   #stack_push_int 1 ; Ldc_i4_1
   ; OPT   #add ; Add
   ; OPT   #locals_pull_value_8 2, 0 ; Stloc_0
     #inc_var 2 ; Nop
-label_Player_Die_34:    #locals_push_value_8 2 ; Ldloc_0
-    #stack_push_int 100 ; Ldc_i4_s
-    #compareLess ; Clt
-    #locals_pull_value_8 5, 0 ; Stloc_3
-    #locals_push_value_8 5 ; Ldloc_3
-    #branch_true label_Player_Die_12 ; Brtrue_s
+label_Player_Die_34:  ; OPT   #locals_push_value_8 2 ; Ldloc_0
+  ; OPT   #stack_push_int 100 ; Ldc_i4_s
+  ; OPT   #compareLess ; Clt
+  ; OPT   #locals_pull_value_8 5, 0 ; Stloc_3
+  ; OPT   #locals_push_value_8 5 ; Ldloc_3
+  ; OPT   #branch_true label_Player_Die_12 ; Brtrue_s
+    #branch_if_var_less 2, 100, label_Player_Die_12 ; Nop
     #stack_push_int 0 ; Ldc_i4_0
     jsr C64_SetBorderColor ; Call
     nop ; Nop

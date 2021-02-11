@@ -39,10 +39,10 @@ namespace Compiler
                             new ILMethodLabelPass(),
                             new ILMethodIncOptimizer(),
                             new ILPropertyGettterOptimizer(),
-                            // new ILFieldIncrementOptimizer(),
+                            new ILFieldIncrementOptimizer(),
                             new ILMethodSetVariableOptimizer(),
-                            // new ILMethodBranchIfLessOptimizer(),
-                            // new ILMethodBranchIfNotEqualOptimizer(),
+                            new ILMethodBranchIfLessOptimizer(),
+                            new ILMethodBranchIfNotEqualOptimizer(),
                             new ILMethodEmitPass()}),
                      new ILStringResourcesPass() };
                 passes.ForEach(p => p.Execute(context));

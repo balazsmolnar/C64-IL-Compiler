@@ -142,3 +142,42 @@ pushfld .macro pos
   pha
 
 .endm
+
+incfld .macro pos 
+
+  ldy stackPointer
+  dey
+  ldx localsStack,y
+
+  lda objTableLow,x
+  sta tmpPointer
+  lda objTableHigh,x
+  sta tmpPointer+1
+
+  ldy #\pos
+  lda (tmpPointer),y
+  clc
+  adc #1
+  sta (tmpPointer),y
+
+.endm
+
+branch_if_var_less .macro rel_pos, value, label 
+    lda stackPointer
+    sec
+    sbc #\rel_pos
+    tax
+    lda localsStack, x
+    cmp #\value
+    bmi \label
+.endm
+
+branch_if_not_equal .macro rel_pos, value, label 
+    lda stackPointer
+    sec
+    sbc #\rel_pos
+    tax
+    lda localsStack, x
+    cmp #\value
+    bne \label
+.endm

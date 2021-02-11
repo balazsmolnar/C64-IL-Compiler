@@ -82,14 +82,35 @@ label_Program_Test_22:    #locals_method_exit 7 ; Ret
 ; METHOD: Main
 ;----------------------------------------
 Program_Main 
-    #locals_init_locals 0
+    #locals_init_locals 3
     nop ; Nop
-    #stack_push_int 1 ; Ldc_i4_1
-    jsr Program_Recursive ; Call
-    nop ; Nop
+  ; OPT   #stack_push_int 0 ; Ldc_i4_0
+  ; OPT   #locals_pull_value_8 2, 0 ; Stloc_1
+    #init_var 2, 0 ; Nop
+    jmp label_Program_Main_22 ; Br_s
+label_Program_Main_5:    nop ; Nop
     #stack_push_pointer string_1879048649 ; Ldstr
     jsr Console_WriteLine ; Call
     nop ; Nop
-    jsr GCTest_Start ; Call
     nop ; Nop
-    #locals_method_exit 2 ; Ret
+  ; OPT   #locals_push_value_8 2 ; Ldloc_1
+  ; OPT   #stack_push_int 1 ; Ldc_i4_1
+  ; OPT   #add ; Add
+  ; OPT   #locals_pull_value_8 2, 0 ; Stloc_1
+    #inc_var 2 ; Nop
+label_Program_Main_22:  ; OPT   #locals_push_value_8 2 ; Ldloc_1
+  ; OPT   #stack_push_int 10 ; Ldc_i4_s
+  ; OPT   #compareLess ; Clt
+  ; OPT   #locals_pull_value_8 3, 0 ; Stloc_2
+  ; OPT   #locals_push_value_8 3 ; Ldloc_2
+  ; OPT   #branch_true label_Program_Main_5 ; Brtrue_s
+    #branch_if_var_less 2, 10, label_Program_Main_5 ; Nop
+    #newObj 3, 3 ; Newobj
+    #locals_pull_value_8 1, 1 ; Stloc_0
+    #locals_push_value_8 1 ; Ldloc_0
+    jsr Game_Init ; Callvirt
+    nop ; Nop
+    #locals_push_value_8 1 ; Ldloc_0
+    jsr Game_Run ; Callvirt
+    nop ; Nop
+    #locals_method_exit 5 ; Ret

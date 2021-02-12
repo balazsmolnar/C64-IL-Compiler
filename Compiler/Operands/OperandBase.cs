@@ -187,6 +187,14 @@ namespace Compiler.Ops
         }
     }
 
+    class OpPop : OpBase
+    {
+        public OpPop() : base(0, "#stack_pop")
+        {
+
+        }
+    }
+
     class OpPushBase : OpBase
     {
         public OpPushBase(int parameterSize) : base(parameterSize, "#stack_push_int")
@@ -297,7 +305,7 @@ namespace Compiler.Ops
         public override object ConvertParameter(CompilerMethodContext context, int parameter)
         {
             var field = context.Method.DeclaringType.Module.ResolveField(parameter);
-            return $"{context.Method.DeclaringType.Name}_field_{field.Name}";
+            return $"{field.DeclaringType.Name.ToValidName()}_field_{field.Name.ToValidName()}";
         }
     }
 
@@ -344,7 +352,7 @@ namespace Compiler.Ops
         public override object ConvertParameter(CompilerMethodContext context, int parameter)
         {
             var field = context.Method.DeclaringType.Module.ResolveField(parameter);
-            var address = $"{context.Method.DeclaringType.Name}_field_{field.Name}";
+            var address = $"{field.DeclaringType.Name.ToValidName()}_field_{field.Name.ToValidName()}";
             string isRef = field.FieldType.IsReferenceCounted() ? "1" : "0";
             return $"{address}, {isRef}";
         }

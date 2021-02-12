@@ -30,6 +30,7 @@ namespace Compiler
                 { ILOpCode.Newarr, new OpNewArr() },
                 { ILOpCode.Ldftn, new OpLdftn() },
                 { ILOpCode.Dup, new OpDup() },
+                { ILOpCode.Pop, new OpPop() },
                 { ILOpCode.Stloc_0, new OpStloc(0) },
                 { ILOpCode.Stloc_1, new OpStloc(1) },
                 { ILOpCode.Stloc_2, new OpStloc(2) },

@@ -129,6 +129,7 @@ C64_add_Interrupt
 OnInterrupt
     #stack_push_int 0
     #stack_push_int 0
+    #stack_push_int 0
     lda #> On_Interrupt_Ret-1
     pha
     lda #< On_Interrupt_Ret-1

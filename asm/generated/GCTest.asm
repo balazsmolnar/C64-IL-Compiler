@@ -34,13 +34,13 @@ GCTest_Two_Instances_First_GCd_Static_Field
     #compareEqual ; Ceq
     #locals_pull_value_8 3, 0 ; Stloc_2
     #locals_push_value_8 3 ; Ldloc_2
-    #branch_false label_GCTest_Two_Instances_First_GCd_Static_Field_102 ; Brfalse_s
+    #branch_false GCTest_Two_Instances_First_GCd_Static_Field_102 ; Brfalse_s
     nop ; Nop
     #stack_push_pointer string_1879048193 ; Ldstr
     jsr Console_WriteLine ; Call
     nop ; Nop
-    jmp label_GCTest_Two_Instances_First_GCd_Static_Field_236 ; Br
-label_GCTest_Two_Instances_First_GCd_Static_Field_102:    #stack_push_int 0 ; Ldnull
+    jmp GCTest_Two_Instances_First_GCd_Static_Field_236 ; Br
+GCTest_Two_Instances_First_GCd_Static_Field_102:    #stack_push_int 0 ; Ldnull
     #stack_pull_int_ref GCTest_field_s_a1, 1 ; Stsfld
     jsr GC_Collect ; Call
     nop ; Nop
@@ -49,22 +49,22 @@ label_GCTest_Two_Instances_First_GCd_Static_Field_102:    #stack_push_int 0 ; Ld
     jsr Debug_IsAlive ; Callvirt
     #locals_pull_value_8 4, 0 ; Stloc_3
     #locals_push_value_8 4 ; Ldloc_3
-    #branch_false label_GCTest_Two_Instances_First_GCd_Static_Field_140 ; Brfalse_s
+    #branch_false GCTest_Two_Instances_First_GCd_Static_Field_140 ; Brfalse_s
     #stack_push_pointer string_1879048213 ; Ldstr
     jsr Console_WriteLine ; Call
     nop ; Nop
-label_GCTest_Two_Instances_First_GCd_Static_Field_140:    jsr C64_get_Debug ; Call
+GCTest_Two_Instances_First_GCd_Static_Field_140:    jsr C64_get_Debug ; Call
     #locals_push_value_8 2 ; Ldloc_1
     jsr Debug_IsAlive ; Callvirt
     #stack_push_int 0 ; Ldc_i4_0
     #compareEqual ; Ceq
     #locals_pull_value_8 5, 0 ; Stloc_s
     #locals_push_value_8 5 ; Ldloc_s
-    #branch_false label_GCTest_Two_Instances_First_GCd_Static_Field_171 ; Brfalse_s
+    #branch_false GCTest_Two_Instances_First_GCd_Static_Field_171 ; Brfalse_s
     #stack_push_pointer string_1879048245 ; Ldstr
     jsr Console_WriteLine ; Call
     nop ; Nop
-label_GCTest_Two_Instances_First_GCd_Static_Field_171:    #stack_push_var GCTest_field_s_a2 ; Ldsfld
+GCTest_Two_Instances_First_GCd_Static_Field_171:    #stack_push_var GCTest_field_s_a2 ; Ldsfld
     #ldfld 1 ; Ldfld
     #stack_push_int 5 ; Ldc_i4_5
     #compareEqual ; Ceq
@@ -72,11 +72,11 @@ label_GCTest_Two_Instances_First_GCd_Static_Field_171:    #stack_push_var GCTest
     #compareEqual ; Ceq
     #locals_pull_value_8 6, 0 ; Stloc_s
     #locals_push_value_8 6 ; Ldloc_s
-    #branch_false label_GCTest_Two_Instances_First_GCd_Static_Field_204 ; Brfalse_s
+    #branch_false GCTest_Two_Instances_First_GCd_Static_Field_204 ; Brfalse_s
     #stack_push_pointer string_1879048273 ; Ldstr
     jsr Console_WriteLine ; Call
     nop ; Nop
-label_GCTest_Two_Instances_First_GCd_Static_Field_204:    #stack_push_int 0 ; Ldc_i4_0
+GCTest_Two_Instances_First_GCd_Static_Field_204:    #stack_push_int 0 ; Ldc_i4_0
     #stack_push_int 1 ; Ldc_i4_1
     #stack_push_var GCTest_field_s_a2 ; Ldsfld
     #ldfld 1 ; Ldfld
@@ -87,7 +87,7 @@ label_GCTest_Two_Instances_First_GCd_Static_Field_204:    #stack_push_int 0 ; Ld
     #stack_duplicate ; Dup
     #stack_pull_int_ref GCTest_field_s_a2, 1 ; Stsfld
     #stack_pull_int_ref GCTest_field_s_a1, 1 ; Stsfld
-label_GCTest_Two_Instances_First_GCd_Static_Field_236:    #locals_method_exit 8 ; Ret
+GCTest_Two_Instances_First_GCd_Static_Field_236:    #locals_method_exit 8 ; Ret
 
 
 ;----------------------------------------
@@ -112,11 +112,11 @@ GCTest_Single_Instance_GC
     #compareEqual ; Ceq
     #locals_pull_value_8 3, 0 ; Stloc_2
     #locals_push_value_8 3 ; Ldloc_2
-    #branch_false label_GCTest_Single_Instance_GC_50 ; Brfalse_s
+    #branch_false GCTest_Single_Instance_GC_50 ; Brfalse_s
     #stack_push_pointer string_1879048299 ; Ldstr
     jsr Console_WriteLine ; Call
     nop ; Nop
-label_GCTest_Single_Instance_GC_50:    #locals_method_exit 5 ; Ret
+GCTest_Single_Instance_GC_50:    #locals_method_exit 5 ; Ret
 
 
 ;----------------------------------------
@@ -141,11 +141,11 @@ GCTest_Change_Ref_Local_Variable
     #compareEqual ; Ceq
     #locals_pull_value_8 3, 0 ; Stloc_2
     #locals_push_value_8 3 ; Ldloc_2
-    #branch_false label_GCTest_Change_Ref_Local_Variable_54 ; Brfalse_s
+    #branch_false GCTest_Change_Ref_Local_Variable_54 ; Brfalse_s
     #stack_push_pointer string_1879048299 ; Ldstr
     jsr Console_WriteLine ; Call
     nop ; Nop
-label_GCTest_Change_Ref_Local_Variable_54:    #locals_method_exit 5 ; Ret
+GCTest_Change_Ref_Local_Variable_54:    #locals_method_exit 5 ; Ret
 
 
 ;----------------------------------------
@@ -186,11 +186,11 @@ GCTest_Passed_As_Parameter_Deferenced
     #compareEqual ; Ceq
     #locals_pull_value_8 3, 0 ; Stloc_2
     #locals_push_value_8 3 ; Ldloc_2
-    #branch_false label_GCTest_Passed_As_Parameter_Deferenced_61 ; Brfalse_s
+    #branch_false GCTest_Passed_As_Parameter_Deferenced_61 ; Brfalse_s
     #stack_push_pointer string_1879048299 ; Ldstr
     jsr Console_WriteLine ; Call
     nop ; Nop
-label_GCTest_Passed_As_Parameter_Deferenced_61:    #locals_method_exit 5 ; Ret
+GCTest_Passed_As_Parameter_Deferenced_61:    #locals_method_exit 5 ; Ret
 
 
 ;----------------------------------------
@@ -215,11 +215,11 @@ GCTest_Array_Root_in_Local_Var
     jsr Debug_IsAlive ; Callvirt
     #locals_pull_value_8 3, 0 ; Stloc_2
     #locals_push_value_8 3 ; Ldloc_2
-    #branch_false label_GCTest_Array_Root_in_Local_Var_53 ; Brfalse_s
+    #branch_false GCTest_Array_Root_in_Local_Var_53 ; Brfalse_s
     #stack_push_pointer string_1879048331 ; Ldstr
     jsr Console_WriteLine ; Call
     nop ; Nop
-label_GCTest_Array_Root_in_Local_Var_53:    #locals_method_exit 5 ; Ret
+GCTest_Array_Root_in_Local_Var_53:    #locals_method_exit 5 ; Ret
 
 
 ;----------------------------------------
@@ -314,11 +314,11 @@ GCTest_Hierarchies_Local_Variable_Root
     #compareEqual ; Ceq
     #locals_pull_value_8 13, 0 ; Stloc_s
     #locals_push_value_8 13 ; Ldloc_s
-    #branch_false label_GCTest_Hierarchies_Local_Variable_Root_243 ; Brfalse_s
+    #branch_false GCTest_Hierarchies_Local_Variable_Root_243 ; Brfalse_s
     #stack_push_pointer string_1879048367 ; Ldstr
     jsr Console_WriteLine ; Call
     nop ; Nop
-label_GCTest_Hierarchies_Local_Variable_Root_243:    #locals_push_value_8 6 ; Ldloc_s
+GCTest_Hierarchies_Local_Variable_Root_243:    #locals_push_value_8 6 ; Ldloc_s
     #ldfld 0 ; Ldfld
     #ldfld 1 ; Ldfld
     #stack_push_int 5 ; Ldc_i4_5
@@ -327,11 +327,11 @@ label_GCTest_Hierarchies_Local_Variable_Root_243:    #locals_push_value_8 6 ; Ld
     #compareEqual ; Ceq
     #locals_pull_value_8 14, 0 ; Stloc_s
     #locals_push_value_8 14 ; Ldloc_s
-    #branch_false label_GCTest_Hierarchies_Local_Variable_Root_278 ; Brfalse_s
+    #branch_false GCTest_Hierarchies_Local_Variable_Root_278 ; Brfalse_s
     #stack_push_pointer string_1879048389 ; Ldstr
     jsr Console_WriteLine ; Call
     nop ; Nop
-label_GCTest_Hierarchies_Local_Variable_Root_278:    #locals_push_value_8 6 ; Ldloc_s
+GCTest_Hierarchies_Local_Variable_Root_278:    #locals_push_value_8 6 ; Ldloc_s
     #ldfld 0 ; Ldfld
     #ldfld 0 ; Ldfld
     #ldfld 1 ; Ldfld
@@ -341,71 +341,71 @@ label_GCTest_Hierarchies_Local_Variable_Root_278:    #locals_push_value_8 6 ; Ld
     #compareEqual ; Ceq
     #locals_pull_value_8 15, 0 ; Stloc_s
     #locals_push_value_8 15 ; Ldloc_s
-    #branch_false label_GCTest_Hierarchies_Local_Variable_Root_318 ; Brfalse_s
+    #branch_false GCTest_Hierarchies_Local_Variable_Root_318 ; Brfalse_s
     #stack_push_pointer string_1879048423 ; Ldstr
     jsr Console_WriteLine ; Call
     nop ; Nop
-label_GCTest_Hierarchies_Local_Variable_Root_318:    jsr C64_get_Debug ; Call
+GCTest_Hierarchies_Local_Variable_Root_318:    jsr C64_get_Debug ; Call
     #locals_push_value_8 10 ; Ldloc_s
     jsr Debug_IsAlive ; Callvirt
     #stack_push_int 0 ; Ldc_i4_0
     #compareEqual ; Ceq
     #locals_pull_value_8 16, 0 ; Stloc_s
     #locals_push_value_8 16 ; Ldloc_s
-    #branch_false label_GCTest_Hierarchies_Local_Variable_Root_350 ; Brfalse_s
+    #branch_false GCTest_Hierarchies_Local_Variable_Root_350 ; Brfalse_s
     #stack_push_pointer string_1879048469 ; Ldstr
     jsr Console_WriteLine ; Call
     nop ; Nop
-label_GCTest_Hierarchies_Local_Variable_Root_350:    jsr C64_get_Debug ; Call
+GCTest_Hierarchies_Local_Variable_Root_350:    jsr C64_get_Debug ; Call
     #locals_push_value_8 11 ; Ldloc_s
     jsr Debug_IsAlive ; Callvirt
     #stack_push_int 0 ; Ldc_i4_0
     #compareEqual ; Ceq
     #locals_pull_value_8 17, 0 ; Stloc_s
     #locals_push_value_8 17 ; Ldloc_s
-    #branch_false label_GCTest_Hierarchies_Local_Variable_Root_382 ; Brfalse_s
+    #branch_false GCTest_Hierarchies_Local_Variable_Root_382 ; Brfalse_s
     #stack_push_pointer string_1879048503 ; Ldstr
     jsr Console_WriteLine ; Call
     nop ; Nop
-label_GCTest_Hierarchies_Local_Variable_Root_382:    jsr C64_get_Debug ; Call
+GCTest_Hierarchies_Local_Variable_Root_382:    jsr C64_get_Debug ; Call
     #locals_push_value_8 12 ; Ldloc_s
     jsr Debug_IsAlive ; Callvirt
     #stack_push_int 0 ; Ldc_i4_0
     #compareEqual ; Ceq
     #locals_pull_value_8 18, 0 ; Stloc_s
     #locals_push_value_8 18 ; Ldloc_s
-    #branch_false label_GCTest_Hierarchies_Local_Variable_Root_414 ; Brfalse_s
+    #branch_false GCTest_Hierarchies_Local_Variable_Root_414 ; Brfalse_s
     #stack_push_pointer string_1879048537 ; Ldstr
     jsr Console_WriteLine ; Call
     nop ; Nop
-label_GCTest_Hierarchies_Local_Variable_Root_414:    jsr C64_get_Debug ; Call
+GCTest_Hierarchies_Local_Variable_Root_414:    jsr C64_get_Debug ; Call
     #locals_push_value_8 7 ; Ldloc_s
     jsr Debug_IsAlive ; Callvirt
     #locals_pull_value_8 19, 0 ; Stloc_s
     #locals_push_value_8 19 ; Ldloc_s
-    #branch_false label_GCTest_Hierarchies_Local_Variable_Root_443 ; Brfalse_s
+    #branch_false GCTest_Hierarchies_Local_Variable_Root_443 ; Brfalse_s
     #stack_push_pointer string_1879048571 ; Ldstr
     jsr Console_WriteLine ; Call
     nop ; Nop
-label_GCTest_Hierarchies_Local_Variable_Root_443:    jsr C64_get_Debug ; Call
+GCTest_Hierarchies_Local_Variable_Root_443:    jsr C64_get_Debug ; Call
     #locals_push_value_8 8 ; Ldloc_s
     jsr Debug_IsAlive ; Callvirt
     #locals_pull_value_8 20, 0 ; Stloc_s
     #locals_push_value_8 20 ; Ldloc_s
-    #branch_false label_GCTest_Hierarchies_Local_Variable_Root_472 ; Brfalse_s
+    #branch_false GCTest_Hierarchies_Local_Variable_Root_472 ; Brfalse_s
     #stack_push_pointer string_1879048597 ; Ldstr
     jsr Console_WriteLine ; Call
     nop ; Nop
-label_GCTest_Hierarchies_Local_Variable_Root_472:    jsr C64_get_Debug ; Call
+GCTest_Hierarchies_Local_Variable_Root_472:    jsr C64_get_Debug ; Call
     #locals_push_value_8 9 ; Ldloc_s
     jsr Debug_IsAlive ; Callvirt
     #locals_pull_value_8 21, 0 ; Stloc_s
     #locals_push_value_8 21 ; Ldloc_s
-    #branch_false label_GCTest_Hierarchies_Local_Variable_Root_501 ; Brfalse_s
+    #branch_false GCTest_Hierarchies_Local_Variable_Root_501 ; Brfalse_s
     #stack_push_pointer string_1879048623 ; Ldstr
     jsr Console_WriteLine ; Call
     nop ; Nop
-label_GCTest_Hierarchies_Local_Variable_Root_501:    #locals_method_exit 23 ; Ret
+GCTest_Hierarchies_Local_Variable_Root_501:    #locals_method_exit 23 ; Ret
 
 
 ;----------------------------------------

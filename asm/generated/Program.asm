@@ -39,14 +39,14 @@ Program_Recursive
     #compareEqual ; Ceq
     #locals_pull_value_8 2, 0 ; Stloc_0
     #locals_push_value_8 2 ; Ldloc_0
-    #branch_false label_Program_Recursive_23 ; Brfalse_s
-    jmp label_Program_Recursive_32 ; Br_s
-label_Program_Recursive_23:    #locals_push_value_8 1 ; Ldarg_0
+    #branch_false Program_Recursive_23 ; Brfalse_s
+    jmp Program_Recursive_32 ; Br_s
+Program_Recursive_23:    #locals_push_value_8 1 ; Ldarg_0
     #stack_push_int 1 ; Ldc_i4_1
     #add ; Add
     jsr Program_Recursive ; Call
     nop ; Nop
-label_Program_Recursive_32:    #locals_method_exit 4 ; Ret
+Program_Recursive_32:    #locals_method_exit 4 ; Ret
 
 
 ;----------------------------------------
@@ -70,11 +70,11 @@ Program_Test
     #compareEqual ; Ceq
     #locals_pull_value_8 5, 0 ; Stloc_2
     #locals_push_value_8 5 ; Ldloc_2
-    #branch_false label_Program_Test_22 ; Brfalse_s
+    #branch_false Program_Test_22 ; Brfalse_s
     #stack_push_int 3 ; Ldc_i4_3
     jsr C64_SetBorderColor ; Call
     nop ; Nop
-label_Program_Test_22:    #locals_method_exit 7 ; Ret
+Program_Test_22:    #locals_method_exit 7 ; Ret
 
 
 ;----------------------------------------
@@ -82,35 +82,17 @@ label_Program_Test_22:    #locals_method_exit 7 ; Ret
 ; METHOD: Main
 ;----------------------------------------
 Program_Main 
-    #locals_init_locals 3
+    #locals_init_locals 0
     nop ; Nop
-  ; OPT   #stack_push_int 0 ; Ldc_i4_0
-  ; OPT   #locals_pull_value_8 2, 0 ; Stloc_1
-    #init_var 2, 0 ; Nop
-    jmp label_Program_Main_22 ; Br_s
-label_Program_Main_5:    nop ; Nop
-    #stack_push_pointer string_1879048649 ; Ldstr
-    jsr Console_WriteLine ; Call
+    #stack_push_var x__c_field_x__9__4_0 ; Ldsfld
+    #stack_duplicate ; Dup
+    #branch_true Program_Main_32 ; Brtrue_s
+    #stack_pop ; Pop
+    #stack_push_var x__c_field_x__9 ; Ldsfld
+    #stack_push_pointer x__c_x_Main_b__4_0 ; Ldftn
+    #newObj 4, 2 ; Newobj
+    #stack_duplicate ; Dup
+    #stack_pull_int_ref x__c_field_x__9__4_0, 1 ; Stsfld
+Program_Main_32:    jsr C64_add_Interrupt ; Call
     nop ; Nop
-    nop ; Nop
-  ; OPT   #locals_push_value_8 2 ; Ldloc_1
-  ; OPT   #stack_push_int 1 ; Ldc_i4_1
-  ; OPT   #add ; Add
-  ; OPT   #locals_pull_value_8 2, 0 ; Stloc_1
-    #inc_var 2 ; Nop
-label_Program_Main_22:  ; OPT   #locals_push_value_8 2 ; Ldloc_1
-  ; OPT   #stack_push_int 10 ; Ldc_i4_s
-  ; OPT   #compareLess ; Clt
-  ; OPT   #locals_pull_value_8 3, 0 ; Stloc_2
-  ; OPT   #locals_push_value_8 3 ; Ldloc_2
-  ; OPT   #branch_true label_Program_Main_5 ; Brtrue_s
-    #branch_if_var_less 2, 10, label_Program_Main_5 ; Nop
-    #newObj 3, 3 ; Newobj
-    #locals_pull_value_8 1, 1 ; Stloc_0
-    #locals_push_value_8 1 ; Ldloc_0
-    jsr Game_Init ; Callvirt
-    nop ; Nop
-    #locals_push_value_8 1 ; Ldloc_0
-    jsr Game_Run ; Callvirt
-    nop ; Nop
-    #locals_method_exit 5 ; Ret
+    #locals_method_exit 2 ; Ret

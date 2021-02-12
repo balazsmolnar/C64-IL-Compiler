@@ -285,8 +285,8 @@ Game_InitPlatforms
   ; OPT   #stack_push_int 0 ; Ldc_i4_0
   ; OPT   #locals_pull_value_8 2, 0 ; Stloc_0
     #init_var 2, 0 ; Nop
-    jmp label_Game_InitPlatforms_455 ; Br_s
-label_Game_InitPlatforms_437:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+    jmp Game_InitPlatforms_455 ; Br_s
+Game_InitPlatforms_437:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 2 ; Ldfld
     #pushfld 2 ; Nop
     #locals_push_value_8 2 ; Ldloc_0
@@ -298,7 +298,7 @@ label_Game_InitPlatforms_437:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #add ; Add
   ; OPT   #locals_pull_value_8 2, 0 ; Stloc_0
     #inc_var 2 ; Nop
-label_Game_InitPlatforms_455:    #locals_push_value_8 2 ; Ldloc_0
+Game_InitPlatforms_455:    #locals_push_value_8 2 ; Ldloc_0
     nop ;Conv_u8 ; Conv_u8
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 2 ; Ldfld
@@ -309,7 +309,7 @@ label_Game_InitPlatforms_455:    #locals_push_value_8 2 ; Ldloc_0
     #compareLess ; Clt
     #locals_pull_value_8 3, 0 ; Stloc_1
     #locals_push_value_8 3 ; Ldloc_1
-    #branch_true label_Game_InitPlatforms_437 ; Brtrue_s
+    #branch_true Game_InitPlatforms_437 ; Brtrue_s
     #locals_method_exit 5 ; Ret
 
 
@@ -321,44 +321,46 @@ Game_Run
     #locals_init_locals 4
     #locals_pull_param_8 0
     nop ; Nop
-    jmp label_Game_Run_47 ; Br_s
-label_Game_Run_3:    nop ; Nop
+    jmp Game_Run_46 ; Br_s
+Game_Run_3:    nop ; Nop
     #locals_push_value_8 1 ; Ldarg_0
     jsr Game_Step ; Call
     nop ; Nop
   ; OPT   #stack_push_int 0 ; Ldc_i4_0
   ; OPT   #locals_pull_value_8 2, 0 ; Stloc_0
     #init_var 2, 0 ; Nop
-    jmp label_Game_Run_37 ; Br_s
-label_Game_Run_15:  ; OPT   #stack_push_int 0 ; Ldc_i4_0
+    jmp Game_Run_36 ; Br_s
+Game_Run_15:  ; OPT   #stack_push_int 0 ; Ldc_i4_0
   ; OPT   #locals_pull_value_8 3, 0 ; Stloc_1
     #init_var 3, 0 ; Nop
-    jmp label_Game_Run_24 ; Br_s
-label_Game_Run_19:    nop ; Nop
+    jmp Game_Run_24 ; Br_s
+Game_Run_19:    nop ; Nop
   ; OPT   #locals_push_value_8 3 ; Ldloc_1
   ; OPT   #stack_push_int 1 ; Ldc_i4_1
   ; OPT   #add ; Add
   ; OPT   #locals_pull_value_8 3, 0 ; Stloc_1
     #inc_var 3 ; Nop
-label_Game_Run_24:    #locals_push_value_8 3 ; Ldloc_1
-    #stack_push_int 15 ; Ldc_i4_s
-    #compareLess ; Clt_un
-    #locals_pull_value_8 4, 0 ; Stloc_2
-    #locals_push_value_8 4 ; Ldloc_2
-    #branch_true label_Game_Run_19 ; Brtrue_s
+Game_Run_24:  ; OPT   #locals_push_value_8 3 ; Ldloc_1
+  ; OPT   #stack_push_int 5 ; Ldc_i4_5
+  ; OPT   #compareLess ; Clt_un
+  ; OPT   #locals_pull_value_8 4, 0 ; Stloc_2
+  ; OPT   #locals_push_value_8 4 ; Ldloc_2
+  ; OPT   #branch_true Game_Run_19 ; Brtrue_s
+    #branch_if_var_less 3, 5, Game_Run_19 ; Nop
   ; OPT   #locals_push_value_8 2 ; Ldloc_0
   ; OPT   #stack_push_int 1 ; Ldc_i4_1
   ; OPT   #add ; Add
   ; OPT   #locals_pull_value_8 2, 0 ; Stloc_0
     #inc_var 2 ; Nop
-label_Game_Run_37:    #locals_push_value_8 2 ; Ldloc_0
-    #stack_push_int 100 ; Ldc_i4_s
-    #compareLess ; Clt_un
-    #locals_pull_value_8 5, 0 ; Stloc_3
-    #locals_push_value_8 5 ; Ldloc_3
-    #branch_true label_Game_Run_15 ; Brtrue_s
+Game_Run_36:  ; OPT   #locals_push_value_8 2 ; Ldloc_0
+  ; OPT   #stack_push_int 100 ; Ldc_i4_s
+  ; OPT   #compareLess ; Clt_un
+  ; OPT   #locals_pull_value_8 5, 0 ; Stloc_3
+  ; OPT   #locals_push_value_8 5 ; Ldloc_3
+  ; OPT   #branch_true Game_Run_15 ; Brtrue_s
+    #branch_if_var_less 2, 100, Game_Run_15 ; Nop
     nop ; Nop
-label_Game_Run_47:    jmp label_Game_Run_3 ; Br_s
+Game_Run_46:    jmp Game_Run_3 ; Br_s
 
 
 ;----------------------------------------
@@ -372,8 +374,8 @@ Game_Step
   ; OPT   #stack_push_int 0 ; Ldc_i4_0
   ; OPT   #locals_pull_value_8 3, 0 ; Stloc_1
     #init_var 3, 0 ; Nop
-    jmp label_Game_Step_23 ; Br_s
-label_Game_Step_5:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+    jmp Game_Step_23 ; Br_s
+Game_Step_5:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 0 ; Ldfld
     #pushfld 0 ; Nop
     #locals_push_value_8 3 ; Ldloc_1
@@ -385,7 +387,7 @@ label_Game_Step_5:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #add ; Add
   ; OPT   #locals_pull_value_8 3, 0 ; Stloc_1
     #inc_var 3 ; Nop
-label_Game_Step_23:    #locals_push_value_8 3 ; Ldloc_1
+Game_Step_23:    #locals_push_value_8 3 ; Ldloc_1
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 0 ; Ldfld
     #pushfld 0 ; Nop
@@ -394,15 +396,15 @@ label_Game_Step_23:    #locals_push_value_8 3 ; Ldloc_1
     #compareLess ; Clt
     #locals_pull_value_8 4, 0 ; Stloc_2
     #locals_push_value_8 4 ; Ldloc_2
-    #branch_true label_Game_Step_5 ; Brtrue_s
+    #branch_true Game_Step_5 ; Brtrue_s
   ; OPT   #stack_push_int 255 ; Ldc_i4
   ; OPT   #locals_pull_value_8 2, 0 ; Stloc_0
     #init_var 2, 255 ; Nop
   ; OPT   #stack_push_int 0 ; Ldc_i4_0
   ; OPT   #locals_pull_value_8 5, 0 ; Stloc_3
     #init_var 5, 0 ; Nop
-    jmp label_Game_Step_105 ; Br_s
-label_Game_Step_48:    nop ; Nop
+    jmp Game_Step_105 ; Br_s
+Game_Step_48:    nop ; Nop
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 2 ; Ldfld
     #pushfld 2 ; Nop
@@ -423,16 +425,16 @@ label_Game_Step_48:    nop ; Nop
     #compareLess ; Clt_un
     #locals_pull_value_8 7, 0 ; Stloc_s
     #locals_push_value_8 7 ; Ldloc_s
-    #branch_false label_Game_Step_100 ; Brfalse_s
+    #branch_false Game_Step_100 ; Brfalse_s
     #locals_push_value_8 6 ; Ldloc_s
     #locals_pull_value_8 2, 0 ; Stloc_0
-label_Game_Step_100:    nop ; Nop
+Game_Step_100:    nop ; Nop
   ; OPT   #locals_push_value_8 5 ; Ldloc_3
   ; OPT   #stack_push_int 1 ; Ldc_i4_1
   ; OPT   #add ; Add
   ; OPT   #locals_pull_value_8 5, 0 ; Stloc_3
     #inc_var 5 ; Nop
-label_Game_Step_105:    #locals_push_value_8 5 ; Ldloc_3
+Game_Step_105:    #locals_push_value_8 5 ; Ldloc_3
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 2 ; Ldfld
     #pushfld 2 ; Nop
@@ -441,7 +443,7 @@ label_Game_Step_105:    #locals_push_value_8 5 ; Ldloc_3
     #compareLess ; Clt
     #locals_pull_value_8 8, 0 ; Stloc_s
     #locals_push_value_8 8 ; Ldloc_s
-    #branch_true label_Game_Step_48 ; Brtrue_s
+    #branch_true Game_Step_48 ; Brtrue_s
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 1 ; Ldfld
     #pushfld 1 ; Nop
@@ -461,13 +463,13 @@ Game_ClearScreen
   ; OPT   #stack_push_int 0 ; Ldc_i4_0
   ; OPT   #locals_pull_value_8 1, 0 ; Stloc_0
     #init_var 1, 0 ; Nop
-    jmp label_Game_ClearScreen_42 ; Br_s
-label_Game_ClearScreen_5:    nop ; Nop
+    jmp Game_ClearScreen_42 ; Br_s
+Game_ClearScreen_5:    nop ; Nop
   ; OPT   #stack_push_int 0 ; Ldc_i4_0
   ; OPT   #locals_pull_value_8 2, 0 ; Stloc_1
     #init_var 2, 0 ; Nop
-    jmp label_Game_ClearScreen_28 ; Br_s
-label_Game_ClearScreen_10:    nop ; Nop
+    jmp Game_ClearScreen_28 ; Br_s
+Game_ClearScreen_10:    nop ; Nop
     #locals_push_value_8 1 ; Ldloc_0
     #locals_push_value_8 2 ; Ldloc_1
     #stack_push_int 32 ; Ldc_i4_s
@@ -480,22 +482,24 @@ label_Game_ClearScreen_10:    nop ; Nop
   ; OPT   #add ; Add
   ; OPT   #locals_pull_value_8 2, 0 ; Stloc_1
     #inc_var 2 ; Nop
-label_Game_ClearScreen_28:    #locals_push_value_8 2 ; Ldloc_1
-    #stack_push_int 25 ; Ldc_i4_s
-    #compareLess ; Clt_un
-    #locals_pull_value_8 3, 0 ; Stloc_2
-    #locals_push_value_8 3 ; Ldloc_2
-    #branch_true label_Game_ClearScreen_10 ; Brtrue_s
+Game_ClearScreen_28:  ; OPT   #locals_push_value_8 2 ; Ldloc_1
+  ; OPT   #stack_push_int 25 ; Ldc_i4_s
+  ; OPT   #compareLess ; Clt_un
+  ; OPT   #locals_pull_value_8 3, 0 ; Stloc_2
+  ; OPT   #locals_push_value_8 3 ; Ldloc_2
+  ; OPT   #branch_true Game_ClearScreen_10 ; Brtrue_s
+    #branch_if_var_less 2, 25, Game_ClearScreen_10 ; Nop
     nop ; Nop
   ; OPT   #locals_push_value_8 1 ; Ldloc_0
   ; OPT   #stack_push_int 1 ; Ldc_i4_1
   ; OPT   #add ; Add
   ; OPT   #locals_pull_value_8 1, 0 ; Stloc_0
     #inc_var 1 ; Nop
-label_Game_ClearScreen_42:    #locals_push_value_8 1 ; Ldloc_0
-    #stack_push_int 40 ; Ldc_i4_s
-    #compareLess ; Clt_un
-    #locals_pull_value_8 4, 0 ; Stloc_3
-    #locals_push_value_8 4 ; Ldloc_3
-    #branch_true label_Game_ClearScreen_5 ; Brtrue_s
+Game_ClearScreen_42:  ; OPT   #locals_push_value_8 1 ; Ldloc_0
+  ; OPT   #stack_push_int 40 ; Ldc_i4_s
+  ; OPT   #compareLess ; Clt_un
+  ; OPT   #locals_pull_value_8 4, 0 ; Stloc_3
+  ; OPT   #locals_push_value_8 4 ; Ldloc_3
+  ; OPT   #branch_true Game_ClearScreen_5 ; Brtrue_s
+    #branch_if_var_less 1, 40, Game_ClearScreen_5 ; Nop
     #locals_method_exit 6 ; Ret

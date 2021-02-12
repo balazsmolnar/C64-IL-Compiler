@@ -10,11 +10,17 @@ PlatformEnemy_set_Platform
     #locals_pull_param_8 0
     nop ; Nop
     #locals_push_value_8 1 ; Ldarg_0
-    #stack_push_int 100 ; Ldc_i4_s
+    #locals_push_value_8 2 ; Ldarg_1
+    #ldfld 3 ; Ldfld
+    #stack_push_int 20 ; Ldc_i4_s
+    #add ; Add
     jsr PlatformEnemy_set_MinX ; Call
     nop ; Nop
     #locals_push_value_8 1 ; Ldarg_0
-    #stack_push_int 200 ; Ldc_i4
+    #locals_push_value_8 2 ; Ldarg_1
+    #ldfld 4 ; Ldfld
+    #stack_push_int 20 ; Ldc_i4_s
+    #sub ; Sub
     jsr PlatformEnemy_set_MaxX ; Call
     nop ; Nop
     #locals_push_value_8 1 ; Ldarg_0
@@ -99,7 +105,7 @@ PlatformEnemy_Move
     #pushfld 7 ; Nop
     #locals_pull_value_8 2, 0 ; Stloc_0
     #locals_push_value_8 2 ; Ldloc_0
-    #branch_false label_PlatformEnemy_Move_60 ; Brfalse_s
+    #branch_false PlatformEnemy_Move_60 ; Brfalse_s
     nop ; Nop
     #locals_push_value_8 1 ; Ldarg_0
     #locals_push_value_8 1 ; Ldarg_0
@@ -117,13 +123,13 @@ PlatformEnemy_Move
     #compareGreater ; Cgt_un
     #locals_pull_value_8 3, 0 ; Stloc_1
     #locals_push_value_8 3 ; Ldloc_1
-    #branch_false label_PlatformEnemy_Move_57 ; Brfalse_s
+    #branch_false PlatformEnemy_Move_57 ; Brfalse_s
     #locals_push_value_8 1 ; Ldarg_0
     #stack_push_int 0 ; Ldc_i4_0
     #stfld 7 ; Stfld
-label_PlatformEnemy_Move_57:    nop ; Nop
-    jmp label_PlatformEnemy_Move_107 ; Br_s
-label_PlatformEnemy_Move_60:    nop ; Nop
+PlatformEnemy_Move_57:    nop ; Nop
+    jmp PlatformEnemy_Move_107 ; Br_s
+PlatformEnemy_Move_60:    nop ; Nop
     #locals_push_value_8 1 ; Ldarg_0
     #locals_push_value_8 1 ; Ldarg_0
     jsr PlatformEnemy_get_X ; Call
@@ -140,12 +146,12 @@ label_PlatformEnemy_Move_60:    nop ; Nop
     #compareLess ; Clt_un
     #locals_pull_value_8 4, 0 ; Stloc_2
     #locals_push_value_8 4 ; Ldloc_2
-    #branch_false label_PlatformEnemy_Move_106 ; Brfalse_s
+    #branch_false PlatformEnemy_Move_106 ; Brfalse_s
     #locals_push_value_8 1 ; Ldarg_0
     #stack_push_int 1 ; Ldc_i4_1
     #stfld 7 ; Stfld
-label_PlatformEnemy_Move_106:    nop ; Nop
-label_PlatformEnemy_Move_107:    #locals_method_exit 6 ; Ret
+PlatformEnemy_Move_106:    nop ; Nop
+PlatformEnemy_Move_107:    #locals_method_exit 6 ; Ret
 
 
 ;----------------------------------------
@@ -159,8 +165,8 @@ PlatformEnemy_get_X
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 0 ; Ldfld
   ; OPT   #locals_pull_value_8 2, 0 ; Stloc_0
-  ; OPT   jmp label_PlatformEnemy_get_X_10 ; Br_s
-label_PlatformEnemy_get_X_10:  ; OPT   #locals_push_value_8 2 ; Ldloc_0
+  ; OPT   jmp PlatformEnemy_get_X_10 ; Br_s
+PlatformEnemy_get_X_10:  ; OPT   #locals_push_value_8 2 ; Ldloc_0
     #pushfld 0 ; Nop
     #locals_method_exit 4 ; Ret
 
@@ -197,8 +203,8 @@ PlatformEnemy_get_Y
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 1 ; Ldfld
   ; OPT   #locals_pull_value_8 2, 0 ; Stloc_0
-  ; OPT   jmp label_PlatformEnemy_get_Y_10 ; Br_s
-label_PlatformEnemy_get_Y_10:  ; OPT   #locals_push_value_8 2 ; Ldloc_0
+  ; OPT   jmp PlatformEnemy_get_Y_10 ; Br_s
+PlatformEnemy_get_Y_10:  ; OPT   #locals_push_value_8 2 ; Ldloc_0
     #pushfld 1 ; Nop
     #locals_method_exit 4 ; Ret
 

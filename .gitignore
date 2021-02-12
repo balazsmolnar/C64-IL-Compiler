@@ -6,3 +6,4 @@ prg/test.prg
 prg/main.labels
 prg/dump.asm
 all.l
+asm/generated/__c.asm

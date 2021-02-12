@@ -18,7 +18,7 @@ namespace Compiler
                 if (line.OpCode.IsBranch())
                 {
                     var target = (int)line.Parameter + line.Position;
-                    var label = $"label_{context.Method.DeclaringType.Name}_{context.Method.Name}_{target}";
+                    var label = $"{context.Method.GetLabel()}_{target}";
                     if (!labelPositions.ContainsKey(target))
                         labelPositions.Add(target, label);
                     line.Parameter = label;

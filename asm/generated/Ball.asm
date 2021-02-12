@@ -11,8 +11,8 @@ Ball_get_X
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 0 ; Ldfld
   ; OPT   #locals_pull_value_8 2, 0 ; Stloc_0
-  ; OPT   jmp label_Ball_get_X_10 ; Br_s
-label_Ball_get_X_10:  ; OPT   #locals_push_value_8 2 ; Ldloc_0
+  ; OPT   jmp Ball_get_X_10 ; Br_s
+Ball_get_X_10:  ; OPT   #locals_push_value_8 2 ; Ldloc_0
     #pushfld 0 ; Nop
     #locals_method_exit 4 ; Ret
 
@@ -49,8 +49,8 @@ Ball_get_Y
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 1 ; Ldfld
   ; OPT   #locals_pull_value_8 2, 0 ; Stloc_0
-  ; OPT   jmp label_Ball_get_Y_10 ; Br_s
-label_Ball_get_Y_10:  ; OPT   #locals_push_value_8 2 ; Ldloc_0
+  ; OPT   jmp Ball_get_Y_10 ; Br_s
+Ball_get_Y_10:  ; OPT   #locals_push_value_8 2 ; Ldloc_0
     #pushfld 1 ; Nop
     #locals_method_exit 4 ; Ret
 
@@ -219,53 +219,53 @@ Ball_Move
     #compareGreater ; Cgt_un
     #locals_pull_value_8 2, 0 ; Stloc_0
     #locals_push_value_8 2 ; Ldloc_0
-    #branch_false label_Ball_Move_78 ; Brfalse_s
+    #branch_false Ball_Move_78 ; Brfalse_s
     #locals_push_value_8 1 ; Ldarg_0
     #locals_push_value_8 1 ; Ldarg_0
     jsr Ball_get_VX ; Call
     #negate ; Neg
     jsr Ball_set_VX ; Call
     nop ; Nop
-label_Ball_Move_78:    #locals_push_value_8 1 ; Ldarg_0
+Ball_Move_78:    #locals_push_value_8 1 ; Ldarg_0
     jsr Ball_get_X ; Call
     #stack_push_int 20 ; Ldc_i4_s
     #compareLess ; Clt_un
     #locals_pull_value_8 3, 0 ; Stloc_1
     #locals_push_value_8 3 ; Ldloc_1
-    #branch_false label_Ball_Move_106 ; Brfalse_s
+    #branch_false Ball_Move_106 ; Brfalse_s
     #locals_push_value_8 1 ; Ldarg_0
     #locals_push_value_8 1 ; Ldarg_0
     jsr Ball_get_VX ; Call
     #negate ; Neg
     jsr Ball_set_VX ; Call
     nop ; Nop
-label_Ball_Move_106:    #locals_push_value_8 1 ; Ldarg_0
+Ball_Move_106:    #locals_push_value_8 1 ; Ldarg_0
     jsr Ball_get_Y ; Call
     #stack_push_int 228 ; Ldc_i4
     #compareGreater ; Cgt_un
     #locals_pull_value_8 4, 0 ; Stloc_2
     #locals_push_value_8 4 ; Ldloc_2
-    #branch_false label_Ball_Move_137 ; Brfalse_s
+    #branch_false Ball_Move_137 ; Brfalse_s
     #locals_push_value_8 1 ; Ldarg_0
     #locals_push_value_8 1 ; Ldarg_0
     jsr Ball_get_VY ; Call
     #negate ; Neg
     jsr Ball_set_VY ; Call
     nop ; Nop
-label_Ball_Move_137:    #locals_push_value_8 1 ; Ldarg_0
+Ball_Move_137:    #locals_push_value_8 1 ; Ldarg_0
     jsr Ball_get_Y ; Call
     #stack_push_int 45 ; Ldc_i4_s
     #compareLess ; Clt_un
     #locals_pull_value_8 5, 0 ; Stloc_3
     #locals_push_value_8 5 ; Ldloc_3
-    #branch_false label_Ball_Move_165 ; Brfalse_s
+    #branch_false Ball_Move_165 ; Brfalse_s
     #locals_push_value_8 1 ; Ldarg_0
     #locals_push_value_8 1 ; Ldarg_0
     jsr Ball_get_VY ; Call
     #negate ; Neg
     jsr Ball_set_VY ; Call
     nop ; Nop
-label_Ball_Move_165:    #locals_method_exit 7 ; Ret
+Ball_Move_165:    #locals_method_exit 7 ; Ret
 
 
 ;----------------------------------------
@@ -344,8 +344,8 @@ Ball_RunBalls
     #stack_push_int 4 ; Ldc_i4_4
     jsr Ball_set_BallColor ; Callvirt
     nop ; Nop
-    jmp label_Ball_RunBalls_217 ; Br_s
-label_Ball_RunBalls_171:    nop ; Nop
+    jmp Ball_RunBalls_217 ; Br_s
+Ball_RunBalls_171:    nop ; Nop
     #locals_push_value_8 1 ; Ldloc_0
     jsr Ball_Move ; Callvirt
     nop ; Nop
@@ -358,18 +358,18 @@ label_Ball_RunBalls_171:    nop ; Nop
   ; OPT   #stack_push_int 0 ; Ldc_i4_0
   ; OPT   #locals_pull_value_8 4, 0 ; Stloc_3
     #init_var 4, 0 ; Nop
-    jmp label_Ball_RunBalls_202 ; Br_s
-label_Ball_RunBalls_197:    nop ; Nop
+    jmp Ball_RunBalls_202 ; Br_s
+Ball_RunBalls_197:    nop ; Nop
   ; OPT   #locals_push_value_8 4 ; Ldloc_3
   ; OPT   #stack_push_int 1 ; Ldc_i4_1
   ; OPT   #add ; Add
   ; OPT   #locals_pull_value_8 4, 0 ; Stloc_3
     #inc_var 4 ; Nop
-label_Ball_RunBalls_202:    #locals_push_value_8 4 ; Ldloc_3
+Ball_RunBalls_202:    #locals_push_value_8 4 ; Ldloc_3
     #stack_push_int 255 ; Ldc_i4
     #compareLess ; Clt_un
     #locals_pull_value_8 5, 0 ; Stloc_s
     #locals_push_value_8 5 ; Ldloc_s
-    #branch_true label_Ball_RunBalls_197 ; Brtrue_s
+    #branch_true Ball_RunBalls_197 ; Brtrue_s
     nop ; Nop
-label_Ball_RunBalls_217:    jmp label_Ball_RunBalls_171 ; Br_s
+Ball_RunBalls_217:    jmp Ball_RunBalls_171 ; Br_s

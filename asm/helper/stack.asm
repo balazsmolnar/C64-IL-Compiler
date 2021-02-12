@@ -57,6 +57,10 @@ stack_duplicate .macro
   pha
 .endm
 
+stack_pop .macro
+  pla
+.endm
+
 stack_save_return_adress .macro variable 
   pla
   sta \variable+1

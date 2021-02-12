@@ -72,8 +72,8 @@ Player_get_X
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 0 ; Ldfld
   ; OPT   #locals_pull_value_8 2, 0 ; Stloc_0
-  ; OPT   jmp label_Player_get_X_10 ; Br_s
-label_Player_get_X_10:  ; OPT   #locals_push_value_8 2 ; Ldloc_0
+  ; OPT   jmp Player_get_X_10 ; Br_s
+Player_get_X_10:  ; OPT   #locals_push_value_8 2 ; Ldloc_0
     #pushfld 0 ; Nop
     #locals_method_exit 4 ; Ret
 
@@ -89,8 +89,8 @@ Player_get_Y
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 1 ; Ldfld
   ; OPT   #locals_pull_value_8 2, 0 ; Stloc_0
-  ; OPT   jmp label_Player_get_Y_10 ; Br_s
-label_Player_get_Y_10:  ; OPT   #locals_push_value_8 2 ; Ldloc_0
+  ; OPT   jmp Player_get_Y_10 ; Br_s
+Player_get_Y_10:  ; OPT   #locals_push_value_8 2 ; Ldloc_0
     #pushfld 1 ; Nop
     #locals_method_exit 4 ; Ret
 
@@ -108,52 +108,52 @@ Player_Move
   ; OPT   #ldfld 5 ; Ldfld
     #pushfld 5 ; Nop
     jsr Sprite_get_IsInCollision ; Callvirt
-    #branch_true label_Player_Move_29 ; Brtrue_s
+    #branch_true Player_Move_29 ; Brtrue_s
     #locals_push_value_8 1 ; Ldarg_0
     jsr Player_get_Y ; Call
     #stack_push_int 240 ; Ldc_i4
     #compareGreater ; Cgt_un
-    jmp label_Player_Move_30 ; Br_s
-label_Player_Move_29:    #stack_push_int 1 ; Ldc_i4_1
-label_Player_Move_30:    #locals_pull_value_8 4, 0 ; Stloc_1
+    jmp Player_Move_30 ; Br_s
+Player_Move_29:    #stack_push_int 1 ; Ldc_i4_1
+Player_Move_30:    #locals_pull_value_8 4, 0 ; Stloc_1
     #locals_push_value_8 4 ; Ldloc_1
-    #branch_false label_Player_Move_47 ; Brfalse_s
+    #branch_false Player_Move_47 ; Brfalse_s
     nop ; Nop
     #locals_push_value_8 1 ; Ldarg_0
     jsr Player_Die ; Call
     nop ; Nop
-    jmp label_Player_Move_572 ; Br
-label_Player_Move_47:  ; OPT   #stack_push_int 0 ; Ldc_i4_0
+    jmp Player_Move_572 ; Br
+Player_Move_47:  ; OPT   #stack_push_int 0 ; Ldc_i4_0
   ; OPT   #locals_pull_value_8 3, 0 ; Stloc_0
     #init_var 3, 0 ; Nop
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 3 ; Ldfld
     #pushfld 3 ; Nop
-    #branch_true label_Player_Move_63 ; Brtrue_s
+    #branch_true Player_Move_63 ; Brtrue_s
     #locals_push_value_8 2 ; Ldarg_1
     #stack_push_int 4 ; Ldc_i4_4
     #compareGreater ; Cgt_un
-    jmp label_Player_Move_64 ; Br_s
-label_Player_Move_63:    #stack_push_int 0 ; Ldc_i4_0
-label_Player_Move_64:    #locals_pull_value_8 5, 0 ; Stloc_2
+    jmp Player_Move_64 ; Br_s
+Player_Move_63:    #stack_push_int 0 ; Ldc_i4_0
+Player_Move_64:    #locals_pull_value_8 5, 0 ; Stloc_2
     #locals_push_value_8 5 ; Ldloc_2
-    #branch_false label_Player_Move_70 ; Brfalse_s
+    #branch_false Player_Move_70 ; Brfalse_s
   ; OPT   #stack_push_int 1 ; Ldc_i4_1
   ; OPT   #locals_pull_value_8 3, 0 ; Stloc_0
     #init_var 3, 1 ; Nop
-label_Player_Move_70:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+Player_Move_70:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 3 ; Ldfld
     #pushfld 3 ; Nop
-    #branch_true label_Player_Move_90 ; Brtrue_s
+    #branch_true Player_Move_90 ; Brtrue_s
     #locals_push_value_8 3 ; Ldloc_0
-    #branch_true label_Player_Move_90 ; Brtrue_s
+    #branch_true Player_Move_90 ; Brtrue_s
     #stack_push_int 22 ; Ldc_i4_s
     jsr C64_IsKeyPressed ; Call
-    jmp label_Player_Move_91 ; Br_s
-label_Player_Move_90:    #stack_push_int 0 ; Ldc_i4_0
-label_Player_Move_91:    #locals_pull_value_8 6, 0 ; Stloc_3
+    jmp Player_Move_91 ; Br_s
+Player_Move_90:    #stack_push_int 0 ; Ldc_i4_0
+Player_Move_91:    #locals_pull_value_8 6, 0 ; Stloc_3
     #locals_push_value_8 6 ; Ldloc_3
-    #branch_false label_Player_Move_111 ; Brfalse_s
+    #branch_false Player_Move_111 ; Brfalse_s
     nop ; Nop
     #locals_push_value_8 1 ; Ldarg_0
     #stack_push_int 1 ; Ldc_i4_1
@@ -162,11 +162,11 @@ label_Player_Move_91:    #locals_pull_value_8 6, 0 ; Stloc_3
     #stack_push_int 0 ; Ldc_i4_0
     #stfld 4 ; Stfld
     nop ; Nop
-label_Player_Move_111:    #stack_push_int 0 ; Ldc_i4_0
+Player_Move_111:    #stack_push_int 0 ; Ldc_i4_0
     jsr C64_IsKeyPressed ; Call
     #locals_pull_value_8 7, 0 ; Stloc_s
     #locals_push_value_8 7 ; Ldloc_s
-    #branch_false label_Player_Move_299 ; Brfalse
+    #branch_false Player_Move_299 ; Brfalse
     nop ; Nop
     #locals_push_value_8 1 ; Ldarg_0
     jsr Player_get_X ; Call
@@ -184,11 +184,11 @@ label_Player_Move_111:    #stack_push_int 0 ; Ldc_i4_0
     #compareLess ; Clt
     #locals_pull_value_8 9, 0 ; Stloc_s
     #locals_push_value_8 9 ; Ldloc_s
-    #branch_false label_Player_Move_168 ; Brfalse_s
+    #branch_false Player_Move_168 ; Brfalse_s
     #locals_push_value_8 1 ; Ldarg_0
     #stack_push_int 5 ; Ldc_i4_5
     #stfld 2 ; Stfld
-label_Player_Move_168:    #locals_push_value_8 1 ; Ldarg_0
+Player_Move_168:    #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 2 ; Ldfld
     #pushfld 2 ; Nop
@@ -202,16 +202,16 @@ label_Player_Move_168:    #locals_push_value_8 1 ; Ldarg_0
     #compareEqual ; Ceq
     #locals_pull_value_8 10, 0 ; Stloc_s
     #locals_push_value_8 10 ; Ldloc_s
-    #branch_false label_Player_Move_205 ; Brfalse_s
+    #branch_false Player_Move_205 ; Brfalse_s
     #locals_push_value_8 1 ; Ldarg_0
     #stack_push_int 6 ; Ldc_i4_6
     #stfld 2 ; Stfld
-label_Player_Move_205:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+Player_Move_205:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 3 ; Ldfld
     #pushfld 3 ; Nop
     #locals_pull_value_8 11, 0 ; Stloc_s
     #locals_push_value_8 11 ; Ldloc_s
-    #branch_false label_Player_Move_245 ; Brfalse_s
+    #branch_false Player_Move_245 ; Brfalse_s
     nop ; Nop
     #locals_push_value_8 1 ; Ldarg_0
     jsr Player_get_X ; Call
@@ -226,10 +226,10 @@ label_Player_Move_205:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
     #stack_push_int 7 ; Ldc_i4_7
     #stfld 2 ; Stfld
     nop ; Nop
-label_Player_Move_245:    #locals_push_value_8 3 ; Ldloc_0
+Player_Move_245:    #locals_push_value_8 3 ; Ldloc_0
     #locals_pull_value_8 12, 0 ; Stloc_s
     #locals_push_value_8 12 ; Ldloc_s
-    #branch_false label_Player_Move_280 ; Brfalse_s
+    #branch_false Player_Move_280 ; Brfalse_s
     nop ; Nop
     #locals_push_value_8 1 ; Ldarg_0
     jsr Player_get_X ; Call
@@ -244,7 +244,7 @@ label_Player_Move_245:    #locals_push_value_8 3 ; Ldloc_0
     #stack_push_int 7 ; Ldc_i4_7
     #stfld 2 ; Stfld
     nop ; Nop
-label_Player_Move_280:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+Player_Move_280:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 5 ; Ldfld
     #pushfld 5 ; Nop
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
@@ -253,11 +253,11 @@ label_Player_Move_280:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
     jsr Sprite_set_DataBlock ; Callvirt
     nop ; Nop
     nop ; Nop
-label_Player_Move_299:    #stack_push_int 3 ; Ldc_i4_3
+Player_Move_299:    #stack_push_int 3 ; Ldc_i4_3
     jsr C64_IsKeyPressed ; Call
     #locals_pull_value_8 13, 0 ; Stloc_s
     #locals_push_value_8 13 ; Ldloc_s
-    #branch_false label_Player_Move_464 ; Brfalse
+    #branch_false Player_Move_464 ; Brfalse
     nop ; Nop
     #locals_push_value_8 1 ; Ldarg_0
     jsr Player_get_X ; Call
@@ -282,16 +282,16 @@ label_Player_Move_299:    #stack_push_int 3 ; Ldc_i4_3
     #compareGreater ; Cgt
     #locals_pull_value_8 14, 0 ; Stloc_s
     #locals_push_value_8 14 ; Ldloc_s
-    #branch_false label_Player_Move_370 ; Brfalse_s
+    #branch_false Player_Move_370 ; Brfalse_s
     #locals_push_value_8 1 ; Ldarg_0
     #stack_push_int 1 ; Ldc_i4_1
     #stfld 2 ; Stfld
-label_Player_Move_370:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+Player_Move_370:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 3 ; Ldfld
     #pushfld 3 ; Nop
     #locals_pull_value_8 15, 0 ; Stloc_s
     #locals_push_value_8 15 ; Ldloc_s
-    #branch_false label_Player_Move_410 ; Brfalse_s
+    #branch_false Player_Move_410 ; Brfalse_s
     nop ; Nop
     #locals_push_value_8 1 ; Ldarg_0
     jsr Player_get_X ; Call
@@ -306,10 +306,10 @@ label_Player_Move_370:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
     #stack_push_int 2 ; Ldc_i4_2
     #stfld 2 ; Stfld
     nop ; Nop
-label_Player_Move_410:    #locals_push_value_8 3 ; Ldloc_0
+Player_Move_410:    #locals_push_value_8 3 ; Ldloc_0
     #locals_pull_value_8 16, 0 ; Stloc_s
     #locals_push_value_8 16 ; Ldloc_s
-    #branch_false label_Player_Move_445 ; Brfalse_s
+    #branch_false Player_Move_445 ; Brfalse_s
     nop ; Nop
     #locals_push_value_8 1 ; Ldarg_0
     jsr Player_get_X ; Call
@@ -324,7 +324,7 @@ label_Player_Move_410:    #locals_push_value_8 3 ; Ldloc_0
     #stack_push_int 2 ; Ldc_i4_2
     #stfld 2 ; Stfld
     nop ; Nop
-label_Player_Move_445:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+Player_Move_445:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 5 ; Ldfld
     #pushfld 5 ; Nop
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
@@ -333,12 +333,12 @@ label_Player_Move_445:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
     jsr Sprite_set_DataBlock ; Callvirt
     nop ; Nop
     nop ; Nop
-label_Player_Move_464:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+Player_Move_464:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 3 ; Ldfld
     #pushfld 3 ; Nop
     #locals_pull_value_8 17, 0 ; Stloc_s
     #locals_push_value_8 17 ; Ldloc_s
-    #branch_false label_Player_Move_548 ; Brfalse_s
+    #branch_false Player_Move_548 ; Brfalse_s
     nop ; Nop
     #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
@@ -355,11 +355,11 @@ label_Player_Move_464:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 4 ; Ldfld
     #pushfld 4 ; Nop
     #stack_push_int 10 ; Ldc_i4_s
-    #branch_less label_Player_Move_512 ; Blt_s
+    #branch_less Player_Move_512 ; Blt_s
     #stack_push_int 1 ; Ldc_i4_1
-    jmp label_Player_Move_513 ; Br_s
-label_Player_Move_512:    #stack_push_int 3 ; Ldc_i4_3
-label_Player_Move_513:    nop ;Conv_i8 ; Conv_i8
+    jmp Player_Move_513 ; Br_s
+Player_Move_512:    #stack_push_int 3 ; Ldc_i4_3
+Player_Move_513:    nop ;Conv_i8 ; Conv_i8
     #sub ; Sub
     nop ;Conv_u4 ; Conv_u4
     jsr Player_set_Y ; Call
@@ -371,17 +371,17 @@ label_Player_Move_513:    nop ;Conv_i8 ; Conv_i8
     #compareEqual ; Ceq
     #locals_pull_value_8 18, 0 ; Stloc_s
     #locals_push_value_8 18 ; Ldloc_s
-    #branch_false label_Player_Move_547 ; Brfalse_s
+    #branch_false Player_Move_547 ; Brfalse_s
     nop ; Nop
     #locals_push_value_8 1 ; Ldarg_0
     #stack_push_int 0 ; Ldc_i4_0
     #stfld 3 ; Stfld
     nop ; Nop
-label_Player_Move_547:    nop ; Nop
-label_Player_Move_548:    #locals_push_value_8 3 ; Ldloc_0
+Player_Move_547:    nop ; Nop
+Player_Move_548:    #locals_push_value_8 3 ; Ldloc_0
     #locals_pull_value_8 19, 0 ; Stloc_s
     #locals_push_value_8 19 ; Ldloc_s
-    #branch_false label_Player_Move_572 ; Brfalse_s
+    #branch_false Player_Move_572 ; Brfalse_s
     nop ; Nop
     #locals_push_value_8 1 ; Ldarg_0
     #locals_push_value_8 1 ; Ldarg_0
@@ -391,7 +391,7 @@ label_Player_Move_548:    #locals_push_value_8 3 ; Ldloc_0
     jsr Player_set_Y ; Call
     nop ; Nop
     nop ; Nop
-label_Player_Move_572:    #locals_method_exit 21 ; Ret
+Player_Move_572:    #locals_method_exit 21 ; Ret
 
 
 ;----------------------------------------
@@ -450,36 +450,36 @@ Player_Die
   ; OPT   #stack_push_int 0 ; Ldc_i4_0
   ; OPT   #locals_pull_value_8 2, 0 ; Stloc_0
     #init_var 2, 0 ; Nop
-    jmp label_Player_Die_34 ; Br_s
-label_Player_Die_12:  ; OPT   #stack_push_int 0 ; Ldc_i4_0
+    jmp Player_Die_34 ; Br_s
+Player_Die_12:  ; OPT   #stack_push_int 0 ; Ldc_i4_0
   ; OPT   #locals_pull_value_8 3, 0 ; Stloc_1
     #init_var 3, 0 ; Nop
-    jmp label_Player_Die_21 ; Br_s
-label_Player_Die_16:    nop ; Nop
+    jmp Player_Die_21 ; Br_s
+Player_Die_16:    nop ; Nop
   ; OPT   #locals_push_value_8 3 ; Ldloc_1
   ; OPT   #stack_push_int 1 ; Ldc_i4_1
   ; OPT   #add ; Add
   ; OPT   #locals_pull_value_8 3, 0 ; Stloc_1
     #inc_var 3 ; Nop
-label_Player_Die_21:  ; OPT   #locals_push_value_8 3 ; Ldloc_1
+Player_Die_21:  ; OPT   #locals_push_value_8 3 ; Ldloc_1
   ; OPT   #stack_push_int 100 ; Ldc_i4_s
   ; OPT   #compareLess ; Clt
   ; OPT   #locals_pull_value_8 4, 0 ; Stloc_2
   ; OPT   #locals_push_value_8 4 ; Ldloc_2
-  ; OPT   #branch_true label_Player_Die_16 ; Brtrue_s
-    #branch_if_var_less 3, 100, label_Player_Die_16 ; Nop
+  ; OPT   #branch_true Player_Die_16 ; Brtrue_s
+    #branch_if_var_less 3, 100, Player_Die_16 ; Nop
   ; OPT   #locals_push_value_8 2 ; Ldloc_0
   ; OPT   #stack_push_int 1 ; Ldc_i4_1
   ; OPT   #add ; Add
   ; OPT   #locals_pull_value_8 2, 0 ; Stloc_0
     #inc_var 2 ; Nop
-label_Player_Die_34:  ; OPT   #locals_push_value_8 2 ; Ldloc_0
+Player_Die_34:  ; OPT   #locals_push_value_8 2 ; Ldloc_0
   ; OPT   #stack_push_int 100 ; Ldc_i4_s
   ; OPT   #compareLess ; Clt
   ; OPT   #locals_pull_value_8 5, 0 ; Stloc_3
   ; OPT   #locals_push_value_8 5 ; Ldloc_3
-  ; OPT   #branch_true label_Player_Die_12 ; Brtrue_s
-    #branch_if_var_less 2, 100, label_Player_Die_12 ; Nop
+  ; OPT   #branch_true Player_Die_12 ; Brtrue_s
+    #branch_if_var_less 2, 100, Player_Die_12 ; Nop
     #stack_push_int 0 ; Ldc_i4_0
     jsr C64_SetBorderColor ; Call
     nop ; Nop

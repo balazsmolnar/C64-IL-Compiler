@@ -34,9 +34,11 @@ namespace Compiler
             foreach (var @type in context.Assembly.GetTypes())
             {
                 // context.GlobalOutputFile.WriteLine($".include \".\\\\{type.Name}.asm\"");
-                var import = $"\"./{type.Name}.asm\"";
+
+                var normalizedName = type.Name.ToValidName();
+                var import = $"\"./{normalizedName}.asm\"";
                 context.GlobalOutputFile.WriteLine($".include {import}");
-                using (var outputFile = File.CreateText(Path.Combine(context.OutputDirectory, $"{type.Name}.asm")))
+                using (var outputFile = File.CreateText(Path.Combine(context.OutputDirectory, $"{normalizedName}.asm")))
                 {
 
                     var typeContext = new CompilerTypeContext()

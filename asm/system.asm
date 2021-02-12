@@ -13,7 +13,7 @@ Console_WriteLine
 Console_Write
 
 
-        #stack_save_return_adress $20
+        #stack_save_return_adress zp_tmp1_low
         ; pull variable from stack
         #stack_pull_pointer $30
 
@@ -24,4 +24,4 @@ Console_Write
 			iny		; advance pointer
 +			lda ($30),y	; get character
 			bne -		; check whether last
-        #stack_return_to_saved_address $20
+        #stack_return_to_saved_address zp_tmp1_low

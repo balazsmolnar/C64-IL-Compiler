@@ -61,7 +61,7 @@ stack_pop .macro
   pla
 .endm
 
-stack_save_return_adress .macro variable 
+stack_save_return_adress .macro variable
   pla
   sta \variable+1
   pla

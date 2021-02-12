@@ -48,7 +48,7 @@ C64_SetChar_Core
     sta $31
     lda $36
     sta ($30),y
-    #stack_return_to_saved_address C64_SetChar_ReturnAddress
+    #stack_return_to_saved_address zp_tmp1_low
 
 C64_GetChar_Core
 
@@ -65,66 +65,57 @@ C64_GetChar_Core
     rts
 
 C64_SetChar
-    #stack_save_return_adress C64_SetChar_ReturnAddress
+    #stack_save_return_adress zp_tmp1_low
     #stack_pull_int $38
     #stack_pull_int $36
     #stack_pull_int $34
     #stack_pull_int $32
 
     jmp C64_SetChar_Core
-C64_SetChar_ReturnAddress .byte 0,0
-
 
 C64_GetChar
-    #stack_save_return_adress C64_GetChar_ReturnAddress
+    #stack_save_return_adress zp_tmp1_low
     #stack_pull_int $34
     #stack_pull_int $32
     jsr C64_GetChar_Core
     #stack_push_var $36
-
-    #stack_return_to_saved_address C64_GetChar_ReturnAddress
-C64_GetChar_ReturnAddress .byte 0,0
+    #stack_return_to_saved_address zp_tmp1_low
 
 C64_SetBorderColor
-    
-    #stack_save_return_adress C64_SetBorderColor_ReturnAddress
+    #stack_save_return_adress zp_tmp1_low
     #stack_pull_int_a
     sta $D020
-    #stack_return_to_saved_address C64_SetBorderColor_ReturnAddress
-C64_SetBorderColor_ReturnAddress .byte 0,0
+    #stack_return_to_saved_address zp_tmp1_low
 
 C64_SetBackgroundColor
-    
-    #stack_save_return_adress C64_SetBackgroundColor_ReturnAddress
+    #stack_save_return_adress zp_tmp1_low
     #stack_pull_int_a
     sta $D021
-    #stack_return_to_saved_address C64_SetBackgroundColor_ReturnAddress
-C64_SetBackgroundColor_ReturnAddress .byte 0,0
+    #stack_return_to_saved_address zp_tmp1_low
 
 C64_GetBorderColor
-    #stack_save_return_adress C64_GetBorderColor_ReturnAddress
+    #stack_save_return_adress zp_tmp1_low
     #stack_push_var $D020
 
-    #stack_return_to_saved_address C64_GetBorderColor_ReturnAddress
-C64_GetBorderColor_ReturnAddress .byte 0,0
+    #stack_return_to_saved_address zp_tmp1_low
 
 C64_add_Interrupt
     sei
-    #stack_save_return_adress $20
-    #stack_pull_int $34
-    #stack_pull_pointer $26
-    #stack_pull_int $34
+    #stack_save_return_adress zp_tmp1_low
+    #stack_pull_int_a
+    #stack_pull_pointer zp_interrupt_address_low
+    #stack_pull_int_a
     lda $0314
-    sta $52
+    sta zp_interrupt_saved_low
     lda $0315
-    sta $53
+    sta zp_interrupt_saved_high
 
     lda #< OnInterrupt
     sta $0314
     lda #> OnInterrupt
     sta $0315
     cli
-    #stack_return_to_saved_address $20
+    #stack_return_to_saved_address zp_tmp1_low
 
 OnInterrupt
     #stack_push_int 0
@@ -134,9 +125,9 @@ OnInterrupt
     pha
     lda #< On_Interrupt_Ret-1
     pha
-    jmp ($26)
+    jmp (zp_interrupt_address_low)
 On_Interrupt_Ret
-    jmp ($52)
+    jmp (zp_interrupt_saved_low)
     rti
 
 .include "./C64sprite.asm"

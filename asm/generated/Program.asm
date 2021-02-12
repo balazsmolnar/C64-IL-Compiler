@@ -82,17 +82,14 @@ Program_Test_22:    #locals_method_exit 7 ; Ret
 ; METHOD: Main
 ;----------------------------------------
 Program_Main 
-    #locals_init_locals 0
+    #locals_init_locals 1
     nop ; Nop
-    #stack_push_var x__c_field_x__9__4_0 ; Ldsfld
-    #stack_duplicate ; Dup
-    #branch_true Program_Main_32 ; Brtrue_s
-    #stack_pop ; Pop
-    #stack_push_var x__c_field_x__9 ; Ldsfld
-    #stack_push_pointer x__c_x_Main_b__4_0 ; Ldftn
-    #newObj 4, 2 ; Newobj
-    #stack_duplicate ; Dup
-    #stack_pull_int_ref x__c_field_x__9__4_0, 1 ; Stsfld
-Program_Main_32:    jsr C64_add_Interrupt ; Call
+    #newObj 3, 3 ; Newobj
+    #locals_pull_value_8 1, 1 ; Stloc_0
+    #locals_push_value_8 1 ; Ldloc_0
+    jsr Game_Init ; Callvirt
     nop ; Nop
-    #locals_method_exit 2 ; Ret
+    #locals_push_value_8 1 ; Ldloc_0
+    jsr Game_Run ; Callvirt
+    nop ; Nop
+    #locals_method_exit 3 ; Ret

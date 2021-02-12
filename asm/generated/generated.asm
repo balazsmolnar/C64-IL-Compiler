@@ -6,7 +6,6 @@
 .include "./Platform.asm"
 .include "./Player.asm"
 .include "./Program.asm"
-.include "./x__c.asm"
 string_1879048193 .text "not alive",0
 string_1879048213 .text "a1 still alive!",0
 string_1879048245 .text "a2 not alive!",0

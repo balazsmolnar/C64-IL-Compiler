@@ -1,7 +1,5 @@
 ; Stack for parameters and local variables
 
-stackPointer = $24
-
 locals_stack_init .macro
   lda # 0
   sta stackPointer

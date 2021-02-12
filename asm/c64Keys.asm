@@ -7,7 +7,7 @@ ddrb = $dc03      ;ddr for column read
 
 C64_IsKeyPressed:
     
-    #stack_save_return_adress $20
+    #stack_save_return_adress zp_tmp1_low
     #stack_pull_int $34
     sei
     ldx $34
@@ -25,7 +25,7 @@ C64_IsKeyPressed:
     jmp keysl1
 +   #stack_push_int 1
 keysl1  cli
-    #stack_return_to_saved_address $20
+    #stack_return_to_saved_address zp_tmp1_low
 
 keyRow:
 ;     A    B    C    D    E    F    G    H    I    J    K    L    M    N    O    P    Q    R    S    T    U    V    W    X    Y    Z

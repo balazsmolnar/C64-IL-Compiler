@@ -4,6 +4,7 @@
 .include "./helper/heap.asm"
 .include "./helper/arithmetic.asm"
 .include "./helper/branch.asm"
+.include "./helper/zp.asm"
 
 .include "./helper/8bit.asm"
 
@@ -22,7 +23,6 @@ rts
 
 .include "./spritedata.asm"
 
-* = $3000
 .include "./generated/generated.asm"
 
 

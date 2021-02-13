@@ -72,48 +72,65 @@ locals_pull_param_8 .macro ref
   .endif
 .endm
 
-locals_init_locals .macro localsSize
-  ldx stackPointer
+init_locals_pull_parameters .macro localsSize, ref_list
+
+  #init_locals \localsSize
+  .if len(\ref_list) > 0
+    .for ref in \ref_list
+      pla
+      sta localsStack,y
+      iny
+      .if ref == 1 
+        tax
+        inc objTableRootCount, x
+      .endif
+    .next
+  .endif
+  sty stackPointer
+
+.endm
+
+
+init_locals .macro localsSize
+  ldy stackPointer
 
   ; save return address from stack
   pla
-  sta localsStack,x
-  inx
+  sta localsStack,y
+  iny
   pla
-  sta localsStack,x
-  inx
+  sta localsStack,y
+  iny
 
   ; init locals
   lda #0
   .if \localsSize == 0
   .elsif \localsSize == 1
-    sta localsStack,x
-    inx
+    sta localsStack,y
+    iny
   .elsif \localsSize == 2
-    sta localsStack,x
-    inx 
-    sta localsStack,x
-    inx 
+    sta localsStack,y
+    iny
+    sta localsStack,y
+    iny
   .elsif \localsSize == 3
-    sta localsStack,x
-    inx 
-    sta localsStack,x
-    inx 
-    sta localsStack,x
-    inx 
+    sta localsStack,y
+    iny
+    sta localsStack,y
+    iny
+    sta localsStack,y
+    iny
   .else
-    ldy #0
--   cpy #\localsSize
-    beq +
-    sta localsStack,x
+    ldx #0
+-   sta localsStack,y
     inx
     iny
+    cpx #\localsSize
     bne -
   .endif
-+ stx stackPointer
 .endm
 
-locals_method_exit .macro stackSize
+method_exit .macro stackSize
   lda stackPointer
   sec
   sbc #\stackSize
@@ -133,8 +150,7 @@ locals_set_value .macro rel_pos, value, ref
    #stack_get_from_pos_y \rel_pos
   ; deref
   .if \ref == 1 
-    lda localsStack,y
-    tax
+    ldx localsStack,y
     dec objTableRootCount,x
   .endif
   lda #\value
@@ -148,7 +164,7 @@ locals_set_value .macro rel_pos, value, ref
 
 locals_pull_value_8 .macro rel_pos, ref 
 
-    #stack_get_from_pos_y \rel_pos
+  #stack_get_from_pos_y \rel_pos
   ; deref
   .if \ref == 1 
     lda localsStack,y
@@ -170,62 +186,3 @@ locals_push_value_8 .macro rel_pos
   #stack_push_int_a
 .endm
 
-inc_var .macro rel_pos
-  #stack_get_from_pos_x \rel_pos
-  inc localsStack,x
-.endm
-
-init_var .macro  rel_pos, value  
-  #stack_get_from_pos_x \rel_pos
-  lda #\value
-  sta localsStack,x
-.endm
-
-pushfld .macro pos 
-
-  ldy stackPointer
-  dey
-  ldx localsStack,y
-  lda objTableLow,x
-  sta tmpPointer
-  lda objTableHigh,x
-  sta tmpPointer+1
-
-  ldy #\pos
-  lda (tmpPointer),y
-  pha
-
-.endm
-
-incfld .macro pos 
-
-  ldy stackPointer
-  dey
-  ldx localsStack,y
-
-  lda objTableLow,x
-  sta tmpPointer
-  lda objTableHigh,x
-  sta tmpPointer+1
-
-  ldy #\pos
-  lda (tmpPointer),y
-  clc
-  adc #1
-  sta (tmpPointer),y
-
-.endm
-
-branch_if_var_less .macro rel_pos, value, label 
-    #stack_get_from_pos_x \rel_pos
-    lda localsStack, x
-    cmp #\value
-    bmi \label
-.endm
-
-branch_if_not_equal .macro rel_pos, value, label 
-    #stack_get_from_pos_x \rel_pos
-    lda localsStack, x
-    cmp #\value
-    bne \label
-.endm

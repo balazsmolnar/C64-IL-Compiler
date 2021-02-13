@@ -44,7 +44,7 @@ public class GCTest
         var aid = C64.Debug.GetObjectId(a);
         a = null;
         if (!C64.Debug.IsAlive(aid))
-            Console.WriteLine("a is not alive!");
+            Console.WriteLine("A IS NOT ALIVE!");
     }
 
     public static void Change_Ref_Local_Variable()
@@ -53,7 +53,21 @@ public class GCTest
         var aid = C64.Debug.GetObjectId(a);
         a = new Test();
         if (!C64.Debug.IsAlive(aid))
-            Console.WriteLine("a is not alive!");
+            Console.WriteLine("A IS NOT ALIVE!");
+    }
+
+    public static void Foo(Test t)
+    {
+        var b = t;
+    }
+    public static void Passed_As_Parameter_Deferenced()
+    {
+        var a = new Test();
+        var aid = C64.Debug.GetObjectId(a);
+        Foo(a);
+        a = new Test();
+        if (!C64.Debug.IsAlive(aid))
+            Console.WriteLine("A IS NOT ALIVE!");
     }
 
     public static void Array_Root_in_Local_Var()
@@ -62,11 +76,11 @@ public class GCTest
         var aid = C64.Debug.GetObjectId(a[0]);
         GC.Collect();
         if (!C64.Debug.IsAlive(aid))
-            Console.WriteLine("a is not alive!");
+            Console.WriteLine("A IS NOT ALIVE!");
         a = null;
         GC.Collect();
         if (C64.Debug.IsAlive(aid))
-            Console.WriteLine("a is still alive!");
+            Console.WriteLine("A IS STILL ALIVE!");
 
     }
 
@@ -127,5 +141,6 @@ public class GCTest
         Two_Instances_First_GCd_Static_Field();
         Array_Root_in_Local_Var();
         Hierarchies_Local_Variable_Root();
+        Passed_As_Parameter_Deferenced();
     }
 }

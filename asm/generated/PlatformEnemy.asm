@@ -5,9 +5,7 @@
 ; METHOD: set_Platform
 ;----------------------------------------
 PlatformEnemy_set_Platform 
-    #locals_init_locals 0
-    #locals_pull_param_8 1
-    #locals_pull_param_8 0
+    #init_locals_pull_parameters 0, [1,0]
     nop ; Nop
     #locals_push_value_8 1 ; Ldarg_0
     #locals_push_value_8 2 ; Ldarg_1
@@ -29,7 +27,7 @@ PlatformEnemy_set_Platform
     #stack_push_int 2 ; Ldc_i4_2
     #sub ; Sub
     #stfld 1 ; Stfld
-    #locals_method_exit 4 ; Ret
+    #method_exit 4 ; Ret
 
 
 ;----------------------------------------
@@ -37,9 +35,7 @@ PlatformEnemy_set_Platform
 ; METHOD: set_Sprite
 ;----------------------------------------
 PlatformEnemy_set_Sprite 
-    #locals_init_locals 0
-    #locals_pull_param_8 0
-    #locals_pull_param_8 0
+    #init_locals_pull_parameters 0, [0,0]
     nop ; Nop
     #locals_push_value_8 1 ; Ldarg_0
     #locals_push_value_8 2 ; Ldarg_1
@@ -71,7 +67,7 @@ PlatformEnemy_set_Sprite
     #stack_push_int 1 ; Ldc_i4_1
     jsr Sprite_set_Visible ; Callvirt
     nop ; Nop
-    #locals_method_exit 4 ; Ret
+    #method_exit 4 ; Ret
 
 
 ;----------------------------------------
@@ -79,9 +75,7 @@ PlatformEnemy_set_Sprite
 ; METHOD: set_Color
 ;----------------------------------------
 PlatformEnemy_set_Color 
-    #locals_init_locals 0
-    #locals_pull_param_8 0
-    #locals_pull_param_8 0
+    #init_locals_pull_parameters 0, [0,0]
     nop ; Nop
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 8 ; Ldfld
@@ -89,7 +83,7 @@ PlatformEnemy_set_Color
     #locals_push_value_8 2 ; Ldarg_1
     jsr Sprite_set_Color ; Callvirt
     nop ; Nop
-    #locals_method_exit 4 ; Ret
+    #method_exit 4 ; Ret
 
 
 ;----------------------------------------
@@ -97,8 +91,7 @@ PlatformEnemy_set_Color
 ; METHOD: Move
 ;----------------------------------------
 PlatformEnemy_Move 
-    #locals_init_locals 3
-    #locals_pull_param_8 0
+    #init_locals_pull_parameters 3, [0]
     nop ; Nop
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 7 ; Ldfld
@@ -151,7 +144,7 @@ PlatformEnemy_Move_60:    nop ; Nop
     #stack_push_int 1 ; Ldc_i4_1
     #stfld 7 ; Stfld
 PlatformEnemy_Move_106:    nop ; Nop
-PlatformEnemy_Move_107:    #locals_method_exit 6 ; Ret
+PlatformEnemy_Move_107:    #method_exit 6 ; Ret
 
 
 ;----------------------------------------
@@ -159,8 +152,7 @@ PlatformEnemy_Move_107:    #locals_method_exit 6 ; Ret
 ; METHOD: get_X
 ;----------------------------------------
 PlatformEnemy_get_X 
-    #locals_init_locals 1
-    #locals_pull_param_8 0
+    #init_locals_pull_parameters 1, [0]
     nop ; Nop
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 0 ; Ldfld
@@ -168,7 +160,7 @@ PlatformEnemy_get_X
   ; OPT   jmp PlatformEnemy_get_X_10 ; Br_s
 PlatformEnemy_get_X_10:  ; OPT   #locals_push_value_8 2 ; Ldloc_0
     #pushfld 0 ; Nop
-    #locals_method_exit 4 ; Ret
+    #method_exit 4 ; Ret
 
 
 ;----------------------------------------
@@ -176,9 +168,7 @@ PlatformEnemy_get_X_10:  ; OPT   #locals_push_value_8 2 ; Ldloc_0
 ; METHOD: set_X
 ;----------------------------------------
 PlatformEnemy_set_X 
-    #locals_init_locals 0
-    #locals_pull_param_8 0
-    #locals_pull_param_8 0
+    #init_locals_pull_parameters 0, [0,0]
     nop ; Nop
     #locals_push_value_8 1 ; Ldarg_0
     #locals_push_value_8 2 ; Ldarg_1
@@ -189,7 +179,7 @@ PlatformEnemy_set_X
     #locals_push_value_8 2 ; Ldarg_1
     jsr Sprite_set_X ; Callvirt
     nop ; Nop
-    #locals_method_exit 4 ; Ret
+    #method_exit 4 ; Ret
 
 
 ;----------------------------------------
@@ -197,8 +187,7 @@ PlatformEnemy_set_X
 ; METHOD: get_Y
 ;----------------------------------------
 PlatformEnemy_get_Y 
-    #locals_init_locals 1
-    #locals_pull_param_8 0
+    #init_locals_pull_parameters 1, [0]
     nop ; Nop
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 1 ; Ldfld
@@ -206,7 +195,7 @@ PlatformEnemy_get_Y
   ; OPT   jmp PlatformEnemy_get_Y_10 ; Br_s
 PlatformEnemy_get_Y_10:  ; OPT   #locals_push_value_8 2 ; Ldloc_0
     #pushfld 1 ; Nop
-    #locals_method_exit 4 ; Ret
+    #method_exit 4 ; Ret
 
 
 ;----------------------------------------
@@ -214,9 +203,7 @@ PlatformEnemy_get_Y_10:  ; OPT   #locals_push_value_8 2 ; Ldloc_0
 ; METHOD: set_Y
 ;----------------------------------------
 PlatformEnemy_set_Y 
-    #locals_init_locals 0
-    #locals_pull_param_8 0
-    #locals_pull_param_8 0
+    #init_locals_pull_parameters 0, [0,0]
     nop ; Nop
     #locals_push_value_8 1 ; Ldarg_0
     #locals_push_value_8 2 ; Ldarg_1
@@ -227,7 +214,7 @@ PlatformEnemy_set_Y
     #locals_push_value_8 2 ; Ldarg_1
     jsr Sprite_set_Y ; Callvirt
     nop ; Nop
-    #locals_method_exit 4 ; Ret
+    #method_exit 4 ; Ret
 
 
 ;----------------------------------------
@@ -235,12 +222,11 @@ PlatformEnemy_set_Y
 ; METHOD: get_MinX
 ;----------------------------------------
 PlatformEnemy_get_MinX 
-    #locals_init_locals 0
-    #locals_pull_param_8 0
+    #init_locals_pull_parameters 0, [0]
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 5 ; Ldfld
     #pushfld 5 ; Nop
-    #locals_method_exit 3 ; Ret
+    #method_exit 3 ; Ret
 
 
 ;----------------------------------------
@@ -248,13 +234,11 @@ PlatformEnemy_get_MinX
 ; METHOD: set_MinX
 ;----------------------------------------
 PlatformEnemy_set_MinX 
-    #locals_init_locals 0
-    #locals_pull_param_8 0
-    #locals_pull_param_8 0
+    #init_locals_pull_parameters 0, [0,0]
     #locals_push_value_8 1 ; Ldarg_0
     #locals_push_value_8 2 ; Ldarg_1
     #stfld 5 ; Stfld
-    #locals_method_exit 4 ; Ret
+    #method_exit 4 ; Ret
 
 
 ;----------------------------------------
@@ -262,12 +246,11 @@ PlatformEnemy_set_MinX
 ; METHOD: get_MaxX
 ;----------------------------------------
 PlatformEnemy_get_MaxX 
-    #locals_init_locals 0
-    #locals_pull_param_8 0
+    #init_locals_pull_parameters 0, [0]
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 6 ; Ldfld
     #pushfld 6 ; Nop
-    #locals_method_exit 3 ; Ret
+    #method_exit 3 ; Ret
 
 
 ;----------------------------------------
@@ -275,10 +258,8 @@ PlatformEnemy_get_MaxX
 ; METHOD: set_MaxX
 ;----------------------------------------
 PlatformEnemy_set_MaxX 
-    #locals_init_locals 0
-    #locals_pull_param_8 0
-    #locals_pull_param_8 0
+    #init_locals_pull_parameters 0, [0,0]
     #locals_push_value_8 1 ; Ldarg_0
     #locals_push_value_8 2 ; Ldarg_1
     #stfld 6 ; Stfld
-    #locals_method_exit 4 ; Ret
+    #method_exit 4 ; Ret

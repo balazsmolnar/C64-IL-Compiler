@@ -7,6 +7,7 @@ class Game
     Platform[] platforms_;
     public void Init()
     {
+
         ClearScreen();
         C64.SetBorderColor(Colors.Black);
         C64.SetBackgroundColor(Colors.Black);
@@ -151,7 +152,7 @@ class Game
         {
             Step();
             for (uint i = 0; i < 100; i++)
-                for (uint j = 0; j < 15; j++) ;
+                for (uint j = 0; j < 5; j++) ;
         }
     }
     public void Step()

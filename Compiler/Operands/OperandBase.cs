@@ -408,7 +408,7 @@ namespace Compiler.Ops
 
     class OpRet : OpBase
     {
-        public OpRet() : base(0, "#locals_method_exit")
+        public OpRet() : base(0, "#method_exit")
         {
         }
 

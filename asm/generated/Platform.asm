@@ -5,8 +5,7 @@
 ; METHOD: Draw
 ;----------------------------------------
 Platform_Draw 
-    #locals_init_locals 6
-    #locals_pull_param_8 0
+    #init_locals_pull_parameters 6, [0]
     nop ; Nop
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 0 ; Ldfld
@@ -120,7 +119,7 @@ Platform_Draw_122:    #locals_push_value_8 6 ; Ldloc_s
     #pushfld 6 ; Nop
     jsr C64_SetChar ; Call
     nop ; Nop
-    #locals_method_exit 9 ; Ret
+    #method_exit 9 ; Ret
 
 
 ;----------------------------------------
@@ -128,10 +127,7 @@ Platform_Draw_122:    #locals_push_value_8 6 ; Ldloc_s
 ; METHOD: DistanceToPlatform
 ;----------------------------------------
 Platform_DistanceToPlatform 
-    #locals_init_locals 5
-    #locals_pull_param_8 0
-    #locals_pull_param_8 0
-    #locals_pull_param_8 0
+    #init_locals_pull_parameters 5, [0,0,0]
     nop ; Nop
     #locals_push_value_8 2 ; Ldarg_1
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
@@ -179,4 +175,4 @@ Platform_DistanceToPlatform_66:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
     #locals_pull_value_8 6, 0 ; Stloc_2
     jmp Platform_DistanceToPlatform_79 ; Br_s
 Platform_DistanceToPlatform_79:    #locals_push_value_8 6 ; Ldloc_2
-    #locals_method_exit 10 ; Ret
+    #method_exit 10 ; Ret

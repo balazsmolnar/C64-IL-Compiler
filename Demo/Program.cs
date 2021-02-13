@@ -5,24 +5,43 @@ namespace Demo
 {
     class Program
     {
-        static int x;
 
-        static void OnInterrupt(object sender, EventArgs args)
+        static void Recursive(uint i)
         {
-            x = x + 1;
-            C64.SetBorderColor((Colors)(x));
+            C64.SetChar(i, 0, i);
+
+            if (i == 10)
+                return;
+            Recursive(i + 1);
         }
 
+        static void Test(int d, int x)
+        {
+            int b = 1;
+            int y = x;
+            b = d;
+            if (d == 2)
+                C64.SetBorderColor(Colors.Cyan);
+        }
 
         static void Main()
         {
-            // Console.WriteLine("HELLO");
-            // C64.Interrupt += OnInterrupt;
+            // Colors x = Colors.Black;
 
+            // C64.Interrupt += (s, e) =>
+            // {
+            //     C64.SetBorderColor(x++);
+            // };
+
+            // for (int i = 0; i < 10; i++)
+            //     Console.WriteLine("HELLO");
+
+            // for (int i = 0; i < 10; i++)
+            //     Console.WriteLine("HELLOWORLD");
+            // GCTest.Start();
             Game g = new Game();
             g.Init();
             g.Run();
-            // GCTest.Start();
         }
     }
 }

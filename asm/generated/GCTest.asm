@@ -7,7 +7,7 @@ GCTest_field_s_a2 .byte 0
 ; METHOD: Two_Instances_First_GCd_Static_Field
 ;----------------------------------------
 GCTest_Two_Instances_First_GCd_Static_Field 
-    #locals_init_locals 6
+    #init_locals_pull_parameters 6, []
     nop ; Nop
     #newObj 2, 1 ; Newobj
     #stack_duplicate ; Dup
@@ -87,7 +87,7 @@ GCTest_Two_Instances_First_GCd_Static_Field_204:    #stack_push_int 0 ; Ldc_i4_0
     #stack_duplicate ; Dup
     #stack_pull_int_ref GCTest_field_s_a2, 1 ; Stsfld
     #stack_pull_int_ref GCTest_field_s_a1, 1 ; Stsfld
-GCTest_Two_Instances_First_GCd_Static_Field_236:    #locals_method_exit 8 ; Ret
+GCTest_Two_Instances_First_GCd_Static_Field_236:    #method_exit 8 ; Ret
 
 
 ;----------------------------------------
@@ -95,7 +95,7 @@ GCTest_Two_Instances_First_GCd_Static_Field_236:    #locals_method_exit 8 ; Ret
 ; METHOD: Single_Instance_GC
 ;----------------------------------------
 GCTest_Single_Instance_GC 
-    #locals_init_locals 3
+    #init_locals_pull_parameters 3, []
     nop ; Nop
     #newObj 2, 1 ; Newobj
     #locals_pull_value_8 1, 1 ; Stloc_0
@@ -116,7 +116,7 @@ GCTest_Single_Instance_GC
     #stack_push_pointer string_1879048299 ; Ldstr
     jsr Console_WriteLine ; Call
     nop ; Nop
-GCTest_Single_Instance_GC_50:    #locals_method_exit 5 ; Ret
+GCTest_Single_Instance_GC_50:    #method_exit 5 ; Ret
 
 
 ;----------------------------------------
@@ -124,7 +124,7 @@ GCTest_Single_Instance_GC_50:    #locals_method_exit 5 ; Ret
 ; METHOD: Change_Ref_Local_Variable
 ;----------------------------------------
 GCTest_Change_Ref_Local_Variable 
-    #locals_init_locals 3
+    #init_locals_pull_parameters 3, []
     nop ; Nop
     #newObj 2, 1 ; Newobj
     #locals_pull_value_8 1, 1 ; Stloc_0
@@ -145,7 +145,7 @@ GCTest_Change_Ref_Local_Variable
     #stack_push_pointer string_1879048299 ; Ldstr
     jsr Console_WriteLine ; Call
     nop ; Nop
-GCTest_Change_Ref_Local_Variable_54:    #locals_method_exit 5 ; Ret
+GCTest_Change_Ref_Local_Variable_54:    #method_exit 5 ; Ret
 
 
 ;----------------------------------------
@@ -153,12 +153,11 @@ GCTest_Change_Ref_Local_Variable_54:    #locals_method_exit 5 ; Ret
 ; METHOD: Foo
 ;----------------------------------------
 GCTest_Foo 
-    #locals_init_locals 1
-    #locals_pull_param_8 1
+    #init_locals_pull_parameters 1, [1]
     nop ; Nop
     #locals_push_value_8 1 ; Ldarg_0
     #locals_pull_value_8 2, 1 ; Stloc_0
-    #locals_method_exit 4 ; Ret
+    #method_exit 4 ; Ret
 
 
 ;----------------------------------------
@@ -166,7 +165,7 @@ GCTest_Foo
 ; METHOD: Passed_As_Parameter_Deferenced
 ;----------------------------------------
 GCTest_Passed_As_Parameter_Deferenced 
-    #locals_init_locals 3
+    #init_locals_pull_parameters 3, []
     nop ; Nop
     #newObj 2, 1 ; Newobj
     #locals_pull_value_8 1, 1 ; Stloc_0
@@ -190,7 +189,7 @@ GCTest_Passed_As_Parameter_Deferenced
     #stack_push_pointer string_1879048299 ; Ldstr
     jsr Console_WriteLine ; Call
     nop ; Nop
-GCTest_Passed_As_Parameter_Deferenced_61:    #locals_method_exit 5 ; Ret
+GCTest_Passed_As_Parameter_Deferenced_61:    #method_exit 5 ; Ret
 
 
 ;----------------------------------------
@@ -198,7 +197,7 @@ GCTest_Passed_As_Parameter_Deferenced_61:    #locals_method_exit 5 ; Ret
 ; METHOD: Array_Root_in_Local_Var
 ;----------------------------------------
 GCTest_Array_Root_in_Local_Var 
-    #locals_init_locals 4
+    #init_locals_pull_parameters 4, []
     nop ; Nop
     #stack_push_int 1 ; Ldc_i4_1
     #newArr  ; Newarr
@@ -242,7 +241,7 @@ GCTest_Array_Root_in_Local_Var_73:    #stack_push_int 0 ; Ldnull
     #stack_push_pointer string_1879048331 ; Ldstr
     jsr Console_WriteLine ; Call
     nop ; Nop
-GCTest_Array_Root_in_Local_Var_107:    #locals_method_exit 6 ; Ret
+GCTest_Array_Root_in_Local_Var_107:    #method_exit 6 ; Ret
 
 
 ;----------------------------------------
@@ -250,7 +249,7 @@ GCTest_Array_Root_in_Local_Var_107:    #locals_method_exit 6 ; Ret
 ; METHOD: Hierarchies_Local_Variable_Root
 ;----------------------------------------
 GCTest_Hierarchies_Local_Variable_Root 
-    #locals_init_locals 21
+    #init_locals_pull_parameters 21, []
     nop ; Nop
     #newObj 2, 1 ; Newobj
     #stack_duplicate ; Dup
@@ -428,7 +427,7 @@ GCTest_Hierarchies_Local_Variable_Root_472:    jsr C64_get_Debug ; Call
     #stack_push_pointer string_1879048623 ; Ldstr
     jsr Console_WriteLine ; Call
     nop ; Nop
-GCTest_Hierarchies_Local_Variable_Root_501:    #locals_method_exit 23 ; Ret
+GCTest_Hierarchies_Local_Variable_Root_501:    #method_exit 23 ; Ret
 
 
 ;----------------------------------------
@@ -436,7 +435,7 @@ GCTest_Hierarchies_Local_Variable_Root_501:    #locals_method_exit 23 ; Ret
 ; METHOD: Start
 ;----------------------------------------
 GCTest_Start 
-    #locals_init_locals 0
+    #init_locals_pull_parameters 0, []
     nop ; Nop
     jsr GCTest_Single_Instance_GC ; Call
     nop ; Nop
@@ -450,4 +449,4 @@ GCTest_Start
     nop ; Nop
     jsr GCTest_Passed_As_Parameter_Deferenced ; Call
     nop ; Nop
-    #locals_method_exit 2 ; Ret
+    #method_exit 2 ; Ret

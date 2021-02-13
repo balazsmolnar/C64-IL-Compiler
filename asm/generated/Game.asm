@@ -5,8 +5,7 @@
 ; METHOD: Init
 ;----------------------------------------
 Game_Init 
-    #locals_init_locals 0
-    #locals_pull_param_8 0
+    #init_locals_pull_parameters 0, [0]
     nop ; Nop
     jsr Game_ClearScreen ; Call
     nop ; Nop
@@ -91,7 +90,7 @@ Game_Init
     jsr Player_set_Sprite ; Callvirt
     nop ; Nop
     #stfld 1 ; Stfld
-    #locals_method_exit 3 ; Ret
+    #method_exit 3 ; Ret
 
 
 ;----------------------------------------
@@ -99,8 +98,7 @@ Game_Init
 ; METHOD: InitPlatforms
 ;----------------------------------------
 Game_InitPlatforms 
-    #locals_init_locals 2
-    #locals_pull_param_8 0
+    #init_locals_pull_parameters 2, [0]
     nop ; Nop
     #locals_push_value_8 1 ; Ldarg_0
     #stack_push_int 11 ; Ldc_i4_s
@@ -310,7 +308,7 @@ Game_InitPlatforms_455:    #locals_push_value_8 2 ; Ldloc_0
     #locals_pull_value_8 3, 0 ; Stloc_1
     #locals_push_value_8 3 ; Ldloc_1
     #branch_true Game_InitPlatforms_437 ; Brtrue_s
-    #locals_method_exit 5 ; Ret
+    #method_exit 5 ; Ret
 
 
 ;----------------------------------------
@@ -318,8 +316,7 @@ Game_InitPlatforms_455:    #locals_push_value_8 2 ; Ldloc_0
 ; METHOD: Run
 ;----------------------------------------
 Game_Run 
-    #locals_init_locals 4
-    #locals_pull_param_8 0
+    #init_locals_pull_parameters 4, [0]
     nop ; Nop
     jmp Game_Run_46 ; Br_s
 Game_Run_3:    nop ; Nop
@@ -368,8 +365,7 @@ Game_Run_46:    jmp Game_Run_3 ; Br_s
 ; METHOD: Step
 ;----------------------------------------
 Game_Step 
-    #locals_init_locals 7
-    #locals_pull_param_8 0
+    #init_locals_pull_parameters 7, [0]
     nop ; Nop
   ; OPT   #stack_push_int 0 ; Ldc_i4_0
   ; OPT   #locals_pull_value_8 3, 0 ; Stloc_1
@@ -450,7 +446,7 @@ Game_Step_105:    #locals_push_value_8 5 ; Ldloc_3
     #locals_push_value_8 2 ; Ldloc_0
     jsr Player_Move ; Callvirt
     nop ; Nop
-    #locals_method_exit 10 ; Ret
+    #method_exit 10 ; Ret
 
 
 ;----------------------------------------
@@ -458,7 +454,7 @@ Game_Step_105:    #locals_push_value_8 5 ; Ldloc_3
 ; METHOD: ClearScreen
 ;----------------------------------------
 Game_ClearScreen 
-    #locals_init_locals 4
+    #init_locals_pull_parameters 4, []
     nop ; Nop
   ; OPT   #stack_push_int 0 ; Ldc_i4_0
   ; OPT   #locals_pull_value_8 1, 0 ; Stloc_0
@@ -502,4 +498,4 @@ Game_ClearScreen_42:  ; OPT   #locals_push_value_8 1 ; Ldloc_0
   ; OPT   #locals_push_value_8 4 ; Ldloc_3
   ; OPT   #branch_true Game_ClearScreen_5 ; Brtrue_s
     #branch_if_var_less 1, 40, Game_ClearScreen_5 ; Nop
-    #locals_method_exit 6 ; Ret
+    #method_exit 6 ; Ret

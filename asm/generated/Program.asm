@@ -5,8 +5,7 @@
 ; METHOD: Recursive
 ;----------------------------------------
 Program_Recursive 
-    #locals_init_locals 1
-    #locals_pull_param_8 0
+    #init_locals_pull_parameters 1, [0]
     nop ; Nop
     #locals_push_value_8 1 ; Ldarg_0
     #stack_push_int 0 ; Ldc_i4_0
@@ -26,7 +25,7 @@ Program_Recursive_23:    #locals_push_value_8 1 ; Ldarg_0
     #add ; Add
     jsr Program_Recursive ; Call
     nop ; Nop
-Program_Recursive_32:    #locals_method_exit 4 ; Ret
+Program_Recursive_32:    #method_exit 4 ; Ret
 
 
 ;----------------------------------------
@@ -34,9 +33,7 @@ Program_Recursive_32:    #locals_method_exit 4 ; Ret
 ; METHOD: Test
 ;----------------------------------------
 Program_Test 
-    #locals_init_locals 3
-    #locals_pull_param_8 0
-    #locals_pull_param_8 0
+    #init_locals_pull_parameters 3, [0,0]
     nop ; Nop
   ; OPT   #stack_push_int 1 ; Ldc_i4_1
   ; OPT   #locals_pull_value_8 3, 0 ; Stloc_0
@@ -54,7 +51,7 @@ Program_Test
     #stack_push_int 3 ; Ldc_i4_3
     jsr C64_SetBorderColor ; Call
     nop ; Nop
-Program_Test_22:    #locals_method_exit 7 ; Ret
+Program_Test_22:    #method_exit 7 ; Ret
 
 
 ;----------------------------------------
@@ -62,17 +59,14 @@ Program_Test_22:    #locals_method_exit 7 ; Ret
 ; METHOD: Main
 ;----------------------------------------
 Program_Main 
-    #locals_init_locals 2
+    #init_locals_pull_parameters 1, []
     nop ; Nop
-  ; OPT   #stack_push_int 0 ; Ldc_i4_0
-  ; OPT   #locals_pull_value_8 1, 0 ; Stloc_0
-    #init_var 1, 0 ; Nop
     #newObj 3, 3 ; Newobj
-    #locals_pull_value_8 2, 1 ; Stloc_1
-    #locals_push_value_8 2 ; Ldloc_1
+    #locals_pull_value_8 1, 1 ; Stloc_0
+    #locals_push_value_8 1 ; Ldloc_0
     jsr Game_Init ; Callvirt
     nop ; Nop
-    #locals_push_value_8 2 ; Ldloc_1
+    #locals_push_value_8 1 ; Ldloc_0
     jsr Game_Run ; Callvirt
     nop ; Nop
-    #locals_method_exit 4 ; Ret
+    #method_exit 3 ; Ret

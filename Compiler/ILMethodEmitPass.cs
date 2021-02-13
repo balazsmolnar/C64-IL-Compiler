@@ -26,23 +26,22 @@ namespace Compiler
             output.WriteLine(";----------------------------------------");
             output.WriteLine($"{context.Method.GetLabel()} ");
 
-            output.WriteLine($"    #locals_init_locals {context.GetLocalsSize()}");
-
+            var ref_params = new List<string>();
             foreach (var param in context.Method.GetParameters().Reverse())
             {
-                var isRef = param.ParameterType.IsReferenceCounted() ? "1" : "0";
-                string outputLine = $"    #locals_pull_param_8 {isRef}";
-                output.WriteLine(outputLine);
+                ref_params.Add(param.ParameterType.IsReferenceCounted() ? "1" : "0");
             }
             if (!context.Method.IsStatic)
             {
-                string outputLine = $"    #locals_pull_param_8 0";
-                output.WriteLine(outputLine);
+                ref_params.Add("0");
             }
+
+            string outputLine = $"    #init_locals_pull_parameters {context.GetLocalsSize()}, [{string.Join(',', ref_params)}]";
+            output.WriteLine(outputLine);
 
             foreach (var line in context.Lines)
             {
-                string outputLine = $"{(line.Label == null ? "" : line.Label + ":")}  {(line.Optimized ? "; OPT " : "")}  {line.Operand.Emit(context, line.Parameter)} ; {line.OpCode}";
+                outputLine = $"{(line.Label == null ? "" : line.Label + ":")}  {(line.Optimized ? "; OPT " : "")}  {line.Operand.Emit(context, line.Parameter)} ; {line.OpCode}";
                 output.WriteLine(outputLine);
             }
         }

@@ -5,6 +5,7 @@
 .include "./helper/arithmetic.asm"
 .include "./helper/branch.asm"
 .include "./helper/zp.asm"
+.include "./helper/optimized.asm"
 
 .include "./helper/8bit.asm"
 
@@ -20,11 +21,9 @@ rts
 .include "./GC.asm"
 .include "./helper/object.asm"
 .include "./C64.asm"
-
 .include "./spritedata.asm"
 
 .include "./generated/generated.asm"
-
 
 
 objTableLow

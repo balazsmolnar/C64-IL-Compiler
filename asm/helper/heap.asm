@@ -1,5 +1,5 @@
 heapPointer = $fb
-tmpPointer = $25
+tmpPointer = heap_tmp_pointer
 
 initHeap .macro heap 
   lda #<\heap
@@ -91,7 +91,7 @@ ldfld .macro pos
   ldy #\pos
   lda (tmpPointer),y
 
-  pha
+  #stack_push_int_a
 .endm
 
 ldelemRef .macro   

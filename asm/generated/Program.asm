@@ -1,23 +1,3 @@
-Program_field_x .byte 0
-
-
-;----------------------------------------
-; TYPE: Demo.Program
-; METHOD: OnInterrupt
-;----------------------------------------
-Program_OnInterrupt 
-    #locals_init_locals 0
-    #locals_pull_param_8 1
-    #locals_pull_param_8 1
-    nop ; Nop
-    #stack_push_var Program_field_x ; Ldsfld
-    #stack_push_int 1 ; Ldc_i4_1
-    #add ; Add
-    #stack_pull_int_ref Program_field_x, 0 ; Stsfld
-    #stack_push_var Program_field_x ; Ldsfld
-    jsr C64_SetBorderColor ; Call
-    nop ; Nop
-    #locals_method_exit 4 ; Ret
 
 
 ;----------------------------------------
@@ -82,14 +62,17 @@ Program_Test_22:    #locals_method_exit 7 ; Ret
 ; METHOD: Main
 ;----------------------------------------
 Program_Main 
-    #locals_init_locals 1
+    #locals_init_locals 2
     nop ; Nop
+  ; OPT   #stack_push_int 0 ; Ldc_i4_0
+  ; OPT   #locals_pull_value_8 1, 0 ; Stloc_0
+    #init_var 1, 0 ; Nop
     #newObj 3, 3 ; Newobj
-    #locals_pull_value_8 1, 1 ; Stloc_0
-    #locals_push_value_8 1 ; Ldloc_0
+    #locals_pull_value_8 2, 1 ; Stloc_1
+    #locals_push_value_8 2 ; Ldloc_1
     jsr Game_Init ; Callvirt
     nop ; Nop
-    #locals_push_value_8 1 ; Ldloc_0
+    #locals_push_value_8 2 ; Ldloc_1
     jsr Game_Run ; Callvirt
     nop ; Nop
-    #locals_method_exit 3 ; Ret
+    #locals_method_exit 4 ; Ret

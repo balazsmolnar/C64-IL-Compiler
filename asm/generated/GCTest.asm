@@ -198,28 +198,51 @@ GCTest_Passed_As_Parameter_Deferenced_61:    #locals_method_exit 5 ; Ret
 ; METHOD: Array_Root_in_Local_Var
 ;----------------------------------------
 GCTest_Array_Root_in_Local_Var 
-    #locals_init_locals 3
+    #locals_init_locals 4
     nop ; Nop
+    #stack_push_int 1 ; Ldc_i4_1
+    #newArr  ; Newarr
+    #stack_duplicate ; Dup
+    #stack_push_int 0 ; Ldc_i4_0
     #newObj 2, 1 ; Newobj
+    #stack_duplicate ; Dup
+    #stack_push_int 23 ; Ldc_i4_s
+    #stfld 1 ; Stfld
+    #stelemRef ; Stelem_ref
     #locals_pull_value_8 1, 1 ; Stloc_0
     jsr C64_get_Debug ; Call
     #locals_push_value_8 1 ; Ldloc_0
+    #stack_push_int 0 ; Ldc_i4_0
+    #ldelemRef ; Ldelem_ref
     jsr Debug_GetObjectId ; Callvirt
     #locals_pull_value_8 2, 0 ; Stloc_1
-    #stack_push_int 0 ; Ldnull
+    jsr GC_Collect ; Call
+    nop ; Nop
+    jsr C64_get_Debug ; Call
+    #locals_push_value_8 2 ; Ldloc_1
+    jsr Debug_IsAlive ; Callvirt
+    #stack_push_int 0 ; Ldc_i4_0
+    #compareEqual ; Ceq
+    #locals_pull_value_8 3, 0 ; Stloc_2
+    #locals_push_value_8 3 ; Ldloc_2
+    #branch_false GCTest_Array_Root_in_Local_Var_73 ; Brfalse_s
+    #stack_push_pointer string_1879048299 ; Ldstr
+    jsr Console_WriteLine ; Call
+    nop ; Nop
+GCTest_Array_Root_in_Local_Var_73:    #stack_push_int 0 ; Ldnull
     #locals_pull_value_8 1, 1 ; Stloc_0
     jsr GC_Collect ; Call
     nop ; Nop
     jsr C64_get_Debug ; Call
     #locals_push_value_8 2 ; Ldloc_1
     jsr Debug_IsAlive ; Callvirt
-    #locals_pull_value_8 3, 0 ; Stloc_2
-    #locals_push_value_8 3 ; Ldloc_2
-    #branch_false GCTest_Array_Root_in_Local_Var_53 ; Brfalse_s
+    #locals_pull_value_8 4, 0 ; Stloc_3
+    #locals_push_value_8 4 ; Ldloc_3
+    #branch_false GCTest_Array_Root_in_Local_Var_107 ; Brfalse_s
     #stack_push_pointer string_1879048331 ; Ldstr
     jsr Console_WriteLine ; Call
     nop ; Nop
-GCTest_Array_Root_in_Local_Var_53:    #locals_method_exit 5 ; Ret
+GCTest_Array_Root_in_Local_Var_107:    #locals_method_exit 6 ; Ret
 
 
 ;----------------------------------------

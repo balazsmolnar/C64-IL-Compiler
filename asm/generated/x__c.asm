@@ -1,12 +1,12 @@
-x__c_field_x__9__4_0 .byte 0
+x__c_field_x__9__2_0 .byte 0
 x__c_field_x__9 .byte 0
 
 
 ;----------------------------------------
 ; TYPE: Demo.Program+<>c
-; METHOD: <Main>b__4_0
+; METHOD: <Main>b__2_0
 ;----------------------------------------
-x__c_x_Main_b__4_0 
+x__c_x_Main_b__2_0 
     #locals_init_locals 0
     #locals_pull_param_8 1
     #locals_pull_param_8 1

@@ -47,7 +47,7 @@ locals_method_exit .macro stackSize
   sec
   sbc #\stackSize
   sta stackPointer
-  ldx stackPointer
+  tax
   inx
   lda localsStack,x 
   pha

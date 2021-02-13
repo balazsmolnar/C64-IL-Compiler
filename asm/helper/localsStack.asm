@@ -1,5 +1,59 @@
 ; Stack for parameters and local variables
 
+stack_get_from_pos_x .macro  rel_pos
+  .if \rel_pos==1
+    ldx stackPointer
+    dex
+  .elsif \rel_pos==2
+    ldx stackPointer
+    dex
+    dex
+  .elsif \rel_pos==3
+    ldx stackPointer
+    dex
+    dex
+    dex
+  .elsif \rel_pos==4
+    ldx stackPointer
+    dex
+    dex
+    dex
+    dex
+  .else  
+    lda stackPointer
+    sec
+    sbc #\rel_pos
+    tax
+  .endif
+.endm
+
+stack_get_from_pos_y .macro  rel_pos
+  .if \rel_pos==1
+    ldy stackPointer
+    dey
+  .elsif \rel_pos==2
+    ldy stackPointer
+    dey
+    dey
+  .elsif \rel_pos==3
+    ldy stackPointer
+    dey
+    dey
+    dey
+  .elsif \rel_pos==4
+    ldy stackPointer
+    dey
+    dey
+    dey
+    dey
+  .else  
+    lda stackPointer
+    sec
+    sbc #\rel_pos
+    tay
+  .endif
+.endm
+
 locals_stack_init .macro
   lda # 0
   sta stackPointer
@@ -20,7 +74,6 @@ locals_pull_param_8 .macro ref
 
 locals_init_locals .macro localsSize
   ldx stackPointer
-  ldy #0
 
   ; save return address from stack
   pla
@@ -32,13 +85,31 @@ locals_init_locals .macro localsSize
 
   ; init locals
   lda #0
-  ldy #0
-- cpy #\localsSize
-  beq +
-  sta localsStack,x
-  inx
-  iny
-  bne -
+  .if \localsSize == 0
+  .elsif \localsSize == 1
+    sta localsStack,x
+    inx
+  .elsif \localsSize == 2
+    sta localsStack,x
+    inx 
+    sta localsStack,x
+    inx 
+  .elsif \localsSize == 3
+    sta localsStack,x
+    inx 
+    sta localsStack,x
+    inx 
+    sta localsStack,x
+    inx 
+  .else
+    ldy #0
+-   cpy #\localsSize
+    beq +
+    sta localsStack,x
+    inx
+    iny
+    bne -
+  .endif
 + stx stackPointer
 .endm
 
@@ -59,10 +130,7 @@ locals_method_exit .macro stackSize
 
 locals_set_value .macro rel_pos, value, ref 
 
-  lda stackPointer
-  sec
-  sbc #\rel_pos
-  tay
+   #stack_get_from_pos_y \rel_pos
   ; deref
   .if \ref == 1 
     lda localsStack,y
@@ -80,10 +148,7 @@ locals_set_value .macro rel_pos, value, ref
 
 locals_pull_value_8 .macro rel_pos, ref 
 
-  lda stackPointer
-  sec
-  sbc #\rel_pos
-  tay
+    #stack_get_from_pos_y \rel_pos
   ; deref
   .if \ref == 1 
     lda localsStack,y
@@ -100,27 +165,18 @@ locals_pull_value_8 .macro rel_pos, ref
 .endm
 
 locals_push_value_8 .macro rel_pos
-  lda stackPointer
-  sec
-  sbc #\rel_pos
-  tay
+  #stack_get_from_pos_y \rel_pos
   lda localsStack,y
   #stack_push_int_a
 .endm
 
 inc_var .macro rel_pos
-  lda stackPointer
-  sec
-  sbc #\rel_pos
-  tax
+  #stack_get_from_pos_x \rel_pos
   inc localsStack,x
 .endm
 
 init_var .macro  rel_pos, value  
-  lda stackPointer
-  sec
-  sbc #\rel_pos
-  tax
+  #stack_get_from_pos_x \rel_pos
   lda #\value
   sta localsStack,x
 .endm
@@ -161,20 +217,14 @@ incfld .macro pos
 .endm
 
 branch_if_var_less .macro rel_pos, value, label 
-    lda stackPointer
-    sec
-    sbc #\rel_pos
-    tax
+    #stack_get_from_pos_x \rel_pos
     lda localsStack, x
     cmp #\value
     bmi \label
 .endm
 
 branch_if_not_equal .macro rel_pos, value, label 
-    lda stackPointer
-    sec
-    sbc #\rel_pos
-    tax
+    #stack_get_from_pos_x \rel_pos
     lda localsStack, x
     cmp #\value
     bne \label

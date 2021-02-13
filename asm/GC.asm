@@ -13,27 +13,29 @@ GC_Collect
 ; Sets the high bit of root table if the object can be tracked
 trackObjects
 
-    ; push 0 to stack, if we reach the algorithm can stop
+    ; push 0 to stack, signal we reached the end of the algorithm
     lda #0
     pha
 
     lda #$80
-    sta objTableRootCount   ; mark NULL, don't need to track anymore
+    sta objTableRootCount    ; mark NULL, don't need to track anymore
 
     ; set initial track bit. 1 for roots, 0 for others. Push roots to the stack
     ldx #1
 -   lda objTableRootCount, X
     and #$7f                 ; mask out track bit
-    beq +
-    ora #$80
+    beq +                    ; jump if root count is 0 (not a root)
+    ora #$80                 ; we found a root, set track bit
     tay
     txa
-    pha                     ; push root to stack
+    pha                      ; push root to stack
     tya
 +   sta objTableRootCount, X
     inx
-    bne -
+    bne -                    ; repeat 0-255
 
+    ; pull object from stack
+    ; mark the track bit of all references
 l2  pla
     beq endtrack                  ; end algorithm 
     tax
@@ -44,26 +46,26 @@ l2  pla
     lda objTableReferences,X
     sta $35
 
-    ldy #0
+    ldy #0                          
 -   cpy $35
-    beq l2
+    beq l2                        ; no refences, end this phase
     lda ($33), y
     tax
-    lda objTableRootCount, x
+    lda objTableRootCount, x      ; check if track bit already set for the reference
     and #$80
-    bne +
-    lda objTableRootCount, x
+    bne +                         ; it is already set, nothing to do --> continue
+    lda objTableRootCount, x      ; set track bit
     ora #$80
     sta objTableRootCount, x
     txa
-    pha
-+   iny
+    pha                           ; push to stack
++   iny                           ; next reference
     bne -
 endtrack
     rts
 
 ;
-; Creates a table with active objects at the end to the heap
+; Creates a temp table with active objects at the end to the heap
 ; To be able to sort
 ; Y: Returns Size of the Table
 ;
@@ -71,15 +73,15 @@ endtrack
 fillSortTable:
     ldx #0
     ldy #0
--   inx
+-   inx                             ; 0th element (null) can be skipped
     beq +
-    lda objTableHigh,X
-    beq -
+    lda objTableHigh,X              ; if the high part of the pointer is 0 the object is not used
+    beq -                           ; get next object
     txa
     sta (heapPointer),Y
     iny
     bne -
-    lda #0
+    lda #0                          ; put a trailing 0, found all active objects
     sta (heapPointer),Y
 +   dey
     rts
@@ -219,7 +221,7 @@ sweepAndCompact
 
 loop:
     lda (heapPointer),y
-    beq sweepend                       ; trailing zero found
+    beq sweepend                        ; trailing zero found
     tax
     lda objTableRootCount, X
     and #$80                             

@@ -1,7 +1,7 @@
 
 
 ;----------------------------------------
-; TYPE: Platform
+; TYPE: Demo.Platform
 ; METHOD: Draw
 ;----------------------------------------
 Platform_Draw 
@@ -123,7 +123,7 @@ Platform_Draw_122:    #locals_push_value_8 6 ; Ldloc_s
 
 
 ;----------------------------------------
-; TYPE: Platform
+; TYPE: Demo.Platform
 ; METHOD: DistanceToPlatform
 ;----------------------------------------
 Platform_DistanceToPlatform 

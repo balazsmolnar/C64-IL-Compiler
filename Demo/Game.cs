@@ -1,19 +1,22 @@
 using C64Lib;
 
-class Game
+namespace Demo
 {
-    PlatformEnemy[] platformEnemies_;
-    Player player_;
-    Platform[] platforms_;
-    public void Init()
+
+    class Game
     {
+        PlatformEnemy[] platformEnemies_;
+        Player player_;
+        Platform[] platforms_;
+        public void Init()
+        {
 
-        ClearScreen();
-        C64.SetBorderColor(Colors.Black);
-        C64.SetBackgroundColor(Colors.Black);
-        InitPlatforms();
+            ClearScreen();
+            C64.SetBorderColor(Colors.Black);
+            C64.SetBackgroundColor(Colors.Black);
+            InitPlatforms();
 
-        platformEnemies_ = new PlatformEnemy[] {
+            platformEnemies_ = new PlatformEnemy[] {
             new PlatformEnemy()
             {
                 Platform = platforms_[0],
@@ -54,15 +57,15 @@ class Game
             // }
         };
 
-        player_ = new Player()
-        {
-            Sprite = C64.Sprites.Sprite4,
-        };
-    }
+            player_ = new Player()
+            {
+                Sprite = C64.Sprites.Sprite4,
+            };
+        }
 
-    private void InitPlatforms()
-    {
-        platforms_ = new Platform[] {
+        private void InitPlatforms()
+        {
+            platforms_ = new Platform[] {
                     new Platform()
                     {
                         X = 10,
@@ -143,40 +146,41 @@ class Game
 
         };
 
-        for (uint i = 0; i < platforms_.Length; i++)
-            platforms_[i].Draw();
-    }
-    public void Run()
-    {
-        for (; ; )
-        {
-            Step();
-            for (uint i = 0; i < 100; i++)
-                for (uint j = 0; j < 5; j++) ;
+            for (uint i = 0; i < platforms_.Length; i++)
+                platforms_[i].Draw();
         }
-    }
-    public void Step()
-    {
-        for (int i = 0; i < platformEnemies_.Length; i++)
-            platformEnemies_[i].Move();
-        uint min = 255;
-        for (int i = 0; i < platforms_.Length; i++)
+        public void Run()
         {
-            var d = platforms_[i].DistanceToPlatform(player_.X, player_.Y);
-            if (d < min)
-                min = d;
-        }
-
-        player_.Move(min);
-    }
-
-    private static void ClearScreen()
-    {
-        for (uint x = 0; x < 40; x++)
-        {
-            for (uint y = 0; y < 25; y++)
+            for (; ; )
             {
-                C64.SetChar(x, y, 32);
+                Step();
+                for (uint i = 0; i < 100; i++)
+                    for (uint j = 0; j < 5; j++) ;
+            }
+        }
+        public void Step()
+        {
+            for (int i = 0; i < platformEnemies_.Length; i++)
+                platformEnemies_[i].Move();
+            uint min = 255;
+            for (int i = 0; i < platforms_.Length; i++)
+            {
+                var d = platforms_[i].DistanceToPlatform(player_.X, player_.Y);
+                if (d < min)
+                    min = d;
+            }
+
+            player_.Move(min);
+        }
+
+        private static void ClearScreen()
+        {
+            for (uint x = 0; x < 40; x++)
+            {
+                for (uint y = 0; y < 25; y++)
+                {
+                    C64.SetChar(x, y, 32);
+                }
             }
         }
     }

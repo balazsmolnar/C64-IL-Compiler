@@ -1,7 +1,7 @@
 
 
 ;----------------------------------------
-; TYPE: Player
+; TYPE: Demo.Player
 ; METHOD: set_Sprite
 ;----------------------------------------
 Player_set_Sprite 
@@ -61,7 +61,7 @@ Player_set_Sprite
 
 
 ;----------------------------------------
-; TYPE: Player
+; TYPE: Demo.Player
 ; METHOD: get_X
 ;----------------------------------------
 Player_get_X 
@@ -77,7 +77,7 @@ Player_get_X_10:  ; OPT   #locals_push_value_8 2 ; Ldloc_0
 
 
 ;----------------------------------------
-; TYPE: Player
+; TYPE: Demo.Player
 ; METHOD: get_Y
 ;----------------------------------------
 Player_get_Y 
@@ -93,7 +93,7 @@ Player_get_Y_10:  ; OPT   #locals_push_value_8 2 ; Ldloc_0
 
 
 ;----------------------------------------
-; TYPE: Player
+; TYPE: Demo.Player
 ; METHOD: Move
 ;----------------------------------------
 Player_Move 
@@ -390,7 +390,7 @@ Player_Move_572:    #method_exit 21 ; Ret
 
 
 ;----------------------------------------
-; TYPE: Player
+; TYPE: Demo.Player
 ; METHOD: set_X
 ;----------------------------------------
 Player_set_X 
@@ -410,7 +410,7 @@ Player_set_X
 
 
 ;----------------------------------------
-; TYPE: Player
+; TYPE: Demo.Player
 ; METHOD: set_Y
 ;----------------------------------------
 Player_set_Y 
@@ -430,7 +430,7 @@ Player_set_Y
 
 
 ;----------------------------------------
-; TYPE: Player
+; TYPE: Demo.Player
 ; METHOD: Die
 ;----------------------------------------
 Player_Die 

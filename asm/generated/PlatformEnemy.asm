@@ -1,7 +1,7 @@
 
 
 ;----------------------------------------
-; TYPE: PlatformEnemy
+; TYPE: Demo.PlatformEnemy
 ; METHOD: set_Platform
 ;----------------------------------------
 PlatformEnemy_set_Platform 
@@ -31,7 +31,7 @@ PlatformEnemy_set_Platform
 
 
 ;----------------------------------------
-; TYPE: PlatformEnemy
+; TYPE: Demo.PlatformEnemy
 ; METHOD: set_Sprite
 ;----------------------------------------
 PlatformEnemy_set_Sprite 
@@ -72,7 +72,7 @@ PlatformEnemy_set_Sprite
 
 
 ;----------------------------------------
-; TYPE: PlatformEnemy
+; TYPE: Demo.PlatformEnemy
 ; METHOD: set_Color
 ;----------------------------------------
 PlatformEnemy_set_Color 
@@ -88,7 +88,7 @@ PlatformEnemy_set_Color
 
 
 ;----------------------------------------
-; TYPE: PlatformEnemy
+; TYPE: Demo.PlatformEnemy
 ; METHOD: Move
 ;----------------------------------------
 PlatformEnemy_Move 
@@ -149,7 +149,7 @@ PlatformEnemy_Move_107:    #method_exit 6 ; Ret
 
 
 ;----------------------------------------
-; TYPE: PlatformEnemy
+; TYPE: Demo.PlatformEnemy
 ; METHOD: get_X
 ;----------------------------------------
 PlatformEnemy_get_X 
@@ -165,7 +165,7 @@ PlatformEnemy_get_X_10:  ; OPT   #locals_push_value_8 2 ; Ldloc_0
 
 
 ;----------------------------------------
-; TYPE: PlatformEnemy
+; TYPE: Demo.PlatformEnemy
 ; METHOD: set_X
 ;----------------------------------------
 PlatformEnemy_set_X 
@@ -185,7 +185,7 @@ PlatformEnemy_set_X
 
 
 ;----------------------------------------
-; TYPE: PlatformEnemy
+; TYPE: Demo.PlatformEnemy
 ; METHOD: get_Y
 ;----------------------------------------
 PlatformEnemy_get_Y 
@@ -201,7 +201,7 @@ PlatformEnemy_get_Y_10:  ; OPT   #locals_push_value_8 2 ; Ldloc_0
 
 
 ;----------------------------------------
-; TYPE: PlatformEnemy
+; TYPE: Demo.PlatformEnemy
 ; METHOD: set_Y
 ;----------------------------------------
 PlatformEnemy_set_Y 
@@ -221,7 +221,7 @@ PlatformEnemy_set_Y
 
 
 ;----------------------------------------
-; TYPE: PlatformEnemy
+; TYPE: Demo.PlatformEnemy
 ; METHOD: get_MinX
 ;----------------------------------------
 PlatformEnemy_get_MinX 
@@ -233,7 +233,7 @@ PlatformEnemy_get_MinX
 
 
 ;----------------------------------------
-; TYPE: PlatformEnemy
+; TYPE: Demo.PlatformEnemy
 ; METHOD: set_MinX
 ;----------------------------------------
 PlatformEnemy_set_MinX 
@@ -246,7 +246,7 @@ PlatformEnemy_set_MinX
 
 
 ;----------------------------------------
-; TYPE: PlatformEnemy
+; TYPE: Demo.PlatformEnemy
 ; METHOD: get_MaxX
 ;----------------------------------------
 PlatformEnemy_get_MaxX 
@@ -258,7 +258,7 @@ PlatformEnemy_get_MaxX
 
 
 ;----------------------------------------
-; TYPE: PlatformEnemy
+; TYPE: Demo.PlatformEnemy
 ; METHOD: set_MaxX
 ;----------------------------------------
 PlatformEnemy_set_MaxX 

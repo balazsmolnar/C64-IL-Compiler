@@ -3,7 +3,7 @@ GCTest_field_s_a2 .byte 0
 
 
 ;----------------------------------------
-; TYPE: GCTest
+; TYPE: Demo.GCTest
 ; METHOD: Two_Instances_First_GCd_Static_Field
 ;----------------------------------------
 GCTest_Two_Instances_First_GCd_Static_Field 
@@ -91,7 +91,7 @@ GCTest_Two_Instances_First_GCd_Static_Field_236:    #method_exit 8 ; Ret
 
 
 ;----------------------------------------
-; TYPE: GCTest
+; TYPE: Demo.GCTest
 ; METHOD: Single_Instance_GC
 ;----------------------------------------
 GCTest_Single_Instance_GC 
@@ -120,7 +120,7 @@ GCTest_Single_Instance_GC_50:    #method_exit 5 ; Ret
 
 
 ;----------------------------------------
-; TYPE: GCTest
+; TYPE: Demo.GCTest
 ; METHOD: Change_Ref_Local_Variable
 ;----------------------------------------
 GCTest_Change_Ref_Local_Variable 
@@ -149,7 +149,7 @@ GCTest_Change_Ref_Local_Variable_54:    #method_exit 5 ; Ret
 
 
 ;----------------------------------------
-; TYPE: GCTest
+; TYPE: Demo.GCTest
 ; METHOD: Foo
 ;----------------------------------------
 GCTest_Foo 
@@ -161,7 +161,7 @@ GCTest_Foo
 
 
 ;----------------------------------------
-; TYPE: GCTest
+; TYPE: Demo.GCTest
 ; METHOD: Passed_As_Parameter_Deferenced
 ;----------------------------------------
 GCTest_Passed_As_Parameter_Deferenced 
@@ -193,7 +193,7 @@ GCTest_Passed_As_Parameter_Deferenced_61:    #method_exit 5 ; Ret
 
 
 ;----------------------------------------
-; TYPE: GCTest
+; TYPE: Demo.GCTest
 ; METHOD: Array_Root_in_Local_Var
 ;----------------------------------------
 GCTest_Array_Root_in_Local_Var 
@@ -245,7 +245,7 @@ GCTest_Array_Root_in_Local_Var_107:    #method_exit 6 ; Ret
 
 
 ;----------------------------------------
-; TYPE: GCTest
+; TYPE: Demo.GCTest
 ; METHOD: Hierarchies_Local_Variable_Root
 ;----------------------------------------
 GCTest_Hierarchies_Local_Variable_Root 
@@ -431,7 +431,7 @@ GCTest_Hierarchies_Local_Variable_Root_501:    #method_exit 23 ; Ret
 
 
 ;----------------------------------------
-; TYPE: GCTest
+; TYPE: Demo.GCTest
 ; METHOD: Start
 ;----------------------------------------
 GCTest_Start 

@@ -1,7 +1,7 @@
 
 
 ;----------------------------------------
-; TYPE: Ball
+; TYPE: Demo.Ball
 ; METHOD: get_X
 ;----------------------------------------
 Ball_get_X 
@@ -17,7 +17,7 @@ Ball_get_X_10:  ; OPT   #locals_push_value_8 2 ; Ldloc_0
 
 
 ;----------------------------------------
-; TYPE: Ball
+; TYPE: Demo.Ball
 ; METHOD: set_X
 ;----------------------------------------
 Ball_set_X 
@@ -37,7 +37,7 @@ Ball_set_X
 
 
 ;----------------------------------------
-; TYPE: Ball
+; TYPE: Demo.Ball
 ; METHOD: get_Y
 ;----------------------------------------
 Ball_get_Y 
@@ -53,7 +53,7 @@ Ball_get_Y_10:  ; OPT   #locals_push_value_8 2 ; Ldloc_0
 
 
 ;----------------------------------------
-; TYPE: Ball
+; TYPE: Demo.Ball
 ; METHOD: set_Y
 ;----------------------------------------
 Ball_set_Y 
@@ -73,7 +73,7 @@ Ball_set_Y
 
 
 ;----------------------------------------
-; TYPE: Ball
+; TYPE: Demo.Ball
 ; METHOD: get_VX
 ;----------------------------------------
 Ball_get_VX 
@@ -85,7 +85,7 @@ Ball_get_VX
 
 
 ;----------------------------------------
-; TYPE: Ball
+; TYPE: Demo.Ball
 ; METHOD: set_VX
 ;----------------------------------------
 Ball_set_VX 
@@ -98,7 +98,7 @@ Ball_set_VX
 
 
 ;----------------------------------------
-; TYPE: Ball
+; TYPE: Demo.Ball
 ; METHOD: get_VY
 ;----------------------------------------
 Ball_get_VY 
@@ -110,7 +110,7 @@ Ball_get_VY
 
 
 ;----------------------------------------
-; TYPE: Ball
+; TYPE: Demo.Ball
 ; METHOD: set_VY
 ;----------------------------------------
 Ball_set_VY 
@@ -123,7 +123,7 @@ Ball_set_VY
 
 
 ;----------------------------------------
-; TYPE: Ball
+; TYPE: Demo.Ball
 ; METHOD: set_Sprite
 ;----------------------------------------
 Ball_set_Sprite 
@@ -157,7 +157,7 @@ Ball_set_Sprite
 
 
 ;----------------------------------------
-; TYPE: Ball
+; TYPE: Demo.Ball
 ; METHOD: set_BallColor
 ;----------------------------------------
 Ball_set_BallColor 
@@ -173,7 +173,7 @@ Ball_set_BallColor
 
 
 ;----------------------------------------
-; TYPE: Ball
+; TYPE: Demo.Ball
 ; METHOD: Move
 ;----------------------------------------
 Ball_Move 
@@ -257,7 +257,7 @@ Ball_Move_165:    #method_exit 7 ; Ret
 
 
 ;----------------------------------------
-; TYPE: Ball
+; TYPE: Demo.Ball
 ; METHOD: RunBalls
 ;----------------------------------------
 Ball_RunBalls 

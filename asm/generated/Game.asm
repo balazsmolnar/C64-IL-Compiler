@@ -1,7 +1,7 @@
 
 
 ;----------------------------------------
-; TYPE: Game
+; TYPE: Demo.Game
 ; METHOD: Init
 ;----------------------------------------
 Game_Init 
@@ -94,7 +94,7 @@ Game_Init
 
 
 ;----------------------------------------
-; TYPE: Game
+; TYPE: Demo.Game
 ; METHOD: InitPlatforms
 ;----------------------------------------
 Game_InitPlatforms 
@@ -312,7 +312,7 @@ Game_InitPlatforms_455:    #locals_push_value_8 2 ; Ldloc_0
 
 
 ;----------------------------------------
-; TYPE: Game
+; TYPE: Demo.Game
 ; METHOD: Run
 ;----------------------------------------
 Game_Run 
@@ -361,7 +361,7 @@ Game_Run_46:    jmp Game_Run_3 ; Br_s
 
 
 ;----------------------------------------
-; TYPE: Game
+; TYPE: Demo.Game
 ; METHOD: Step
 ;----------------------------------------
 Game_Step 
@@ -450,7 +450,7 @@ Game_Step_105:    #locals_push_value_8 5 ; Ldloc_3
 
 
 ;----------------------------------------
-; TYPE: Game
+; TYPE: Demo.Game
 ; METHOD: ClearScreen
 ;----------------------------------------
 Game_ClearScreen 

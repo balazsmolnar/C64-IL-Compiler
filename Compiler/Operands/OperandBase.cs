@@ -162,6 +162,25 @@ namespace Compiler.Ops
         }
     }
 
+    class OpSetfld : OpBase
+    {
+        private readonly string pos;
+        private readonly string objRelPos;
+        private readonly string valueRelPos;
+
+        public OpSetfld(string objRelPos, string valueRelPos, string pos) : base(0, "#setfld")
+        {
+            this.objRelPos = objRelPos;
+            this.valueRelPos = valueRelPos;
+            this.pos = pos;
+        }
+
+        public override object ConvertParameter(CompilerMethodContext context, int parameter)
+        {
+            return $"{objRelPos}, {valueRelPos}, {pos}";
+        }
+    }
+
     class OpPushFld : OpBase
     {
         private readonly string thisVar;

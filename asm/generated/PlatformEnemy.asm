@@ -37,9 +37,10 @@ PlatformEnemy_set_Platform
 PlatformEnemy_set_Sprite 
     #init_locals_pull_parameters 0, [0,0]
     nop ; Nop
-    #locals_push_value_8 1 ; Ldarg_0
-    #locals_push_value_8 2 ; Ldarg_1
-    #stfld 8 ; Stfld
+  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+  ; OPT   #locals_push_value_8 2 ; Ldarg_1
+  ; OPT   #stfld 8 ; Stfld
+    #setfld 1, 2, 8 ; Nop
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 8 ; Ldfld
     #pushfld 8 ; Nop
@@ -170,9 +171,10 @@ PlatformEnemy_get_X_10:  ; OPT   #locals_push_value_8 2 ; Ldloc_0
 PlatformEnemy_set_X 
     #init_locals_pull_parameters 0, [0,0]
     nop ; Nop
-    #locals_push_value_8 1 ; Ldarg_0
-    #locals_push_value_8 2 ; Ldarg_1
-    #stfld 0 ; Stfld
+  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+  ; OPT   #locals_push_value_8 2 ; Ldarg_1
+  ; OPT   #stfld 0 ; Stfld
+    #setfld 1, 2, 0 ; Nop
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 8 ; Ldfld
     #pushfld 8 ; Nop
@@ -205,9 +207,10 @@ PlatformEnemy_get_Y_10:  ; OPT   #locals_push_value_8 2 ; Ldloc_0
 PlatformEnemy_set_Y 
     #init_locals_pull_parameters 0, [0,0]
     nop ; Nop
-    #locals_push_value_8 1 ; Ldarg_0
-    #locals_push_value_8 2 ; Ldarg_1
-    #stfld 1 ; Stfld
+  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+  ; OPT   #locals_push_value_8 2 ; Ldarg_1
+  ; OPT   #stfld 1 ; Stfld
+    #setfld 1, 2, 1 ; Nop
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 8 ; Ldfld
     #pushfld 8 ; Nop
@@ -235,9 +238,10 @@ PlatformEnemy_get_MinX
 ;----------------------------------------
 PlatformEnemy_set_MinX 
     #init_locals_pull_parameters 0, [0,0]
-    #locals_push_value_8 1 ; Ldarg_0
-    #locals_push_value_8 2 ; Ldarg_1
-    #stfld 5 ; Stfld
+  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+  ; OPT   #locals_push_value_8 2 ; Ldarg_1
+  ; OPT   #stfld 5 ; Stfld
+    #setfld 1, 2, 5 ; Nop
     #method_exit 4 ; Ret
 
 
@@ -259,7 +263,8 @@ PlatformEnemy_get_MaxX
 ;----------------------------------------
 PlatformEnemy_set_MaxX 
     #init_locals_pull_parameters 0, [0,0]
-    #locals_push_value_8 1 ; Ldarg_0
-    #locals_push_value_8 2 ; Ldarg_1
-    #stfld 6 ; Stfld
+  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+  ; OPT   #locals_push_value_8 2 ; Ldarg_1
+  ; OPT   #stfld 6 ; Stfld
+    #setfld 1, 2, 6 ; Nop
     #method_exit 4 ; Ret

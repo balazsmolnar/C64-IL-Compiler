@@ -9,6 +9,22 @@ init_var .macro  rel_pos, value
   sta localsStack,x
 .endm
 
+setfld .macro objRelPos, objValuePos, pos 
+
+  #stack_get_from_pos_y \objRelPos
+  ldx localsStack,y
+  lda objTableLow,x
+  sta tmpPointer
+  lda objTableHigh,x
+  sta tmpPointer+1
+
+  #stack_get_from_pos_y \objValuePos
+  ldx localsStack,y
+  txa
+  ldy #\pos
+  sta (tmpPointer),y
+.endm
+
 pushfld .macro pos 
 
   ldy stackPointer

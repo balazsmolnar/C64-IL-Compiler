@@ -15,9 +15,10 @@ Player_set_Sprite
     #stack_push_int 6 ; Ldc_i4_6
     jsr SpriteCollection_set_CommonColor2 ; Callvirt
     nop ; Nop
-    #locals_push_value_8 1 ; Ldarg_0
-    #locals_push_value_8 2 ; Ldarg_1
-    #stfld 5 ; Stfld
+  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+  ; OPT   #locals_push_value_8 2 ; Ldarg_1
+  ; OPT   #stfld 5 ; Stfld
+    #setfld 1, 2, 5 ; Nop
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 5 ; Ldfld
     #pushfld 5 ; Nop
@@ -395,9 +396,10 @@ Player_Move_572:    #method_exit 21 ; Ret
 Player_set_X 
     #init_locals_pull_parameters 0, [0,0]
     nop ; Nop
-    #locals_push_value_8 1 ; Ldarg_0
-    #locals_push_value_8 2 ; Ldarg_1
-    #stfld 0 ; Stfld
+  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+  ; OPT   #locals_push_value_8 2 ; Ldarg_1
+  ; OPT   #stfld 0 ; Stfld
+    #setfld 1, 2, 0 ; Nop
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 5 ; Ldfld
     #pushfld 5 ; Nop
@@ -414,9 +416,10 @@ Player_set_X
 Player_set_Y 
     #init_locals_pull_parameters 0, [0,0]
     nop ; Nop
-    #locals_push_value_8 1 ; Ldarg_0
-    #locals_push_value_8 2 ; Ldarg_1
-    #stfld 1 ; Stfld
+  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+  ; OPT   #locals_push_value_8 2 ; Ldarg_1
+  ; OPT   #stfld 1 ; Stfld
+    #setfld 1, 2, 1 ; Nop
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 5 ; Ldfld
     #pushfld 5 ; Nop

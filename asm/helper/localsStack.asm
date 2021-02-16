@@ -121,7 +121,7 @@ init_locals .macro localsSize
     sta localsStack,y
     iny
   .else
-    ldx #0
+    tax
 -   sta localsStack,y
     inx
     iny
@@ -167,8 +167,7 @@ locals_pull_value_8 .macro rel_pos, ref
   #stack_get_from_pos_y \rel_pos
   ; deref
   .if \ref == 1 
-    lda localsStack,y
-    tax
+    ldx localsStack,y
     dec objTableRootCount, x
   .endif
   #stack_pull_int_a

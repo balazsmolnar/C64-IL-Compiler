@@ -23,9 +23,10 @@ Ball_get_X_10:  ; OPT   #locals_push_value_8 2 ; Ldloc_0
 Ball_set_X 
     #init_locals_pull_parameters 0, [0,0]
     nop ; Nop
-    #locals_push_value_8 1 ; Ldarg_0
-    #locals_push_value_8 2 ; Ldarg_1
-    #stfld 0 ; Stfld
+  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+  ; OPT   #locals_push_value_8 2 ; Ldarg_1
+  ; OPT   #stfld 0 ; Stfld
+    #setfld 1, 2, 0 ; Nop
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 4 ; Ldfld
     #pushfld 4 ; Nop
@@ -58,9 +59,10 @@ Ball_get_Y_10:  ; OPT   #locals_push_value_8 2 ; Ldloc_0
 Ball_set_Y 
     #init_locals_pull_parameters 0, [0,0]
     nop ; Nop
-    #locals_push_value_8 1 ; Ldarg_0
-    #locals_push_value_8 2 ; Ldarg_1
-    #stfld 1 ; Stfld
+  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+  ; OPT   #locals_push_value_8 2 ; Ldarg_1
+  ; OPT   #stfld 1 ; Stfld
+    #setfld 1, 2, 1 ; Nop
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 4 ; Ldfld
     #pushfld 4 ; Nop
@@ -88,9 +90,10 @@ Ball_get_VX
 ;----------------------------------------
 Ball_set_VX 
     #init_locals_pull_parameters 0, [0,0]
-    #locals_push_value_8 1 ; Ldarg_0
-    #locals_push_value_8 2 ; Ldarg_1
-    #stfld 2 ; Stfld
+  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+  ; OPT   #locals_push_value_8 2 ; Ldarg_1
+  ; OPT   #stfld 2 ; Stfld
+    #setfld 1, 2, 2 ; Nop
     #method_exit 4 ; Ret
 
 
@@ -112,9 +115,10 @@ Ball_get_VY
 ;----------------------------------------
 Ball_set_VY 
     #init_locals_pull_parameters 0, [0,0]
-    #locals_push_value_8 1 ; Ldarg_0
-    #locals_push_value_8 2 ; Ldarg_1
-    #stfld 3 ; Stfld
+  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+  ; OPT   #locals_push_value_8 2 ; Ldarg_1
+  ; OPT   #stfld 3 ; Stfld
+    #setfld 1, 2, 3 ; Nop
     #method_exit 4 ; Ret
 
 
@@ -125,9 +129,10 @@ Ball_set_VY
 Ball_set_Sprite 
     #init_locals_pull_parameters 0, [0,0]
     nop ; Nop
-    #locals_push_value_8 1 ; Ldarg_0
-    #locals_push_value_8 2 ; Ldarg_1
-    #stfld 4 ; Stfld
+  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+  ; OPT   #locals_push_value_8 2 ; Ldarg_1
+  ; OPT   #stfld 4 ; Stfld
+    #setfld 1, 2, 4 ; Nop
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 4 ; Ldfld
     #pushfld 4 ; Nop

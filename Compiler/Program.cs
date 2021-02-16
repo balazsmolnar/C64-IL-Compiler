@@ -40,6 +40,7 @@ namespace Compiler
                             new ILMethodIncOptimizer(),
                             new ILPropertyGettterOptimizer(),
                             new ILFieldIncrementOptimizer(),
+                            new ILSetFieldOptimizer(),
                             new ILMethodSetVariableOptimizer(),
                             new ILMethodBranchIfLessOptimizer(),
                             new ILMethodBranchIfNotEqualOptimizer(),

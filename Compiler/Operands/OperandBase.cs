@@ -17,7 +17,7 @@ namespace Compiler.Ops
             Command = command;
         }
 
-        public string Command { get; }
+        public virtual string Command { get; }
         public int ParameterSize { get; }
 
         public virtual string Emit(CompilerMethodContext context, object parameter)
@@ -312,6 +312,12 @@ namespace Compiler.Ops
         {
             int relPos = context.GetParameterReferencePosition(_argIndex);
             return $"{relPos}";
+        }
+        public override string Emit(CompilerMethodContext context, object parameter)
+        {
+            int size = context.GetParameterSize(_argIndex);
+            var command = size == 2 ? "#locals_push_value_16" : "#locals_push_value_8";
+            return $"{command} {parameter}";
         }
     }
 

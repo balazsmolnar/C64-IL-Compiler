@@ -94,6 +94,17 @@ namespace Compiler
             return relPos + 2;
         }
 
+        public int GetParameterSize(int index)
+        {
+            var parameters = Method.GetParameters();
+            bool isInstance = !Method.IsStatic;
+
+            if (isInstance && index == 0)
+                return 1;
+
+            return parameters[index - (isInstance ? 1 : 0)].ParameterType.GetStorageBytes();
+        }
+
         public int GetLocalsSize()
         {
             int size = 0;

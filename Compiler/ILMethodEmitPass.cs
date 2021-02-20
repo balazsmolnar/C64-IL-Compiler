@@ -29,7 +29,14 @@ namespace Compiler
             var ref_params = new List<string>();
             foreach (var param in context.Method.GetParameters().Reverse())
             {
-                ref_params.Add(param.ParameterType.IsReferenceCounted() ? "1" : "0");
+                if (param.ParameterType.GetStorageBytes() == 2)
+                {
+                    ref_params.Add(param.ParameterType.IsReferenceCounted() ? "1" : "0, 0");
+                }
+                else
+                {
+                    ref_params.Add(param.ParameterType.IsReferenceCounted() ? "1" : "0");
+                }
             }
             if (!context.Method.IsStatic)
             {

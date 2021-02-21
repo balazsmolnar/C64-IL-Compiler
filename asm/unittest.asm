@@ -22,13 +22,14 @@ Run_Test:
     pha
     lda #0               ; push this
     #stack_push_int_a
-    ldx $09e0            ; get number of function parameters
-    cpx #0
-    beq +              
-    lda $09e0,x
--   #stack_push_int_a    ; copy parameters to stack
-    dex
-    bmi -
+    ldx #0
+    cpx $09e0            ; get number of function parameters
+    beq +          
+-   lda $09e1,x
+    #stack_push_int_a    ; copy parameters to stack
+    inx
+    cpx $09e0
+    bne -
 +   lda #>endtest        ; push return address to stack
     pha
     lda #<endtest-1
@@ -66,6 +67,26 @@ Assert_AreEqual:
     sta zp_tmp3
     #stack_pull_int_a
     cmp zp_tmp3
+    beq +
+    #stack_push_var16 zp_tmp4_low
+    jsr Assert_Fail
++   #stack_return_to_saved_address zp_tmp2_low
+
+Assert_IsTrue:
+    #stack_save_return_adress zp_tmp2_low
+    #stack_pull_pointer zp_tmp4_low
+    #stack_pull_int_a
+    cmp #0
+    bne +
+    #stack_push_var16 zp_tmp4_low
+    jsr Assert_Fail
++   #stack_return_to_saved_address zp_tmp2_low
+
+Assert_IsFalse:
+    #stack_save_return_adress zp_tmp2_low
+    #stack_pull_pointer zp_tmp4_low
+    #stack_pull_int_a
+    cmp #0
     beq +
     #stack_push_var16 zp_tmp4_low
     jsr Assert_Fail

@@ -119,7 +119,7 @@ Platform_Draw_122:    #locals_push_value_8 6 ; Ldloc_s
     #pushfld 6 ; Nop
     jsr C64_SetChar ; Call
     nop ; Nop
-    #method_exit 9 ; Ret
+    #method_exit 9, [] ; Ret
 
 
 ;----------------------------------------
@@ -175,4 +175,4 @@ Platform_DistanceToPlatform_66:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
     #locals_pull_value_8 6, 0 ; Stloc_2
     jmp Platform_DistanceToPlatform_79 ; Br_s
 Platform_DistanceToPlatform_79:    #locals_push_value_8 6 ; Ldloc_2
-    #method_exit 10 ; Ret
+    #method_exit 10, [] ; Ret

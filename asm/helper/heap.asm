@@ -81,6 +81,20 @@ stelemRef .macro
   sta (tmpPointer),y 
 .endm
 
+stelem .macro  
+  #stack_pull_int $fd   ; value
+  #stack_pull_int_y     ; index
+  #stack_pull_int_x     ; object refernce to array
+
+  lda objTableLow,x
+  sta tmpPointer
+  lda objTableHigh,x
+  sta tmpPointer+1
+
+  lda $fd
+  sta (tmpPointer),y 
+.endm
+
 ldfld .macro pos 
   #stack_pull_int_x
   lda objTableLow,x
@@ -95,6 +109,20 @@ ldfld .macro pos
 .endm
 
 ldelemRef .macro   
+  #stack_pull_int_y
+  #stack_pull_int_x
+
+  lda objTableLow,x
+  sta tmpPointer
+  lda objTableHigh,x
+  sta tmpPointer+1
+
+  lda (tmpPointer),y
+
+  #stack_push_int_a
+.endm
+
+ldelem .macro   
   #stack_pull_int_y
   #stack_pull_int_x
 

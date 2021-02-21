@@ -2,6 +2,7 @@ using System.Runtime.InteropServices;
 using System.Reflection;
 using System.Linq;
 using Compiler;
+using System.Collections.Generic;
 
 namespace Compiler.Ops
 {
@@ -437,7 +438,27 @@ namespace Compiler.Ops
         {
         }
 
-        public override object ConvertParameter(CompilerMethodContext context, int parameter) => $"{context.GetLocalStackSize()}";
+        public override object ConvertParameter(CompilerMethodContext context, int parameter)
+        {
+            List<string> refList = new List<string>();
+            bool isInstance = !context.Method.IsStatic;
+
+            for (int i = 0; i < context.Method.GetParameters().Length; i++)
+            {
+                if (context.Method.GetParameters()[i].ParameterType.IsReferenceCounted())
+                    refList.Add(context.GetParameterReferencePosition(i + (isInstance ? 1 : 0)).ToString());
+            }
+
+            var body = context.Method.GetMethodBody();
+            var variables = body.LocalVariables;
+            for (int i = 0; i < variables.Count; i++)
+            {
+                if (variables[i].LocalType.IsReferenceCounted())
+                    refList.Add(context.GetLocalVariableReferencePosition(i).ToString());
+            }
+
+            return $"{context.GetLocalStackSize()}, [{string.Join(',', refList)}]";
+        }
     }
 
     class OpIncVar : OpBase

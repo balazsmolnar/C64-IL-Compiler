@@ -100,8 +100,11 @@ PIVOT_INDEX = $3b
 ;
 quicksort:
 
+    cpy #0
+    bne +
+    rts
     ; push end signal to stack
-    lda #0
++   lda #0
     pha
     ; low index to stack
     pha

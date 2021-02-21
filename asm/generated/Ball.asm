@@ -13,7 +13,7 @@ Ball_get_X
   ; OPT   jmp Ball_get_X_10 ; Br_s
 Ball_get_X_10:  ; OPT   #locals_push_value_8 2 ; Ldloc_0
     #pushfld 0 ; Nop
-    #method_exit 4 ; Ret
+    #method_exit 4, [] ; Ret
 
 
 ;----------------------------------------
@@ -33,7 +33,7 @@ Ball_set_X
     #locals_push_value_8 2 ; Ldarg_1
     jsr Sprite_set_X ; Callvirt
     nop ; Nop
-    #method_exit 4 ; Ret
+    #method_exit 4, [] ; Ret
 
 
 ;----------------------------------------
@@ -49,7 +49,7 @@ Ball_get_Y
   ; OPT   jmp Ball_get_Y_10 ; Br_s
 Ball_get_Y_10:  ; OPT   #locals_push_value_8 2 ; Ldloc_0
     #pushfld 1 ; Nop
-    #method_exit 4 ; Ret
+    #method_exit 4, [] ; Ret
 
 
 ;----------------------------------------
@@ -69,7 +69,7 @@ Ball_set_Y
     #locals_push_value_8 2 ; Ldarg_1
     jsr Sprite_set_Y ; Callvirt
     nop ; Nop
-    #method_exit 4 ; Ret
+    #method_exit 4, [] ; Ret
 
 
 ;----------------------------------------
@@ -81,7 +81,7 @@ Ball_get_VX
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 2 ; Ldfld
     #pushfld 2 ; Nop
-    #method_exit 3 ; Ret
+    #method_exit 3, [] ; Ret
 
 
 ;----------------------------------------
@@ -94,7 +94,7 @@ Ball_set_VX
   ; OPT   #locals_push_value_8 2 ; Ldarg_1
   ; OPT   #stfld 2 ; Stfld
     #setfld 1, 2, 2 ; Nop
-    #method_exit 4 ; Ret
+    #method_exit 4, [] ; Ret
 
 
 ;----------------------------------------
@@ -106,7 +106,7 @@ Ball_get_VY
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 3 ; Ldfld
     #pushfld 3 ; Nop
-    #method_exit 3 ; Ret
+    #method_exit 3, [] ; Ret
 
 
 ;----------------------------------------
@@ -119,7 +119,7 @@ Ball_set_VY
   ; OPT   #locals_push_value_8 2 ; Ldarg_1
   ; OPT   #stfld 3 ; Stfld
     #setfld 1, 2, 3 ; Nop
-    #method_exit 4 ; Ret
+    #method_exit 4, [] ; Ret
 
 
 ;----------------------------------------
@@ -153,7 +153,7 @@ Ball_set_Sprite
     #stack_push_int 1 ; Ldc_i4_1
     jsr Sprite_set_Visible ; Callvirt
     nop ; Nop
-    #method_exit 4 ; Ret
+    #method_exit 4, [] ; Ret
 
 
 ;----------------------------------------
@@ -169,7 +169,7 @@ Ball_set_BallColor
     #locals_push_value_8 2 ; Ldarg_1
     jsr Sprite_set_Color ; Callvirt
     nop ; Nop
-    #method_exit 4 ; Ret
+    #method_exit 4, [] ; Ret
 
 
 ;----------------------------------------
@@ -253,7 +253,7 @@ Ball_Move_137:    #locals_push_value_8 1 ; Ldarg_0
     #negate ; Neg
     jsr Ball_set_VY ; Call
     nop ; Nop
-Ball_Move_165:    #method_exit 7 ; Ret
+Ball_Move_165:    #method_exit 7, [] ; Ret
 
 
 ;----------------------------------------

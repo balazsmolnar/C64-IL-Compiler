@@ -40,6 +40,8 @@ namespace Compiler
                 { ILOpCode.Stfld, new OpStfld() },
                 { ILOpCode.Stelem_ref, new OpBase(0, "#stelemRef") },
                 { ILOpCode.Ldelem_ref, new OpBase(0, "#ldelemRef") },
+                { ILOpCode.Stelem_i4, new OpBase(0, "#stelem") },
+                { ILOpCode.Ldelem_i4, new OpBase(0, "#ldelem") },
                 { ILOpCode.Ldlen, new OpBase(0, "#ldlen") },
                 { ILOpCode.Ldfld, new OpLdfld() },
                 { ILOpCode.Ldloc_0, new OpLdloc(0) },

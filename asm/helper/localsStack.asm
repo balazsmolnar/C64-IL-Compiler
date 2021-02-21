@@ -130,7 +130,14 @@ init_locals .macro localsSize
   .endif
 .endm
 
-method_exit .macro stackSize
+method_exit .macro stackSize, ref_list
+
+  .for ref in \ref_list
+    ldy stackPointer
+    ldx localsStack-ref,y
+    dec objTableRootCount, x
+  .next
+
   lda stackPointer
   sec
   sbc #\stackSize
@@ -145,22 +152,6 @@ method_exit .macro stackSize
   rts
 .endm
 
-locals_set_value .macro rel_pos, value, ref 
-
-   #stack_get_from_pos_y \rel_pos
-  ; deref
-  .if \ref == 1 
-    ldx localsStack,y
-    dec objTableRootCount,x
-  .endif
-  lda #\value
-  sta localsStack,y
-  ; ref
-  .if \ref == 1 
-    tax
-    inc objTableRootCount, x
-  .endif
-.endm
 
 locals_pull_value_8 .macro rel_pos, ref 
 

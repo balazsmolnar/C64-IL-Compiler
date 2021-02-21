@@ -57,7 +57,7 @@ Player_set_Sprite
     #stack_push_int 20 ; Ldc_i4_s
     jsr Player_set_X ; Call
     nop ; Nop
-    #method_exit 4 ; Ret
+    #method_exit 4, [] ; Ret
 
 
 ;----------------------------------------
@@ -73,7 +73,7 @@ Player_get_X
   ; OPT   jmp Player_get_X_10 ; Br_s
 Player_get_X_10:  ; OPT   #locals_push_value_8 2 ; Ldloc_0
     #pushfld 0 ; Nop
-    #method_exit 4 ; Ret
+    #method_exit 4, [] ; Ret
 
 
 ;----------------------------------------
@@ -89,7 +89,7 @@ Player_get_Y
   ; OPT   jmp Player_get_Y_10 ; Br_s
 Player_get_Y_10:  ; OPT   #locals_push_value_8 2 ; Ldloc_0
     #pushfld 1 ; Nop
-    #method_exit 4 ; Ret
+    #method_exit 4, [] ; Ret
 
 
 ;----------------------------------------
@@ -386,7 +386,7 @@ Player_Move_548:    #locals_push_value_8 3 ; Ldloc_0
     jsr Player_set_Y ; Call
     nop ; Nop
     nop ; Nop
-Player_Move_572:    #method_exit 21 ; Ret
+Player_Move_572:    #method_exit 21, [] ; Ret
 
 
 ;----------------------------------------
@@ -406,7 +406,7 @@ Player_set_X
     #locals_push_value_8 2 ; Ldarg_1
     jsr Sprite_set_X ; Callvirt
     nop ; Nop
-    #method_exit 4 ; Ret
+    #method_exit 4, [] ; Ret
 
 
 ;----------------------------------------
@@ -426,7 +426,7 @@ Player_set_Y
     #locals_push_value_8 2 ; Ldarg_1
     jsr Sprite_set_Y ; Callvirt
     nop ; Nop
-    #method_exit 4 ; Ret
+    #method_exit 4, [] ; Ret
 
 
 ;----------------------------------------
@@ -483,4 +483,4 @@ Player_Die_34:  ; OPT   #locals_push_value_8 2 ; Ldloc_0
     #stack_push_int 20 ; Ldc_i4_s
     jsr Player_set_X ; Call
     nop ; Nop
-    #method_exit 7 ; Ret
+    #method_exit 7, [] ; Ret

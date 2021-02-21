@@ -87,7 +87,7 @@ GCTest_Two_Instances_First_GCd_Static_Field_204:    #stack_push_int 0 ; Ldc_i4_0
     #stack_duplicate ; Dup
     #stack_pull_int_ref GCTest_field_s_a2, 1 ; Stsfld
     #stack_pull_int_ref GCTest_field_s_a1, 1 ; Stsfld
-GCTest_Two_Instances_First_GCd_Static_Field_236:    #method_exit 8 ; Ret
+GCTest_Two_Instances_First_GCd_Static_Field_236:    #method_exit 8, [] ; Ret
 
 
 ;----------------------------------------
@@ -116,7 +116,7 @@ GCTest_Single_Instance_GC
     #stack_push_pointer string_1879048299 ; Ldstr
     jsr Console_WriteLine ; Call
     nop ; Nop
-GCTest_Single_Instance_GC_50:    #method_exit 5 ; Ret
+GCTest_Single_Instance_GC_50:    #method_exit 5, [1] ; Ret
 
 
 ;----------------------------------------
@@ -145,7 +145,7 @@ GCTest_Change_Ref_Local_Variable
     #stack_push_pointer string_1879048299 ; Ldstr
     jsr Console_WriteLine ; Call
     nop ; Nop
-GCTest_Change_Ref_Local_Variable_54:    #method_exit 5 ; Ret
+GCTest_Change_Ref_Local_Variable_54:    #method_exit 5, [1] ; Ret
 
 
 ;----------------------------------------
@@ -157,7 +157,7 @@ GCTest_Foo
     nop ; Nop
     #locals_push_value_8 1 ; Ldarg_0
     #locals_pull_value_8 2, 1 ; Stloc_0
-    #method_exit 4 ; Ret
+    #method_exit 4, [1,2] ; Ret
 
 
 ;----------------------------------------
@@ -189,7 +189,7 @@ GCTest_Passed_As_Parameter_Deferenced
     #stack_push_pointer string_1879048299 ; Ldstr
     jsr Console_WriteLine ; Call
     nop ; Nop
-GCTest_Passed_As_Parameter_Deferenced_61:    #method_exit 5 ; Ret
+GCTest_Passed_As_Parameter_Deferenced_61:    #method_exit 5, [1] ; Ret
 
 
 ;----------------------------------------
@@ -241,7 +241,7 @@ GCTest_Array_Root_in_Local_Var_73:    #stack_push_int 0 ; Ldnull
     #stack_push_pointer string_1879048331 ; Ldstr
     jsr Console_WriteLine ; Call
     nop ; Nop
-GCTest_Array_Root_in_Local_Var_107:    #method_exit 6 ; Ret
+GCTest_Array_Root_in_Local_Var_107:    #method_exit 6, [1] ; Ret
 
 
 ;----------------------------------------
@@ -427,7 +427,7 @@ GCTest_Hierarchies_Local_Variable_Root_472:    jsr C64_get_Debug ; Call
     #stack_push_pointer string_1879048623 ; Ldstr
     jsr Console_WriteLine ; Call
     nop ; Nop
-GCTest_Hierarchies_Local_Variable_Root_501:    #method_exit 23 ; Ret
+GCTest_Hierarchies_Local_Variable_Root_501:    #method_exit 23, [1,2,3,4,5,6] ; Ret
 
 
 ;----------------------------------------
@@ -449,4 +449,4 @@ GCTest_Start
     nop ; Nop
     jsr GCTest_Passed_As_Parameter_Deferenced ; Call
     nop ; Nop
-    #method_exit 2 ; Ret
+    #method_exit 2, [] ; Ret

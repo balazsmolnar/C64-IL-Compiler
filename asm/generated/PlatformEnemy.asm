@@ -27,7 +27,7 @@ PlatformEnemy_set_Platform
     #stack_push_int 2 ; Ldc_i4_2
     #sub ; Sub
     #stfld 1 ; Stfld
-    #method_exit 4 ; Ret
+    #method_exit 4, [2] ; Ret
 
 
 ;----------------------------------------
@@ -68,7 +68,7 @@ PlatformEnemy_set_Sprite
     #stack_push_int 1 ; Ldc_i4_1
     jsr Sprite_set_Visible ; Callvirt
     nop ; Nop
-    #method_exit 4 ; Ret
+    #method_exit 4, [] ; Ret
 
 
 ;----------------------------------------
@@ -84,7 +84,7 @@ PlatformEnemy_set_Color
     #locals_push_value_8 2 ; Ldarg_1
     jsr Sprite_set_Color ; Callvirt
     nop ; Nop
-    #method_exit 4 ; Ret
+    #method_exit 4, [] ; Ret
 
 
 ;----------------------------------------
@@ -145,7 +145,7 @@ PlatformEnemy_Move_60:    nop ; Nop
     #stack_push_int 1 ; Ldc_i4_1
     #stfld 7 ; Stfld
 PlatformEnemy_Move_106:    nop ; Nop
-PlatformEnemy_Move_107:    #method_exit 6 ; Ret
+PlatformEnemy_Move_107:    #method_exit 6, [] ; Ret
 
 
 ;----------------------------------------
@@ -161,7 +161,7 @@ PlatformEnemy_get_X
   ; OPT   jmp PlatformEnemy_get_X_10 ; Br_s
 PlatformEnemy_get_X_10:  ; OPT   #locals_push_value_8 2 ; Ldloc_0
     #pushfld 0 ; Nop
-    #method_exit 4 ; Ret
+    #method_exit 4, [] ; Ret
 
 
 ;----------------------------------------
@@ -181,7 +181,7 @@ PlatformEnemy_set_X
     #locals_push_value_8 2 ; Ldarg_1
     jsr Sprite_set_X ; Callvirt
     nop ; Nop
-    #method_exit 4 ; Ret
+    #method_exit 4, [] ; Ret
 
 
 ;----------------------------------------
@@ -197,7 +197,7 @@ PlatformEnemy_get_Y
   ; OPT   jmp PlatformEnemy_get_Y_10 ; Br_s
 PlatformEnemy_get_Y_10:  ; OPT   #locals_push_value_8 2 ; Ldloc_0
     #pushfld 1 ; Nop
-    #method_exit 4 ; Ret
+    #method_exit 4, [] ; Ret
 
 
 ;----------------------------------------
@@ -217,7 +217,7 @@ PlatformEnemy_set_Y
     #locals_push_value_8 2 ; Ldarg_1
     jsr Sprite_set_Y ; Callvirt
     nop ; Nop
-    #method_exit 4 ; Ret
+    #method_exit 4, [] ; Ret
 
 
 ;----------------------------------------
@@ -229,7 +229,7 @@ PlatformEnemy_get_MinX
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 5 ; Ldfld
     #pushfld 5 ; Nop
-    #method_exit 3 ; Ret
+    #method_exit 3, [] ; Ret
 
 
 ;----------------------------------------
@@ -242,7 +242,7 @@ PlatformEnemy_set_MinX
   ; OPT   #locals_push_value_8 2 ; Ldarg_1
   ; OPT   #stfld 5 ; Stfld
     #setfld 1, 2, 5 ; Nop
-    #method_exit 4 ; Ret
+    #method_exit 4, [] ; Ret
 
 
 ;----------------------------------------
@@ -254,7 +254,7 @@ PlatformEnemy_get_MaxX
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 6 ; Ldfld
     #pushfld 6 ; Nop
-    #method_exit 3 ; Ret
+    #method_exit 3, [] ; Ret
 
 
 ;----------------------------------------
@@ -267,4 +267,4 @@ PlatformEnemy_set_MaxX
   ; OPT   #locals_push_value_8 2 ; Ldarg_1
   ; OPT   #stfld 6 ; Stfld
     #setfld 1, 2, 6 ; Nop
-    #method_exit 4 ; Ret
+    #method_exit 4, [] ; Ret

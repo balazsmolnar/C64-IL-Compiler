@@ -90,7 +90,7 @@ Game_Init
     jsr Player_set_Sprite ; Callvirt
     nop ; Nop
     #stfld 1 ; Stfld
-    #method_exit 3 ; Ret
+    #method_exit 3, [] ; Ret
 
 
 ;----------------------------------------
@@ -308,7 +308,7 @@ Game_InitPlatforms_455:    #locals_push_value_8 2 ; Ldloc_0
     #locals_pull_value_8 3, 0 ; Stloc_1
     #locals_push_value_8 3 ; Ldloc_1
     #branch_true Game_InitPlatforms_437 ; Brtrue_s
-    #method_exit 5 ; Ret
+    #method_exit 5, [] ; Ret
 
 
 ;----------------------------------------
@@ -446,7 +446,7 @@ Game_Step_105:    #locals_push_value_8 5 ; Ldloc_3
     #locals_push_value_8 2 ; Ldloc_0
     jsr Player_Move ; Callvirt
     nop ; Nop
-    #method_exit 10 ; Ret
+    #method_exit 10, [] ; Ret
 
 
 ;----------------------------------------
@@ -498,4 +498,4 @@ Game_ClearScreen_42:  ; OPT   #locals_push_value_8 1 ; Ldloc_0
   ; OPT   #locals_push_value_8 4 ; Ldloc_3
   ; OPT   #branch_true Game_ClearScreen_5 ; Brtrue_s
     #branch_if_var_less 1, 40, Game_ClearScreen_5 ; Nop
-    #method_exit 6 ; Ret
+    #method_exit 6, [] ; Ret

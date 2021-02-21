@@ -1,0 +1,33 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\C64Lib\C64Lib.csproj" />
+    <ProjectReference Include="..\C64TestFramework\C64TestFramework.csproj" />
+    <ProjectReference Include="..\Compiler\Compiler.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="NUnit" Version="3.12.0" />
+    <PackageReference Include="NUnit3TestAdapter" Version="3.16.1" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.5.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="PostSharp" Version="*" />
+  </ItemGroup>
+
+    <PropertyGroup>
+      <DefineConstants>POSTSHARP</DefineConstants>
+      <RunPostBuildEvent>OnOutputUpdated</RunPostBuildEvent>
+    </PropertyGroup>
+	<!--<Target Name="C64Compile" AfterTargets="">
+        <Exec Command="Run.bat" />
+	</Target>-->
+	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
+	  <Exec Command="run.bat" />
+	</Target>
+</Project>

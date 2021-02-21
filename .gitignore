@@ -7,3 +7,15 @@ prg/main.labels
 prg/dump.asm
 all.l
 asm/generated/__c.asm
+obj/project.nuget.cache
+Test/x
+obj/project.assets.json
+C64.sln.DotSettings.user
+.vs/C64/v16/.suo
+obj/C64-IL-Compiler.csproj.nuget.dgspec.json
+obj/C64-IL-Compiler.csproj.nuget.g.props
+obj/C64-IL-Compiler.csproj.nuget.g.targets
+asm/unittest/**
+prg/**
+.vs/**
+NuGet.Config

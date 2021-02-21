@@ -494,6 +494,11 @@ namespace SimpleEmulator
             }
         }
 
+        public byte GetMemory(int address)
+        {
+            return memory[address];
+        }
+
         public void Start(int address)
         {
             pointer = address;

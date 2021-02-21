@@ -185,3 +185,10 @@ locals_push_value_8 .macro rel_pos
   #stack_push_int_a
 .endm
 
+locals_push_value_16 .macro rel_pos
+  #stack_get_from_pos_y \rel_pos
+  lda localsStack+1,y
+  #stack_push_int_a
+  lda localsStack,y
+  #stack_push_int_a
+.endm

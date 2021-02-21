@@ -1,59 +1,5 @@
 ; Stack for parameters and local variables
 
-stack_get_from_pos_x .macro  rel_pos
-  .if \rel_pos==1
-    ldx stackPointer
-    dex
-  .elsif \rel_pos==2
-    ldx stackPointer
-    dex
-    dex
-  .elsif \rel_pos==3
-    ldx stackPointer
-    dex
-    dex
-    dex
-  .elsif \rel_pos==4
-    ldx stackPointer
-    dex
-    dex
-    dex
-    dex
-  .else  
-    lda stackPointer
-    sec
-    sbc #\rel_pos
-    tax
-  .endif
-.endm
-
-stack_get_from_pos_y .macro  rel_pos
-  .if \rel_pos==1
-    ldy stackPointer
-    dey
-  .elsif \rel_pos==2
-    ldy stackPointer
-    dey
-    dey
-  .elsif \rel_pos==3
-    ldy stackPointer
-    dey
-    dey
-    dey
-  .elsif \rel_pos==4
-    ldy stackPointer
-    dey
-    dey
-    dey
-    dey
-  .else  
-    lda stackPointer
-    sec
-    sbc #\rel_pos
-    tay
-  .endif
-.endm
-
 locals_stack_init .macro
   lda # 0
   sta stackPointer
@@ -155,14 +101,15 @@ method_exit .macro stackSize, ref_list
 
 locals_pull_value_8 .macro rel_pos, ref 
 
-  #stack_get_from_pos_y \rel_pos
+  ldy stackPointer
+
   ; deref
   .if \ref == 1 
-    ldx localsStack,y
+    ldx localsStack-\rel_pos,y
     dec objTableRootCount, x
   .endif
   #stack_pull_int_a
-  sta localsStack,y
+  sta localsStack-\rel_pos,y
   ; ref
   .if \ref == 1 
     tax
@@ -171,15 +118,15 @@ locals_pull_value_8 .macro rel_pos, ref
 .endm
 
 locals_push_value_8 .macro rel_pos
-  #stack_get_from_pos_y \rel_pos
-  lda localsStack,y
+  ldy stackPointer
+  lda localsStack-\rel_pos,y
   #stack_push_int_a
 .endm
 
 locals_push_value_16 .macro rel_pos
-  #stack_get_from_pos_y \rel_pos
-  lda localsStack+1,y
+  ldy stackPointer
+  lda localsStack-\rel_pos+1,y
   #stack_push_int_a
-  lda localsStack,y
+  lda localsStack-\rel_pos,y
   #stack_push_int_a
 .endm

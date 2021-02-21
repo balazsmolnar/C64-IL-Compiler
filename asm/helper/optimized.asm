@@ -1,25 +1,25 @@
 inc_var .macro rel_pos
-  #stack_get_from_pos_x \rel_pos
-  inc localsStack,x
+  ldx stackPointer
+  inc localsStack-\rel_pos,x
 .endm
 
 init_var .macro  rel_pos, value  
-  #stack_get_from_pos_x \rel_pos
+  ldy stackPointer
   lda #\value
-  sta localsStack,x
+  sta localsStack-\rel_pos,y
 .endm
 
 setfld .macro objRelPos, objValuePos, pos 
 
-  #stack_get_from_pos_y \objRelPos
-  ldx localsStack,y
+  ldy stackPointer
+  ldx localsStack-\objRelPos,y
   lda objTableLow,x
   sta tmpPointer
   lda objTableHigh,x
   sta tmpPointer+1
 
-  #stack_get_from_pos_y \objValuePos
-  ldx localsStack,y
+  ldy stackPointer
+  ldx localsStack-\objValuePos,y
   txa
   ldy #\pos
   sta (tmpPointer),y
@@ -61,15 +61,15 @@ incfld .macro pos
 .endm
 
 branch_if_var_less .macro rel_pos, value, label 
-    #stack_get_from_pos_x \rel_pos
-    lda localsStack, x
+    ldy stackPointer
+    lda localsStack-\rel_pos, y
     cmp #\value
     bmi \label
 .endm
 
 branch_if_not_equal .macro rel_pos, value, label 
-    #stack_get_from_pos_x \rel_pos
-    lda localsStack, x
+    ldy stackPointer
+    lda localsStack-\rel_pos, y
     cmp #\value
     bne \label
 .endm

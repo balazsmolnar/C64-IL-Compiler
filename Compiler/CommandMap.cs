@@ -52,6 +52,7 @@ namespace Compiler
                 { ILOpCode.Ldarg_0, new OpLdarg(0) },
                 { ILOpCode.Ldarg_1, new OpLdarg(1) },
                 { ILOpCode.Ldarg_2, new OpLdarg(2) },
+                { ILOpCode.Ldarg_3, new OpLdarg(3) },
                 { ILOpCode.Ldsfld, new OpLdsld() },
                 { ILOpCode.Br_s, new OpShortJump("jmp") },
                 { ILOpCode.Beq, new OpShortJump("#branch_equal") },

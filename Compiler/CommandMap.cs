@@ -1,6 +1,4 @@
-using System;
 using System.Collections.Generic;
-using System.Reflection;
 using System.Reflection.Metadata;
 using Compiler.Ops;
 namespace Compiler
@@ -59,6 +57,10 @@ namespace Compiler
                 { ILOpCode.Beq_s, new OpShortJump("#branch_equal") },
                 { ILOpCode.Blt, new OpShortJump("#branch_less") },
                 { ILOpCode.Blt_s, new OpShortJump("#branch_less") },
+                { ILOpCode.Ble, new OpShortJump("#branch_less_equal") },
+                { ILOpCode.Ble_s, new OpShortJump("#branch_less_equal") },
+                { ILOpCode.Bgt, new OpShortJump("#branch_greter") },
+                { ILOpCode.Bgt_s, new OpShortJump("#branch_greater") },
                 { ILOpCode.Br, new OpLongJump("jmp") },
                 { ILOpCode.Brtrue_s, new OpShortJump("#branch_true") },
                 { ILOpCode.Brtrue, new OpLongJump("#branch_true") },

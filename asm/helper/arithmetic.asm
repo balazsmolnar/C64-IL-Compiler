@@ -108,6 +108,21 @@ compareGreater8 .macro
         lda $32
         cmp $34
         bcc +
+        beq +
+        ldx #1
++       stx $34
+        #stack_push_var $34
+.endm
+
+compareGreater_unsigned .macro 
+        #stack_pull_int $34
+        #stack_pull_int $32
+
+        ldx #0
+        lda $32
+        cmp $34
+        bmi +
+        beq +
         ldx #1
 +       stx $34
         #stack_push_var $34

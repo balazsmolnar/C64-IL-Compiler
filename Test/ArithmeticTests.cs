@@ -49,5 +49,98 @@ namespace Compiler.Test
             return a << 3;
         }
 
+        [TestCase(5, 4, ExpectedResult = false)]
+        [TestCase(100, 100, ExpectedResult = true)]
+        [TestCase(-10, -10, ExpectedResult = true)]
+        public bool TestEquality(int a, int b)
+        {
+            return a == b;
+        }
+
+        [TestCase(5u, 4u, ExpectedResult = false)]
+        [TestCase(100u, 100u, ExpectedResult = true)]
+        [TestCase(255u, 255u, ExpectedResult = true)]
+        public bool TestEquality_uint(uint a, uint b)
+        {
+            return a == b;
+        }
+
+        [TestCase(5, 4, ExpectedResult = false)]
+        [TestCase(100, 100, ExpectedResult = false)]
+        [TestCase(4, 5, ExpectedResult = true)]
+        [TestCase(-100, -99, ExpectedResult = true)]
+        [TestCase(-99, -100, ExpectedResult = false)]
+        public bool TestLess(int a, int b)
+        {
+            return a < b;
+        }
+
+        [TestCase(5u, 4u, ExpectedResult = false)]
+        [TestCase(100u, 100u, ExpectedResult = false)]
+        [TestCase(4u, 5u, ExpectedResult = true)]
+        [TestCase(200u, 201u, ExpectedResult = true)]
+        [TestCase(201u, 200u, ExpectedResult = false)]
+        public bool TestLess_uint(uint a, uint b)
+        {
+            return a < b;
+        }
+
+        [TestCase(5, 4, ExpectedResult = false)]
+        [TestCase(100, 100, ExpectedResult = true)]
+        [TestCase(4, 5, ExpectedResult = true)]
+        [TestCase(-40, -39, ExpectedResult = true)]
+        public bool TestLessEqual(int a, int b)
+        {
+            return a <= b;
+        }
+
+        [TestCase(5u, 4u, ExpectedResult = false)]
+        [TestCase(100u, 100u, ExpectedResult = true)]
+        [TestCase(4u, 5u, ExpectedResult = true)]
+        [TestCase(200u, 200u, ExpectedResult = true)]
+        [TestCase(200u, 201u, ExpectedResult = true)]
+        public bool TestLessEqual_uint(uint a, uint b)
+        {
+            return a <= b;
+        }
+
+        [TestCase(5, 4, ExpectedResult = true)]
+        [TestCase(100, 100, ExpectedResult = false)]
+        [TestCase(4, 5, ExpectedResult = false)]
+        [TestCase(-100, -99, ExpectedResult = false)]
+        [TestCase(-100, -101, ExpectedResult = true)]
+        public bool TestGreater(int a, int b)
+        {
+            return a > b;
+        }
+
+        [TestCase(5u, 4u, ExpectedResult = true)]
+        [TestCase(100u, 100u, ExpectedResult = false)]
+        [TestCase(4u, 5u, ExpectedResult = false)]
+        [TestCase(200u, 201u, ExpectedResult = false)]
+        [TestCase(201u, 200u, ExpectedResult = true)]
+        public bool TestGreater_uint(uint a, uint b)
+        {
+            return a > b;
+        }
+
+        [TestCase(5, 4, ExpectedResult = true)]
+        [TestCase(100, 100, ExpectedResult = true)]
+        [TestCase(4, 5, ExpectedResult = false)]
+        public bool TestGreaterEqual(int a, int b)
+        {
+            return a >= b;
+        }
+
+        [TestCase(5u, 4u, ExpectedResult = true)]
+        [TestCase(100u, 100u, ExpectedResult = true)]
+        [TestCase(4u, 5u, ExpectedResult = false)]
+        [TestCase(200u, 199u, ExpectedResult = true)]
+        [TestCase(200u, 201u, ExpectedResult = false)]
+        public bool TestGreaterEqual_uint(uint a, uint b)
+        {
+            return a >= b;
+        }
+
     }
 }

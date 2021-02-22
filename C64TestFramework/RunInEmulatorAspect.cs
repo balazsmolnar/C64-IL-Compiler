@@ -23,7 +23,10 @@ namespace C64TestFramework
             emulator.SetMemory(0x9e0, (byte)args.Arguments.Count);
             for (byte i = 0; i < (byte)args.Arguments.Count; i++)
             {
-                emulator.SetMemory(0x9e1 + i, (byte)(int)args.Arguments[i]);
+                if (args.Arguments[i] is int)
+                    emulator.SetMemory(0x9e1 + i, (byte)(int)args.Arguments[i]);
+                if (args.Arguments[i] is uint)
+                    emulator.SetMemory(0x9e1 + i, (byte)(uint)args.Arguments[i]);
             }
 
             emulator.Start(0x1000);
@@ -31,7 +34,15 @@ namespace C64TestFramework
             var result = emulator.GetMemory(0x20);
             if (result != 0)
                 NUnit.Framework.Assert.Fail(GetMessage(emulator));
-            args.ReturnValue = (int)emulator.GetMemory(0x2c);
+
+            if (args.Method is MethodInfo)
+            {
+                var type = ((MethodInfo) args.Method).ReturnType;
+                if (type == typeof(int))
+                    args.ReturnValue = (int)emulator.GetMemory(0x2c);
+                if (type == typeof(Boolean))
+                    args.ReturnValue = emulator.GetMemory(0x2c) != 0;
+            }
         }
 
         private static Dictionary<string, string> labels;

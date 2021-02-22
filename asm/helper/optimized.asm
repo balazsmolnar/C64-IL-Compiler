@@ -44,8 +44,7 @@ pushfld .macro pos
 incfld .macro pos 
 
   ldy stackPointer
-  dey
-  ldx localsStack,y
+  ldx localsStack-1,y
 
   lda objTableLow,x
   sta tmpPointer

@@ -107,7 +107,7 @@ Player_Move
     #locals_push_value_8 1 ; Ldarg_0
     jsr Player_get_Y ; Call
     #stack_push_int 240 ; Ldc_i4
-    #compareGreater ; Cgt_un
+    #compareGreater_unsigned ; Cgt_un
     jmp Player_Move_30 ; Br_s
 Player_Move_29:    #stack_push_int 1 ; Ldc_i4_1
 Player_Move_30:    #locals_pull_value_8 4, 0 ; Stloc_1
@@ -127,7 +127,7 @@ Player_Move_47:  ; OPT   #stack_push_int 0 ; Ldc_i4_0
     #branch_true Player_Move_63 ; Brtrue_s
     #locals_push_value_8 2 ; Ldarg_1
     #stack_push_int 4 ; Ldc_i4_4
-    #compareGreater ; Cgt_un
+    #compareGreater_unsigned ; Cgt_un
     jmp Player_Move_64 ; Br_s
 Player_Move_63:    #stack_push_int 0 ; Ldc_i4_0
 Player_Move_64:    #locals_pull_value_8 5, 0 ; Stloc_2

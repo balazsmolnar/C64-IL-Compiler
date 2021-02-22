@@ -16,25 +16,21 @@ add16 .macro
 add8 .macro
 
     #stack_pull_int $32
-    #stack_pull_int $34
+    #stack_pull_int_a
 
     clc
-    lda $34
     adc $32
-    sta $34
-    #stack_push_var $34
+    #stack_push_int_a
 .endm
 
 sub8 .macro 
 
     #stack_pull_int $32
-    #stack_pull_int $34
+    #stack_pull_int_a
 
     sec
-    lda $34
     sbc $32
-    sta $34
-    #stack_push_var $34
+    #stack_push_int_a
 .endm
 
 negate16 .macro 
@@ -56,14 +52,12 @@ negate16 .macro
 
 negate8 .macro  
 
-    #stack_pull_int $34
+    #stack_pull_int_a
 
-    lda $34
     eor #$FF
     clc
     adc #$1
-    sta $34
-    #stack_push_var $34
+    #stack_push_int_a
 .endm
 
 compareLess16 .macro 
@@ -89,43 +83,37 @@ l1      stx $34
 
 compareLess8 .macro 
         #stack_pull_int $34
-        #stack_pull_int $32
+        #stack_pull_int_a
 
         ldx #0
-        lda $32
         cmp $34
         bcs +
-        ldx #1
-+       stx $34
-        #stack_push_var $34
+        inx
++        #stack_push_int_x
 .endm
 
 compareGreater8 .macro 
         #stack_pull_int $34
-        #stack_pull_int $32
+        #stack_pull_int_a
 
         ldx #0
-        lda $32
         cmp $34
         bcc +
         beq +
-        ldx #1
-+       stx $34
-        #stack_push_var $34
+        inx
++       #stack_push_int_x
 .endm
 
 compareGreater_unsigned .macro 
         #stack_pull_int $34
-        #stack_pull_int $32
+        #stack_pull_int_a
 
         ldx #0
-        lda $32
         cmp $34
         bmi +
         beq +
-        ldx #1
-+       stx $34
-        #stack_push_var $34
+        inx
++       #stack_push_int_x
 .endm
 
 compareEqual16 .macro 
@@ -150,16 +138,14 @@ compareEqual16 .macro
 
 compareEqual8 .macro
         #stack_pull_int $34
-        #stack_pull_int $32
+        #stack_pull_int_a
 
         ldx #0
-        lda $32
         cmp $34
         bne +
-        ldx #1
+        inx
 +
-        stx $34
-        #stack_push_var $34
+        #stack_push_int_x
 .endm
 
 shift_left .macro 

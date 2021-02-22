@@ -10,3 +10,7 @@ prg/**
 .vs/**
 NuGet.Config
 obj/**
+asm/generated/Ball.asm
+asm/generated/Platform.asm
+asm/generated/PlatformEnemy.asm
+asm/generated/Player.asm

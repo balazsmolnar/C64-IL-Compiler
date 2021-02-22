@@ -114,7 +114,7 @@ PlatformEnemy_Move
     jsr PlatformEnemy_get_X ; Call
     #locals_push_value_8 1 ; Ldarg_0
     jsr PlatformEnemy_get_MaxX ; Call
-    #compareGreater ; Cgt_un
+    #compareGreater_unsigned ; Cgt_un
     #locals_pull_value_8 3, 0 ; Stloc_1
     #locals_push_value_8 3 ; Ldloc_1
     #branch_false PlatformEnemy_Move_57 ; Brfalse_s

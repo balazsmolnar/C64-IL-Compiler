@@ -204,7 +204,7 @@ Ball_Move
     #locals_push_value_8 1 ; Ldarg_0
     jsr Ball_get_X ; Call
     #stack_push_int 250 ; Ldc_i4
-    #compareGreater ; Cgt_un
+    #compareGreater_unsigned ; Cgt_un
     #locals_pull_value_8 2, 0 ; Stloc_0
     #locals_push_value_8 2 ; Ldloc_0
     #branch_false Ball_Move_78 ; Brfalse_s
@@ -230,7 +230,7 @@ Ball_Move_78:    #locals_push_value_8 1 ; Ldarg_0
 Ball_Move_106:    #locals_push_value_8 1 ; Ldarg_0
     jsr Ball_get_Y ; Call
     #stack_push_int 228 ; Ldc_i4
-    #compareGreater ; Cgt_un
+    #compareGreater_unsigned ; Cgt_un
     #locals_pull_value_8 4, 0 ; Stloc_2
     #locals_push_value_8 4 ; Ldloc_2
     #branch_false Ball_Move_137 ; Brfalse_s

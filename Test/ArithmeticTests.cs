@@ -31,7 +31,7 @@ namespace Compiler.Test
         [TestCase(1, -1, ExpectedResult = 0)]
         public int TestAdd(int a, int b)
         {
-            return a+b;
+            return a + b;
         }
 
         [TestCase(5, 4, ExpectedResult = 1)]
@@ -42,7 +42,7 @@ namespace Compiler.Test
             return a - b;
         }
 
-        [TestCase(1,  ExpectedResult = 8)]
+        [TestCase(1, ExpectedResult = 8)]
         [TestCase(2, ExpectedResult = 16)]
         public int TestShiftLeft3(int a)
         {
@@ -80,6 +80,7 @@ namespace Compiler.Test
         [TestCase(4u, 5u, ExpectedResult = true)]
         [TestCase(200u, 201u, ExpectedResult = true)]
         [TestCase(201u, 200u, ExpectedResult = false)]
+        [TestCase(10u, 240u, ExpectedResult = true)]
         public bool TestLess_uint(uint a, uint b)
         {
             return a < b;
@@ -99,6 +100,7 @@ namespace Compiler.Test
         [TestCase(4u, 5u, ExpectedResult = true)]
         [TestCase(200u, 200u, ExpectedResult = true)]
         [TestCase(200u, 201u, ExpectedResult = true)]
+        [TestCase(10u, 240u, ExpectedResult = true)]
         public bool TestLessEqual_uint(uint a, uint b)
         {
             return a <= b;
@@ -119,6 +121,7 @@ namespace Compiler.Test
         [TestCase(4u, 5u, ExpectedResult = false)]
         [TestCase(200u, 201u, ExpectedResult = false)]
         [TestCase(201u, 200u, ExpectedResult = true)]
+        [TestCase(10u, 240u, ExpectedResult = false)]
         public bool TestGreater_uint(uint a, uint b)
         {
             return a > b;

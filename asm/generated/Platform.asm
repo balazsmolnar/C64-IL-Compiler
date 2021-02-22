@@ -145,7 +145,7 @@ Platform_DistanceToPlatform_22:    #locals_push_value_8 2 ; Ldarg_1
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 4 ; Ldfld
     #pushfld 4 ; Nop
-    #compareGreater ; Cgt_un
+    #compareGreater_unsigned ; Cgt_un
     #locals_pull_value_8 7, 0 ; Stloc_3
     #locals_push_value_8 7 ; Ldloc_3
     #branch_false Platform_DistanceToPlatform_43 ; Brfalse_s
@@ -157,7 +157,7 @@ Platform_DistanceToPlatform_43:    #locals_push_value_8 3 ; Ldarg_2
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 2 ; Ldfld
     #pushfld 2 ; Nop
-    #compareGreater ; Cgt_un
+    #compareGreater_unsigned ; Cgt_un
     #locals_pull_value_8 8, 0 ; Stloc_s
     #locals_push_value_8 8 ; Ldloc_s
     #branch_false Platform_DistanceToPlatform_66 ; Brfalse_s

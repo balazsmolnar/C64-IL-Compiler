@@ -52,7 +52,7 @@ namespace Demo
 
         public void Move(uint distanceToPlatform)
         {
-            if (sprite_.IsInCollision || Y > (uint)240)
+            if (sprite_.IsInCollision || (uint)240 < Y)
             {
                 Die();
                 return;

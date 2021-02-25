@@ -104,10 +104,10 @@ Player_Move
     #pushfld 5 ; Nop
     jsr Sprite_get_IsInCollision ; Callvirt
     #branch_true Player_Move_29 ; Brtrue_s
+    #stack_push_int 240 ; Ldc_i4
     #locals_push_value_8 1 ; Ldarg_0
     jsr Player_get_Y ; Call
-    #stack_push_int 240 ; Ldc_i4
-    #compareGreater_unsigned ; Cgt_un
+    #compareLess ; Clt_un
     jmp Player_Move_30 ; Br_s
 Player_Move_29:    #stack_push_int 1 ; Ldc_i4_1
 Player_Move_30:    #locals_pull_value_8 4, 0 ; Stloc_1

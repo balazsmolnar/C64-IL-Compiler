@@ -16,6 +16,8 @@ namespace Compiler
         // IL_000a: ldloc.0
         public void Execute(CompilerMethodContext context)
         {
+            if (!context.TypeContext.CompilerContext.Optimize)
+                return;
 
             var lines = context.Lines;
             for (int i = 0; i < lines.Count; i++)

@@ -27,7 +27,8 @@ namespace Compiler
                 {
                     Assembly = asm,
                     GlobalOutputFile = outputFile,
-                    OutputDirectory = output
+                    OutputDirectory = output,
+                    Optimize = true
                 };
                 var passes = new List<ICompilerPass> {
                     new ILCodePass(

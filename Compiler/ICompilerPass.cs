@@ -15,6 +15,7 @@ namespace Compiler
 
         public string OutputDirectory { get; set; }
 
+        public bool Optimize { get; set; }
         public int GetFieldPosition(FieldInfo field)
         {
             var t = field.DeclaringType;

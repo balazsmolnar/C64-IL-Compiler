@@ -22,12 +22,12 @@ namespace Demo
             // for (int i = 0; i < 10; i++)
             //     Console.WriteLine("HELLO");
 
-            //for (int i = 0; i < 10; i++)
-            //    Console.WriteLine("HELLO WORLD!");
+            for (int i = 0; i < 10; i++)
+                Console.WriteLine("HELLO WORLD!");
             // GCTest.Start();
-            Game g = new Game();
-            g.Init();
-            g.Run();
+            // Game g = new Game();
+            // g.Init();
+            // g.Run();
         }
     }
 }

@@ -107,19 +107,34 @@ Sprite_set_MultiColor:
 Sprite_set_DataBlock:
     #stack_save_return_adress zp_tmp1_low
     #stack_pull_int $34
+    #stack_pull_int_y
     #stack_pull_int_x
+    tya
 
-    lda #<(sprite0 / 64)
-    clc
-    adc $34
+    lsr $34
+    ror
+    lsr $34
+    ror
+    lsr $34
+    ror    
+    lsr $34
+    ror    
+    lsr $34
+    ror    
+    lsr $34
+    ror    
+
+    sta $400
+
     sta spriteData,x
     
     #stack_return_to_saved_address zp_tmp1_low
 
 Sprite_set_Color:
     #stack_save_return_adress zp_tmp1_low
-    #stack_pull_int_a
+    #stack_pull_int_y
     #stack_pull_int_x
+    tya
     sta spriteColor,x    
     #stack_return_to_saved_address zp_tmp1_low
 

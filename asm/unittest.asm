@@ -48,7 +48,6 @@ result = $20
 .include "./GC.asm"
 .include "./helper/object.asm"
 .include "./C64.asm"
-.include "./spritedata.asm"
 
 .include "./unittest/generated.asm"
 

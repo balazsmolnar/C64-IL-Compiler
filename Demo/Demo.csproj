@@ -1,4 +1,16 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <None Remove="CharSet.asm" />
+    <None Remove="GameData.asm" />
+    <None Remove="SpriteData.asm" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="CharSet.asm" />
+    <EmbeddedResource Include="GameData.asm" />
+    <EmbeddedResource Include="SpriteData.asm" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\C64Lib\C64Lib.csproj" />

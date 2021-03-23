@@ -558,4 +558,13 @@ namespace Compiler.Ops
             return $"{refPos}, {_value}, {_label}";
         }
     }
+
+    class OpLoadPointerFromLabel : OpBase
+    {
+        public OpLoadPointerFromLabel() : base(4, "#stack_push_pointer")
+        {
+        }
+
+    }
+
 }

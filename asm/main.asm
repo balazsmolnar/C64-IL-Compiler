@@ -1,3 +1,5 @@
+.enc "screen"
+
 .include "./helper/loader.asm"
 .include "./helper/stack.asm"
 .include "./helper/localsstack.asm"
@@ -21,7 +23,6 @@ rts
 .include "./GC.asm"
 .include "./helper/object.asm"
 .include "./C64.asm"
-.include "./spritedata.asm"
 
 .include "./generated/generated.asm"
 

@@ -2,7 +2,7 @@
 
 namespace C64Lib
 {
-    public enum Colors
+    public enum Colors : uint
     {
         Black = 0,
         White,
@@ -49,7 +49,8 @@ namespace C64Lib
         W,
         X,
         Y,
-        Z
+        Z,
+        Space
     };
 
     public static class C64
@@ -64,5 +65,13 @@ namespace C64Lib
 
         public static Debug Debug => null;
         public static bool IsKeyPressed(Keys key) => false;
+        public static void SetCharSet(ulong address) { }
+        public static void CopyMemory(ulong dest, ulong source, uint size) { }
+        public static void FillMemory(ulong dest, uint value, uint size) { }
+        public static uint GetMemory(ulong address, uint x) => 0;
+        public static void Write(uint x, uint y, string s, Colors colors = Colors.LightBlue) { }
+
+        public static void SetMultiColor() { }
+        public static void SetCharBackgroundColor(uint colorIndex, Colors color) { }
     }
 }

@@ -31,6 +31,7 @@ namespace Compiler
                     Optimize = true
                 };
                 var passes = new List<ICompilerPass> {
+                    new ILRawAssemblyPass(),
                     new ILCodePass(
                         new ICompilerTypePass[] {
                             new ILTypeStaticFieldInitPass()
@@ -38,6 +39,7 @@ namespace Compiler
                         new ICompilerMethodPass[] {
                             new ILMethodCodePass(),
                             new ILMethodLabelPass(),
+                            new ILAddressFromLabelPass(),
                             new ILMethodIncOptimizer(),
                             new ILPropertyGettterOptimizer(),
                             new ILFieldIncrementOptimizer(),

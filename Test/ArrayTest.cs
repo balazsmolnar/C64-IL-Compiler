@@ -21,11 +21,26 @@ namespace Compiler.Test
         }
 
         [Test]
+        public void Multiple_Int_Array()
+        {
+            var sut1 = new int[3];
+            sut1[0] = sut1[1] = sut1[2] = 1;
+            var sut2 = new int[3];
+            sut2[0] = sut2[1] = sut2[2] = 2;
+            Assert.AreEqual(sut1[0], 1);
+            Assert.AreEqual(sut1[1], 1);
+            Assert.AreEqual(sut1[2], 1);
+            Assert.AreEqual(sut2[0], 2);
+            Assert.AreEqual(sut2[1], 2);
+            Assert.AreEqual(sut2[2], 2);
+        }
+
+        [Test]
         public void Int_Array_Initializer()
         {
             int a = 5;
             int b = 6;
-            var sut = new int[] { a , b };
+            var sut = new int[] { a, b };
             Assert.AreEqual(sut.Length, 2);
             Assert.AreEqual(sut[1], 6);
         }
@@ -47,5 +62,5 @@ namespace Compiler.Test
             Assert.AreEqual(sut[1].F, 13);
         }
 
-   }
+    }
 }

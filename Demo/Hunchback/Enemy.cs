@@ -8,6 +8,8 @@ namespace Hunchback
         private uint y_;
         private int frameCounter_;
         private int counter_;
+
+        private bool highPosition;
         public uint X
         {
             get { return x_; }
@@ -41,8 +43,10 @@ namespace Hunchback
             sprite_.MultiColor = true;
             sprite_.Visible = true;
             sprite_.Color = Colors.Violet;
+            sprite_.HighPosition = true;
+            highPosition = true;
             Y = 117;
-            X = 255;
+            X = 56;
         }
 
         public void Move()
@@ -55,6 +59,19 @@ namespace Hunchback
             if (frameCounter_ == 4)
                 frameCounter_ = 0;
             X -= 8;
+
+            if (X == 0)
+            {
+                if (highPosition)
+                {
+                    highPosition = false;
+                    sprite_.HighPosition = false;
+                }
+                else
+                {
+                    Init();
+                }
+            }
             SetFrame();
         }
 

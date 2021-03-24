@@ -73,7 +73,7 @@ Program_GetReady_45:  ; OPT   #locals_push_value_8 1 ; Ldloc_0
 ; METHOD: Main
 ;----------------------------------------
 Program_Main 
-    #init_locals_pull_parameters 6, []
+    #init_locals_pull_parameters 3, []
     nop ; Nop
   ; OPT   #stack_push_pointer string_1879048233 ; Ldstr
   ; OPT   jsr C64Address_FromLabel ; Call
@@ -112,7 +112,7 @@ Program_Main
     #stack_push_int 11 ; Ldc_i4_s
     jsr Wall_Draw ; Call
     nop ; Nop
-    #newObj 8, 1 ; Newobj
+    #newObj 10, 1 ; Newobj
     #stack_duplicate ; Dup
     jsr C64_get_Sprites ; Call
     jsr SpriteCollection_get_Sprite0 ; Callvirt
@@ -134,7 +134,7 @@ Program_Main
     nop ; Nop
     jsr Program_GetReady ; Call
     nop ; Nop
-    #newObj 5, 0 ; Newobj
+    #newObj 6, 0 ; Newobj
     #stack_duplicate ; Dup
     jsr C64_get_Sprites ; Call
     jsr SpriteCollection_get_Sprite2 ; Callvirt
@@ -144,7 +144,7 @@ Program_Main
     #locals_push_value_8 3 ; Ldloc_2
     jsr Enemy_Init ; Callvirt
     nop ; Nop
-    jmp Program_Main_250 ; Br_s
+    jmp Program_Main_231 ; Br_s
 Program_Main_200:    nop ; Nop
     #locals_push_value_8 1 ; Ldloc_0
     jsr Player_Move ; Callvirt
@@ -155,24 +155,8 @@ Program_Main_200:    nop ; Nop
     #locals_push_value_8 3 ; Ldloc_2
     jsr Enemy_Move ; Callvirt
     nop ; Nop
-  ; OPT   #stack_push_int 0 ; Ldc_i4_0
-  ; OPT   #locals_pull_value_8 4, 0 ; Stloc_3
-    #init_var 4, 0 ; Nop
-    jmp Program_Main_235 ; Br_s
-Program_Main_226:    nop ; Nop
-    #stack_push_int 0 ; Ldc_i4_0
-    #locals_pull_value_8 5, 0 ; Stloc_s
+    #stack_push_int 100 ; Ldc_i4_s
+    jsr Delay_Wait ; Call
     nop ; Nop
-  ; OPT   #locals_push_value_8 4 ; Ldloc_3
-  ; OPT   #stack_push_int 1 ; Ldc_i4_1
-  ; OPT   #add ; Add
-  ; OPT   #locals_pull_value_8 4, 0 ; Stloc_3
-    #inc_var 4 ; Nop
-Program_Main_235:    #locals_push_value_8 4 ; Ldloc_3
-    #stack_push_int 255 ; Ldc_i4
-    #compareLess ; Clt_un
-    #locals_pull_value_8 6, 0 ; Stloc_s
-    #locals_push_value_8 6 ; Ldloc_s
-    #branch_true Program_Main_226 ; Brtrue_s
     nop ; Nop
-Program_Main_250:    jmp Program_Main_200 ; Br_s
+Program_Main_231:    jmp Program_Main_200 ; Br_s

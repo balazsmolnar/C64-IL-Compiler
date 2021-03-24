@@ -45,7 +45,7 @@ namespace Hunchback
             sprite_.Color = Colors.Grey1;
             climb_ = true;
             Y = 197;
-            X = 16;
+            X = 40;
         }
 
         public void Move()

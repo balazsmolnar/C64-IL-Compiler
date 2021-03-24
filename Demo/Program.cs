@@ -60,12 +60,7 @@ namespace Demo
                 player.Move();
                 knight.Move();
                 enemy.Move();
-                for (uint i = 0; i < 255; i++)
-                {
-                    var a = 0;
-                    // for (uint j = 0; j < 1; j++)
-                    // { }
-                }
+                Delay.Wait(100);
             }
             // Ball.RunBalls();
             //Foo(0, C64Address.FromLabel("label1"), 0);

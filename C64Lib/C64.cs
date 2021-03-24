@@ -70,7 +70,6 @@ namespace C64Lib
         public static void FillMemory(ulong dest, uint value, uint size) { }
         public static uint GetMemory(ulong address, uint x) => 0;
         public static void Write(uint x, uint y, string s, Colors colors = Colors.LightBlue) { }
-
         public static void SetMultiColor() { }
         public static void SetCharBackgroundColor(uint colorIndex, Colors color) { }
     }

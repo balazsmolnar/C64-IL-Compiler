@@ -10,7 +10,10 @@ namespace Hunchback
         private int jumpFrameCounter_;
         private bool left_;
         private bool jump_;
+        private bool highPosition_;
         private int[] jumpOffsets_;
+
+        public bool Dead;
         public uint X
         {
             get { return x_; }
@@ -53,6 +56,14 @@ namespace Hunchback
 
         public void Move()
         {
+            if (sprite_.IsInCollision)
+            {
+                // Die();
+            }
+
+            if (Dead)
+                return;
+
             if (!jump_ && C64.IsKeyPressed(Keys.W))
             {
                 jump_ = true;
@@ -73,28 +84,50 @@ namespace Hunchback
             {
                 left_ = true;
                 X -= 2;
+                if (highPosition_ && X == 0)
+                {
+                    sprite_.HighPosition = false;
+                    highPosition_ = false;
+                }
+
                 frameCounter_++;
             }
             if (C64.IsKeyPressed(Keys.D))
             {
                 left_ = false;
                 X += 2;
+                if (!highPosition_ && X == 0)
+                {
+                    sprite_.HighPosition = true;
+                    highPosition_ = true;
+                }
                 frameCounter_++;
             }
             if (frameCounter_ == 4)
                 frameCounter_ = 0;
+
+            if (Y == 117)
+            {
+                if (x_ > 92 && x_ < 114)
+                    Die();
+                if (x_ > 164 && x_ < 186)
+                    Die();
+                if (x_ > 236 && x_ < 255)
+                    Die();
+            }
+
             SetFrame();
         }
 
         private void Die()
         {
-            C64.SetBorderColor(Colors.Red);
-            for (int i = 0; i < 100; i++)
-                for (int j = 0; j < 100; j++) ;
-            C64.SetBorderColor(Colors.Black);
-
-            Y = 200;
-            X = 20;
+            while (Y < 250)
+            {
+                Y++;
+                Delay.Wait(2);
+            }
+            // Dead = true;
+            Init();
         }
 
         private void SetFrame()

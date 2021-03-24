@@ -1,6 +1,7 @@
 spriteEnabled = $D015
 spriteCollision = $D01E
 spriteMultiColor = $D01C
+spriteExtraPosition = $D010
 spriteCommonColor1 = $D025
 spriteCommonColor2 = $D026
 spriteX = $D000
@@ -104,6 +105,26 @@ Sprite_set_MultiColor:
     sta spriteMultiColor
     #stack_return_to_saved_address zp_tmp1_low
 
+Sprite_set_HighPosition:
+    #stack_save_return_adress zp_tmp1_low
+    #stack_pull_int_y
+    #stack_pull_int_x
+    
+    lda #1
+-   asl
+    dex
+    bpl -
+    lsr
+    cpy #1
+    bne +
+    ora spriteExtraPosition
+    jmp Sprite_set_HighPosition_l1
++   eor #$FF
+    and spriteExtraPosition
+Sprite_set_HighPosition_l1:
+    sta spriteExtraPosition
+    #stack_return_to_saved_address zp_tmp1_low
+
 Sprite_set_DataBlock:
     #stack_save_return_adress zp_tmp1_low
     #stack_pull_int $34
@@ -123,9 +144,6 @@ Sprite_set_DataBlock:
     ror    
     lsr $34
     ror    
-
-    sta $400
-
     sta spriteData,x
     
     #stack_return_to_saved_address zp_tmp1_low

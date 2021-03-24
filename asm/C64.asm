@@ -49,8 +49,10 @@ C64_SetChar_Core
     sbc #$d4
     sta $31
     lda $36
+    cmp #$ff
+    beq +
     sta ($30),y
-    #stack_return_to_saved_address zp_tmp1_low
++   #stack_return_to_saved_address zp_tmp1_low
 
 C64_GetChar_Core
 

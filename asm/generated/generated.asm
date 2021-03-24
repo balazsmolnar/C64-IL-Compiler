@@ -1,7 +1,11 @@
 .include "./data.asm"
 .include "./Program.asm"
+.include "./Delay.asm"
 .include "./Enemy.asm"
 .include "./Knight.asm"
+.include "./WallType.asm"
+.include "./EnemyType.asm"
+.include "./LevelDescription.asm"
 .include "./Player.asm"
 .include "./Screen.asm"
 .include "./TitleScreen.asm"
@@ -66,3 +70,6 @@ string_1879050243 .text "txt_PlayerStats",0
 string_1879050275 .text "tbl_PlayerStatsColours",0
 string_1879050321 .text "tbl_KnightChars",0
 string_1879050353 .text "tbl_KnightCharsColours",0
+string_1879050399 .text "tbl_PitKnightFrame1",0
+string_1879050439 .text "tbl_PitKnightFrame2",0
+string_1879050479 .text "tbl_PitKnightFrame3",0

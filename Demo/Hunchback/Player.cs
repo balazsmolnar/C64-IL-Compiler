@@ -10,10 +10,13 @@ namespace Hunchback
         private int jumpFrameCounter_;
         private bool left_;
         private bool jump_;
+        public bool Dead;
+        public bool Complete;
+        private Wall wall_;
+
         private bool highPosition_;
         private int[] jumpOffsets_;
 
-        public bool Dead;
         public uint X
         {
             get { return x_; }
@@ -42,27 +45,27 @@ namespace Hunchback
             }
         }
 
-        public void Init()
+        public void Init(Wall wall)
         {
             sprite_.DataBlock = C64Address.FromLabel("spt_player_right_0");
             sprite_.MultiColor = true;
             sprite_.Visible = true;
             sprite_.Color = Colors.Green;
+            sprite_.HighPosition = false;
+            var tmp = sprite_.IsInCollision;
+            tmp = sprite_.IsInBackgroundCollision;
+            highPosition_ = false;
             jump_ = false;
+            Dead = false;
+            wall_ = wall;
             InitJumpOffsets();
             Y = 117;
             X = 40;
+
         }
 
         public void Move()
         {
-            if (sprite_.IsInCollision)
-            {
-                // Die();
-            }
-
-            if (Dead)
-                return;
 
             if (!jump_ && C64.IsKeyPressed(Keys.W))
             {
@@ -106,17 +109,31 @@ namespace Hunchback
             if (frameCounter_ == 4)
                 frameCounter_ = 0;
 
-            if (Y == 117)
+            if (Y == 117 && wall_.IsHole(x_))
             {
-                if (x_ > 92 && x_ < 114)
-                    Die();
-                if (x_ > 164 && x_ < 186)
-                    Die();
-                if (x_ > 236 && x_ < 255)
+                C64.SetBorderColor(Colors.Green);
+                Die();
+            }
+            SetFrame();
+
+            if (sprite_.IsInCollision)
+            {
+                Die();
+                C64.SetBorderColor(Colors.LightRed);
+            }
+            else
+            {
+                C64.SetBorderColor(Colors.Black);
+            }
+
+            if (sprite_.IsInBackgroundCollision)
+            {
+                if (highPosition_)
+                    Complete = true;
+                else
                     Die();
             }
 
-            SetFrame();
         }
 
         private void Die()
@@ -126,8 +143,8 @@ namespace Hunchback
                 Y++;
                 Delay.Wait(2);
             }
-            // Dead = true;
-            Init();
+            Dead = true;
+            sprite_.Visible = false;
         }
 
         private void SetFrame()

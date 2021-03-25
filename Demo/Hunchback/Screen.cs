@@ -16,10 +16,5 @@ namespace Hunchback
             C64.FillMemory(C64Address.FromLabel("(colorMemory+$200)"), (uint)charColor, 0);
             C64.FillMemory(C64Address.FromLabel("(colorMemory+$300)"), (uint)charColor, 0);
         }
-
-        public static void FillRectangle(int x, int y, ulong sourceChars, ulong sourceColors)
-        {
-
-        }
     }
 }

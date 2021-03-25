@@ -7,7 +7,8 @@ namespace Hunchback
         private uint x_;
         private uint y_;
         private int frameCounter_;
-        private int counter_;
+
+        private EnemyType enemyType_;
 
         private bool highPosition;
         public uint X
@@ -38,27 +39,26 @@ namespace Hunchback
             }
         }
 
-        public void Init()
+        public void Init(EnemyType enemyType)
         {
+            enemyType_ = enemyType;
             sprite_.MultiColor = true;
-            sprite_.Visible = true;
+            sprite_.Visible = enemyType_ != EnemyType.None;
             sprite_.Color = Colors.Violet;
             sprite_.HighPosition = true;
             highPosition = true;
             Y = 117;
-            X = 56;
+            X = 60;
         }
 
         public void Move()
         {
-            // counter_++;
-            // if (counter_ < 32)
-            //     return;
-            // counter_ = 0;
+            if (enemyType_ == EnemyType.None)
+                return;
             frameCounter_++;
             if (frameCounter_ == 4)
                 frameCounter_ = 0;
-            X -= 8;
+            X -= 4;
 
             if (X == 0)
             {
@@ -69,7 +69,7 @@ namespace Hunchback
                 }
                 else
                 {
-                    Init();
+                    Init(enemyType_);
                 }
             }
             SetFrame();

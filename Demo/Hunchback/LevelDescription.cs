@@ -18,9 +18,9 @@ namespace Hunchback
 
     public class LevelDescription
     {
-        WallType WallType;
-        EnemyType EnemyType;
-        Colors Color;
+        public WallType WallType;
+        public EnemyType EnemyType;
+        public Colors Color;
 
         public static LevelDescription[] Levels =>
             new[]
@@ -28,6 +28,11 @@ namespace Hunchback
                 new LevelDescription {
                     WallType = WallType.Wall,
                     EnemyType = EnemyType.FireBallRL,
+                    Color = Colors.Grey1
+                },
+                new LevelDescription {
+                    WallType = WallType.EmptyPits,
+                    EnemyType = EnemyType.None,
                     Color = Colors.Grey1
                 }
             };

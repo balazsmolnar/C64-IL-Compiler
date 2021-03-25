@@ -17,7 +17,8 @@ namespace C64Lib
     public class Sprite
     {
         public bool Visible { get; set; }
-        public bool IsInCollision { get; set; }
+        public bool IsInCollision { get; }
+        public bool IsInBackgroundCollision { get; }
         public Colors Color { get; set; }
         public bool MultiColor { get; set; }
         public bool HighPosition { get; set; }

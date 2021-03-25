@@ -1,5 +1,6 @@
 spriteEnabled = $D015
 spriteCollision = $D01E
+spriteBackgroundCollision = $D01F
 spriteMultiColor = $D01C
 spriteExtraPosition = $D010
 spriteCommonColor1 = $D025
@@ -88,6 +89,19 @@ Sprite_get_IsInCollision:
     bpl -
     lsr
     and spriteCollision
+    #stack_push_int_a
+    #stack_return_to_saved_address zp_tmp1_low
+
+Sprite_get_IsInBackgroundCollision:
+    #stack_save_return_adress zp_tmp1_low
+    #stack_pull_int_x
+    
+    lda #1
+-   asl
+    dex
+    bpl -
+    lsr
+    and spriteBackgroundCollision
     #stack_push_int_a
     #stack_return_to_saved_address zp_tmp1_low
 

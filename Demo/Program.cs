@@ -27,10 +27,8 @@ namespace Demo
             // };
 
             // for (int i = 0; i < 10; i++)
-            //     Console.WriteLine("HELLO");
+            //     Console.WriteLine("hello world!");
 
-            // for (int i = 0; i < 10; i++)
-            //     Console.WriteLine("HELLO WORLD!");
             // GCTest.Start();
             // Game g = new Game();
             // g.Init();

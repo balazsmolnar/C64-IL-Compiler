@@ -195,6 +195,29 @@ namespace Compiler.Test
         }
 
         [Test]
+        public void Test_Switch_Last_Label()
+        {
+            uint a = 3;
+            bool b = false;
+            switch (a)
+            {
+                case 0:
+                    Assert.Fail();
+                    break;
+                case 1:
+                    Assert.Fail();
+                    break;
+                case 2:
+                    Assert.Fail();
+                    break;
+                case 3:
+                    b = true;
+                    break;
+            }
+            Assert.IsTrue(b);
+        }
+
+        [Test]
         public void Test_Switch_Multiple_Labels()
         {
             uint a = 1;

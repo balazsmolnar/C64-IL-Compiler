@@ -55,6 +55,13 @@ branch_greater_equal_unsigned .macro label
     beq \label
 .endm
 
+branch_greater_unsigned .macro label 
+    #stack_pull_int $30
+    #stack_pull_int_a
+    cmp $30
+    bcs \label
+.endm
+
 branch_greater .macro label 
     #stack_pull_int $30
     #stack_pull_int_a

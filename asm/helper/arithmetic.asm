@@ -158,3 +158,12 @@ shift_left .macro
     bne -
     #stack_push_int_a
 .endm
+
+and8 .macro
+
+    #stack_pull_int $32
+    #stack_pull_int_a
+
+    and $32
+    #stack_push_int_a
+.endm

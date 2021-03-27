@@ -108,7 +108,7 @@ namespace Hunchback
 
             if (wallType_ == WallType.Rope)
             {
-                if (x > 104 && x < 238)
+                if (x > 106 && x < 238)
                     return true;
             }
             return false;

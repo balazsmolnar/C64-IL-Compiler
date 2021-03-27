@@ -51,6 +51,8 @@ namespace Hunchback
             X = 60;
         }
 
+        public bool IsInCollision => sprite_.IsInCollision;
+
         public void Move()
         {
             if (enemyType_ == EnemyType.None)

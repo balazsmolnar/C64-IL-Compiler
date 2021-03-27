@@ -26,26 +26,39 @@ namespace Hunchback
             {
                 rope = new Rope
                 {
-                    Sprite1 = C64.Sprites.Sprite2,
-                    Sprite2 = C64.Sprites.Sprite3,
+                    Sprite1 = C64.Sprites.Sprite3,
+                    Sprite2 = C64.Sprites.Sprite4,
                 };
                 rope.Init();
             }
             else
             {
-                C64.Sprites.Sprite2.Visible = false;
                 C64.Sprites.Sprite3.Visible = false;
+                C64.Sprites.Sprite4.Visible = false;
             }
 
             Enemy enemy = new Enemy()
             {
-                Sprite = C64.Sprites.Sprite4
+                Sprite = C64.Sprites.Sprite2
             };
             enemy.Init(description.EnemyType);
 
             for (; ; )
             {
                 player.Move();
+
+                var collisions = C64.Sprites.Collisions;
+                if ((collisions & 1u) > 0)
+                {
+                    if ((collisions & 6u) > 0)  // Player-enemy collision
+                    {
+                        player.Die();
+                    }
+                    else
+                    {
+                        player.SetOnRope(rope);
+                    }
+                }
                 if (player.Dead)
                     return false;
                 if (player.Complete)

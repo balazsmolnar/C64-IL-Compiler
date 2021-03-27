@@ -10,7 +10,10 @@ namespace Hunchback
         private int jumpFrameCounter_;
         private bool left_;
         private bool jump_;
+        private bool jumpFromRope_;
         public bool Dead;
+        public bool OnRope;
+        public Rope Rope;
         public bool Complete;
         private Wall wall_;
 
@@ -67,12 +70,6 @@ namespace Hunchback
         public void Move()
         {
 
-            if (sprite_.IsInCollision)
-            {
-                Die();
-                return;
-            }
-
             if (sprite_.IsInBackgroundCollision)
             {
                 if (highPosition_)
@@ -82,9 +79,20 @@ namespace Hunchback
                 return;
             }
 
+            if (OnRope)
+            {
+                jump_ = false;
+                X = Rope.PlayerX;
+                Y = 116u;
+            }
 
             if (!jump_ && C64.IsKeyPressed(Keys.W))
             {
+                if (OnRope)
+                {
+                    jumpFromRope_ = true;
+                    OnRope = false;
+                }
                 jump_ = true;
                 jumpFrameCounter_ = 0;
             }
@@ -96,36 +104,43 @@ namespace Hunchback
                 if (jumpFrameCounter_ == 16)
                 {
                     jump_ = false;
+                    jumpFromRope_ = false;
                 }
             }
 
             if (C64.IsKeyPressed(Keys.A))
             {
                 left_ = true;
-                X -= 2;
-                if (highPosition_ && X == 0)
+                if (!OnRope)
                 {
-                    sprite_.HighPosition = false;
-                    highPosition_ = false;
+                    X -= 2;
+                    if (highPosition_ && X == 0)
+                    {
+                        sprite_.HighPosition = false;
+                        highPosition_ = false;
+                    }
+                    frameCounter_++;
                 }
 
-                frameCounter_++;
             }
             if (C64.IsKeyPressed(Keys.D))
             {
                 left_ = false;
-                X += 2;
-                if (!highPosition_ && X == 0)
+                if (!OnRope)
                 {
-                    sprite_.HighPosition = true;
-                    highPosition_ = true;
+                    X += 2;
+                    if (!highPosition_ && X == 0)
+                    {
+                        sprite_.HighPosition = true;
+                        highPosition_ = true;
+                    }
+                    frameCounter_++;
                 }
-                frameCounter_++;
             }
             if (frameCounter_ == 4)
                 frameCounter_ = 0;
 
-            if (Y == 117 && wall_.IsHole(x_))
+            if (Y == 117 && !jumpFromRope_ && wall_.IsHole(x_))
             {
                 Die();
             }
@@ -133,7 +148,14 @@ namespace Hunchback
 
         }
 
-        private void Die()
+        public void SetOnRope(Rope rope)
+        {
+            if (jumpFromRope_)
+                return;
+            Rope = rope;
+            OnRope = true;
+        }
+        public void Die()
         {
             while (Y < 250)
             {
@@ -146,6 +168,18 @@ namespace Hunchback
 
         private void SetFrame()
         {
+            if (OnRope)
+            {
+                if (left_)
+                {
+                    sprite_.DataBlock = C64Address.FromLabel("spt_player_rope_left");
+                }
+                else
+                {
+                    sprite_.DataBlock = C64Address.FromLabel("spt_player_rope_right");
+                }
+                return;
+            }
             if (jump_)
             {
                 if (left_)

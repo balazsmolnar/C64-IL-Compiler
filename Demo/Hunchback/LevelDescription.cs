@@ -26,14 +26,13 @@ namespace Hunchback
             new[]
             {
                 new LevelDescription {
-                    WallType = WallType.Rope,
-                    EnemyType = EnemyType.None,
-                    Color = Colors.Grey1
-                },
-
-                new LevelDescription {
                     WallType = WallType.Wall,
                     EnemyType = EnemyType.FireBallRL,
+                    Color = Colors.Grey1
+                },
+                new LevelDescription {
+                    WallType = WallType.Rope,
+                    EnemyType = EnemyType.None,
                     Color = Colors.Grey1
                 },
                 new LevelDescription {

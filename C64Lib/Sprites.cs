@@ -12,6 +12,7 @@ namespace C64Lib
         public Sprite Sprite7 { get; }
         public Colors CommonColor1 { get; set; }
         public Colors CommonColor2 { get; set; }
+        public uint Collisions { get; }
     }
 
     public class Sprite

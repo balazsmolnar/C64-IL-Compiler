@@ -1230,6 +1230,7 @@ spt_player_jump_right_2:
 
 ; Sprite #48
 ; Multicolor mode, BG color: 1, Sprite color: 0, multicolor1: 6, multicolor2: 7
+spt_player_rope_right:
 .byte $00, $10, $00
 .byte $00, $54, $00
 .byte $00, $5C, $00
@@ -1591,6 +1592,7 @@ spt_player_jump_left_2:
 
 ; Sprite #62
 ; Multicolor mode, BG color: 1, Sprite color: 0, multicolor1: 6, multicolor2: 7
+spt_player_rope_left:
 .byte $00, $04, $00
 .byte $00, $15, $00
 .byte $00, $35, $00

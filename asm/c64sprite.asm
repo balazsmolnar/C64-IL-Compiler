@@ -65,6 +65,12 @@ SpriteCollection_set_CommonColor2:
     #stack_save_return_adress zp_tmp1_low
     #stack_pull_int_a
     sta spriteCommonColor2
+    #stack_return_to_saved_address zp_tmp1_low,
+
+SpriteCollection_get_Collisions:
+    #stack_save_return_adress zp_tmp1_low
+    lda spriteCollision
+    #stack_push_int_a
     #stack_return_to_saved_address zp_tmp1_low
 
 Sprite_set_Visible:

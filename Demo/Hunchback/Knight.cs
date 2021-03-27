@@ -68,17 +68,6 @@ namespace Hunchback
             SetFrame();
         }
 
-        private void Die()
-        {
-            C64.SetBorderColor(Colors.Red);
-            for (int i = 0; i < 100; i++)
-                for (int j = 0; j < 100; j++) ;
-            C64.SetBorderColor(Colors.Black);
-
-            Y = 200;
-            X = 20;
-        }
-
         private void SetFrame()
         {
 

@@ -48,7 +48,7 @@ namespace Compiler
 
             foreach (var line in context.Lines)
             {
-                outputLine = $"{(line.Label == null ? "" : line.Label + ":")}  {(line.Optimized ? "; OPT " : "")}  {line.Operand.Emit(context, line.Parameter)} ; {line.OpCode}";
+                outputLine = $"{(line.Label == null ? "" : line.Label + ":")}  {(line.Optimized ? "; OPT " : "")}  {line.Operand.Emit(context, line)} ; {line.OpCode}";
                 output.WriteLine(outputLine);
             }
         }

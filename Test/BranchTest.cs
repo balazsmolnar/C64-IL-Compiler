@@ -173,5 +173,70 @@ namespace Compiler.Test
             var b = a == 6 ? 1 : 0;
             Assert.AreEqual(b, 0);
         }
+
+        [Test]
+        public void Test_Switch()
+        {
+            uint a = 1;
+            bool b = false;
+            switch (a)
+            {
+                case 0:
+                    Assert.Fail();
+                    break;
+                case 1:
+                    b = true;
+                    break;
+                case 2:
+                    Assert.Fail();
+                    break;
+            }
+            Assert.IsTrue(b);
+        }
+
+        [Test]
+        public void Test_Switch_Multiple_Labels()
+        {
+            uint a = 1;
+            bool b = false;
+            switch (a)
+            {
+                case 0:
+                case 1:
+                    b = true;
+                    break;
+                case 2:
+                    Assert.Fail();
+                    break;
+                case 3:
+                    Assert.Fail();
+                    break;
+
+            }
+            Assert.IsTrue(b);
+        }
+
+        // [Test]
+        // public void Test_Switch_Default()
+        // {
+        //     uint a = 27;
+        //     bool b = false;
+        //     switch (a)
+        //     {
+        //         case 0:
+        //         case 1:
+        //             Assert.Fail();
+        //             break;
+        //         case 2:
+        //             Assert.Fail();
+        //             break;
+        //         default:
+        //             b = true;
+        //             break;
+        //     }
+        //     Assert.IsTrue(b);
+        // }
+
+
     }
 }

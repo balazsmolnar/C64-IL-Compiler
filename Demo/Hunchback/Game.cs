@@ -9,7 +9,6 @@ namespace Hunchback
         {
             Init();
             TitleScreen.Display();
-            Screen.Clear(Colors.Grey2);
 
             var levelPlay = new LevelPlay();
             var currentLevel = 0;
@@ -17,6 +16,7 @@ namespace Hunchback
             var playerStats = new PlayerStats();
             while (currentLevel < levels.Length)
             {
+                Screen.Clear(Colors.Grey2);
 
                 if (levelPlay.Play(levels[currentLevel], playerStats))
                 {

@@ -12,9 +12,6 @@ Game_Start
     nop ; Nop
     jsr TitleScreen_Display ; Call
     nop ; Nop
-    #stack_push_int 12 ; Ldc_i4_s
-    jsr Screen_Clear ; Call
-    nop ; Nop
     #newObj 0, 0 ; Newobj
     #locals_pull_value_8 2, 1 ; Stloc_0
   ; OPT   #stack_push_int 0 ; Ldc_i4_0
@@ -25,7 +22,10 @@ Game_Start
     #newObj 0, 0 ; Newobj
     #locals_pull_value_8 5, 1 ; Stloc_3
     jmp Game_Start_82 ; Br_s
-Game_Start_44:    nop ; Nop
+Game_Start_36:    nop ; Nop
+    #stack_push_int 12 ; Ldc_i4_s
+    jsr Screen_Clear ; Call
+    nop ; Nop
     #locals_push_value_8 2 ; Ldloc_0
     #locals_push_value_8 4 ; Ldloc_2
     #locals_push_value_8 3 ; Ldloc_1
@@ -55,7 +55,7 @@ Game_Start_82:    #locals_push_value_8 3 ; Ldloc_1
     #compareLess ; Clt
     #locals_pull_value_8 7, 0 ; Stloc_s
     #locals_push_value_8 7 ; Ldloc_s
-    #branch_true Game_Start_44 ; Brtrue_s
+    #branch_true Game_Start_36 ; Brtrue_s
     #method_exit 9, [2,4,5] ; Ret
 
 

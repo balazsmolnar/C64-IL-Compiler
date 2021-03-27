@@ -98,16 +98,50 @@ Player_Move
     #init_locals_pull_parameters 12, [0]
     nop ; Nop
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
+  ; OPT   #ldfld 11 ; Ldfld
+    #pushfld 11 ; Nop
+    jsr Sprite_get_IsInCollision ; Callvirt
+    #locals_pull_value_8 2, 0 ; Stloc_0
+    #locals_push_value_8 2 ; Ldloc_0
+    #branch_false Player_Move_29 ; Brfalse_s
+    nop ; Nop
+    #locals_push_value_8 1 ; Ldarg_0
+    jsr Player_Die ; Call
+    nop ; Nop
+    jmp Player_Move_460 ; Br
+Player_Move_29:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+  ; OPT   #ldfld 11 ; Ldfld
+    #pushfld 11 ; Nop
+    jsr Sprite_get_IsInBackgroundCollision ; Callvirt
+    #locals_pull_value_8 3, 0 ; Stloc_1
+    #locals_push_value_8 3 ; Ldloc_1
+    #branch_false Player_Move_76 ; Brfalse_s
+    nop ; Nop
+  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+  ; OPT   #ldfld 10 ; Ldfld
+    #pushfld 10 ; Nop
+    #locals_pull_value_8 4, 0 ; Stloc_2
+    #locals_push_value_8 4 ; Ldloc_2
+    #branch_false Player_Move_64 ; Brfalse_s
+    #locals_push_value_8 1 ; Ldarg_0
+    #stack_push_int 1 ; Ldc_i4_1
+    #stfld 9 ; Stfld
+    jmp Player_Move_71 ; Br_s
+Player_Move_64:    #locals_push_value_8 1 ; Ldarg_0
+    jsr Player_Die ; Call
+    nop ; Nop
+Player_Move_71:    jmp Player_Move_460 ; Br
+Player_Move_76:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 7 ; Ldfld
     #pushfld 7 ; Nop
-    #branch_true Player_Move_18 ; Brtrue_s
+    #branch_true Player_Move_93 ; Brtrue_s
     #stack_push_int 22 ; Ldc_i4_s
     jsr C64_IsKeyPressed ; Call
-    jmp Player_Move_19 ; Br_s
-Player_Move_18:    #stack_push_int 0 ; Ldc_i4_0
-Player_Move_19:    #locals_pull_value_8 2, 0 ; Stloc_0
-    #locals_push_value_8 2 ; Ldloc_0
-    #branch_false Player_Move_39 ; Brfalse_s
+    jmp Player_Move_94 ; Br_s
+Player_Move_93:    #stack_push_int 0 ; Ldc_i4_0
+Player_Move_94:    #locals_pull_value_8 5, 0 ; Stloc_3
+    #locals_push_value_8 5 ; Ldloc_3
+    #branch_false Player_Move_114 ; Brfalse_s
     nop ; Nop
     #locals_push_value_8 1 ; Ldarg_0
     #stack_push_int 1 ; Ldc_i4_1
@@ -116,12 +150,12 @@ Player_Move_19:    #locals_pull_value_8 2, 0 ; Stloc_0
     #stack_push_int 0 ; Ldc_i4_0
     #stfld 5 ; Stfld
     nop ; Nop
-Player_Move_39:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+Player_Move_114:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 7 ; Ldfld
     #pushfld 7 ; Nop
-    #locals_pull_value_8 3, 0 ; Stloc_1
-    #locals_push_value_8 3 ; Ldloc_1
-    #branch_false Player_Move_111 ; Brfalse_s
+    #locals_pull_value_8 6, 0 ; Stloc_s
+    #locals_push_value_8 6 ; Ldloc_s
+    #branch_false Player_Move_190 ; Brfalse_s
     nop ; Nop
     #locals_push_value_8 1 ; Ldarg_0
     #stack_push_int 117 ; Ldc_i4_s
@@ -147,20 +181,20 @@ Player_Move_39:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
     #pushfld 5 ; Nop
     #stack_push_int 16 ; Ldc_i4_s
     #compareEqual ; Ceq
-    #locals_pull_value_8 4, 0 ; Stloc_2
-    #locals_push_value_8 4 ; Ldloc_2
-    #branch_false Player_Move_110 ; Brfalse_s
+    #locals_pull_value_8 7, 0 ; Stloc_s
+    #locals_push_value_8 7 ; Ldloc_s
+    #branch_false Player_Move_189 ; Brfalse_s
     nop ; Nop
     #locals_push_value_8 1 ; Ldarg_0
     #stack_push_int 0 ; Ldc_i4_0
     #stfld 7 ; Stfld
     nop ; Nop
-Player_Move_110:    nop ; Nop
-Player_Move_111:    #stack_push_int 0 ; Ldc_i4_0
+Player_Move_189:    nop ; Nop
+Player_Move_190:    #stack_push_int 0 ; Ldc_i4_0
     jsr C64_IsKeyPressed ; Call
-    #locals_pull_value_8 5, 0 ; Stloc_3
-    #locals_push_value_8 5 ; Ldloc_3
-    #branch_false Player_Move_207 ; Brfalse_s
+    #locals_pull_value_8 8, 0 ; Stloc_s
+    #locals_push_value_8 8 ; Ldloc_s
+    #branch_false Player_Move_288 ; Brfalse_s
     nop ; Nop
     #locals_push_value_8 1 ; Ldarg_0
     #stack_push_int 1 ; Ldc_i4_1
@@ -175,16 +209,16 @@ Player_Move_111:    #stack_push_int 0 ; Ldc_i4_0
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 10 ; Ldfld
     #pushfld 10 ; Nop
-    #branch_false Player_Move_163 ; Brfalse_s
+    #branch_false Player_Move_244 ; Brfalse_s
     #locals_push_value_8 1 ; Ldarg_0
     jsr Player_get_X ; Call
     #stack_push_int 0 ; Ldc_i4_0
     #compareEqual ; Ceq
-    jmp Player_Move_164 ; Br_s
-Player_Move_163:    #stack_push_int 0 ; Ldc_i4_0
-Player_Move_164:    #locals_pull_value_8 6, 0 ; Stloc_s
-    #locals_push_value_8 6 ; Ldloc_s
-    #branch_false Player_Move_192 ; Brfalse_s
+    jmp Player_Move_245 ; Br_s
+Player_Move_244:    #stack_push_int 0 ; Ldc_i4_0
+Player_Move_245:    #locals_pull_value_8 9, 0 ; Stloc_s
+    #locals_push_value_8 9 ; Ldloc_s
+    #branch_false Player_Move_273 ; Brfalse_s
     nop ; Nop
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 11 ; Ldfld
@@ -196,7 +230,7 @@ Player_Move_164:    #locals_pull_value_8 6, 0 ; Stloc_s
     #stack_push_int 0 ; Ldc_i4_0
     #stfld 10 ; Stfld
     nop ; Nop
-Player_Move_192:    #locals_push_value_8 1 ; Ldarg_0
+Player_Move_273:    #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 4 ; Ldfld
     #pushfld 4 ; Nop
@@ -204,11 +238,11 @@ Player_Move_192:    #locals_push_value_8 1 ; Ldarg_0
     #add ; Add
     #stfld 4 ; Stfld
     nop ; Nop
-Player_Move_207:    #stack_push_int 3 ; Ldc_i4_3
+Player_Move_288:    #stack_push_int 3 ; Ldc_i4_3
     jsr C64_IsKeyPressed ; Call
-    #locals_pull_value_8 7, 0 ; Stloc_s
-    #locals_push_value_8 7 ; Ldloc_s
-    #branch_false Player_Move_305 ; Brfalse_s
+    #locals_pull_value_8 10, 0 ; Stloc_s
+    #locals_push_value_8 10 ; Ldloc_s
+    #branch_false Player_Move_386 ; Brfalse_s
     nop ; Nop
     #locals_push_value_8 1 ; Ldarg_0
     #stack_push_int 0 ; Ldc_i4_0
@@ -223,16 +257,16 @@ Player_Move_207:    #stack_push_int 3 ; Ldc_i4_3
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 10 ; Ldfld
     #pushfld 10 ; Nop
-    #branch_true Player_Move_261 ; Brtrue_s
+    #branch_true Player_Move_342 ; Brtrue_s
     #locals_push_value_8 1 ; Ldarg_0
     jsr Player_get_X ; Call
     #stack_push_int 0 ; Ldc_i4_0
     #compareEqual ; Ceq
-    jmp Player_Move_262 ; Br_s
-Player_Move_261:    #stack_push_int 0 ; Ldc_i4_0
-Player_Move_262:    #locals_pull_value_8 8, 0 ; Stloc_s
-    #locals_push_value_8 8 ; Ldloc_s
-    #branch_false Player_Move_290 ; Brfalse_s
+    jmp Player_Move_343 ; Br_s
+Player_Move_342:    #stack_push_int 0 ; Ldc_i4_0
+Player_Move_343:    #locals_pull_value_8 11, 0 ; Stloc_s
+    #locals_push_value_8 11 ; Ldloc_s
+    #branch_false Player_Move_371 ; Brfalse_s
     nop ; Nop
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 11 ; Ldfld
@@ -244,7 +278,7 @@ Player_Move_262:    #locals_pull_value_8 8, 0 ; Stloc_s
     #stack_push_int 1 ; Ldc_i4_1
     #stfld 10 ; Stfld
     nop ; Nop
-Player_Move_290:    #locals_push_value_8 1 ; Ldarg_0
+Player_Move_371:    #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 4 ; Ldfld
     #pushfld 4 ; Nop
@@ -252,21 +286,21 @@ Player_Move_290:    #locals_push_value_8 1 ; Ldarg_0
     #add ; Add
     #stfld 4 ; Stfld
     nop ; Nop
-Player_Move_305:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+Player_Move_386:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 4 ; Ldfld
     #pushfld 4 ; Nop
     #stack_push_int 4 ; Ldc_i4_4
     #compareEqual ; Ceq
-    #locals_pull_value_8 9, 0 ; Stloc_s
-    #locals_push_value_8 9 ; Ldloc_s
-    #branch_false Player_Move_327 ; Brfalse_s
+    #locals_pull_value_8 12, 0 ; Stloc_s
+    #locals_push_value_8 12 ; Ldloc_s
+    #branch_false Player_Move_408 ; Brfalse_s
     #locals_push_value_8 1 ; Ldarg_0
     #stack_push_int 0 ; Ldc_i4_0
     #stfld 4 ; Stfld
-Player_Move_327:    #locals_push_value_8 1 ; Ldarg_0
+Player_Move_408:    #locals_push_value_8 1 ; Ldarg_0
     jsr Player_get_Y ; Call
     #stack_push_int 117 ; Ldc_i4_s
-    #branch_not_equal Player_Move_356 ; Bne_un_s
+    #branch_not_equal Player_Move_437 ; Bne_un_s
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 0 ; Ldfld
     #pushfld 0 ; Nop
@@ -274,66 +308,20 @@ Player_Move_327:    #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 2 ; Ldfld
     #pushfld 2 ; Nop
     jsr Wall_IsHole ; Callvirt
-    jmp Player_Move_357 ; Br_s
-Player_Move_356:    #stack_push_int 0 ; Ldc_i4_0
-Player_Move_357:    #locals_pull_value_8 10, 0 ; Stloc_s
-    #locals_push_value_8 10 ; Ldloc_s
-    #branch_false Player_Move_379 ; Brfalse_s
-    nop ; Nop
-    #stack_push_int 5 ; Ldc_i4_5
-    jsr C64_SetBorderColor ; Call
+    jmp Player_Move_438 ; Br_s
+Player_Move_437:    #stack_push_int 0 ; Ldc_i4_0
+Player_Move_438:    #locals_pull_value_8 13, 0 ; Stloc_s
+    #locals_push_value_8 13 ; Ldloc_s
+    #branch_false Player_Move_453 ; Brfalse_s
     nop ; Nop
     #locals_push_value_8 1 ; Ldarg_0
     jsr Player_Die ; Call
     nop ; Nop
     nop ; Nop
-Player_Move_379:    #locals_push_value_8 1 ; Ldarg_0
+Player_Move_453:    #locals_push_value_8 1 ; Ldarg_0
     jsr Player_SetFrame ; Call
     nop ; Nop
-  ; OPT   #locals_push_value_8 1 ; Ldarg_0
-  ; OPT   #ldfld 11 ; Ldfld
-    #pushfld 11 ; Nop
-    jsr Sprite_get_IsInCollision ; Callvirt
-    #locals_pull_value_8 11, 0 ; Stloc_s
-    #locals_push_value_8 11 ; Ldloc_s
-    #branch_false Player_Move_422 ; Brfalse_s
-    nop ; Nop
-    #locals_push_value_8 1 ; Ldarg_0
-    jsr Player_Die ; Call
-    nop ; Nop
-    #stack_push_int 10 ; Ldc_i4_s
-    jsr C64_SetBorderColor ; Call
-    nop ; Nop
-    nop ; Nop
-    jmp Player_Move_431 ; Br_s
-Player_Move_422:    nop ; Nop
-    #stack_push_int 0 ; Ldc_i4_0
-    jsr C64_SetBorderColor ; Call
-    nop ; Nop
-    nop ; Nop
-Player_Move_431:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
-  ; OPT   #ldfld 11 ; Ldfld
-    #pushfld 11 ; Nop
-    jsr Sprite_get_IsInBackgroundCollision ; Callvirt
-    #locals_pull_value_8 12, 0 ; Stloc_s
-    #locals_push_value_8 12 ; Ldloc_s
-    #branch_false Player_Move_478 ; Brfalse_s
-    nop ; Nop
-  ; OPT   #locals_push_value_8 1 ; Ldarg_0
-  ; OPT   #ldfld 10 ; Ldfld
-    #pushfld 10 ; Nop
-    #locals_pull_value_8 13, 0 ; Stloc_s
-    #locals_push_value_8 13 ; Ldloc_s
-    #branch_false Player_Move_470 ; Brfalse_s
-    #locals_push_value_8 1 ; Ldarg_0
-    #stack_push_int 1 ; Ldc_i4_1
-    #stfld 9 ; Stfld
-    jmp Player_Move_477 ; Br_s
-Player_Move_470:    #locals_push_value_8 1 ; Ldarg_0
-    jsr Player_Die ; Call
-    nop ; Nop
-Player_Move_477:    nop ; Nop
-Player_Move_478:    #method_exit 15, [] ; Ret
+Player_Move_460:    #method_exit 15, [] ; Ret
 
 
 ;----------------------------------------
@@ -454,7 +442,7 @@ Player_Die_29:    #locals_push_value_8 1 ; Ldarg_0
 ; METHOD: SetFrame
 ;----------------------------------------
 Player_SetFrame 
-    #init_locals_pull_parameters 15, [0]
+    #init_locals_pull_parameters 11, [0]
     nop ; Nop
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 7 ; Ldfld
@@ -558,23 +546,24 @@ Player_SetFrame_206:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
     jsr Sprite_set_DataBlock ; Callvirt
     nop ; Nop
 Player_SetFrame_228:    nop ; Nop
-Player_SetFrame_229:    jmp Player_SetFrame_566 ; Br
+Player_SetFrame_229:    jmp Player_SetFrame_524 ; Br
 Player_SetFrame_234:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 6 ; Ldfld
     #pushfld 6 ; Nop
     #locals_pull_value_8 8, 0 ; Stloc_s
     #locals_push_value_8 8 ; Ldloc_s
-    #branch_false Player_SetFrame_410 ; Brfalse
+    #branch_false Player_SetFrame_389 ; Brfalse
     nop ; Nop
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 4 ; Ldfld
     #pushfld 4 ; Nop
-    #stack_push_int 0 ; Ldc_i4_0
-    #compareEqual ; Ceq
+    #locals_pull_value_8 10, 0 ; Stloc_s
+    #locals_push_value_8 10 ; Ldloc_s
     #locals_pull_value_8 9, 0 ; Stloc_s
     #locals_push_value_8 9 ; Ldloc_s
-    #branch_false Player_SetFrame_289 ; Brfalse_s
-  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+    #switch Player_SetFrame_Jump_264 ; Switch
+    jmp Player_SetFrame_383 ; Br_s
+Player_SetFrame_287:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 11 ; Ldfld
     #pushfld 11 ; Nop
   ; OPT   #stack_push_pointer string_1879048837 ; Ldstr
@@ -582,16 +571,8 @@ Player_SetFrame_234:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
     #stack_push_pointer spt_player_left_0 ; Nop
     jsr Sprite_set_DataBlock ; Callvirt
     nop ; Nop
-    jmp Player_SetFrame_404 ; Br_s
-Player_SetFrame_289:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
-  ; OPT   #ldfld 4 ; Ldfld
-    #pushfld 4 ; Nop
-    #stack_push_int 1 ; Ldc_i4_1
-    #compareEqual ; Ceq
-    #locals_pull_value_8 10, 0 ; Stloc_s
-    #locals_push_value_8 10 ; Ldloc_s
-    #branch_false Player_SetFrame_328 ; Brfalse_s
-  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+    jmp Player_SetFrame_383 ; Br_s
+Player_SetFrame_311:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 11 ; Ldfld
     #pushfld 11 ; Nop
   ; OPT   #stack_push_pointer string_1879048873 ; Ldstr
@@ -599,16 +580,8 @@ Player_SetFrame_289:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
     #stack_push_pointer spt_player_left_3 ; Nop
     jsr Sprite_set_DataBlock ; Callvirt
     nop ; Nop
-    jmp Player_SetFrame_404 ; Br_s
-Player_SetFrame_328:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
-  ; OPT   #ldfld 4 ; Ldfld
-    #pushfld 4 ; Nop
-    #stack_push_int 2 ; Ldc_i4_2
-    #compareEqual ; Ceq
-    #locals_pull_value_8 11, 0 ; Stloc_s
-    #locals_push_value_8 11 ; Ldloc_s
-    #branch_false Player_SetFrame_367 ; Brfalse_s
-  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+    jmp Player_SetFrame_383 ; Br_s
+Player_SetFrame_335:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 11 ; Ldfld
     #pushfld 11 ; Nop
   ; OPT   #stack_push_pointer string_1879048909 ; Ldstr
@@ -616,16 +589,8 @@ Player_SetFrame_328:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
     #stack_push_pointer spt_player_left_1 ; Nop
     jsr Sprite_set_DataBlock ; Callvirt
     nop ; Nop
-    jmp Player_SetFrame_404 ; Br_s
-Player_SetFrame_367:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
-  ; OPT   #ldfld 4 ; Ldfld
-    #pushfld 4 ; Nop
-    #stack_push_int 3 ; Ldc_i4_3
-    #compareEqual ; Ceq
-    #locals_pull_value_8 12, 0 ; Stloc_s
-    #locals_push_value_8 12 ; Ldloc_s
-    #branch_false Player_SetFrame_404 ; Brfalse_s
-  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+    jmp Player_SetFrame_383 ; Br_s
+Player_SetFrame_359:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 11 ; Ldfld
     #pushfld 11 ; Nop
   ; OPT   #stack_push_pointer string_1879048945 ; Ldstr
@@ -633,18 +598,20 @@ Player_SetFrame_367:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
     #stack_push_pointer spt_player_left_2 ; Nop
     jsr Sprite_set_DataBlock ; Callvirt
     nop ; Nop
-Player_SetFrame_404:    nop ; Nop
-    jmp Player_SetFrame_566 ; Br
-Player_SetFrame_410:    nop ; Nop
+    jmp Player_SetFrame_383 ; Br_s
+Player_SetFrame_383:    nop ; Nop
+    jmp Player_SetFrame_524 ; Br
+Player_SetFrame_389:    nop ; Nop
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 4 ; Ldfld
     #pushfld 4 ; Nop
-    #stack_push_int 0 ; Ldc_i4_0
-    #compareEqual ; Ceq
-    #locals_pull_value_8 13, 0 ; Stloc_s
-    #locals_push_value_8 13 ; Ldloc_s
-    #branch_false Player_SetFrame_450 ; Brfalse_s
-  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+    #locals_pull_value_8 12, 0 ; Stloc_s
+    #locals_push_value_8 12 ; Ldloc_s
+    #locals_pull_value_8 11, 0 ; Stloc_s
+    #locals_push_value_8 11 ; Ldloc_s
+    #switch Player_SetFrame_Jump_404 ; Switch
+    jmp Player_SetFrame_523 ; Br_s
+Player_SetFrame_427:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 11 ; Ldfld
     #pushfld 11 ; Nop
   ; OPT   #stack_push_pointer string_1879048517 ; Ldstr
@@ -652,16 +619,8 @@ Player_SetFrame_410:    nop ; Nop
     #stack_push_pointer spt_player_right_0 ; Nop
     jsr Sprite_set_DataBlock ; Callvirt
     nop ; Nop
-    jmp Player_SetFrame_565 ; Br_s
-Player_SetFrame_450:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
-  ; OPT   #ldfld 4 ; Ldfld
-    #pushfld 4 ; Nop
-    #stack_push_int 1 ; Ldc_i4_1
-    #compareEqual ; Ceq
-    #locals_pull_value_8 14, 0 ; Stloc_s
-    #locals_push_value_8 14 ; Ldloc_s
-    #branch_false Player_SetFrame_489 ; Brfalse_s
-  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+    jmp Player_SetFrame_523 ; Br_s
+Player_SetFrame_451:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 11 ; Ldfld
     #pushfld 11 ; Nop
   ; OPT   #stack_push_pointer string_1879048981 ; Ldstr
@@ -669,16 +628,8 @@ Player_SetFrame_450:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
     #stack_push_pointer spt_player_right_3 ; Nop
     jsr Sprite_set_DataBlock ; Callvirt
     nop ; Nop
-    jmp Player_SetFrame_565 ; Br_s
-Player_SetFrame_489:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
-  ; OPT   #ldfld 4 ; Ldfld
-    #pushfld 4 ; Nop
-    #stack_push_int 2 ; Ldc_i4_2
-    #compareEqual ; Ceq
-    #locals_pull_value_8 15, 0 ; Stloc_s
-    #locals_push_value_8 15 ; Ldloc_s
-    #branch_false Player_SetFrame_528 ; Brfalse_s
-  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+    jmp Player_SetFrame_523 ; Br_s
+Player_SetFrame_475:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 11 ; Ldfld
     #pushfld 11 ; Nop
   ; OPT   #stack_push_pointer string_1879049019 ; Ldstr
@@ -686,16 +637,8 @@ Player_SetFrame_489:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
     #stack_push_pointer spt_player_right_1 ; Nop
     jsr Sprite_set_DataBlock ; Callvirt
     nop ; Nop
-    jmp Player_SetFrame_565 ; Br_s
-Player_SetFrame_528:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
-  ; OPT   #ldfld 4 ; Ldfld
-    #pushfld 4 ; Nop
-    #stack_push_int 3 ; Ldc_i4_3
-    #compareEqual ; Ceq
-    #locals_pull_value_8 16, 0 ; Stloc_s
-    #locals_push_value_8 16 ; Ldloc_s
-    #branch_false Player_SetFrame_565 ; Brfalse_s
-  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+    jmp Player_SetFrame_523 ; Br_s
+Player_SetFrame_499:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 11 ; Ldfld
     #pushfld 11 ; Nop
   ; OPT   #stack_push_pointer string_1879049057 ; Ldstr
@@ -703,8 +646,11 @@ Player_SetFrame_528:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
     #stack_push_pointer spt_player_right_2 ; Nop
     jsr Sprite_set_DataBlock ; Callvirt
     nop ; Nop
-Player_SetFrame_565:    nop ; Nop
-Player_SetFrame_566:    #method_exit 18, [] ; Ret
+    jmp Player_SetFrame_523 ; Br_s
+Player_SetFrame_523:    nop ; Nop
+Player_SetFrame_524:    #method_exit 14, [] ; Ret
+Player_SetFrame_Jump_264 .word  Player_SetFrame_287-1,  Player_SetFrame_311-1,  Player_SetFrame_335-1,  Player_SetFrame_359-1, 0
+Player_SetFrame_Jump_404 .word  Player_SetFrame_427-1,  Player_SetFrame_451-1,  Player_SetFrame_475-1,  Player_SetFrame_499-1, 0
 
 
 ;----------------------------------------

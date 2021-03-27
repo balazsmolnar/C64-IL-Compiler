@@ -21,9 +21,25 @@ namespace Hunchback
             };
             knight.Init();
             GetReady();
+            Rope rope = null;
+            if (description.WallType == WallType.Rope)
+            {
+                rope = new Rope
+                {
+                    Sprite1 = C64.Sprites.Sprite2,
+                    Sprite2 = C64.Sprites.Sprite3,
+                };
+                rope.Init();
+            }
+            else
+            {
+                C64.Sprites.Sprite2.Visible = false;
+                C64.Sprites.Sprite3.Visible = false;
+            }
+
             Enemy enemy = new Enemy()
             {
-                Sprite = C64.Sprites.Sprite2
+                Sprite = C64.Sprites.Sprite4
             };
             enemy.Init(description.EnemyType);
 
@@ -36,6 +52,9 @@ namespace Hunchback
                     return true;
                 knight.Move();
                 enemy.Move();
+                wall.Move();
+                if (rope != null)
+                    rope.Move();
                 Delay.Wait(100);
                 if (C64.IsKeyPressed(Keys.L))
                     return true;

@@ -47,7 +47,9 @@ namespace Compiler
                             new ILMethodSetVariableOptimizer(),
                             new ILMethodBranchIfLessOptimizer(),
                             new ILMethodBranchIfNotEqualOptimizer(),
-                            new ILMethodEmitPass()}),
+                            new ILMethodEmitPass(),
+                            new ILMethodJumpTablePass()
+                            }),
                      new ILStringResourcesPass() };
                 passes.ForEach(p => p.Execute(context));
             }

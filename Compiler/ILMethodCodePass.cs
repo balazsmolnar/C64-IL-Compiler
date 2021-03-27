@@ -40,7 +40,18 @@ namespace Compiler
                     parameter = input[index++];
                 if (op.ParameterSize == 4)
                     parameter = input[index++] + 256 * input[index++] + 256 * 256 * input[index++] + 256 * 256 * 256 * input[index++];
-                line.Parameter = op.ConvertParameter(context, parameter);
+                if (op.ParameterSize == -1)
+                {
+                    var parameterSize = parameter = input[index++] + 256 * input[index++] + 256 * 256 * input[index++] + 256 * 256 * 256 * input[index++];
+                    List<int> parameters = new List<int>(parameterSize);
+                    for (int i = 0; i < parameterSize; i++)
+                    {
+                        parameters.Add(input[index++] + 256 * input[index++] + 256 * 256 * input[index++] + 256 * 256 * 256 * input[index++]);
+                    }
+                    line.Parameter = parameters;
+                }
+                if (op.ParameterSize > -1)
+                    line.Parameter = op.ConvertParameter(context, parameter);
                 line.Size = index - line.Position;
                 Console.WriteLine(line);
 

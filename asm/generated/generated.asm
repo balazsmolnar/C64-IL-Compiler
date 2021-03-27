@@ -10,6 +10,7 @@
 .include "./LevelPlay.asm"
 .include "./Player.asm"
 .include "./PlayerStats.asm"
+.include "./Rope.asm"
 .include "./Screen.asm"
 .include "./TitleScreen.asm"
 .include "./Wall.asm"
@@ -40,41 +41,40 @@ string_1879049019 .text "spt_player_right_1",0
 string_1879049057 .text "spt_player_right_2",0
 string_1879049095 .text "txt_PlayerStats",0
 string_1879049127 .text "tbl_PlayerStatsColours",0
-string_1879049173 .text "(screenMemory)",0
-string_1879049203 .text "(screenMemory+$100)",0
-string_1879049243 .text "(screenMemory+$200)",0
-string_1879049283 .text "(screenMemory+$300)",0
-string_1879049323 .text "(colorMemory)",0
-string_1879049351 .text "(colorMemory+$100)",0
-string_1879049389 .text "(colorMemory+$200)",0
-string_1879049427 .text "(colorMemory+$300)",0
-string_1879049465 .text "(screenMemory+$CD)",0
-string_1879049503 .text "titleScreen",0
-string_1879049527 .text "(screenMemory+$1CD)",0
-string_1879049567 .text "titleScreen+$100",0
-string_1879049601 .text "(screenMemory+$21B)",0
-string_1879049641 .text "titleScreen+$14E",0
-string_1879049675 .text "OCEAN SOFTWARE",0
-string_1879049705 .text "   PRESENTS   ",0
-string_1879049735 .text "   BY J.STEELE",0
-string_1879049765 .text "PRESS F1 FOR INSTRUCTIONS",0
-string_1879049817 .text "    OR SPACE TO START    ",0
-string_1879049869 .text "(colorMemory+$CD)",0
-string_1879049905 .text "(colorMemory+$1CD)",0
-string_1879049943 .text "(colorMemory+$21B)",0
-string_1879049981 .text "screenMemory+$01B8",0
-string_1879050019 .text "screenMemory+$02B8",0
-string_1879050057 .text "screenMemory+$0300",0
-string_1879050095 .text "colorMemory+$01B8",0
-string_1879050131 .text "colorMemory+$02B8",0
-string_1879050167 .text "colorMemory+$0300",0
-string_1879050203 .text "screenMemory+$0320",0
-string_1879050241 .text "tbl_WallBaseChars",0
-string_1879050277 .text "tbl_LevelEndBellChars",0
-string_1879050321 .text "tbl_KnightChars",0
-string_1879050353 .text "tbl_KnightCharsColours",0
-string_1879050399 .text "tbl_EmptyPitChars",0
-string_1879050435 .text "tbl_EmptyPitCharColours",0
-string_1879050483 .text "tbl_PitKnightFrame1",0
-string_1879050523 .text "tbl_PitKnightFrame2",0
-string_1879050563 .text "tbl_PitKnightFrame3",0
+string_1879049173 .text "spt_rope_14",0
+string_1879049197 .text "spt_rope_15",0
+string_1879049221 .text "(screenMemory)",0
+string_1879049251 .text "(screenMemory+$100)",0
+string_1879049291 .text "(screenMemory+$200)",0
+string_1879049331 .text "(screenMemory+$300)",0
+string_1879049371 .text "(colorMemory)",0
+string_1879049399 .text "(colorMemory+$100)",0
+string_1879049437 .text "(colorMemory+$200)",0
+string_1879049475 .text "(colorMemory+$300)",0
+string_1879049513 .text "(screenMemory+$CD)",0
+string_1879049551 .text "titleScreen",0
+string_1879049575 .text "(screenMemory+$1CD)",0
+string_1879049615 .text "titleScreen+$100",0
+string_1879049649 .text "(screenMemory+$21B)",0
+string_1879049689 .text "titleScreen+$14E",0
+string_1879049723 .text "OCEAN SOFTWARE",0
+string_1879049753 .text "   PRESENTS   ",0
+string_1879049783 .text "   BY J.STEELE",0
+string_1879049813 .text "PRESS F1 FOR INSTRUCTIONS",0
+string_1879049865 .text "    OR SPACE TO START    ",0
+string_1879049917 .text "(colorMemory+$CD)",0
+string_1879049953 .text "(colorMemory+$1CD)",0
+string_1879049991 .text "(colorMemory+$21B)",0
+string_1879050029 .text "screenMemory+$01B8",0
+string_1879050067 .text "screenMemory+$02B8",0
+string_1879050105 .text "screenMemory+$0300",0
+string_1879050143 .text "colorMemory+$01B8",0
+string_1879050179 .text "colorMemory+$02B8",0
+string_1879050215 .text "colorMemory+$0300",0
+string_1879050251 .text "screenMemory+$0320",0
+string_1879050289 .text "tbl_WallBaseChars",0
+string_1879050325 .text "tbl_LevelEndBellChars",0
+string_1879050369 .text "tbl_KnightChars",0
+string_1879050401 .text "tbl_KnightCharsColours",0
+string_1879050447 .text "tbl_EmptyPitChars",0
+string_1879050483 .text "tbl_EmptyPitCharColours",0

@@ -21,11 +21,11 @@ namespace Compiler.Ops
         public virtual string Command { get; }
         public int ParameterSize { get; }
 
-        public virtual string Emit(CompilerMethodContext context, object parameter)
+        public virtual string Emit(CompilerMethodContext context, ILLine line)
         {
-            if (parameter == null)
+            if (line.Parameter == null)
                 return Command;
-            return $"{Command} {parameter}";
+            return $"{Command} {line.Parameter}";
         }
 
         public virtual object ConvertParameter(CompilerMethodContext context, int parameter) => null;
@@ -314,11 +314,11 @@ namespace Compiler.Ops
             int relPos = context.GetParameterReferencePosition(_argIndex);
             return $"{relPos}";
         }
-        public override string Emit(CompilerMethodContext context, object parameter)
+        public override string Emit(CompilerMethodContext context, ILLine line)
         {
             int size = context.GetParameterSize(_argIndex);
             var command = size == 2 ? "#locals_push_value_16" : "#locals_push_value_8";
-            return $"{command} {parameter}";
+            return $"{command} {line.Parameter}";
         }
     }
 
@@ -416,6 +416,24 @@ namespace Compiler.Ops
         }
 
         public override object ConvertParameter(CompilerMethodContext context, int parameter) => parameter + 5;
+    }
+
+    class OpSwitch : OpBase
+    {
+        public OpSwitch() : base(-1)
+        {
+
+        }
+
+        public override object ConvertParameter(CompilerMethodContext context, int parameter)
+        {
+            return base.ConvertParameter(context, parameter);
+        }
+
+        public override string Emit(CompilerMethodContext context, ILLine line)
+        {
+            return $"#switch {context.Method.GetLabel()}_Jump_{line.Position}";
+        }
     }
 
     class OpArithmetic2 : OpBase

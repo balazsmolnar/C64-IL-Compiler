@@ -75,3 +75,13 @@ branch_false .macro label
     beq \label
 .endm
 
+switch .macro jump_table 
+    #stack_pull_int_a
+    asl
+    tax
+    lda \jump_table+1,x
+    pha
+    lda \jump_table,x
+    pha
+    rts
+.endm

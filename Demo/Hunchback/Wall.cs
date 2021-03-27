@@ -5,7 +5,15 @@ namespace Hunchback
     class Wall
     {
         const uint WallChar = 62;
-        WallType wallType_;
+        const uint Space = 32;
+        const uint Wall3DChar = 60;
+        const uint Wall3DTopChar = 59;
+        const uint FireChar = 114;
+
+        private WallType wallType_;
+        private uint frameCounter_;
+
+        private uint knightCounter_;
         public void Draw(Colors color, WallType wallType)
         {
             BuildBasicWall(color);
@@ -24,18 +32,10 @@ namespace Hunchback
                 BuildEmptyPit(27);
             }
 
-            // for (int i = 0; i < 20; i++)
-            // {
-            //     KnightPitFrame1(10);
-            //     Wait();
-            //     KnightPitFrame2(10);
-            //     Wait();
-            //     KnightPitFrame3(10);
-            //     Wait();
-            //     KnightPitFrame2(10);
-            //     Wait();
-            //     KnightPitFrame1(10);
-            // }
+            if (wallType == WallType.Rope)
+            {
+                BuildRopePit();
+            }
         }
 
         private static void BuildBasicWall(Colors color)
@@ -65,7 +65,7 @@ namespace Hunchback
         private static void BuildKnightPit(uint startX)
         {
             uint d = 0;
-            for (uint y = 10; y < 14; y++)
+            for (uint y = 10; y < 15; y++)
             {
                 for (uint x = startX; x < startX + 4; x++)
                 {
@@ -105,56 +105,102 @@ namespace Hunchback
                 if (x > 236 && x < 255)
                     return true;
             }
+
+            if (wallType_ == WallType.Rope)
+            {
+                if (x > 104 && x < 238)
+                    return true;
+            }
             return false;
         }
 
-        private static void KnightPitFrame1(uint startX)
+        public void Move()
         {
-            uint d = 0;
-            for (uint y = 8; y < 14; y++)
+            if (wallType_ != WallType.KnightPits)
+                return;
+            frameCounter_++;
+            if (frameCounter_ == 5)
             {
-                for (uint x = startX; x < startX + 3; x++)
-                {
-                    var b = C64.GetMemory(C64Address.FromLabel("tbl_PitKnightFrame1"), d);
-                    // var c = C64.GetMemory(C64Address.FromLabel("tbl_KnightCharsColours"), d);
+                frameCounter_ = 0;
+                knightCounter_++;
+                if (knightCounter_ > 6)
+                    knightCounter_ = 0;
+            }
 
-                    C64.SetChar(x, y, b, (Colors)10);
-                    d++;
-                }
+            if (knightCounter_ < 4)
+                return;
+
+            uint x = 10;
+            if (knightCounter_ == 4)
+                x = 28;
+            if (knightCounter_ == 5)
+                x = 19;
+
+            switch (frameCounter_)
+            {
+                case 0:
+                case 4:
+                    KnightPitFrame1(x);
+                    break;
+                case 1:
+                case 3:
+                    KnightPitFrame2(x);
+                    break;
+                case 2:
+                    KnightPitFrame3(x);
+                    break;
             }
         }
 
-        private static void KnightPitFrame2(uint startX)
+        private static void BuildRopePit()
         {
-            uint d = 0;
-            for (uint y = 8; y < 14; y++)
+            for (uint x = 12; x < 28; x++)
             {
-                for (uint x = startX; x < startX + 3; x++)
+                for (uint y = 11; y < 21; y++)
                 {
-                    var b = C64.GetMemory(C64Address.FromLabel("tbl_PitKnightFrame2"), d);
-                    // var c = C64.GetMemory(C64Address.FromLabel("tbl_KnightCharsColours"), d);
-
-                    C64.SetChar(x, y, b, (Colors)10);
-                    d++;
+                    C64.SetChar(x, y, Space, Colors.Black);
                 }
+                C64.SetChar(x, 21, FireChar, Colors.Red);
             }
+
+            for (uint y = 12; y < 22; y++)
+            {
+                C64.SetChar(11, y, Wall3DChar, Colors.Red);
+            }
+            C64.SetChar(11, 11, Wall3DTopChar, Colors.Red);
         }
 
-        private static void KnightPitFrame3(uint startX)
+        private static void KnightPitFrame1(uint x)
         {
-            uint d = 0;
-            for (uint y = 8; y < 14; y++)
-            {
-                for (uint x = startX; x < startX + 3; x++)
-                {
-                    var b = C64.GetMemory(C64Address.FromLabel("tbl_PitKnightFrame3"), d);
-                    // var c = C64.GetMemory(C64Address.FromLabel("tbl_KnightCharsColours"), d);
-
-                    C64.SetChar(x, y, b, (Colors)10);
-                    d++;
-                }
-            }
+            C64.SetChar(x, 8, 0x20, Colors.LightRed);
+            C64.SetChar(x, 9, 0x20, Colors.LightRed);
+            C64.SetChar(x, 10, 0x45, Colors.LightRed);
+            C64.SetChar(x, 11, 0x47, Colors.LightRed);
+            C64.SetChar(x, 12, 0x4f, Colors.LightRed);
+            C64.SetChar(x, 13, 0x50, Colors.LightRed);
+            C64.SetChar(x, 14, 0x51, Colors.LightRed);
         }
 
+        private static void KnightPitFrame2(uint x)
+        {
+            C64.SetChar(x, 8, 0x20, Colors.LightRed);
+            C64.SetChar(x, 9, 0x45, Colors.LightRed);
+            C64.SetChar(x, 10, 0x46, Colors.LightRed);
+            C64.SetChar(x, 11, 0x47, Colors.LightRed);
+            C64.SetChar(x, 12, 0x52, Colors.LightRed);
+            C64.SetChar(x, 13, 0x53, Colors.LightRed);
+            C64.SetChar(x, 14, 0x54, Colors.LightRed);
+        }
+
+        private static void KnightPitFrame3(uint x)
+        {
+            C64.SetChar(x, 8, 0x45, Colors.LightRed);
+            C64.SetChar(x, 9, 0x46, Colors.LightRed);
+            C64.SetChar(x, 10, 0x46, Colors.LightRed);
+            C64.SetChar(x, 11, 0x56, Colors.LightRed);
+            C64.SetChar(x, 12, 0x55, Colors.LightRed);
+            C64.SetChar(x, 13, 0x57, Colors.LightRed);
+            C64.SetChar(x, 14, 0x58, Colors.LightRed);
+        }
     }
 }

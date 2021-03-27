@@ -67,6 +67,22 @@ namespace Hunchback
         public void Move()
         {
 
+            if (sprite_.IsInCollision)
+            {
+                Die();
+                return;
+            }
+
+            if (sprite_.IsInBackgroundCollision)
+            {
+                if (highPosition_)
+                    Complete = true;
+                else
+                    Die();
+                return;
+            }
+
+
             if (!jump_ && C64.IsKeyPressed(Keys.W))
             {
                 jump_ = true;
@@ -111,28 +127,9 @@ namespace Hunchback
 
             if (Y == 117 && wall_.IsHole(x_))
             {
-                C64.SetBorderColor(Colors.Green);
                 Die();
             }
             SetFrame();
-
-            if (sprite_.IsInCollision)
-            {
-                Die();
-                C64.SetBorderColor(Colors.LightRed);
-            }
-            else
-            {
-                C64.SetBorderColor(Colors.Black);
-            }
-
-            if (sprite_.IsInBackgroundCollision)
-            {
-                if (highPosition_)
-                    Complete = true;
-                else
-                    Die();
-            }
 
         }
 
@@ -173,25 +170,39 @@ namespace Hunchback
             }
             if (left_)
             {
-                if (frameCounter_ == 0)
-                    sprite_.DataBlock = C64Address.FromLabel("spt_player_left_0");
-                else if (frameCounter_ == 1)
-                    sprite_.DataBlock = C64Address.FromLabel("spt_player_left_3");
-                else if (frameCounter_ == 2)
-                    sprite_.DataBlock = C64Address.FromLabel("spt_player_left_1");
-                else if (frameCounter_ == 3)
-                    sprite_.DataBlock = C64Address.FromLabel("spt_player_left_2");
+                switch (frameCounter_)
+                {
+                    case 0:
+                        sprite_.DataBlock = C64Address.FromLabel("spt_player_left_0");
+                        break;
+                    case 1:
+                        sprite_.DataBlock = C64Address.FromLabel("spt_player_left_3");
+                        break;
+                    case 2:
+                        sprite_.DataBlock = C64Address.FromLabel("spt_player_left_1");
+                        break;
+                    case 3:
+                        sprite_.DataBlock = C64Address.FromLabel("spt_player_left_2");
+                        break;
+                }
             }
             else
             {
-                if (frameCounter_ == 0)
-                    sprite_.DataBlock = C64Address.FromLabel("spt_player_right_0");
-                else if (frameCounter_ == 1)
-                    sprite_.DataBlock = C64Address.FromLabel("spt_player_right_3");
-                else if (frameCounter_ == 2)
-                    sprite_.DataBlock = C64Address.FromLabel("spt_player_right_1");
-                else if (frameCounter_ == 3)
-                    sprite_.DataBlock = C64Address.FromLabel("spt_player_right_2");
+                switch (frameCounter_)
+                {
+                    case 0:
+                        sprite_.DataBlock = C64Address.FromLabel("spt_player_right_0");
+                        break;
+                    case 1:
+                        sprite_.DataBlock = C64Address.FromLabel("spt_player_right_3");
+                        break;
+                    case 2:
+                        sprite_.DataBlock = C64Address.FromLabel("spt_player_right_1");
+                        break;
+                    case 3:
+                        sprite_.DataBlock = C64Address.FromLabel("spt_player_right_2");
+                        break;
+                }
             }
         }
 

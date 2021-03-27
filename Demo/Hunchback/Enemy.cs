@@ -77,15 +77,21 @@ namespace Hunchback
 
         private void SetFrame()
         {
-
-            if (frameCounter_ == 0)
-                sprite_.DataBlock = C64Address.FromLabel("spt_fireball_0");
-            else if (frameCounter_ == 1)
-                sprite_.DataBlock = C64Address.FromLabel("spt_fireball_1");
-            else if (frameCounter_ == 2)
-                sprite_.DataBlock = C64Address.FromLabel("spt_fireball_2");
-            else if (frameCounter_ == 3)
-                sprite_.DataBlock = C64Address.FromLabel("spt_fireball_3");
+            switch (frameCounter_)
+            {
+                case 0:
+                    sprite_.DataBlock = C64Address.FromLabel("spt_fireball_0");
+                    break;
+                case 1:
+                    sprite_.DataBlock = C64Address.FromLabel("spt_fireball_1");
+                    break;
+                case 2:
+                    sprite_.DataBlock = C64Address.FromLabel("spt_fireball_2");
+                    break;
+                case 3:
+                    sprite_.DataBlock = C64Address.FromLabel("spt_fireball_3");
+                    break;
+            }
         }
     }
 }

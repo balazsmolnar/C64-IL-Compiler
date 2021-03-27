@@ -10,7 +10,6 @@ namespace Compiler
         public void Execute(CompilerMethodContext context)
         {
             Dictionary<int, string> labelPositions = new Dictionary<int, string>();
-            int labelNum = 0;
             var lines = context.Lines;
 
             foreach (var line in lines)
@@ -22,7 +21,18 @@ namespace Compiler
                     if (!labelPositions.ContainsKey(target))
                         labelPositions.Add(target, label);
                     line.Parameter = label;
-                    labelNum++;
+                }
+
+                if (line.OpCode == ILOpCode.Switch)
+                {
+                    List<int> parameters = (List<int>)line.Parameter;
+                    foreach (var parameter in parameters)
+                    {
+                        var target = parameter + line.Position + parameters.Count * 4 + 5;
+                        var label = $"{context.Method.GetLabel()}_{target}";
+                        if (!labelPositions.ContainsKey(target))
+                            labelPositions.Add(target, label);
+                    }
                 }
             }
 

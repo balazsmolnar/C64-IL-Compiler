@@ -73,7 +73,9 @@ namespace Hunchback
             if (sprite_.IsInBackgroundCollision)
             {
                 if (highPosition_)
-                    Complete = true;
+                {
+                    LevelComplete();
+                }
                 else
                     Die();
                 return;
@@ -88,6 +90,7 @@ namespace Hunchback
 
             if (!jump_ && C64.IsKeyPressed(Keys.W))
             {
+                C64.Sound.PlayEffectReg1(WaveForm.Rectangle, 0, 4, 0x28, 0x40, 0, 9, true);
                 if (OnRope)
                 {
                     jumpFromRope_ = true;
@@ -240,12 +243,23 @@ namespace Hunchback
             }
         }
 
+        private void LevelComplete()
+        {
+            Complete = true;
+            C64.Sound.PlayEffectReg2(WaveForm.Triangle, 0x64, 0x48, 0x00, 0x10, 0x0a, 0x00, false);
+            for (int x = 0; x < 127; x++)
+            {
+                for (int y = 0; y < 50; y++)
+                { }
+            }
+            C64.Sound.PlayEffectReg2(WaveForm.Triangle, 0x64, 0x12, 0x00, 0x10, 0x0a, 0x00, false);
+        }
         private void InitJumpOffsets()
         {
             if (jumpOffsets_ != null)
                 return;
-            // byte $00, $06, $0B, $0E, $10, $12, $13, $14
-            // byte $14, $13, $12, $10, $0E, $0B, $06, $00
+            // byte 0x00, 0x06, 0x0B, 0x0E, 0x10, 0x12, 0x13, 0x14
+            // byte 0x14, 0x13, 0x12, 0x10, 0x0E, 0x0B, 0x06, 0x00
 
             jumpOffsets_ = new int[16];
             jumpOffsets_[0] = jumpOffsets_[15] = 0;

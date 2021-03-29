@@ -37,6 +37,8 @@ namespace Hunchback
             C64.SetCharBackgroundColor(1, Colors.White);
             C64.Sprites.CommonColor1 = Colors.Brown;
             C64.Sprites.CommonColor2 = Colors.Grey3;
+
+            C64.Sound.Volume = 15;
         }
     }
 }

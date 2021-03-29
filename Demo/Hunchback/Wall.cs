@@ -14,6 +14,7 @@ namespace Hunchback
         private uint frameCounter_;
 
         private uint knightCounter_;
+        private uint speedCounter_;
         public void Draw(Colors color, WallType wallType)
         {
             BuildBasicWall(color);
@@ -118,6 +119,10 @@ namespace Hunchback
         {
             if (wallType_ != WallType.KnightPits)
                 return;
+            speedCounter_++;
+            if (speedCounter_ < 2)
+                return;
+            speedCounter_ = 0;
             frameCounter_++;
             if (frameCounter_ == 5)
             {

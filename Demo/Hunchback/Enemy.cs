@@ -30,6 +30,8 @@ namespace Hunchback
             }
         }
         private Sprite sprite_;
+        private bool leftToRight_;
+        private bool arrow_;
 
         public Sprite Sprite
         {
@@ -45,10 +47,30 @@ namespace Hunchback
             sprite_.MultiColor = true;
             sprite_.Visible = enemyType_ != EnemyType.None;
             sprite_.Color = Colors.Violet;
-            sprite_.HighPosition = true;
-            highPosition = true;
-            Y = 117;
-            X = 60;
+
+            if ((enemyType_ & EnemyType.Top) > 0)
+                Y = 87;
+            else
+                Y = 117;
+            leftToRight_ = (enemyType_ & EnemyType.LeftRight) > 0;
+            arrow_ = (enemyType_ & EnemyType.Arrow) > 0;
+            if (leftToRight_)
+            {
+                X = 0;
+                highPosition = false;
+                sprite_.HighPosition = false;
+            }
+            else
+            {
+                highPosition = true;
+                sprite_.HighPosition = true;
+                X = 60;
+            }
+
+            if (arrow_ && leftToRight_)
+            {
+                sprite_.DataBlock = C64Address.FromLabel("spt_arrow_right");
+            }
         }
 
         public bool IsInCollision => sprite_.IsInCollision;
@@ -60,18 +82,36 @@ namespace Hunchback
             frameCounter_++;
             if (frameCounter_ == 4)
                 frameCounter_ = 0;
-            X -= 4;
 
-            if (X == 0)
+            if (leftToRight_)
             {
-                if (highPosition)
+                X += 4;
+                if (X == 0)
                 {
-                    highPosition = false;
-                    sprite_.HighPosition = false;
+                    highPosition = true;
+                    sprite_.HighPosition = true;
                 }
-                else
+
+                if (X == 60 && highPosition)
                 {
                     Init(enemyType_);
+                }
+            }
+            else
+            {
+                X -= 4;
+
+                if (X == 0)
+                {
+                    if (highPosition)
+                    {
+                        highPosition = false;
+                        sprite_.HighPosition = false;
+                    }
+                    else
+                    {
+                        Init(enemyType_);
+                    }
                 }
             }
             SetFrame();
@@ -79,6 +119,8 @@ namespace Hunchback
 
         private void SetFrame()
         {
+            if (arrow_)
+                return;
             switch (frameCounter_)
             {
                 case 0:

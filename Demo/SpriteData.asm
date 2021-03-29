@@ -1256,6 +1256,7 @@ spt_player_rope_right:
 
 ; Sprite #49
 ; Multicolor mode, BG color: 1, Sprite color: 0, multicolor1: 6, multicolor2: 7
+spt_arrow_right:
 .byte $00, $00, $00
 .byte $00, $00, $00
 .byte $00, $00, $00

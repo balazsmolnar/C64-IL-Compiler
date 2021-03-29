@@ -66,7 +66,7 @@ Game_Start_82:    #locals_push_value_8 3 ; Ldloc_1
 Game_Init 
     #init_locals_pull_parameters 0, [0]
     nop ; Nop
-  ; OPT   #stack_push_pointer string_1879048313 ; Ldstr
+  ; OPT   #stack_push_pointer string_1879048345 ; Ldstr
   ; OPT   jsr C64Address_FromLabel ; Call
     #stack_push_pointer charset ; Nop
     jsr C64_SetCharSet ; Call
@@ -94,5 +94,9 @@ Game_Init
     jsr C64_get_Sprites ; Call
     #stack_push_int 15 ; Ldc_i4_s
     jsr SpriteCollection_set_CommonColor2 ; Callvirt
+    nop ; Nop
+    jsr C64_get_Sound ; Call
+    #stack_push_int 15 ; Ldc_i4_s
+    jsr Sound_set_Volume ; Callvirt
     nop ; Nop
     #method_exit 3, [] ; Ret

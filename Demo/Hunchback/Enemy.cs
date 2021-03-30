@@ -48,10 +48,7 @@ namespace Hunchback
             sprite_.Visible = enemyType_ != EnemyType.None;
             sprite_.Color = Colors.Violet;
 
-            if ((enemyType_ & EnemyType.Top) > 0)
-                Y = 87;
-            else
-                Y = 117;
+            Y = ((enemyType_ & EnemyType.Top) > 0) ? 117u : 87u;
             leftToRight_ = (enemyType_ & EnemyType.LeftRight) > 0;
             arrow_ = (enemyType_ & EnemyType.Arrow) > 0;
             if (leftToRight_)
@@ -71,6 +68,7 @@ namespace Hunchback
             {
                 sprite_.DataBlock = C64Address.FromLabel("spt_arrow_right");
             }
+            C64.Sound.PlayEffectReg2(WaveForm.Noise, 100, 44, 0, 0, 128, 0, false);
         }
 
         public bool IsInCollision => sprite_.IsInCollision;

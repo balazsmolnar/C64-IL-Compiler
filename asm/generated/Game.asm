@@ -14,9 +14,8 @@ Game_Start
     nop ; Nop
     #newObj 0, 0 ; Newobj
     #locals_pull_value_8 2, 1 ; Stloc_0
-  ; OPT   #stack_push_int 0 ; Ldc_i4_0
-  ; OPT   #locals_pull_value_8 3, 0 ; Stloc_1
-    #init_var 3, 0 ; Nop
+    #stack_push_int 0 ; Ldc_i4_0
+    #locals_pull_value_8 3, 0 ; Stloc_1
     jsr LevelDescription_get_Levels ; Call
     #locals_pull_value_8 4, 1 ; Stloc_2
     #newObj 0, 0 ; Newobj
@@ -36,11 +35,10 @@ Game_Start_36:    nop ; Nop
     #locals_push_value_8 6 ; Ldloc_s
     #branch_false Game_Start_75 ; Brfalse_s
     nop ; Nop
-  ; OPT   #locals_push_value_8 3 ; Ldloc_1
-  ; OPT   #stack_push_int 1 ; Ldc_i4_1
-  ; OPT   #add ; Add
-  ; OPT   #locals_pull_value_8 3, 0 ; Stloc_1
-    #inc_var 3 ; Nop
+    #locals_push_value_8 3 ; Ldloc_1
+    #stack_push_int 1 ; Ldc_i4_1
+    #add ; Add
+    #locals_pull_value_8 3, 0 ; Stloc_1
     #stack_push_int 100 ; Ldc_i4_s
     jsr Delay_Wait ; Call
     nop ; Nop

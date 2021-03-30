@@ -13,7 +13,7 @@ static void Main()
 ```
 
 Output:
-![Hello world](https://github.com/balazsmolnar/C64-IL-Compiler/blob/hunchback/Doc/HelloWorld.png "Hello World")
+![Hello world](https://github.com/balazsmolnar/C64-IL-Compiler/blob/main/Doc/HelloWorld.png "Hello World")
 
 How does it work?
 
@@ -114,6 +114,6 @@ TODO
 I started to port Hunchback to c#.
 The assets are taken from this great repository: https://github.com/C64-Mark/Hunchback
 
-![Hunchback](doc\HunchbackTitle.png?raw=true "Hunchback")
-![Hunchback](doc\HunchbackRope.png?raw=true "Hunchback")
-![Hunchback](doc\HunchbackKnights.png?raw=true "Hunchback")
+![Hunchback](https://github.com/balazsmolnar/C64-IL-Compiler/blob/main/Doc/HunchbackTitle.png "Hunchback")
+![Hunchback](https://github.com/balazsmolnar/C64-IL-Compiler/blob/main/Doc/HunchbackRope.png "Hunchback")
+![Hunchback](https://github.com/balazsmolnar/C64-IL-Compiler/blob/main/Doc/HunchbackKnights.png "Hunchback")

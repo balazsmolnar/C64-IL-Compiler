@@ -13,7 +13,7 @@ static void Main()
 ```
 
 Output:
-![Hello world](doc\HelloWorld.png?raw=true "Hello World")
+![Hello world](https://github.com/balazsmolnar/C64-IL-Compiler/blob/hunchback/Doc/HelloWorld.png "Hello World")
 
 How does it work?
 

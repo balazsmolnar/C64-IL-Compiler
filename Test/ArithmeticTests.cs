@@ -57,12 +57,26 @@ namespace Compiler.Test
             return a == b;
         }
 
+        [TestCase(5, ExpectedResult = false)]
+        [TestCase(4, ExpectedResult = true)]
+        public bool TestEquality_Const(int a)
+        {
+            return a == 4;
+        }
+
         [TestCase(5u, 4u, ExpectedResult = false)]
         [TestCase(100u, 100u, ExpectedResult = true)]
         [TestCase(255u, 255u, ExpectedResult = true)]
         public bool TestEquality_uint(uint a, uint b)
         {
             return a == b;
+        }
+
+        [TestCase(5u, ExpectedResult = false)]
+        [TestCase(4u, ExpectedResult = true)]
+        public bool TestEquality_uint_const(uint a)
+        {
+            return a == 4u;
         }
 
         [TestCase(5, 4, ExpectedResult = false)]
@@ -73,6 +87,14 @@ namespace Compiler.Test
         public bool TestLess(int a, int b)
         {
             return a < b;
+        }
+
+        [TestCase(10, ExpectedResult = false)]
+        [TestCase(100, ExpectedResult = false)]
+        [TestCase(4, ExpectedResult = true)]
+        public bool TestLess_Const(int a)
+        {
+            return a < 10;
         }
 
         [TestCase(5u, 4u, ExpectedResult = false)]

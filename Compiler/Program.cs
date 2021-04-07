@@ -47,6 +47,9 @@ namespace Compiler
                             new ILMethodSetVariableOptimizer(),
                             new ILMethodBranchIfLessOptimizer(),
                             new ILMethodBranchIfNotEqualOptimizer(),
+                            new ILMethodCompareEqualConstOptimizer(),
+                            new ILMethodCompareGreaterConstOptimizer(),
+                            new ILMethodCompareGreaterUnsignedConstOptimizer(),
                             new ILMethodEmitPass(),
                             new ILMethodJumpTablePass()
                             }),

@@ -299,7 +299,7 @@ Knight_SetFrame
     jmp Knight_SetFrame_71 ; Br_s
 Knight_SetFrame_49:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 5 ; Ldfld
-    #pushfld 5 ; Nop
+    #pushfld 5 ;   Nop
   ; OPT   #stack_push_pointer string_1879048367 ; Ldstr
   ; OPT   jsr C64Address_FromLabel ; Call
     #stack_push_pointer spt_knight_climb_1 ; Nop

@@ -116,6 +116,28 @@ compareGreater_unsigned .macro
 +       #stack_push_int_x
 .endm
 
+compareGreater_unsigned8_const .macro value
+        #stack_pull_int_a
+
+        ldx #0
+        cmp #\value
+        bmi +
+        beq +
+        inx
++       #stack_push_int_x
+.endm
+
+compareGreater8_const .macro value
+        #stack_pull_int_a
+
+        ldx #0
+        cmp #\value
+        bmi +
+        beq +
+        inx
++       #stack_push_int_x
+.endm
+
 compareEqual16 .macro 
         #stack_pull_int $34
         #stack_pull_int $32
@@ -142,6 +164,17 @@ compareEqual8 .macro
 
         ldx #0
         cmp $34
+        bne +
+        inx
++
+        #stack_push_int_x
+.endm
+
+compareEqual8_const .macro value
+        #stack_pull_int_a
+
+        ldx #0
+        cmp #\value
         bne +
         inx
 +

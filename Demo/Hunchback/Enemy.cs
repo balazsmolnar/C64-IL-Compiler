@@ -48,7 +48,9 @@ namespace Hunchback
             sprite_.Visible = enemyType_ != EnemyType.None;
             sprite_.Color = Colors.Violet;
 
-            Y = ((enemyType_ & EnemyType.Top) > 0) ? 117u : 87u;
+            Y = 117u;
+            if ((enemyType_ & EnemyType.Top) > 0)
+                Y = 87u;
             leftToRight_ = (enemyType_ & EnemyType.LeftRight) > 0;
             arrow_ = (enemyType_ & EnemyType.Arrow) > 0;
             if (leftToRight_)

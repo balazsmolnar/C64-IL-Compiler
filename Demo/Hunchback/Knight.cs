@@ -47,7 +47,6 @@ namespace Hunchback
             Y = 197;
             X = 40;
         }
-        public bool IsInCollision => sprite_.IsInCollision;
 
         public void Move()
         {

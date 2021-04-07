@@ -77,7 +77,7 @@ namespace Compiler
                 { ILOpCode.Brtrue, new OpLongJump("#branch_true") },
                 { ILOpCode.Brfalse_s, new OpShortJump("#branch_false") },
                 { ILOpCode.Brfalse, new OpLongJump("#branch_false") },
-                { ILOpCode.Nop, new OpBase(0, "nop") },
+                { ILOpCode.Nop, new OpBase(0, "; nop") },
                 { ILOpCode.Add, new OpArithmetic2("#add") },
                 { ILOpCode.Shl, new OpArithmetic2("#shift_left") },
                 { ILOpCode.Sub, new OpArithmetic2("#sub") },

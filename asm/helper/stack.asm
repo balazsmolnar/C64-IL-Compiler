@@ -81,12 +81,12 @@ stack_pull_int_a .macro
 .endm
 
 stack_pull_int_x .macro
-  pla
+  #stack_pull_int_a
   tax
 .endm
 
 stack_pull_int_y .macro 
-  pla
+  #stack_pull_int_a
   tay
 .endm
 
@@ -96,7 +96,7 @@ stack_push_int_a .macro
 
 stack_push_int_x .macro
   txa
-  pha
+  #stack_push_int_a
 .endm
 
 stack_pull_int_ref .macro address, ref 
@@ -106,7 +106,7 @@ stack_pull_int_ref .macro address, ref
     #deref \address
   .endif
   ; store
-  pla
+  #stack_pull_int_a
   sta \address
 
   ; ref

@@ -7,7 +7,7 @@ locals_stack_init .macro
 
 locals_pull_param_8 .macro ref
 
-  pla
+  #stack_pull_int_a
   ldx stackPointer
   sta localsStack,x
   inx
@@ -23,7 +23,7 @@ init_locals_pull_parameters .macro localsSize, ref_list
   #init_locals \localsSize
   .if len(\ref_list) > 0
     .for ref in \ref_list
-      pla
+      #stack_pull_int_a
       sta localsStack,y
       iny
       .if ref == 1 
@@ -43,56 +43,48 @@ init_locals .macro localsSize
   ; save return address from stack
   pla
   sta localsStack,y
-  iny
   pla
-  sta localsStack,y
-  iny
+  sta localsStack+1,y
 
-  ; init locals
-  lda #0
+  ; reserve memory for locals
   .if \localsSize == 0
+    iny
+    iny
   .elsif \localsSize == 1
-    sta localsStack,y
+    iny
+    iny
     iny
   .elsif \localsSize == 2
-    sta localsStack,y
     iny
-    sta localsStack,y
     iny
-  .elsif \localsSize == 3
-    sta localsStack,y
     iny
-    sta localsStack,y
     iny
-    sta localsStack,y
-    iny
+
   .else
-    tax
--   sta localsStack,y
-    inx
-    iny
-    cpx #\localsSize
-    bne -
+    tya
+    clc
+    adc #(\localsSize+2)
+    tay
   .endif
 .endm
 
 method_exit .macro stackSize, ref_list
 
-  .for ref in \ref_list
+  .if len(\ref_list) > 0
     ldy stackPointer
-    ldx localsStack-ref,y
-    dec objTableRootCount, x
-  .next
+    .for ref in \ref_list    
+      ldx localsStack-ref,y
+      dec objTableRootCount, x
+    .next
+  .endif
 
   lda stackPointer
   sec
   sbc #\stackSize
   sta stackPointer
   tax
-  inx
-  lda localsStack,x 
+  lda localsStack+1,x 
   pha
-  dex
   lda localsStack,x
   pha
   rts

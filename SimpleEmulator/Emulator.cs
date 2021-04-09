@@ -135,10 +135,11 @@ namespace SimpleEmulator
 
         private void Compare(byte value, AddressingMode mode, byte byte1, byte byte2)
         {
-            int result = value - GetValue(mode, byte1, byte2);
-            registers.Z = result == 0;
-            registers.C = result >= 0;
-            registers.N = result < 0;
+            int uresult = value - GetValue(mode, byte1, byte2);
+            int sresult = (sbyte) value - (sbyte) GetValue(mode, byte1, byte2);
+            registers.Z = uresult == 0;
+            registers.C = uresult >= 0;
+            registers.N = sresult < 0;
         }
 
         private byte IncByte(byte value)

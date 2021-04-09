@@ -238,7 +238,7 @@ namespace Compiler.Ops
         private int _value;
         public OpLdc_i4_const(int value) : base(0)
         {
-            _value = value;
+            _value = value.ToByte();
         }
 
         public override object ConvertParameter(CompilerMethodContext context, int parameter)
@@ -255,7 +255,7 @@ namespace Compiler.Ops
 
         public override object ConvertParameter(CompilerMethodContext context, int parameter)
         {
-            return parameter;
+            return parameter.ToByte();
         }
     }
 

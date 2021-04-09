@@ -19,6 +19,7 @@ namespace Compiler.Test
 
         [TestCase(5, ExpectedResult = 4)]
         [TestCase(100, ExpectedResult = 99)]
+        [TestCase(-100, ExpectedResult = -101)]
         [TestCase(1, ExpectedResult = 0)]
         public int TestDecrement(int value)
         {
@@ -29,9 +30,35 @@ namespace Compiler.Test
         [TestCase(5, 4, ExpectedResult = 9)]
         [TestCase(100, 0, ExpectedResult = 100)]
         [TestCase(1, -1, ExpectedResult = 0)]
+        [TestCase(-10, -1, ExpectedResult = -11)]
+        [TestCase(-10, 11, ExpectedResult = 1)]
         public int TestAdd(int a, int b)
         {
             return a + b;
+        }
+
+        [TestCase(5u, 4u, ExpectedResult = 9)]
+        [TestCase(100u, 0u, ExpectedResult = 100)]
+        [TestCase(200u, 55u, ExpectedResult = 255)]
+        public uint TestAdd_uint(uint a, uint b)
+        {
+            return a + b;
+        }
+
+        [TestCase(5, ExpectedResult = 18)]
+        [TestCase(100, ExpectedResult = 113)]
+        [TestCase(-5, ExpectedResult = 8)]
+        public int TestAdd_Const(int a)
+        {
+            return a + 13;
+        }
+
+        [TestCase(5, ExpectedResult = 4)]
+        [TestCase(100, ExpectedResult = 99)]
+        [TestCase(-5, ExpectedResult = -6)]
+        public int TestAdd_Const_Negative(int a)
+        {
+            return a + -1;
         }
 
         [TestCase(5, 4, ExpectedResult = 1)]
@@ -133,9 +160,30 @@ namespace Compiler.Test
         [TestCase(4, 5, ExpectedResult = false)]
         [TestCase(-100, -99, ExpectedResult = false)]
         [TestCase(-100, -101, ExpectedResult = true)]
+        [TestCase(-2, 4, ExpectedResult = false)]
+        [TestCase(-1, -2, ExpectedResult = true)]
+        [TestCase(-2, -1, ExpectedResult = false)]
         public bool TestGreater(int a, int b)
         {
             return a > b;
+        }
+
+        [TestCase(5, ExpectedResult = true)]
+        [TestCase(4, ExpectedResult = false)]
+        [TestCase(2, ExpectedResult = false)]
+        [TestCase(-1, ExpectedResult = false)]
+        public bool TestGreater_const(int a)
+        {
+            return a > 4;
+        }
+
+        [TestCase(5, ExpectedResult = true)]
+        [TestCase(-4, ExpectedResult = false)]
+        [TestCase(-5, ExpectedResult = false)]
+        [TestCase(-2, ExpectedResult = true)]
+        public bool TestGreater_const_negative(int a)
+        {
+            return a > -4;
         }
 
         [TestCase(5u, 4u, ExpectedResult = true)]
@@ -147,6 +195,14 @@ namespace Compiler.Test
         public bool TestGreater_uint(uint a, uint b)
         {
             return a > b;
+        }
+
+        [TestCase(5u, ExpectedResult = true)]
+        [TestCase(4u, ExpectedResult = false)]
+        [TestCase(2u, ExpectedResult = false)]
+        public bool TestGreater_uint_const(uint a)
+        {
+            return a > 4u;
         }
 
         [TestCase(5, 4, ExpectedResult = true)]

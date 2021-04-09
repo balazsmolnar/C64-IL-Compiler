@@ -24,7 +24,12 @@ namespace C64TestFramework
             for (byte i = 0; i < (byte)args.Arguments.Count; i++)
             {
                 if (args.Arguments[i] is int)
-                    emulator.SetMemory(0x9e1 + i, (byte)(int)args.Arguments[i]);
+                {
+                    int v = (int)args.Arguments[i];
+                    if (v < -127 || v > 127)
+                        throw new ArgumentOutOfRangeException("int");
+                    emulator.SetMemory(0x9e1 + i, v < 0 ? (byte)(256 + v) : (byte)v);
+                }
                 if (args.Arguments[i] is uint)
                     emulator.SetMemory(0x9e1 + i, (byte)(uint)args.Arguments[i]);
             }
@@ -37,11 +42,13 @@ namespace C64TestFramework
 
             if (args.Method is MethodInfo)
             {
-                var type = ((MethodInfo) args.Method).ReturnType;
+                var type = ((MethodInfo)args.Method).ReturnType;
                 if (type == typeof(int))
-                    args.ReturnValue = (int)emulator.GetMemory(0x2c);
+                    args.ReturnValue = (int)(sbyte)emulator.GetMemory(0x2c);
                 if (type == typeof(Boolean))
                     args.ReturnValue = emulator.GetMemory(0x2c) != 0;
+                if (type == typeof(uint))
+                    args.ReturnValue = (uint)emulator.GetMemory(0x2c);
             }
         }
 

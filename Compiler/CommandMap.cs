@@ -20,7 +20,7 @@ namespace Compiler
                 { ILOpCode.Ldc_i4_6, new OpLdc_i4_const(6) },
                 { ILOpCode.Ldc_i4_7, new OpLdc_i4_const(7) },
                 { ILOpCode.Ldc_i4_8, new OpLdc_i4_const(8) },
-                { ILOpCode.Ldc_i4_m1, new OpLdc_i4_const(0xFFFF) },
+                { ILOpCode.Ldc_i4_m1, new OpLdc_i4_const(-1) },
                 { ILOpCode.Ldc_i4_s, new OpLdc_i4_s() },
                 { ILOpCode.Ldc_i4, new OpLdc_i4() },
                 { ILOpCode.Ldnull, new OpLdnull() },

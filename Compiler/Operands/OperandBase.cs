@@ -418,6 +418,15 @@ namespace Compiler.Ops
         public override object ConvertParameter(CompilerMethodContext context, int parameter) => parameter + 5;
     }
 
+    class OpBranchConst : OpBase
+    {
+        public OpBranchConst(string command) : base(0, command)
+        {
+        }
+
+        public override object ConvertParameter(CompilerMethodContext context, int parameter) => 0;
+    }
+
     class OpSwitch : OpBase
     {
         public OpSwitch() : base(-1)

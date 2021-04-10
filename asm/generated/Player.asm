@@ -6,7 +6,6 @@
 ;----------------------------------------
 Player_set_Sprite 
     #init_locals_pull_parameters 0, [0,0]
-    ; nop ; Nop
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #locals_push_value_8 2 ; Ldarg_1
   ; OPT   #stfld 14 ; Stfld
@@ -20,39 +19,33 @@ Player_set_Sprite
 ;----------------------------------------
 Player_Init 
     #init_locals_pull_parameters 1, [1,0]
-    ; nop ; Nop
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 14 ; Ldfld
     #pushfld 14 ; Nop
-  ; OPT   #stack_push_pointer string_1879048549 ; Ldstr
+  ; OPT   #stack_push_pointer string_1879048575 ; Ldstr
   ; OPT   jsr C64Address_FromLabel ; Call
     #stack_push_pointer spt_player_right_0 ; Nop
     jsr Sprite_set_DataBlock ; Callvirt
-    ; nop ; Nop
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 14 ; Ldfld
     #pushfld 14 ; Nop
     #stack_push_int 1 ; Ldc_i4_1
     jsr Sprite_set_MultiColor ; Callvirt
-    ; nop ; Nop
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 14 ; Ldfld
     #pushfld 14 ; Nop
     #stack_push_int 1 ; Ldc_i4_1
     jsr Sprite_set_Visible ; Callvirt
-    ; nop ; Nop
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 14 ; Ldfld
     #pushfld 14 ; Nop
     #stack_push_int 5 ; Ldc_i4_5
     jsr Sprite_set_Color ; Callvirt
-    ; nop ; Nop
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 14 ; Ldfld
     #pushfld 14 ; Nop
     #stack_push_int 0 ; Ldc_i4_0
     jsr Sprite_set_HighPosition ; Callvirt
-    ; nop ; Nop
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 14 ; Ldfld
     #pushfld 14 ; Nop
@@ -78,15 +71,12 @@ Player_Init
     #setfld 1, 2, 1 ; Nop
     #locals_push_value_8 1 ; Ldarg_0
     jsr Player_InitJumpOffsets ; Call
-    ; nop ; Nop
     #locals_push_value_8 1 ; Ldarg_0
     #stack_push_int 117 ; Ldc_i4_s
     jsr Player_set_Y ; Call
-    ; nop ; Nop
     #locals_push_value_8 1 ; Ldarg_0
     #stack_push_int 40 ; Ldc_i4_s
     jsr Player_set_X ; Call
-    ; nop ; Nop
     #method_exit 5, [2] ; Ret
 
 
@@ -95,39 +85,26 @@ Player_Init
 ; METHOD: Move
 ;----------------------------------------
 Player_Move 
-    #init_locals_pull_parameters 15, [0]
-    ; nop ; Nop
+    #init_locals_pull_parameters 0, [0]
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 14 ; Ldfld
     #pushfld 14 ; Nop
     jsr Sprite_get_IsInBackgroundCollision ; Callvirt
-    #locals_pull_value_8 2, 0 ; Stloc_0
-    #locals_push_value_8 2 ; Ldloc_0
-    #branch_false Player_Move_50 ; Brfalse_s
-    ; nop ; Nop
+    #branch_false Player_Move_35 ; Brfalse_s
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 13 ; Ldfld
     #pushfld 13 ; Nop
-    #locals_pull_value_8 3, 0 ; Stloc_1
-    #locals_push_value_8 3 ; Ldloc_1
-    #branch_false Player_Move_38 ; Brfalse_s
-    ; nop ; Nop
+    #branch_false Player_Move_28 ; Brfalse_s
     #locals_push_value_8 1 ; Ldarg_0
     jsr Player_LevelComplete ; Call
-    ; nop ; Nop
-    ; nop ; Nop
-    jmp Player_Move_45 ; Br_s
-Player_Move_38:    #locals_push_value_8 1 ; Ldarg_0
+    #method_exit 3, [] ; Ret
+Player_Move_28:    #locals_push_value_8 1 ; Ldarg_0
     jsr Player_Die ; Call
-    ; nop ; Nop
-Player_Move_45:    jmp Player_Move_580 ; Br
-Player_Move_50:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+    #method_exit 3, [] ; Ret
+Player_Move_35:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 11 ; Ldfld
     #pushfld 11 ; Nop
-    #locals_pull_value_8 4, 0 ; Stloc_2
-    #locals_push_value_8 4 ; Ldloc_2
-    #branch_false Player_Move_96 ; Brfalse_s
-    ; nop ; Nop
+    #branch_false Player_Move_75 ; Brfalse_s
     #locals_push_value_8 1 ; Ldarg_0
     #stack_push_int 0 ; Ldc_i4_0
     #stfld 8 ; Stfld
@@ -137,24 +114,16 @@ Player_Move_50:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
     #pushfld 0 ; Nop
     #ldfld 4 ; Ldfld
     jsr Player_set_X ; Call
-    ; nop ; Nop
     #locals_push_value_8 1 ; Ldarg_0
     #stack_push_int 116 ; Ldc_i4_s
     jsr Player_set_Y ; Call
-    ; nop ; Nop
-    ; nop ; Nop
-Player_Move_96:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+Player_Move_75:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 8 ; Ldfld
     #pushfld 8 ; Nop
-    #branch_true Player_Move_113 ; Brtrue_s
+    #branch_true Player_Move_150 ; Brtrue_s
     #stack_push_int 22 ; Ldc_i4_s
     jsr C64_IsKeyPressed ; Call
-    jmp Player_Move_114 ; Br_s
-Player_Move_113:    #stack_push_int 0 ; Ldc_i4_0
-Player_Move_114:    #locals_pull_value_8 5, 0 ; Stloc_3
-    #locals_push_value_8 5 ; Ldloc_3
-    #branch_false Player_Move_185 ; Brfalse_s
-    ; nop ; Nop
+    #branch_false Player_Move_150 ; Brfalse_s
     jsr C64_get_Sound ; Call
     #stack_push_int 64 ; Ldc_i4_s
     #stack_push_int 0 ; Ldc_i4_0
@@ -165,35 +134,26 @@ Player_Move_114:    #locals_pull_value_8 5, 0 ; Stloc_3
     #stack_push_int 9 ; Ldc_i4_s
     #stack_push_int 1 ; Ldc_i4_1
     jsr Sound_PlayEffectReg1 ; Callvirt
-    ; nop ; Nop
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 11 ; Ldfld
     #pushfld 11 ; Nop
-    #locals_pull_value_8 6, 0 ; Stloc_s
-    #locals_push_value_8 6 ; Ldloc_s
-    #branch_false Player_Move_170 ; Brfalse_s
-    ; nop ; Nop
+    #branch_false Player_Move_136 ; Brfalse_s
     #locals_push_value_8 1 ; Ldarg_0
     #stack_push_int 1 ; Ldc_i4_1
     #stfld 9 ; Stfld
     #locals_push_value_8 1 ; Ldarg_0
     #stack_push_int 0 ; Ldc_i4_0
     #stfld 11 ; Stfld
-    ; nop ; Nop
-Player_Move_170:    #locals_push_value_8 1 ; Ldarg_0
+Player_Move_136:    #locals_push_value_8 1 ; Ldarg_0
     #stack_push_int 1 ; Ldc_i4_1
     #stfld 8 ; Stfld
     #locals_push_value_8 1 ; Ldarg_0
     #stack_push_int 0 ; Ldc_i4_0
     #stfld 6 ; Stfld
-    ; nop ; Nop
-Player_Move_185:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+Player_Move_150:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 8 ; Ldfld
     #pushfld 8 ; Nop
-    #locals_pull_value_8 7, 0 ; Stloc_s
-    #locals_push_value_8 7 ; Ldloc_s
-    #branch_false Player_Move_268 ; Brfalse_s
-    ; nop ; Nop
+    #branch_false Player_Move_218 ; Brfalse_s
     #locals_push_value_8 1 ; Ldarg_0
     #stack_push_int 117 ; Ldc_i4_s
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
@@ -205,7 +165,6 @@ Player_Move_185:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
     #ldelem ; Ldelem_i4
     #sub ; Sub
     jsr Player_set_Y ; Call
-    ; nop ; Nop
     #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 6 ; Ldfld
@@ -217,160 +176,108 @@ Player_Move_185:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 6 ; Ldfld
     #pushfld 6 ; Nop
   ; OPT   #stack_push_int 16 ; Ldc_i4_s
-  ; OPT   #compareEqual ; Ceq
-    compareEqual8_const 16 ; Nop
-    #locals_pull_value_8 8, 0 ; Stloc_s
-    #locals_push_value_8 8 ; Ldloc_s
-    #branch_false Player_Move_267 ; Brfalse_s
-    ; nop ; Nop
+  ; OPT   #branch_not_equal Player_Move_218 ; Bne_un_s
+    #branch_not_equal_const 16, Player_Move_218 ; Nop
     #locals_push_value_8 1 ; Ldarg_0
     #stack_push_int 0 ; Ldc_i4_0
     #stfld 8 ; Stfld
     #locals_push_value_8 1 ; Ldarg_0
     #stack_push_int 0 ; Ldc_i4_0
     #stfld 9 ; Stfld
-    ; nop ; Nop
-Player_Move_267:    ; nop ; Nop
-Player_Move_268:    #stack_push_int 0 ; Ldc_i4_0
+Player_Move_218:    #stack_push_int 0 ; Ldc_i4_0
     jsr C64_IsKeyPressed ; Call
-    #locals_pull_value_8 9, 0 ; Stloc_s
-    #locals_push_value_8 9 ; Ldloc_s
-    #branch_false Player_Move_383 ; Brfalse_s
-    ; nop ; Nop
+    #branch_false Player_Move_304 ; Brfalse_s
     #locals_push_value_8 1 ; Ldarg_0
     #stack_push_int 1 ; Ldc_i4_1
     #stfld 7 ; Stfld
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 11 ; Ldfld
     #pushfld 11 ; Nop
-  ; OPT   #stack_push_int 0 ; Ldc_i4_0
-  ; OPT   #compareEqual ; Ceq
-    compareEqual8_const 0 ; Nop
-    #locals_pull_value_8 10, 0 ; Stloc_s
-    #locals_push_value_8 10 ; Ldloc_s
-    #branch_false Player_Move_382 ; Brfalse_s
-    ; nop ; Nop
+    #branch_true Player_Move_304 ; Brtrue_s
     #locals_push_value_8 1 ; Ldarg_0
     #locals_push_value_8 1 ; Ldarg_0
     jsr Player_get_X ; Call
     #stack_push_int 2 ; Ldc_i4_2
     #sub ; Sub
     jsr Player_set_X ; Call
-    ; nop ; Nop
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 13 ; Ldfld
     #pushfld 13 ; Nop
-    #branch_false Player_Move_338 ; Brfalse_s
+    #branch_false Player_Move_290 ; Brfalse_s
     #locals_push_value_8 1 ; Ldarg_0
     jsr Player_get_X ; Call
-  ; OPT   #stack_push_int 0 ; Ldc_i4_0
-  ; OPT   #compareEqual ; Ceq
-    compareEqual8_const 0 ; Nop
-    jmp Player_Move_339 ; Br_s
-Player_Move_338:    #stack_push_int 0 ; Ldc_i4_0
-Player_Move_339:    #locals_pull_value_8 11, 0 ; Stloc_s
-    #locals_push_value_8 11 ; Ldloc_s
-    #branch_false Player_Move_367 ; Brfalse_s
-    ; nop ; Nop
+    #branch_true Player_Move_290 ; Brtrue_s
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 14 ; Ldfld
     #pushfld 14 ; Nop
     #stack_push_int 0 ; Ldc_i4_0
     jsr Sprite_set_HighPosition ; Callvirt
-    ; nop ; Nop
     #locals_push_value_8 1 ; Ldarg_0
     #stack_push_int 0 ; Ldc_i4_0
     #stfld 13 ; Stfld
-    ; nop ; Nop
-Player_Move_367:    #locals_push_value_8 1 ; Ldarg_0
+Player_Move_290:    #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 5 ; Ldfld
     #pushfld 5 ; Nop
     #stack_push_int 1 ; Ldc_i4_1
     #add ; Add
     #stfld 5 ; Stfld
-    ; nop ; Nop
-Player_Move_382:    ; nop ; Nop
-Player_Move_383:    #stack_push_int 3 ; Ldc_i4_3
+Player_Move_304:    #stack_push_int 3 ; Ldc_i4_3
     jsr C64_IsKeyPressed ; Call
-    #locals_pull_value_8 12, 0 ; Stloc_s
-    #locals_push_value_8 12 ; Ldloc_s
-    #branch_false Player_Move_498 ; Brfalse_s
-    ; nop ; Nop
+    #branch_false Player_Move_390 ; Brfalse_s
     #locals_push_value_8 1 ; Ldarg_0
     #stack_push_int 0 ; Ldc_i4_0
     #stfld 7 ; Stfld
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 11 ; Ldfld
     #pushfld 11 ; Nop
-  ; OPT   #stack_push_int 0 ; Ldc_i4_0
-  ; OPT   #compareEqual ; Ceq
-    compareEqual8_const 0 ; Nop
-    #locals_pull_value_8 13, 0 ; Stloc_s
-    #locals_push_value_8 13 ; Ldloc_s
-    #branch_false Player_Move_497 ; Brfalse_s
-    ; nop ; Nop
+    #branch_true Player_Move_390 ; Brtrue_s
     #locals_push_value_8 1 ; Ldarg_0
     #locals_push_value_8 1 ; Ldarg_0
     jsr Player_get_X ; Call
     #stack_push_int 2 ; Ldc_i4_2
     #add ; Add
     jsr Player_set_X ; Call
-    ; nop ; Nop
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 13 ; Ldfld
     #pushfld 13 ; Nop
-    #branch_true Player_Move_453 ; Brtrue_s
+    #branch_true Player_Move_376 ; Brtrue_s
     #locals_push_value_8 1 ; Ldarg_0
     jsr Player_get_X ; Call
-  ; OPT   #stack_push_int 0 ; Ldc_i4_0
-  ; OPT   #compareEqual ; Ceq
-    compareEqual8_const 0 ; Nop
-    jmp Player_Move_454 ; Br_s
-Player_Move_453:    #stack_push_int 0 ; Ldc_i4_0
-Player_Move_454:    #locals_pull_value_8 14, 0 ; Stloc_s
-    #locals_push_value_8 14 ; Ldloc_s
-    #branch_false Player_Move_482 ; Brfalse_s
-    ; nop ; Nop
+    #branch_true Player_Move_376 ; Brtrue_s
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 14 ; Ldfld
     #pushfld 14 ; Nop
     #stack_push_int 1 ; Ldc_i4_1
     jsr Sprite_set_HighPosition ; Callvirt
-    ; nop ; Nop
     #locals_push_value_8 1 ; Ldarg_0
     #stack_push_int 1 ; Ldc_i4_1
     #stfld 13 ; Stfld
-    ; nop ; Nop
-Player_Move_482:    #locals_push_value_8 1 ; Ldarg_0
+Player_Move_376:    #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 5 ; Ldfld
     #pushfld 5 ; Nop
     #stack_push_int 1 ; Ldc_i4_1
     #add ; Add
     #stfld 5 ; Stfld
-    ; nop ; Nop
-Player_Move_497:    ; nop ; Nop
-Player_Move_498:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+Player_Move_390:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 5 ; Ldfld
     #pushfld 5 ; Nop
   ; OPT   #stack_push_int 4 ; Ldc_i4_4
-  ; OPT   #compareEqual ; Ceq
-    compareEqual8_const 4 ; Nop
-    #locals_pull_value_8 15, 0 ; Stloc_s
-    #locals_push_value_8 15 ; Ldloc_s
-    #branch_false Player_Move_520 ; Brfalse_s
+  ; OPT   #branch_not_equal Player_Move_406 ; Bne_un_s
+    #branch_not_equal_const 4, Player_Move_406 ; Nop
     #locals_push_value_8 1 ; Ldarg_0
     #stack_push_int 0 ; Ldc_i4_0
     #stfld 5 ; Stfld
-Player_Move_520:    #locals_push_value_8 1 ; Ldarg_0
+Player_Move_406:    #locals_push_value_8 1 ; Ldarg_0
     jsr Player_get_Y ; Call
-    #stack_push_int 117 ; Ldc_i4_s
-    #branch_not_equal Player_Move_557 ; Bne_un_s
+  ; OPT   #stack_push_int 117 ; Ldc_i4_s
+  ; OPT   #branch_not_equal Player_Move_449 ; Bne_un_s
+    #branch_not_equal_const 117, Player_Move_449 ; Nop
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 9 ; Ldfld
     #pushfld 9 ; Nop
-    #branch_true Player_Move_557 ; Brtrue_s
+    #branch_true Player_Move_449 ; Brtrue_s
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 1 ; Ldfld
     #pushfld 1 ; Nop
@@ -378,20 +285,12 @@ Player_Move_520:    #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 3 ; Ldfld
     #pushfld 3 ; Nop
     jsr Wall_IsHole ; Callvirt
-    jmp Player_Move_558 ; Br_s
-Player_Move_557:    #stack_push_int 0 ; Ldc_i4_0
-Player_Move_558:    #locals_pull_value_8 16, 0 ; Stloc_s
-    #locals_push_value_8 16 ; Ldloc_s
-    #branch_false Player_Move_573 ; Brfalse_s
-    ; nop ; Nop
+    #branch_false Player_Move_449 ; Brfalse_s
     #locals_push_value_8 1 ; Ldarg_0
     jsr Player_Die ; Call
-    ; nop ; Nop
-    ; nop ; Nop
-Player_Move_573:    #locals_push_value_8 1 ; Ldarg_0
+Player_Move_449:    #locals_push_value_8 1 ; Ldarg_0
     jsr Player_SetFrame ; Call
-    ; nop ; Nop
-Player_Move_580:    #method_exit 18, [] ; Ret
+    #method_exit 3, [] ; Ret
 
 
 ;----------------------------------------
@@ -399,11 +298,9 @@ Player_Move_580:    #method_exit 18, [] ; Ret
 ; METHOD: Die
 ;----------------------------------------
 Player_Die 
-    #init_locals_pull_parameters 2, [0]
-    ; nop ; Nop
-    jmp Player_Die_29 ; Br_s
-Player_Die_3:    ; nop ; Nop
-    #locals_push_value_8 1 ; Ldarg_0
+    #init_locals_pull_parameters 1, [0]
+    jmp Player_Die_24 ; Br_s
+Player_Die_2:    #locals_push_value_8 1 ; Ldarg_0
     jsr Player_get_Y ; Call
     #locals_pull_value_8 2, 0 ; Stloc_0
     #locals_push_value_8 1 ; Ldarg_0
@@ -411,18 +308,13 @@ Player_Die_3:    ; nop ; Nop
     #stack_push_int 1 ; Ldc_i4_1
     #add ; Add
     jsr Player_set_Y ; Call
-    ; nop ; Nop
     #stack_push_int 2 ; Ldc_i4_2
     jsr Delay_Wait ; Call
-    ; nop ; Nop
-    ; nop ; Nop
-Player_Die_29:    #locals_push_value_8 1 ; Ldarg_0
+Player_Die_24:    #locals_push_value_8 1 ; Ldarg_0
     jsr Player_get_Y ; Call
-    #stack_push_int 250 ; Ldc_i4
-    #compareLess ; Clt_un
-    #locals_pull_value_8 3, 0 ; Stloc_1
-    #locals_push_value_8 3 ; Ldloc_1
-    #branch_true Player_Die_3 ; Brtrue_s
+  ; OPT   #stack_push_int 250 ; Ldc_i4
+  ; OPT   #branch_less_unsigned Player_Die_2 ; Blt_un_s
+    #branch_less_unsigned_const 250, Player_Die_2 ; Nop
     #locals_push_value_8 1 ; Ldarg_0
     #stack_push_int 1 ; Ldc_i4_1
     #stfld 10 ; Stfld
@@ -431,8 +323,7 @@ Player_Die_29:    #locals_push_value_8 1 ; Ldarg_0
     #pushfld 14 ; Nop
     #stack_push_int 0 ; Ldc_i4_0
     jsr Sprite_set_Visible ; Callvirt
-    ; nop ; Nop
-    #method_exit 5, [] ; Ret
+    #method_exit 4, [] ; Ret
 
 
 ;----------------------------------------
@@ -440,23 +331,20 @@ Player_Die_29:    #locals_push_value_8 1 ; Ldarg_0
 ; METHOD: SetOnRope
 ;----------------------------------------
 Player_SetOnRope 
-    #init_locals_pull_parameters 1, [1,0]
-    ; nop ; Nop
+    #init_locals_pull_parameters 0, [1,0]
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 9 ; Ldfld
     #pushfld 9 ; Nop
-    #locals_pull_value_8 3, 0 ; Stloc_0
-    #locals_push_value_8 3 ; Ldloc_0
-    #branch_false Player_SetOnRope_13 ; Brfalse_s
-    jmp Player_SetOnRope_27 ; Br_s
-Player_SetOnRope_13:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+    #branch_false Player_SetOnRope_9 ; Brfalse_s
+    #method_exit 4, [2] ; Ret
+Player_SetOnRope_9:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #locals_push_value_8 2 ; Ldarg_1
   ; OPT   #stfld 0 ; Stfld
     #setfld 1, 2, 0 ; Nop
     #locals_push_value_8 1 ; Ldarg_0
     #stack_push_int 1 ; Ldc_i4_1
     #stfld 11 ; Stfld
-Player_SetOnRope_27:    #method_exit 5, [2] ; Ret
+    #method_exit 4, [2] ; Ret
 
 
 ;----------------------------------------
@@ -464,15 +352,11 @@ Player_SetOnRope_27:    #method_exit 5, [2] ; Ret
 ; METHOD: get_X
 ;----------------------------------------
 Player_get_X 
-    #init_locals_pull_parameters 1, [0]
-    ; nop ; Nop
+    #init_locals_pull_parameters 0, [0]
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 3 ; Ldfld
-  ; OPT   #locals_pull_value_8 2, 0 ; Stloc_0
-  ; OPT   jmp Player_get_X_10 ; Br_s
-Player_get_X_10:  ; OPT   #locals_push_value_8 2 ; Ldloc_0
     #pushfld 3 ; Nop
-    #method_exit 4, [] ; Ret
+    #method_exit 3, [] ; Ret
 
 
 ;----------------------------------------
@@ -481,7 +365,6 @@ Player_get_X_10:  ; OPT   #locals_push_value_8 2 ; Ldloc_0
 ;----------------------------------------
 Player_set_X 
     #init_locals_pull_parameters 0, [0,0]
-    ; nop ; Nop
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #locals_push_value_8 2 ; Ldarg_1
   ; OPT   #stfld 3 ; Stfld
@@ -491,7 +374,6 @@ Player_set_X
     #pushfld 14 ; Nop
     #locals_push_value_8 2 ; Ldarg_1
     jsr Sprite_set_X ; Callvirt
-    ; nop ; Nop
     #method_exit 4, [] ; Ret
 
 
@@ -500,15 +382,11 @@ Player_set_X
 ; METHOD: get_Y
 ;----------------------------------------
 Player_get_Y 
-    #init_locals_pull_parameters 1, [0]
-    ; nop ; Nop
+    #init_locals_pull_parameters 0, [0]
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 4 ; Ldfld
-  ; OPT   #locals_pull_value_8 2, 0 ; Stloc_0
-  ; OPT   jmp Player_get_Y_10 ; Br_s
-Player_get_Y_10:  ; OPT   #locals_push_value_8 2 ; Ldloc_0
     #pushfld 4 ; Nop
-    #method_exit 4, [] ; Ret
+    #method_exit 3, [] ; Ret
 
 
 ;----------------------------------------
@@ -517,7 +395,6 @@ Player_get_Y_10:  ; OPT   #locals_push_value_8 2 ; Ldloc_0
 ;----------------------------------------
 Player_set_Y 
     #init_locals_pull_parameters 0, [0,0]
-    ; nop ; Nop
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #locals_push_value_8 2 ; Ldarg_1
   ; OPT   #stfld 4 ; Stfld
@@ -527,7 +404,6 @@ Player_set_Y
     #pushfld 14 ; Nop
     #locals_push_value_8 2 ; Ldarg_1
     jsr Sprite_set_Y ; Callvirt
-    ; nop ; Nop
     #method_exit 4, [] ; Ret
 
 
@@ -536,250 +412,195 @@ Player_set_Y
 ; METHOD: SetFrame
 ;----------------------------------------
 Player_SetFrame 
-    #init_locals_pull_parameters 13, [0]
-    ; nop ; Nop
+    #init_locals_pull_parameters 2, [0]
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 11 ; Ldfld
     #pushfld 11 ; Nop
-    #locals_pull_value_8 2, 0 ; Stloc_0
-    #locals_push_value_8 2 ; Ldloc_0
-    #branch_false Player_SetFrame_77 ; Brfalse_s
-    ; nop ; Nop
+    #branch_false Player_SetFrame_60 ; Brfalse_s
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 7 ; Ldfld
     #pushfld 7 ; Nop
-    #locals_pull_value_8 3, 0 ; Stloc_1
-    #locals_push_value_8 3 ; Ldloc_1
-    #branch_false Player_SetFrame_48 ; Brfalse_s
-    ; nop ; Nop
+    #branch_false Player_SetFrame_38 ; Brfalse_s
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 14 ; Ldfld
     #pushfld 14 ; Nop
-  ; OPT   #stack_push_pointer string_1879048587 ; Ldstr
+  ; OPT   #stack_push_pointer string_1879048613 ; Ldstr
   ; OPT   jsr C64Address_FromLabel ; Call
     #stack_push_pointer spt_player_rope_left ; Nop
     jsr Sprite_set_DataBlock ; Callvirt
-    ; nop ; Nop
-    ; nop ; Nop
-    jmp Player_SetFrame_72 ; Br_s
-Player_SetFrame_48:    ; nop ; Nop
-  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+    #method_exit 5, [] ; Ret
+Player_SetFrame_38:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 14 ; Ldfld
     #pushfld 14 ; Nop
-  ; OPT   #stack_push_pointer string_1879048629 ; Ldstr
+  ; OPT   #stack_push_pointer string_1879048655 ; Ldstr
   ; OPT   jsr C64Address_FromLabel ; Call
     #stack_push_pointer spt_player_rope_right ; Nop
     jsr Sprite_set_DataBlock ; Callvirt
-    ; nop ; Nop
-    ; nop ; Nop
-Player_SetFrame_72:    jmp Player_SetFrame_604 ; Br
-Player_SetFrame_77:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+    #method_exit 5, [] ; Ret
+Player_SetFrame_60:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 8 ; Ldfld
     #pushfld 8 ; Nop
-    #locals_pull_value_8 4, 0 ; Stloc_2
-    #locals_push_value_8 4 ; Ldloc_2
-    #branch_false Player_SetFrame_314 ; Brfalse
-    ; nop ; Nop
+    #branch_false Player_SetFrame_249 ; Brfalse
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 7 ; Ldfld
     #pushfld 7 ; Nop
-    #locals_pull_value_8 5, 0 ; Stloc_3
-    #locals_push_value_8 5 ; Ldloc_3
-    #branch_false Player_SetFrame_206 ; Brfalse_s
-    ; nop ; Nop
+    #branch_false Player_SetFrame_164 ; Brfalse_s
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 6 ; Ldfld
     #pushfld 6 ; Nop
-    #stack_push_int 6 ; Ldc_i4_6
-    #compareLess ; Clt
-    #locals_pull_value_8 6, 0 ; Stloc_s
-    #locals_push_value_8 6 ; Ldloc_s
-    #branch_false Player_SetFrame_141 ; Brfalse_s
+  ; OPT   #stack_push_int 6 ; Ldc_i4_6
+  ; OPT   #branch_greater_equal Player_SetFrame_110 ; Bge_s
+    #branch_greater_equal_const 6, Player_SetFrame_110 ; Nop
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 14 ; Ldfld
     #pushfld 14 ; Nop
-  ; OPT   #stack_push_pointer string_1879048673 ; Ldstr
+  ; OPT   #stack_push_pointer string_1879048699 ; Ldstr
   ; OPT   jsr C64Address_FromLabel ; Call
     #stack_push_pointer spt_player_jump_left_0 ; Nop
     jsr Sprite_set_DataBlock ; Callvirt
-    ; nop ; Nop
-    jmp Player_SetFrame_203 ; Br_s
-Player_SetFrame_141:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+    #method_exit 5, [] ; Ret
+Player_SetFrame_110:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 6 ; Ldfld
     #pushfld 6 ; Nop
-    #stack_push_int 10 ; Ldc_i4_s
-    #compareLess ; Clt
-    #locals_pull_value_8 7, 0 ; Stloc_s
-    #locals_push_value_8 7 ; Ldloc_s
-    #branch_false Player_SetFrame_181 ; Brfalse_s
+  ; OPT   #stack_push_int 10 ; Ldc_i4_s
+  ; OPT   #branch_greater_equal Player_SetFrame_142 ; Bge_s
+    #branch_greater_equal_const 10, Player_SetFrame_142 ; Nop
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 14 ; Ldfld
     #pushfld 14 ; Nop
-  ; OPT   #stack_push_pointer string_1879048719 ; Ldstr
+  ; OPT   #stack_push_pointer string_1879048745 ; Ldstr
   ; OPT   jsr C64Address_FromLabel ; Call
     #stack_push_pointer spt_player_jump_left_1 ; Nop
     jsr Sprite_set_DataBlock ; Callvirt
-    ; nop ; Nop
-    jmp Player_SetFrame_203 ; Br_s
-Player_SetFrame_181:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+    #method_exit 5, [] ; Ret
+Player_SetFrame_142:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 14 ; Ldfld
     #pushfld 14 ; Nop
-  ; OPT   #stack_push_pointer string_1879048765 ; Ldstr
+  ; OPT   #stack_push_pointer string_1879048791 ; Ldstr
   ; OPT   jsr C64Address_FromLabel ; Call
     #stack_push_pointer spt_player_jump_left_2 ; Nop
     jsr Sprite_set_DataBlock ; Callvirt
-    ; nop ; Nop
-Player_SetFrame_203:    ; nop ; Nop
-    jmp Player_SetFrame_309 ; Br_s
-Player_SetFrame_206:    ; nop ; Nop
-  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+    #method_exit 5, [] ; Ret
+Player_SetFrame_164:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 6 ; Ldfld
     #pushfld 6 ; Nop
-    #stack_push_int 6 ; Ldc_i4_6
-    #compareLess ; Clt
-    #locals_pull_value_8 8, 0 ; Stloc_s
-    #locals_push_value_8 8 ; Ldloc_s
-    #branch_false Player_SetFrame_246 ; Brfalse_s
+  ; OPT   #stack_push_int 6 ; Ldc_i4_6
+  ; OPT   #branch_greater_equal Player_SetFrame_195 ; Bge_s
+    #branch_greater_equal_const 6, Player_SetFrame_195 ; Nop
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 14 ; Ldfld
     #pushfld 14 ; Nop
-  ; OPT   #stack_push_pointer string_1879048811 ; Ldstr
+  ; OPT   #stack_push_pointer string_1879048837 ; Ldstr
   ; OPT   jsr C64Address_FromLabel ; Call
     #stack_push_pointer spt_player_jump_right_0 ; Nop
     jsr Sprite_set_DataBlock ; Callvirt
-    ; nop ; Nop
-    jmp Player_SetFrame_308 ; Br_s
-Player_SetFrame_246:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+    #method_exit 5, [] ; Ret
+Player_SetFrame_195:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 6 ; Ldfld
     #pushfld 6 ; Nop
-    #stack_push_int 10 ; Ldc_i4_s
-    #compareLess ; Clt
-    #locals_pull_value_8 9, 0 ; Stloc_s
-    #locals_push_value_8 9 ; Ldloc_s
-    #branch_false Player_SetFrame_286 ; Brfalse_s
+  ; OPT   #stack_push_int 10 ; Ldc_i4_s
+  ; OPT   #branch_greater_equal Player_SetFrame_227 ; Bge_s
+    #branch_greater_equal_const 10, Player_SetFrame_227 ; Nop
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 14 ; Ldfld
     #pushfld 14 ; Nop
-  ; OPT   #stack_push_pointer string_1879048859 ; Ldstr
+  ; OPT   #stack_push_pointer string_1879048885 ; Ldstr
   ; OPT   jsr C64Address_FromLabel ; Call
     #stack_push_pointer spt_player_jump_right_1 ; Nop
     jsr Sprite_set_DataBlock ; Callvirt
-    ; nop ; Nop
-    jmp Player_SetFrame_308 ; Br_s
-Player_SetFrame_286:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+    #method_exit 5, [] ; Ret
+Player_SetFrame_227:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 14 ; Ldfld
     #pushfld 14 ; Nop
-  ; OPT   #stack_push_pointer string_1879048907 ; Ldstr
+  ; OPT   #stack_push_pointer string_1879048933 ; Ldstr
   ; OPT   jsr C64Address_FromLabel ; Call
     #stack_push_pointer spt_player_jump_right_2 ; Nop
     jsr Sprite_set_DataBlock ; Callvirt
-    ; nop ; Nop
-Player_SetFrame_308:    ; nop ; Nop
-Player_SetFrame_309:    jmp Player_SetFrame_604 ; Br
-Player_SetFrame_314:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+    #method_exit 5, [] ; Ret
+Player_SetFrame_249:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 7 ; Ldfld
     #pushfld 7 ; Nop
-    #locals_pull_value_8 10, 0 ; Stloc_s
-    #locals_push_value_8 10 ; Ldloc_s
-    #branch_false Player_SetFrame_469 ; Brfalse
-    ; nop ; Nop
+    #branch_false Player_SetFrame_375 ; Brfalse_s
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 5 ; Ldfld
     #pushfld 5 ; Nop
-    #locals_pull_value_8 12, 0 ; Stloc_s
-    #locals_push_value_8 12 ; Ldloc_s
-    #locals_pull_value_8 11, 0 ; Stloc_s
-    #locals_push_value_8 11 ; Ldloc_s
-    #switch Player_SetFrame_Jump_344 ; Switch
-    jmp Player_SetFrame_463 ; Br_s
-Player_SetFrame_367:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+    #locals_pull_value_8 2, 0 ; Stloc_0
+    #locals_push_value_8 2 ; Ldloc_0
+    #switch Player_SetFrame_Jump_265 ; Switch
+    #method_exit 5, [] ; Ret
+Player_SetFrame_287:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 14 ; Ldfld
     #pushfld 14 ; Nop
-  ; OPT   #stack_push_pointer string_1879048955 ; Ldstr
+  ; OPT   #stack_push_pointer string_1879048981 ; Ldstr
   ; OPT   jsr C64Address_FromLabel ; Call
     #stack_push_pointer spt_player_left_0 ; Nop
     jsr Sprite_set_DataBlock ; Callvirt
-    ; nop ; Nop
-    jmp Player_SetFrame_463 ; Br_s
-Player_SetFrame_391:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+    #method_exit 5, [] ; Ret
+Player_SetFrame_309:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 14 ; Ldfld
     #pushfld 14 ; Nop
-  ; OPT   #stack_push_pointer string_1879048991 ; Ldstr
+  ; OPT   #stack_push_pointer string_1879049017 ; Ldstr
   ; OPT   jsr C64Address_FromLabel ; Call
     #stack_push_pointer spt_player_left_3 ; Nop
     jsr Sprite_set_DataBlock ; Callvirt
-    ; nop ; Nop
-    jmp Player_SetFrame_463 ; Br_s
-Player_SetFrame_415:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+    #method_exit 5, [] ; Ret
+Player_SetFrame_331:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 14 ; Ldfld
     #pushfld 14 ; Nop
-  ; OPT   #stack_push_pointer string_1879049027 ; Ldstr
+  ; OPT   #stack_push_pointer string_1879049053 ; Ldstr
   ; OPT   jsr C64Address_FromLabel ; Call
     #stack_push_pointer spt_player_left_1 ; Nop
     jsr Sprite_set_DataBlock ; Callvirt
-    ; nop ; Nop
-    jmp Player_SetFrame_463 ; Br_s
-Player_SetFrame_439:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+    #method_exit 5, [] ; Ret
+Player_SetFrame_353:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 14 ; Ldfld
     #pushfld 14 ; Nop
-  ; OPT   #stack_push_pointer string_1879049063 ; Ldstr
+  ; OPT   #stack_push_pointer string_1879049089 ; Ldstr
   ; OPT   jsr C64Address_FromLabel ; Call
     #stack_push_pointer spt_player_left_2 ; Nop
     jsr Sprite_set_DataBlock ; Callvirt
-    ; nop ; Nop
-    jmp Player_SetFrame_463 ; Br_s
-Player_SetFrame_463:    ; nop ; Nop
-    jmp Player_SetFrame_604 ; Br
-Player_SetFrame_469:    ; nop ; Nop
-  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+    #method_exit 5, [] ; Ret
+Player_SetFrame_375:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 5 ; Ldfld
     #pushfld 5 ; Nop
-    #locals_pull_value_8 14, 0 ; Stloc_s
-    #locals_push_value_8 14 ; Ldloc_s
-    #locals_pull_value_8 13, 0 ; Stloc_s
-    #locals_push_value_8 13 ; Ldloc_s
-    #switch Player_SetFrame_Jump_484 ; Switch
-    jmp Player_SetFrame_603 ; Br_s
-Player_SetFrame_507:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+    #locals_pull_value_8 3, 0 ; Stloc_1
+    #locals_push_value_8 3 ; Ldloc_1
+    #switch Player_SetFrame_Jump_383 ; Switch
+    #method_exit 5, [] ; Ret
+Player_SetFrame_405:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 14 ; Ldfld
     #pushfld 14 ; Nop
-  ; OPT   #stack_push_pointer string_1879048549 ; Ldstr
+  ; OPT   #stack_push_pointer string_1879048575 ; Ldstr
   ; OPT   jsr C64Address_FromLabel ; Call
     #stack_push_pointer spt_player_right_0 ; Nop
     jsr Sprite_set_DataBlock ; Callvirt
-    ; nop ; Nop
-    jmp Player_SetFrame_603 ; Br_s
-Player_SetFrame_531:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+    #method_exit 5, [] ; Ret
+Player_SetFrame_427:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 14 ; Ldfld
     #pushfld 14 ; Nop
-  ; OPT   #stack_push_pointer string_1879049099 ; Ldstr
+  ; OPT   #stack_push_pointer string_1879049125 ; Ldstr
   ; OPT   jsr C64Address_FromLabel ; Call
     #stack_push_pointer spt_player_right_3 ; Nop
     jsr Sprite_set_DataBlock ; Callvirt
-    ; nop ; Nop
-    jmp Player_SetFrame_603 ; Br_s
-Player_SetFrame_555:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+    #method_exit 5, [] ; Ret
+Player_SetFrame_449:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 14 ; Ldfld
     #pushfld 14 ; Nop
-  ; OPT   #stack_push_pointer string_1879049137 ; Ldstr
+  ; OPT   #stack_push_pointer string_1879049163 ; Ldstr
   ; OPT   jsr C64Address_FromLabel ; Call
     #stack_push_pointer spt_player_right_1 ; Nop
     jsr Sprite_set_DataBlock ; Callvirt
-    ; nop ; Nop
-    jmp Player_SetFrame_603 ; Br_s
-Player_SetFrame_579:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
+    #method_exit 5, [] ; Ret
+Player_SetFrame_471:  ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 14 ; Ldfld
     #pushfld 14 ; Nop
-  ; OPT   #stack_push_pointer string_1879049175 ; Ldstr
+  ; OPT   #stack_push_pointer string_1879049201 ; Ldstr
   ; OPT   jsr C64Address_FromLabel ; Call
     #stack_push_pointer spt_player_right_2 ; Nop
     jsr Sprite_set_DataBlock ; Callvirt
-    ; nop ; Nop
-    jmp Player_SetFrame_603 ; Br_s
-Player_SetFrame_603:    ; nop ; Nop
-Player_SetFrame_604:    #method_exit 16, [] ; Ret
-Player_SetFrame_Jump_344 .word  Player_SetFrame_367-1,  Player_SetFrame_391-1,  Player_SetFrame_415-1,  Player_SetFrame_439-1, 0
-Player_SetFrame_Jump_484 .word  Player_SetFrame_507-1,  Player_SetFrame_531-1,  Player_SetFrame_555-1,  Player_SetFrame_579-1, 0
+    #method_exit 5, [] ; Ret
+Player_SetFrame_Jump_265 .word  Player_SetFrame_287-1,  Player_SetFrame_309-1,  Player_SetFrame_331-1,  Player_SetFrame_353-1, 0
+Player_SetFrame_Jump_383 .word  Player_SetFrame_405-1,  Player_SetFrame_427-1,  Player_SetFrame_449-1,  Player_SetFrame_471-1, 0
 
 
 ;----------------------------------------
@@ -787,8 +608,7 @@ Player_SetFrame_Jump_484 .word  Player_SetFrame_507-1,  Player_SetFrame_531-1,  
 ; METHOD: LevelComplete
 ;----------------------------------------
 Player_LevelComplete 
-    #init_locals_pull_parameters 4, [0]
-    ; nop ; Nop
+    #init_locals_pull_parameters 2, [0]
     #locals_push_value_8 1 ; Ldarg_0
     #stack_push_int 1 ; Ldc_i4_1
     #stfld 12 ; Stfld
@@ -802,43 +622,32 @@ Player_LevelComplete
     #stack_push_int 0 ; Ldc_i4_0
     #stack_push_int 0 ; Ldc_i4_0
     jsr Sound_PlayEffectReg2 ; Callvirt
-    ; nop ; Nop
   ; OPT   #stack_push_int 0 ; Ldc_i4_0
   ; OPT   #locals_pull_value_8 2, 0 ; Stloc_0
     #init_var 2, 0 ; Nop
-    jmp Player_LevelComplete_61 ; Br_s
-Player_LevelComplete_36:    ; nop ; Nop
-  ; OPT   #stack_push_int 0 ; Ldc_i4_0
+    jmp Player_LevelComplete_51 ; Br_s
+Player_LevelComplete_34:  ; OPT   #stack_push_int 0 ; Ldc_i4_0
   ; OPT   #locals_pull_value_8 3, 0 ; Stloc_1
     #init_var 3, 0 ; Nop
-    jmp Player_LevelComplete_47 ; Br_s
-Player_LevelComplete_41:    ; nop ; Nop
-    ; nop ; Nop
-  ; OPT   #locals_push_value_8 3 ; Ldloc_1
+    jmp Player_LevelComplete_42 ; Br_s
+Player_LevelComplete_38:  ; OPT   #locals_push_value_8 3 ; Ldloc_1
   ; OPT   #stack_push_int 1 ; Ldc_i4_1
   ; OPT   #add ; Add
   ; OPT   #locals_pull_value_8 3, 0 ; Stloc_1
     #inc_var 3 ; Nop
-Player_LevelComplete_47:  ; OPT   #locals_push_value_8 3 ; Ldloc_1
+Player_LevelComplete_42:    #locals_push_value_8 3 ; Ldloc_1
   ; OPT   #stack_push_int 50 ; Ldc_i4_s
-  ; OPT   #compareLess ; Clt
-  ; OPT   #locals_pull_value_8 4, 0 ; Stloc_2
-  ; OPT   #locals_push_value_8 4 ; Ldloc_2
-  ; OPT   #branch_true Player_LevelComplete_41 ; Brtrue_s
-    #branch_if_var_less 3, 50, Player_LevelComplete_41 ; Nop
-    ; nop ; Nop
+  ; OPT   #branch_less Player_LevelComplete_38 ; Blt_s
+    #branch_less_const 50, Player_LevelComplete_38 ; Nop
   ; OPT   #locals_push_value_8 2 ; Ldloc_0
   ; OPT   #stack_push_int 1 ; Ldc_i4_1
   ; OPT   #add ; Add
   ; OPT   #locals_pull_value_8 2, 0 ; Stloc_0
     #inc_var 2 ; Nop
-Player_LevelComplete_61:  ; OPT   #locals_push_value_8 2 ; Ldloc_0
+Player_LevelComplete_51:    #locals_push_value_8 2 ; Ldloc_0
   ; OPT   #stack_push_int 127 ; Ldc_i4_s
-  ; OPT   #compareLess ; Clt
-  ; OPT   #locals_pull_value_8 5, 0 ; Stloc_3
-  ; OPT   #locals_push_value_8 5 ; Ldloc_3
-  ; OPT   #branch_true Player_LevelComplete_36 ; Brtrue_s
-    #branch_if_var_less 2, 127, Player_LevelComplete_36 ; Nop
+  ; OPT   #branch_less Player_LevelComplete_34 ; Blt_s
+    #branch_less_const 127, Player_LevelComplete_34 ; Nop
     jsr C64_get_Sound ; Call
     #stack_push_int 16 ; Ldc_i4_s
     #stack_push_int 100 ; Ldc_i4_s
@@ -849,8 +658,7 @@ Player_LevelComplete_61:  ; OPT   #locals_push_value_8 2 ; Ldloc_0
     #stack_push_int 0 ; Ldc_i4_0
     #stack_push_int 0 ; Ldc_i4_0
     jsr Sound_PlayEffectReg2 ; Callvirt
-    ; nop ; Nop
-    #method_exit 7, [] ; Ret
+    #method_exit 5, [] ; Ret
 
 
 ;----------------------------------------
@@ -858,18 +666,13 @@ Player_LevelComplete_61:  ; OPT   #locals_push_value_8 2 ; Ldloc_0
 ; METHOD: InitJumpOffsets
 ;----------------------------------------
 Player_InitJumpOffsets 
-    #init_locals_pull_parameters 2, [0]
-    ; nop ; Nop
+    #init_locals_pull_parameters 1, [0]
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 2 ; Ldfld
     #pushfld 2 ; Nop
-    #stack_push_int 0 ; Ldnull
-    #compareGreater_unsigned ; Cgt_un
-    #locals_pull_value_8 2, 0 ; Stloc_0
-    #locals_push_value_8 2 ; Ldloc_0
-    #branch_false Player_InitJumpOffsets_19 ; Brfalse_s
-    jmp Player_InitJumpOffsets_205 ; Br
-Player_InitJumpOffsets_19:    #locals_push_value_8 1 ; Ldarg_0
+    #branch_false Player_InitJumpOffsets_9 ; Brfalse_s
+    #method_exit 4, [] ; Ret
+Player_InitJumpOffsets_9:    #locals_push_value_8 1 ; Ldarg_0
     #stack_push_int 16 ; Ldc_i4_s
     #newArr  ; Newarr
     #stfld 2 ; Stfld
@@ -883,9 +686,9 @@ Player_InitJumpOffsets_19:    #locals_push_value_8 1 ; Ldarg_0
     #stack_push_int 15 ; Ldc_i4_s
     #stack_push_int 0 ; Ldc_i4_0
     #stack_duplicate ; Dup
-    #locals_pull_value_8 3, 0 ; Stloc_1
+    #locals_pull_value_8 2, 0 ; Stloc_0
     #stelem ; Stelem_i4
-    #locals_push_value_8 3 ; Ldloc_1
+    #locals_push_value_8 2 ; Ldloc_0
     #stelem ; Stelem_i4
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 2 ; Ldfld
@@ -897,9 +700,9 @@ Player_InitJumpOffsets_19:    #locals_push_value_8 1 ; Ldarg_0
     #stack_push_int 14 ; Ldc_i4_s
     #stack_push_int 6 ; Ldc_i4_6
     #stack_duplicate ; Dup
-    #locals_pull_value_8 3, 0 ; Stloc_1
+    #locals_pull_value_8 2, 0 ; Stloc_0
     #stelem ; Stelem_i4
-    #locals_push_value_8 3 ; Ldloc_1
+    #locals_push_value_8 2 ; Ldloc_0
     #stelem ; Stelem_i4
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 2 ; Ldfld
@@ -911,9 +714,9 @@ Player_InitJumpOffsets_19:    #locals_push_value_8 1 ; Ldarg_0
     #stack_push_int 13 ; Ldc_i4_s
     #stack_push_int 11 ; Ldc_i4_s
     #stack_duplicate ; Dup
-    #locals_pull_value_8 3, 0 ; Stloc_1
+    #locals_pull_value_8 2, 0 ; Stloc_0
     #stelem ; Stelem_i4
-    #locals_push_value_8 3 ; Ldloc_1
+    #locals_push_value_8 2 ; Ldloc_0
     #stelem ; Stelem_i4
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 2 ; Ldfld
@@ -925,9 +728,9 @@ Player_InitJumpOffsets_19:    #locals_push_value_8 1 ; Ldarg_0
     #stack_push_int 12 ; Ldc_i4_s
     #stack_push_int 14 ; Ldc_i4_s
     #stack_duplicate ; Dup
-    #locals_pull_value_8 3, 0 ; Stloc_1
+    #locals_pull_value_8 2, 0 ; Stloc_0
     #stelem ; Stelem_i4
-    #locals_push_value_8 3 ; Ldloc_1
+    #locals_push_value_8 2 ; Ldloc_0
     #stelem ; Stelem_i4
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 2 ; Ldfld
@@ -939,9 +742,9 @@ Player_InitJumpOffsets_19:    #locals_push_value_8 1 ; Ldarg_0
     #stack_push_int 11 ; Ldc_i4_s
     #stack_push_int 16 ; Ldc_i4_s
     #stack_duplicate ; Dup
-    #locals_pull_value_8 3, 0 ; Stloc_1
+    #locals_pull_value_8 2, 0 ; Stloc_0
     #stelem ; Stelem_i4
-    #locals_push_value_8 3 ; Ldloc_1
+    #locals_push_value_8 2 ; Ldloc_0
     #stelem ; Stelem_i4
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 2 ; Ldfld
@@ -953,9 +756,9 @@ Player_InitJumpOffsets_19:    #locals_push_value_8 1 ; Ldarg_0
     #stack_push_int 10 ; Ldc_i4_s
     #stack_push_int 18 ; Ldc_i4_s
     #stack_duplicate ; Dup
-    #locals_pull_value_8 3, 0 ; Stloc_1
+    #locals_pull_value_8 2, 0 ; Stloc_0
     #stelem ; Stelem_i4
-    #locals_push_value_8 3 ; Ldloc_1
+    #locals_push_value_8 2 ; Ldloc_0
     #stelem ; Stelem_i4
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 2 ; Ldfld
@@ -967,9 +770,9 @@ Player_InitJumpOffsets_19:    #locals_push_value_8 1 ; Ldarg_0
     #stack_push_int 9 ; Ldc_i4_s
     #stack_push_int 19 ; Ldc_i4_s
     #stack_duplicate ; Dup
-    #locals_pull_value_8 3, 0 ; Stloc_1
+    #locals_pull_value_8 2, 0 ; Stloc_0
     #stelem ; Stelem_i4
-    #locals_push_value_8 3 ; Ldloc_1
+    #locals_push_value_8 2 ; Ldloc_0
     #stelem ; Stelem_i4
   ; OPT   #locals_push_value_8 1 ; Ldarg_0
   ; OPT   #ldfld 2 ; Ldfld
@@ -981,8 +784,8 @@ Player_InitJumpOffsets_19:    #locals_push_value_8 1 ; Ldarg_0
     #stack_push_int 8 ; Ldc_i4_8
     #stack_push_int 20 ; Ldc_i4_s
     #stack_duplicate ; Dup
-    #locals_pull_value_8 3, 0 ; Stloc_1
+    #locals_pull_value_8 2, 0 ; Stloc_0
     #stelem ; Stelem_i4
-    #locals_push_value_8 3 ; Ldloc_1
+    #locals_push_value_8 2 ; Ldloc_0
     #stelem ; Stelem_i4
-Player_InitJumpOffsets_205:    #method_exit 5, [] ; Ret
+    #method_exit 4, [] ; Ret

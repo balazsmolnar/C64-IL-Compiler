@@ -20,7 +20,6 @@ namespace Demo
             //Foo(0, C64Address.FromLabel("label1"), 0);
             // Foo("X");
             // Colors x = Colors.Black;
-
             // C64.Interrupt += (s, e) =>
             // {
             //     C64.SetBorderColor(++x);

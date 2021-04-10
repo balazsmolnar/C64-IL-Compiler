@@ -26,7 +26,7 @@ rts
 
 .include "./generated/generated.asm"
 
-
+* = $c000
 objTableLow
 .fill 256, 0
 objTableHigh

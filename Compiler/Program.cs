@@ -50,6 +50,7 @@ namespace Compiler
                             new ILMethodCompareEqualConstOptimizer(),
                             new ILMethodCompareGreaterConstOptimizer(),
                             new ILMethodCompareGreaterUnsignedConstOptimizer(),
+                            new ILMethodBranchConstOptimizer(),
                             new ILMethodEmitPass(),
                             new ILMethodJumpTablePass()
                             }),

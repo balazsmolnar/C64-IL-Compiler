@@ -24,6 +24,10 @@
       <DefineConstants>POSTSHARP</DefineConstants>
       <RunPostBuildEvent>OnOutputUpdated</RunPostBuildEvent>
     </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+      <Optimize>false</Optimize>
+    </PropertyGroup>
 	<!--<Target Name="C64Compile" AfterTargets="">
         <Exec Command="Run.bat" />
 	</Target>-->

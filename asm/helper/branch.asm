@@ -11,10 +11,22 @@ branch_equal .macro label
     beq \label
 .endm
 
+branch_equal_const .macro value, label 
+    #stack_pull_int_a
+    cmp #\value
+    beq \label
+.endm
+
 branch_not_equal .macro label 
     #stack_pull_int $30
     #stack_pull_int_a
     cmp $30
+    bne \label
+.endm
+
+branch_not_equal_const .macro value, label 
+    #stack_pull_int_a
+    cmp #\value
     bne \label
 .endm
 
@@ -23,7 +35,12 @@ branch_less .macro label
     #stack_pull_int_a
     cmp $30
     bmi \label
-    beq \label
+.endm
+
+branch_less_const .macro value, label 
+    #stack_pull_int_a
+    cmp #\value
+    bmi \label
 .endm
 
 branch_less_unsigned .macro label 
@@ -33,11 +50,25 @@ branch_less_unsigned .macro label
     bcc \label
 .endm
 
+branch_less_unsigned_const .macro value, label 
+    #stack_pull_int_a
+    cmp #\value
+    bcc \label
+.endm
+
 branch_less_equal .macro label 
     #stack_pull_int $30
     #stack_pull_int_a
     cmp $30
     bmi \label
+    beq \label
+.endm
+
+branch_less_equal_const .macro value, label 
+    #stack_pull_int_a
+    cmp #\value
+    bmi \label
+    beq \label
 .endm
 
 branch_less_equal_unsigned .macro label 
@@ -45,12 +76,27 @@ branch_less_equal_unsigned .macro label
     #stack_pull_int_a
     cmp $30
     bcc \label
+    beq \label
+.endm
+
+branch_less_equal_unsigned_const .macro value, label 
+    #stack_pull_int_a
+    cmp #\value
+    bcc \label
+    beq \label
 .endm
 
 branch_greater_equal_unsigned .macro label 
     #stack_pull_int $30
     #stack_pull_int_a
     cmp $30
+    bcs \label
+    beq \label
+.endm
+
+branch_greater_equal_unsigned_const .macro value, label 
+    #stack_pull_int_a
+    cmp #\value
     bcs \label
     beq \label
 .endm
@@ -62,6 +108,12 @@ branch_greater_unsigned .macro label
     bcs \label
 .endm
 
+branch_greater_unsigned_const .macro value, label 
+    #stack_pull_int_a
+    cmp #\value
+    bcs \label
+.endm
+
 branch_greater .macro label 
     #stack_pull_int $30
     #stack_pull_int_a
@@ -69,10 +121,23 @@ branch_greater .macro label
     bpl \label
 .endm
 
+branch_greater_const .macro value, label 
+    #stack_pull_int_a
+    cmp #\value
+    bpl \label
+.endm
+
 branch_greater_equal .macro label 
     #stack_pull_int $30
     #stack_pull_int_a
     cmp $30
+    bpl \label
+    beq \label
+.endm
+
+branch_greater_equal_const .macro value, label 
+    #stack_pull_int_a
+    cmp #\value
     bpl \label
     beq \label
 .endm

@@ -19,14 +19,14 @@ namespace Hunchback
 
             for (; ; )
             {
-                for (var color = (uint)Colors.White; color < 8; color++)
+                for (uint color = (uint)Colors.White; color < 8; color++)
                 {
                     C64.FillMemory(C64Address.FromLabel("(colorMemory+$CD)"), color, 0);
                     C64.FillMemory(C64Address.FromLabel("(colorMemory+$1CD)"), color, 0);
                     C64.FillMemory(C64Address.FromLabel("(colorMemory+$21B)"), color, 0);
-                    for (var k = 0; k < 255u; k++)
+                    for (uint k = 0; k < 255u; k++)
                     {
-                        for (var kk = 0; kk < 10; kk++)
+                        for (uint kk = 0; kk < 10; kk++)
                         {
                             if (C64.IsKeyPressed(Keys.Space))
                                 return;

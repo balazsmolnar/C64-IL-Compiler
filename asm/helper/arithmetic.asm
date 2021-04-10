@@ -87,6 +87,17 @@ compareLess8 .macro
 
         ldx #0
         cmp $34
+        bpl +
+        inx
++        #stack_push_int_x
+.endm
+
+compareLess8_unsigned .macro 
+        #stack_pull_int $34
+        #stack_pull_int_a
+
+        ldx #0
+        cmp $34
         bcs +
         inx
 +        #stack_push_int_x

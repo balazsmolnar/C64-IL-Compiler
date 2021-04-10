@@ -73,8 +73,6 @@ namespace Hunchback
             C64.Sound.PlayEffectReg2(WaveForm.Noise, 100, 44, 0, 0, 128, 0, false);
         }
 
-        public bool IsInCollision => sprite_.IsInCollision;
-
         public void Move()
         {
             if (enemyType_ == EnemyType.None)

@@ -21,11 +21,11 @@ namespace Compiler.Ops
         public virtual string Command { get; }
         public int ParameterSize { get; }
 
-        public virtual string Emit(CompilerMethodContext context, ILLine line)
+        public virtual string Emit(CompilerMethodContext context, ILOperation operation)
         {
-            if (line.Parameter == null)
+            if (operation.RawParameter == null)
                 return Command;
-            return $"{Command} {line.Parameter}";
+            return $"{Command} {operation.RawParameter}";
         }
 
         public virtual object ConvertParameter(CompilerMethodContext context, int parameter) => null;
@@ -314,11 +314,11 @@ namespace Compiler.Ops
             int relPos = context.GetParameterReferencePosition(_argIndex);
             return $"{relPos}";
         }
-        public override string Emit(CompilerMethodContext context, ILLine line)
+        public override string Emit(CompilerMethodContext context, ILOperation operation)
         {
             int size = context.GetParameterSize(_argIndex);
             var command = size == 2 ? "#locals_push_value_16" : "#locals_push_value_8";
-            return $"{command} {line.Parameter}";
+            return $"{command} {operation.RawParameter}";
         }
     }
 
@@ -439,9 +439,9 @@ namespace Compiler.Ops
             return base.ConvertParameter(context, parameter);
         }
 
-        public override string Emit(CompilerMethodContext context, ILLine line)
+        public override string Emit(CompilerMethodContext context, ILOperation operation)
         {
-            return $"#switch {context.Method.GetLabel()}_Jump_{line.Position}";
+            return $"#switch {context.Method.GetLabel()}_Jump_{operation.Position}";
         }
     }
 

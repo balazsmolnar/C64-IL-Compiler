@@ -59,7 +59,7 @@ namespace Compiler
                         {
                             CompilerContext = context,
                             TypeContext = typeContext,
-                            Lines = new List<ILLine>(),
+                            Lines = new List<ILOperation>(),
                             Method = method,
                         };
                         context.Methods.Add(methodContext);

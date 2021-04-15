@@ -24,19 +24,19 @@ namespace Compiler
             var lines = context.Lines;
             for (int i = 0; i < lines.Count; i++)
             {
-                if (lines[i].Operand is OpLdarg &&
-                    lines[i + 1].Operand is OpLdarg &&
-                    lines[i + 2].Operand is OpLdfld &&
+                if (lines[i].Operation is OpLdarg &&
+                    lines[i + 1].Operation is OpLdarg &&
+                    lines[i + 2].Operation is OpLdfld &&
                     lines[i + 3].OpCode == ILOpCode.Ldc_i4_1 &&
                     lines[i + 4].OpCode == ILOpCode.Add &&
-                    lines[i + 5].Operand is OpStfld)
+                    lines[i + 5].Operation is OpStfld)
                 {
-                    ILLine newLine = new ILLine
+                    ILOperation newOperation = new ILOperation
                     {
-                        Operand = new OpIncfld(lines[i].Parameter.ToString(), lines[i + 2].Parameter.ToString()),
+                        Operation = new OpIncfld(lines[i].RawParameter.ToString(), lines[i + 2].RawParameter.ToString()),
                     };
-                    newLine.Parameter = newLine.Operand.ConvertParameter(context, 0);
-                    lines.Insert(i + 6, newLine);
+                    newOperation.RawParameter = newOperation.Operation.ConvertParameter(context, 0);
+                    lines.Insert(i + 6, newOperation);
                     lines[i].Optimized = true;
                     lines[i + 1].Optimized = true;
                     lines[i + 2].Optimized = true;

@@ -22,18 +22,18 @@ namespace Compiler
             var lines = context.Lines;
             for (int i = 0; i < lines.Count; i++)
             {
-                if (lines[i].Operand is OpLdarg &&
-                    lines[i + 1].Operand is OpLdfld &&
-                    lines[i + 2].Operand is OpStloc &&
+                if (lines[i].Operation is OpLdarg &&
+                    lines[i + 1].Operation is OpLdfld &&
+                    lines[i + 2].Operation is OpStloc &&
                     lines[i + 3].OpCode == ILOpCode.Br_s &&
-                    lines[i + 4].Operand is OpLdloc)
+                    lines[i + 4].Operation is OpLdloc)
                 {
-                    ILLine newLine = new ILLine
+                    ILOperation newOperation = new ILOperation
                     {
-                        Operand = new OpPushFld(lines[i].Parameter.ToString(), lines[i + 1].Parameter.ToString()),
+                        Operation = new OpPushFld(lines[i].RawParameter.ToString(), lines[i + 1].RawParameter.ToString()),
                     };
-                    newLine.Parameter = newLine.Operand.ConvertParameter(context, 0);
-                    lines.Insert(i + 5, newLine);
+                    newOperation.RawParameter = newOperation.Operation.ConvertParameter(context, 0);
+                    lines.Insert(i + 5, newOperation);
                     lines[i].Optimized = true;
                     lines[i + 1].Optimized = true;
                     lines[i + 2].Optimized = true;
@@ -41,14 +41,14 @@ namespace Compiler
                     lines[i + 4].Optimized = true;
                 }
                 else if (lines[i].OpCode == ILOpCode.Ldarg_0 &&
-                  lines[i + 1].Operand is OpLdfld)
+                  lines[i + 1].Operation is OpLdfld)
                 {
-                    ILLine newLine = new ILLine
+                    ILOperation newOperation = new ILOperation
                     {
-                        Operand = new OpPushFld(lines[i].Parameter.ToString(), lines[i + 1].Parameter.ToString()),
+                        Operation = new OpPushFld(lines[i].RawParameter.ToString(), lines[i + 1].RawParameter.ToString()),
                     };
-                    newLine.Parameter = newLine.Operand.ConvertParameter(context, 0);
-                    lines.Insert(i + 2, newLine);
+                    newOperation.RawParameter = newOperation.Operation.ConvertParameter(context, 0);
+                    lines.Insert(i + 2, newOperation);
                     lines[i].Optimized = true;
                     lines[i + 1].Optimized = true;
 

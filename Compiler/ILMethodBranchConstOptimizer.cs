@@ -18,15 +18,15 @@ namespace Compiler
             {
                 if (
                     !lines[i].Optimized &&
-                    lines[i].Operand is OpLdConst &&
-                    lines[i + 1].Operand is OpShortJump && lines[i + 1].OpCode != ILOpCode.Br_s && string.IsNullOrEmpty(lines[i + 1].Label))
+                    lines[i].Operation is OpLdConst &&
+                    lines[i + 1].Operation is OpShortJump && lines[i + 1].OpCode != ILOpCode.Br_s && string.IsNullOrEmpty(lines[i + 1].Label))
                 {
-                    ILLine newLine = new ILLine
+                    ILOperation newOperation = new ILOperation
                     {
-                        Operand = new OpBranchConst(lines[i + 1].Operand.Command + "_const"),
+                        Operation = new OpBranchConst(lines[i + 1].Operation.Command + "_const"),
                     };
-                    newLine.Parameter = lines[i].Parameter + ", " + lines[i + 1].Parameter;
-                    lines.Insert(i + 2, newLine);
+                    newOperation.RawParameter = lines[i].RawParameter + ", " + lines[i + 1].RawParameter;
+                    lines.Insert(i + 2, newOperation);
                     lines[i].Optimized = true;
                     lines[i + 1].Optimized = true;
                 }

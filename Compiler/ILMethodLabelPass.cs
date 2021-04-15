@@ -16,16 +16,16 @@ namespace Compiler
             {
                 if (line.OpCode.IsBranch())
                 {
-                    var target = (int)line.Parameter + line.Position;
+                    var target = (int)line.RawParameter + line.Position;
                     var label = $"{context.Method.GetLabel()}_{target}";
                     if (!labelPositions.ContainsKey(target))
                         labelPositions.Add(target, label);
-                    line.Parameter = label;
+                    line.RawParameter = label;
                 }
 
                 if (line.OpCode == ILOpCode.Switch)
                 {
-                    List<int> parameters = (List<int>)line.Parameter;
+                    List<int> parameters = (List<int>)line.RawParameter;
                     foreach (var parameter in parameters)
                     {
                         var target = parameter + line.Position + parameters.Count * 4 + 5;

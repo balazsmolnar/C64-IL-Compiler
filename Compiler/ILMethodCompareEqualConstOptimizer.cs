@@ -18,16 +18,16 @@ namespace Compiler
             {
                 if (
                     !lines[i].Optimized &&
-                    lines[i].Operand is OpLdConst &&
+                    lines[i].Operation is OpLdConst &&
                     lines[i + 1].OpCode == ILOpCode.Ceq && string.IsNullOrEmpty(lines[i + 1].Label))
                 {
-                    int value = (int)lines[i].Parameter;
-                    ILLine newLine = new ILLine
+                    int value = (int)lines[i].RawParameter;
+                    ILOperation newOperation = new ILOperation
                     {
-                        Operand = new OpArithmetic2("compareEqual8_const"),
+                        Operation = new OpArithmetic2("compareEqual8_const"),
                     };
-                    newLine.Parameter = lines[i].Parameter;
-                    lines.Insert(i + 2, newLine);
+                    newOperation.RawParameter = lines[i].RawParameter;
+                    lines.Insert(i + 2, newOperation);
                     lines[i].Optimized = true;
                     lines[i + 1].Optimized = true;
                 }

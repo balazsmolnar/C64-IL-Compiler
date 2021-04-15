@@ -27,7 +27,7 @@ namespace Compiler
                     sb.Append(name);
                     sb.Append(" .word ");
 
-                    List<int> parameters = (List<int>)line.Parameter;
+                    List<int> parameters = (List<int>)line.RawParameter;
                     foreach (var parameter in parameters)
                     {
                         var target = parameter + line.Position + parameters.Count * 4 + 5;

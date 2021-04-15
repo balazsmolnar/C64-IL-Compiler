@@ -49,7 +49,7 @@ namespace Compiler
         public CompilerContext CompilerContext { get; set; }
         public CompilerTypeContext TypeContext { get; set; }
         public MethodBase Method { get; set; }
-        public List<ILLine> Lines { get; set; }
+        public List<ILOperation> Lines { get; set; }
 
         public int GetLocalVariableReferencePosition(int index)
         {

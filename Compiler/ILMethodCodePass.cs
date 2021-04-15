@@ -10,15 +10,15 @@ namespace Compiler
         {
             var body = context.Method.GetMethodBody();
             var input = body.GetILAsByteArray();
-            var lines = new List<ILLine>();
+            var lines = new List<ILOperation>();
 
             var index = 0;
             while (index < input.Length)
             {
 
                 ILOpCode opCode;
-                ILLine line = new ILLine();
-                line.Position = index;
+                ILOperation operation = new ILOperation();
+                operation.Position = index;
 
                 if (input[index] >= 254)
                 {
@@ -28,8 +28,8 @@ namespace Compiler
                 {
                     opCode = (ILOpCode)(input[index++]);
                 }
-                line.OpCode = opCode;
-                line.Operand = CommandMap.Get(line.OpCode);
+                operation.OpCode = opCode;
+                operation.Operation = CommandMap.Get(operation.OpCode);
 
                 if (!CommandMap.Supported(opCode))
                     throw new NotSupportedException($"Command is not supported: {opCode.ToString()}");
@@ -48,14 +48,14 @@ namespace Compiler
                     {
                         parameters.Add(input[index++] + 256 * input[index++] + 256 * 256 * input[index++] + 256 * 256 * 256 * input[index++]);
                     }
-                    line.Parameter = parameters;
+                    operation.RawParameter = parameters;
                 }
                 if (op.ParameterSize > -1)
-                    line.Parameter = op.ConvertParameter(context, parameter);
-                line.Size = index - line.Position;
-                Console.WriteLine(line);
+                    operation.RawParameter = op.ConvertParameter(context, parameter);
+                operation.Size = index - operation.Position;
+                Console.WriteLine(operation);
 
-                lines.Add(line);
+                lines.Add(operation);
             }
             context.Lines = lines;
         }

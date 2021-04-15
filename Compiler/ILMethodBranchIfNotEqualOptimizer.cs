@@ -23,22 +23,22 @@ namespace Compiler
             var lines = context.Lines;
             for (int i = 0; i < lines.Count; i++)
             {
-                if ((lines[i].Operand is OpLdloc || lines[i].Operand is OpLdloc_s) &&
-                    lines[i + 1].Operand is OpLdConst &&
+                if ((lines[i].Operation is OpLdloc || lines[i].Operation is OpLdloc_s) &&
+                    lines[i + 1].Operation is OpLdConst &&
                     lines[i + 2].OpCode == ILOpCode.Ceq &&
-                    (lines[i + 3].Operand is OpStloc || lines[i + 3].Operand is OpStloc_s) &&
-                    (lines[i + 4].Operand is OpLdloc || lines[i + 4].Operand is OpLdloc_s) &&
+                    (lines[i + 3].Operation is OpStloc || lines[i + 3].Operation is OpStloc_s) &&
+                    (lines[i + 4].Operation is OpLdloc || lines[i + 4].Operation is OpLdloc_s) &&
                     (lines[i + 5].OpCode == ILOpCode.Brfalse || lines[i + 5].OpCode == ILOpCode.Brfalse_s))
                 {
-                    int variable = ((OpLdloc)lines[i].Operand).VarIndex;
-                    int value = (int)lines[i + 1].Parameter;
-                    string label = (string)lines[i + 5].Parameter;
-                    ILLine newLine = new ILLine
+                    int variable = ((OpLdloc)lines[i].Operation).VarIndex;
+                    int value = (int)lines[i + 1].RawParameter;
+                    string label = (string)lines[i + 5].RawParameter;
+                    ILOperation newOperation = new ILOperation
                     {
-                        Operand = new OpBranchIfNotEqual(variable, value, label),
+                        Operation = new OpBranchIfNotEqual(variable, value, label),
                     };
-                    newLine.Parameter = newLine.Operand.ConvertParameter(context, variable);
-                    lines.Insert(i + 6, newLine);
+                    newOperation.RawParameter = newOperation.Operation.ConvertParameter(context, variable);
+                    lines.Insert(i + 6, newOperation);
 
                     for (int j = i; j < i + 6; j++)
                         lines[j].Optimized = true;

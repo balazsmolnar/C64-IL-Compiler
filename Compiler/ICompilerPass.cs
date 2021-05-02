@@ -65,6 +65,14 @@ namespace Compiler
             return relPos;
         }
 
+        public Type GetLocalVariableType(int index)
+        {
+            var body = Method.GetMethodBody();
+            var variables = body.LocalVariables;
+            return variables[index].LocalType;
+        }
+
+
         public int GetParameterReferencePosition(int index)
         {
             int relPos = 0;
@@ -82,6 +90,17 @@ namespace Compiler
                 relPos += parameters[i].ParameterType.GetStorageBytes();
             }
             return relPos;
+        }
+
+        public Type GetParameterType(int index)
+        {
+            var parameters = Method.GetParameters();
+            bool isInstance = !Method.IsStatic;
+
+            if (isInstance && index == 0)
+                return typeof(object);
+
+            return parameters[index - (isInstance ? 1 : 0)].ParameterType;
         }
 
         public int GetLocalStackSize()

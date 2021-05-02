@@ -32,7 +32,7 @@ namespace Compiler
                     {
                         Operation = new OpPushFld(lines[i].RawParameter.ToString(), lines[i + 1].RawParameter.ToString()),
                     };
-                    newOperation.RawParameter = newOperation.Operation.ConvertParameter(context, 0);
+                    newOperation.RawParameter = newOperation.Operation.ConvertParameter(context, null);
                     lines.Insert(i + 5, newOperation);
                     lines[i].Optimized = true;
                     lines[i + 1].Optimized = true;
@@ -47,7 +47,7 @@ namespace Compiler
                     {
                         Operation = new OpPushFld(lines[i].RawParameter.ToString(), lines[i + 1].RawParameter.ToString()),
                     };
-                    newOperation.RawParameter = newOperation.Operation.ConvertParameter(context, 0);
+                    newOperation.RawParameter = newOperation.Operation.ConvertParameter(context, null);
                     lines.Insert(i + 2, newOperation);
                     lines[i].Optimized = true;
                     lines[i + 1].Optimized = true;

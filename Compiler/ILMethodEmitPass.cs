@@ -50,6 +50,7 @@ namespace Compiler
             {
                 outputLine = $"{(line.Label == null ? "" : line.Label + ":")}  {(line.Optimized ? "; OPT " : "")}  {line.Operation.Emit(context, line)} ; {line.OpCode}";
                 output.WriteLine(outputLine);
+
             }
         }
     }

@@ -28,7 +28,7 @@ namespace Compiler
                     {
                         Operation = new OpSetfld(lines[i].RawParameter.ToString(), lines[i + 1].RawParameter.ToString(), lines[i + 2].RawParameter.ToString()),
                     };
-                    newOperation.RawParameter = newOperation.Operation.ConvertParameter(context, 0);
+                    newOperation.RawParameter = newOperation.Operation.ConvertParameter(context, null);
                     lines.Insert(i + 3, newOperation);
                     lines[i].Optimized = true;
                     lines[i + 1].Optimized = true;

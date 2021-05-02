@@ -25,7 +25,7 @@ namespace Compiler
                     {
                         Operation = new OpInitVar(variable, value),
                     };
-                    newOperation.RawParameter = newOperation.Operation.ConvertParameter(context, variable);
+                    newOperation.RawParameter = newOperation.Operation.ConvertParameter(context, null);
                     lines.Insert(i + 2, newOperation);
                     lines[i].Optimized = true;
                     lines[i + 1].Optimized = true;

@@ -40,6 +40,8 @@ namespace Compiler
                     parameter = input[index++];
                 if (op.ParameterSize == 4)
                     parameter = input[index++] + 256 * input[index++] + 256 * 256 * input[index++] + 256 * 256 * 256 * input[index++];
+                operation.RawParameter = parameter;
+                operation.OriginalParameter = parameter;
                 if (op.ParameterSize == -1)
                 {
                     var parameterSize = parameter = input[index++] + 256 * input[index++] + 256 * 256 * input[index++] + 256 * 256 * 256 * input[index++];
@@ -49,11 +51,12 @@ namespace Compiler
                         parameters.Add(input[index++] + 256 * input[index++] + 256 * 256 * input[index++] + 256 * 256 * 256 * input[index++]);
                     }
                     operation.RawParameter = parameters;
+                    operation.OriginalParameter = parameter;
                 }
-                if (op.ParameterSize > -1)
-                    operation.RawParameter = op.ConvertParameter(context, parameter);
+
+                if (op.ParameterSize > -1) 
+                    operation.RawParameter = op.ConvertParameter(context, operation);
                 operation.Size = index - operation.Position;
-                Console.WriteLine(operation);
 
                 lines.Add(operation);
             }

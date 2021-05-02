@@ -5,8 +5,8 @@
 ; METHOD: Foo
 ;----------------------------------------
 Program_Foo 
-    #init_locals_pull_parameters 0, [0,0, 0,0]
-    #method_exit 6, [] ; Ret
+    #init_locals_pull_parameters 0, [0,0,0]
+    #method_exit 5, [] ; Ret
 
 
 ;----------------------------------------

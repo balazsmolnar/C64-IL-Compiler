@@ -1,8 +1,10 @@
+using System;
 using System.Runtime.InteropServices;
 using System.Reflection;
 using System.Linq;
 using Compiler;
 using System.Collections.Generic;
+using System.Reflection.Metadata;
 
 namespace Compiler.Ops
 {
@@ -28,7 +30,17 @@ namespace Compiler.Ops
             return $"{Command} {operation.RawParameter}";
         }
 
-        public virtual object ConvertParameter(CompilerMethodContext context, int parameter) => null;
+        public virtual object ConvertParameter(CompilerMethodContext context, ILOperation operation) => null;
+
+        public virtual void SetNextInstructions(CompilerMethodContext context, ILOperation operation, ILOperation nextOperation)
+        {
+            operation.NextInstructions.Add(nextOperation);
+        }
+
+        public virtual void SetStackContent(CompilerMethodContext context, ILOperation operation)
+        {
+
+        }
     }
 
     class OpLdstr : OpBase
@@ -37,11 +49,16 @@ namespace Compiler.Ops
         {
         }
 
-        public override object ConvertParameter(CompilerMethodContext context, int parameter)
+        public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
         {
-            if (!context.CompilerContext.StringValues.ContainsKey(parameter))
-                context.CompilerContext.StringValues.Add(parameter, context.CompilerContext.Assembly.ManifestModule.ResolveString(parameter));
-            return $"string_{parameter}";
+            if (!context.CompilerContext.StringValues.ContainsKey((int)operation.RawParameter))
+                context.CompilerContext.StringValues.Add((int)operation.RawParameter, context.CompilerContext.Assembly.ManifestModule.ResolveString((int)operation.RawParameter));
+            return $"string_{operation.RawParameter}";
+        }
+
+        public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
+        {
+            operation.StackContent.Add(typeof(string));
         }
     }
 
@@ -51,9 +68,13 @@ namespace Compiler.Ops
         {
         }
 
-        public override object ConvertParameter(CompilerMethodContext context, int parameter)
+        public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
         {
-            return context.CompilerContext.Assembly.ManifestModule.ResolveMethod(parameter).GetLabel();
+            return context.CompilerContext.Assembly.ManifestModule.ResolveMethod((int)operation.RawParameter).GetLabel();
+        }
+        public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
+        {
+            operation.StackContent.Add(typeof(object));
         }
     }
 
@@ -63,9 +84,18 @@ namespace Compiler.Ops
         {
         }
 
-        public override object ConvertParameter(CompilerMethodContext context, int parameter)
+        public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
         {
-            return context.CompilerContext.Assembly.ManifestModule.ResolveMethod(parameter).GetLabel();
+            return context.CompilerContext.Assembly.ManifestModule.ResolveMethod((int)operation.RawParameter).GetLabel();
+        }
+
+        public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
+        {
+            var method = context.CompilerContext.Assembly.ManifestModule.ResolveMethod((int)operation.OriginalParameter) as MethodInfo;
+            var parameterNum = method.GetParameters().Length + (method.IsStatic ? 0 : 1);
+            operation.StackContent.RemoveLast(parameterNum);
+            if (method.ReturnType != typeof(void))
+                operation.StackContent.Add(method.ReturnType);
         }
     }
 
@@ -75,9 +105,9 @@ namespace Compiler.Ops
         {
         }
 
-        public override object ConvertParameter(CompilerMethodContext context, int parameter)
+        public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
         {
-            var method = context.CompilerContext.Assembly.ManifestModule.ResolveMethod(parameter);
+            var method = context.CompilerContext.Assembly.ManifestModule.ResolveMethod((int)operation.RawParameter);
             var t = method.DeclaringType;
             var size = 0;
             var referenceFields = 0;
@@ -94,9 +124,14 @@ namespace Compiler.Ops
                 if (f.FieldType.IsReferenceCounted())
                     referenceFields++;
             }
-            //var label = context.CompilerContext.Assembly.ManifestModule.ResolveMethod(parameter).GetLabel();
+            //var label = context.CompilerContext.Assembly.ManifestModule.ResolveMethod(operation.RawParameter).GetLabel();
 
             return $"{size}, {referenceFields}";
+        }
+
+        public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
+        {
+            operation.StackContent.Add(typeof(object));
         }
     }
 
@@ -106,9 +141,15 @@ namespace Compiler.Ops
         {
         }
 
-        public override object ConvertParameter(CompilerMethodContext context, int parameter)
+        public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
         {
             return "";
+        }
+
+        public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
+        {
+            operation.StackContent.RemoveLast(1);
+            operation.StackContent.Add(typeof(object));
         }
     }
 
@@ -118,18 +159,62 @@ namespace Compiler.Ops
         {
         }
 
-        public override object ConvertParameter(CompilerMethodContext context, int parameter)
+        public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
         {
-            var field = context.CompilerContext.Assembly.ManifestModule.ResolveField(parameter);
+            var field = context.CompilerContext.Assembly.ManifestModule.ResolveField((int)operation.RawParameter);
             var pos = context.CompilerContext.GetFieldPosition(field); return $"{pos}";
+        }
+
+        public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
+        {
+            var last = operation.StackContent.Last();
+            var field = context.CompilerContext.Assembly.ManifestModule.ResolveField((int)operation.OriginalParameter);
+            last.CheckCompatible(field.FieldType);
+            operation.StackContent.RemoveLast(2);
         }
     }
 
-    class OpStElem_ref : OpBase
+    class OpStElem : OpBase
     {
-        public OpStElem_ref() : base(0, "#stelemRef")
+        public OpStElem(bool @ref) : base(0, @ref ? "#stelemRef" : "#stelem")
         {
         }
+
+        public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
+        {
+            operation.StackContent.RemoveLast(3);
+        }
+    }
+
+    class OpLdElem : OpBase
+    {
+        private readonly Type _valueType;
+
+        public OpLdElem(bool @ref, Type valueType) : base(0, @ref ? "#ldelemRef" : "#ldelem")
+        {
+            _valueType = valueType;
+        }
+
+        public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
+        {
+            operation.StackContent.RemoveLast(2);
+            operation.StackContent.Add(_valueType);
+        }
+
+    }
+
+    class OpLdLen : OpBase
+    {
+        public OpLdLen() : base(0, "#ldlen")
+        {
+        }
+
+        public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
+        {
+            operation.StackContent.RemoveLast(1);
+            operation.StackContent.Add(typeof(int));
+        }
+
     }
 
     class OpLdfld : OpBase
@@ -138,11 +223,18 @@ namespace Compiler.Ops
         {
         }
 
-        public override object ConvertParameter(CompilerMethodContext context, int parameter)
+        public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
         {
-            var field = context.CompilerContext.Assembly.ManifestModule.ResolveField(parameter);
+            var field = context.CompilerContext.Assembly.ManifestModule.ResolveField((int)operation.RawParameter);
             var pos = context.CompilerContext.GetFieldPosition(field);
             return $"{pos}";
+        }
+
+        public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
+        {
+            operation.StackContent.RemoveLast(1);
+            var field = context.CompilerContext.Assembly.ManifestModule.ResolveField((int)operation.OriginalParameter);
+            operation.StackContent.Add(field.FieldType);
         }
     }
 
@@ -157,7 +249,7 @@ namespace Compiler.Ops
             this.pos = pos;
         }
 
-        public override object ConvertParameter(CompilerMethodContext context, int parameter)
+        public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
         {
             return $"{pos}";
         }
@@ -176,9 +268,14 @@ namespace Compiler.Ops
             this.pos = pos;
         }
 
-        public override object ConvertParameter(CompilerMethodContext context, int parameter)
+        public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
         {
             return $"{objRelPos}, {valueRelPos}, {pos}";
+        }
+
+        public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
+        {
+            operation.StackContent.RemoveLast(2);
         }
     }
 
@@ -193,7 +290,7 @@ namespace Compiler.Ops
             this.pos = pos;
         }
 
-        public override object ConvertParameter(CompilerMethodContext context, int parameter)
+        public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
         {
             return $"{pos}";
         }
@@ -205,6 +302,12 @@ namespace Compiler.Ops
         {
 
         }
+
+        public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
+        {
+            var last = operation.StackContent.Last();
+            operation.StackContent.Add(last);
+        }
     }
 
     class OpPop : OpBase
@@ -212,6 +315,11 @@ namespace Compiler.Ops
         public OpPop() : base(0, "#stack_pop")
         {
 
+        }
+
+        public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
+        {
+            operation.StackContent.RemoveLast(1);
         }
     }
 
@@ -241,9 +349,14 @@ namespace Compiler.Ops
             _value = value.ToByte();
         }
 
-        public override object ConvertParameter(CompilerMethodContext context, int parameter)
+        public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
         {
             return _value;
+        }
+
+        public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
+        {
+            operation.StackContent.Add(typeof(int));
         }
     }
 
@@ -253,10 +366,15 @@ namespace Compiler.Ops
         {
         }
 
-        public override object ConvertParameter(CompilerMethodContext context, int parameter)
+        public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
         {
-            return parameter.ToByte();
+            return ((int)(operation.RawParameter)).ToByte();
         }
+        public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
+        {
+            operation.StackContent.Add(typeof(int));
+        }
+
     }
 
     class OpLdc_i4_s : OpLdConst
@@ -265,10 +383,16 @@ namespace Compiler.Ops
         {
         }
 
-        public override object ConvertParameter(CompilerMethodContext context, int parameter)
+        public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
         {
-            return parameter;
+            return operation.RawParameter;
         }
+
+        public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
+        {
+            operation.StackContent.Add(typeof(int));
+        }
+
     }
 
     class OpLdloc : OpPushBase
@@ -279,12 +403,18 @@ namespace Compiler.Ops
             VarIndex = varIndex;
         }
 
-        public override object ConvertParameter(CompilerMethodContext context, int parameter)
+        public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
         {
 
             int relPos = context.GetLocalVariableReferencePosition(VarIndex);
             return $"{relPos}";
         }
+
+        public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
+        {
+            operation.StackContent.Add(context.GetLocalVariableType(VarIndex));
+        }
+
     }
 
     class OpLdloc_s : OpPushBase
@@ -293,11 +423,16 @@ namespace Compiler.Ops
         {
         }
 
-        public override object ConvertParameter(CompilerMethodContext context, int parameter)
+        public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
         {
 
-            int relPos = context.GetLocalVariableReferencePosition(parameter);
+            int relPos = context.GetLocalVariableReferencePosition((int)operation.RawParameter);
             return $"{relPos}";
+        }
+
+        public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
+        {
+            operation.StackContent.Add(context.GetLocalVariableType((int)operation.OriginalParameter));
         }
     }
 
@@ -309,7 +444,7 @@ namespace Compiler.Ops
             _argIndex = argIndex;
         }
 
-        public override object ConvertParameter(CompilerMethodContext context, int parameter)
+        public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
         {
             int relPos = context.GetParameterReferencePosition(_argIndex);
             return $"{relPos}";
@@ -320,6 +455,12 @@ namespace Compiler.Ops
             var command = size == 2 ? "#locals_push_value_16" : "#locals_push_value_8";
             return $"{command} {operation.RawParameter}";
         }
+
+        public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
+        {
+            operation.StackContent.Add(context.GetParameterType((int)_argIndex));
+        }
+
     }
 
     class OpLdsld : OpPushBase
@@ -328,11 +469,18 @@ namespace Compiler.Ops
         {
         }
 
-        public override object ConvertParameter(CompilerMethodContext context, int parameter)
+        public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
         {
-            var field = context.Method.DeclaringType.Module.ResolveField(parameter);
+            var field = context.Method.DeclaringType.Module.ResolveField((int)operation.RawParameter);
             return $"{field.DeclaringType.Name.ToValidName()}_field_{field.Name.ToValidName()}";
         }
+
+        public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
+        {
+            var field = context.Method.DeclaringType.Module.ResolveField((int)operation.OriginalParameter);
+            operation.StackContent.Add(field.FieldType);
+        }
+
     }
 
     class OpLdnull : OpPushBase
@@ -341,7 +489,13 @@ namespace Compiler.Ops
         {
         }
 
-        public override object ConvertParameter(CompilerMethodContext context, int parameter) => 0;
+        public override object ConvertParameter(CompilerMethodContext context, ILOperation operation) => 0;
+
+        public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
+        {
+            operation.StackContent.Add(typeof(object));
+        }
+
     }
 
     class OpPullBase : OpBase
@@ -360,13 +514,20 @@ namespace Compiler.Ops
             VarIndex = varIndex;
         }
 
-        public override object ConvertParameter(CompilerMethodContext context, int parameter)
+        public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
         {
             var body = context.Method.GetMethodBody();
             var variables = body.LocalVariables;
             var index = context.GetLocalVariableReferencePosition(VarIndex);
             var isRef = variables[VarIndex].LocalType.IsReferenceCounted() ? "1" : "0";
             return $"{index}, {isRef}";
+        }
+
+        public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
+        {
+            var last = operation.StackContent.Last();
+            last.CheckCompatible(context.GetLocalVariableType(VarIndex));
+            operation.StackContent.RemoveLast(1);
         }
     }
 
@@ -375,13 +536,22 @@ namespace Compiler.Ops
         public OpStsfld() : base(4, "#stack_pull_int_ref")
         {
         }
-        public override object ConvertParameter(CompilerMethodContext context, int parameter)
+        public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
         {
-            var field = context.Method.DeclaringType.Module.ResolveField(parameter);
+            var field = context.Method.DeclaringType.Module.ResolveField((int)operation.RawParameter);
             var address = $"{field.DeclaringType.Name.ToValidName()}_field_{field.Name.ToValidName()}";
             string isRef = field.FieldType.IsReferenceCounted() ? "1" : "0";
             return $"{address}, {isRef}";
         }
+
+        public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
+        {
+            var field = context.Method.DeclaringType.Module.ResolveField((int)operation.OriginalParameter);
+            var last = operation.StackContent.Last();
+            last.CheckCompatible(field.FieldType);
+            operation.StackContent.RemoveLast(1);
+        }
+
     }
 
     class OpStloc_s : OpBase
@@ -390,42 +560,21 @@ namespace Compiler.Ops
         {
         }
 
-        public override object ConvertParameter(CompilerMethodContext context, int parameter)
+        public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
         {
             var body = context.Method.GetMethodBody();
             var variables = body.LocalVariables;
-            var index = context.GetLocalVariableReferencePosition(parameter);
-            var isRef = variables[parameter].LocalType.IsReferenceCounted() ? "1" : "0";
+            var index = context.GetLocalVariableReferencePosition((int)operation.RawParameter);
+            var isRef = variables[(int)operation.RawParameter].LocalType.IsReferenceCounted() ? "1" : "0";
             return $"{index}, {isRef}";
         }
-    }
 
-    class OpShortJump : OpBase
-    {
-        public OpShortJump(string command) : base(1, command)
+        public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
         {
+            operation.StackContent.RemoveLast(1);
         }
-
-        public override object ConvertParameter(CompilerMethodContext context, int parameter) => (parameter < 128 ? (int)parameter : (int)parameter - 256) + 2;
     }
 
-    class OpLongJump : OpBase
-    {
-        public OpLongJump(string command) : base(4, command)
-        {
-        }
-
-        public override object ConvertParameter(CompilerMethodContext context, int parameter) => parameter + 5;
-    }
-
-    class OpBranchConst : OpBase
-    {
-        public OpBranchConst(string command) : base(0, command)
-        {
-        }
-
-        public override object ConvertParameter(CompilerMethodContext context, int parameter) => 0;
-    }
 
     class OpSwitch : OpBase
     {
@@ -434,28 +583,29 @@ namespace Compiler.Ops
 
         }
 
-        public override object ConvertParameter(CompilerMethodContext context, int parameter)
-        {
-            return base.ConvertParameter(context, parameter);
-        }
-
         public override string Emit(CompilerMethodContext context, ILOperation operation)
         {
             return $"#switch {context.Method.GetLabel()}_Jump_{operation.Position}";
         }
-    }
 
-    class OpArithmetic2 : OpBase
-    {
-        public OpArithmetic2(string command) : base(0, command)
+        public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
         {
+            operation.StackContent.RemoveLast(1);
         }
-    }
 
-    class OpArithmetic1 : OpBase
-    {
-        public OpArithmetic1(string command) : base(0, command)
+        public override void SetNextInstructions(CompilerMethodContext context, ILOperation operation, ILOperation nextOperation)
         {
+            List<int> parameters = (List<int>)operation.RawParameter;
+            foreach (var parameter in parameters)
+            {
+                var target = parameter + operation.Position + parameters.Count * 4 + 5;
+                var label = $"{context.Method.GetLabel()}_{target}";
+                var jmpInstruction = context.Lines.FirstOrDefault(l => l.Label == label);
+
+                operation.NextInstructions.Add(jmpInstruction);
+            }
+
+            base.SetNextInstructions(context, operation, nextOperation);
         }
     }
 
@@ -465,7 +615,7 @@ namespace Compiler.Ops
         {
         }
 
-        public override object ConvertParameter(CompilerMethodContext context, int parameter)
+        public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
         {
             List<string> refList = new List<string>();
             bool isInstance = !context.Method.IsStatic;
@@ -486,6 +636,26 @@ namespace Compiler.Ops
 
             return $"{context.GetLocalStackSize()}, [{string.Join(',', refList)}]";
         }
+
+        public override void SetNextInstructions(CompilerMethodContext context, ILOperation operation, ILOperation nextOperation)
+        {
+        }
+
+        public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
+        {
+            var method = context.Method as MethodInfo;
+            if (method.ReturnType == typeof(void) && operation.StackContent.Count != 0)
+                throw  new InvalidOperationException($"Stack should be empty. {context.Method.Name}");
+
+            if (method.ReturnType != typeof(void))
+            {
+                if (operation.StackContent.Count != 1)
+                    throw new InvalidOperationException($"Stack should contain 1 element. {context.Method.Name}");
+
+                operation.StackContent[0].CheckCompatible(method.ReturnType);
+            }
+
+        }
     }
 
     class OpIncVar : OpBase
@@ -496,7 +666,7 @@ namespace Compiler.Ops
             _varIndex = varIndex;
         }
 
-        public override object ConvertParameter(CompilerMethodContext context, int parameter)
+        public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
         {
             var refPos = context.GetLocalVariableReferencePosition(_varIndex);
             return $"{refPos}";
@@ -513,31 +683,13 @@ namespace Compiler.Ops
             _value = value;
         }
 
-        public override object ConvertParameter(CompilerMethodContext context, int parameter)
+        public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
         {
             var refPos = context.GetLocalVariableReferencePosition(_varIndex);
             return $"{refPos}, {_value}";
         }
     }
 
-    class OpBranchIfVarLess : OpBase
-    {
-        private int _varIndex;
-        private int _value;
-        private string _label;
-        public OpBranchIfVarLess(int varIndex, int value, string label) : base(0, "#branch_if_var_less")
-        {
-            _varIndex = varIndex;
-            _value = value;
-            _label = label;
-        }
-
-        public override object ConvertParameter(CompilerMethodContext context, int parameter)
-        {
-            var refPos = context.GetLocalVariableReferencePosition(_varIndex);
-            return $"{refPos}, {_value}, {_label}";
-        }
-    }
 
     class OpDeref : OpBase
     {
@@ -547,7 +699,7 @@ namespace Compiler.Ops
             _varIndex = varIndex;
         }
 
-        public override object ConvertParameter(CompilerMethodContext context, int parameter)
+        public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
         {
             return $"{context.Method.GetLabel()}_var{_varIndex}";
         }
@@ -561,28 +713,9 @@ namespace Compiler.Ops
             _parameterName = parameterName;
         }
 
-        public override object ConvertParameter(CompilerMethodContext context, int parameter)
+        public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
         {
             return $"{context.Method.GetLabel()}_{_parameterName}";
-        }
-    }
-
-    class OpBranchIfNotEqual : OpBase
-    {
-        private int _varIndex;
-        private int _value;
-        private string _label;
-        public OpBranchIfNotEqual(int varIndex, int value, string label) : base(0, "#branch_if_not_equal")
-        {
-            _varIndex = varIndex;
-            _value = value;
-            _label = label;
-        }
-
-        public override object ConvertParameter(CompilerMethodContext context, int parameter)
-        {
-            var refPos = context.GetLocalVariableReferencePosition(_varIndex);
-            return $"{refPos}, {_value}, {_label}";
         }
     }
 
@@ -592,6 +725,10 @@ namespace Compiler.Ops
         {
         }
 
+        public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
+        {
+            operation.StackContent.Add(typeof(ulong));
+        }
     }
 
 }

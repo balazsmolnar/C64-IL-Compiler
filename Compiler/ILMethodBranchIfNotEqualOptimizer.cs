@@ -37,7 +37,7 @@ namespace Compiler
                     {
                         Operation = new OpBranchIfNotEqual(variable, value, label),
                     };
-                    newOperation.RawParameter = newOperation.Operation.ConvertParameter(context, variable);
+                    newOperation.RawParameter = newOperation.Operation.ConvertParameter(context, null);
                     lines.Insert(i + 6, newOperation);
 
                     for (int j = i; j < i + 6; j++)

@@ -10,26 +10,26 @@ stack_pull_int .macro address
   #stack_pull_int8 \address
 .endm
 
-negate .macro
-    #negate8
-.endm
+; negate .macro
+;     #negate8
+; .endm
 
-compareLess .macro
-    #compareLess8
-.endm
+; compareLess .macro
+;     #compareLess8
+; .endm
 
-compareGreater .macro
-    #compareGreater8
-.endm
+; compareGreater .macro
+;     #compareGreater8
+; .endm
 
-compareEqual .macro
-    #compareEqual8
-.endm
+; compareEqual .macro
+;     #compareEqual8
+; .endm
 
-add .macro
-    #add8
-.endm
+; add .macro
+;     #add8
+; .endm
 
-sub .macro
-    #sub8
-.endm
+; sub .macro
+;     #sub8
+; .endm

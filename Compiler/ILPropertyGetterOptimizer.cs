@@ -33,6 +33,7 @@ namespace Compiler
                         Operation = new OpPushFld(lines[i].RawParameter.ToString(), lines[i + 1].RawParameter.ToString()),
                     };
                     newOperation.RawParameter = newOperation.Operation.ConvertParameter(context, null);
+                    newOperation.StackContent = lines[i + 4].StackContent;
                     lines.Insert(i + 5, newOperation);
                     lines[i].Optimized = true;
                     lines[i + 1].Optimized = true;

@@ -26,6 +26,7 @@ namespace Compiler
                         Operation = new OpBranchConst(lines[i + 1].Operation.Command + "_const"),
                     };
                     newOperation.RawParameter = lines[i].RawParameter + ", " + lines[i + 1].RawParameter;
+                    newOperation.StackContent = lines[i + 1].StackContent;
                     lines.Insert(i + 2, newOperation);
                     lines[i].Optimized = true;
                     lines[i + 1].Optimized = true;

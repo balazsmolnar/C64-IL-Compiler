@@ -36,6 +36,7 @@ namespace Compiler
                         Operation = new OpIncfld(lines[i].RawParameter.ToString(), lines[i + 2].RawParameter.ToString()),
                     };
                     newOperation.RawParameter = newOperation.Operation.ConvertParameter(context, null);
+                    newOperation.StackContent = lines[i + 5].StackContent;
                     lines.Insert(i + 6, newOperation);
                     lines[i].Optimized = true;
                     lines[i + 1].Optimized = true;

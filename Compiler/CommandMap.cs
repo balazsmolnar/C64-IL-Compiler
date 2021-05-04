@@ -82,19 +82,18 @@ namespace Compiler
                 { ILOpCode.Shl, new OpArithmetic2("#shift_left") },
                 { ILOpCode.Sub, new OpArithmetic2("#sub") },
                 { ILOpCode.Neg, new OpArithmetic1("#negate") },
-                { ILOpCode.And, new OpArithmetic2("#and8") },
+                { ILOpCode.And, new OpArithmetic2("#and") },
                 { ILOpCode.Ret, new OpRet()  },
-                { ILOpCode.Clt, new OpCompare("#compareLess8") },
-                { ILOpCode.Clt_un, new OpCompare("#compareLess8_unsigned") },
+                { ILOpCode.Clt, new OpCompare("#compareLess") },
+                { ILOpCode.Clt_un, new OpCompare("#compareLess_unsigned") },
                 { ILOpCode.Cgt, new OpCompare("#compareGreater") },
                 { ILOpCode.Cgt_un, new OpCompare("#compareGreater_unsigned") },
-                { ILOpCode.Switch, new OpSwitch() },
-
                 { ILOpCode.Ceq, new OpCompare("#compareEqual") },
-                { ILOpCode.Conv_i8, new OpBase(0, "nop ;Conv_i8") },
-                { ILOpCode.Conv_u8, new OpBase(0, "nop ;Conv_u8") },
-                { ILOpCode.Conv_u4, new OpBase(0, "nop ;Conv_u4") },
-                { ILOpCode.Conv_i4, new OpBase(0, "nop ;Conv_i4") },
+                { ILOpCode.Switch, new OpSwitch() },
+                { ILOpCode.Conv_i8, new OpConv_8_16() }, 
+                { ILOpCode.Conv_u8, new OpConv_8_16() },
+                { ILOpCode.Conv_u4, new OpConv_16_8() },
+                { ILOpCode.Conv_i4, new OpConv_16_8()  },
             };
 
         public static bool Supported(ILOpCode code)

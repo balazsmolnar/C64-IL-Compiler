@@ -91,7 +91,7 @@ method_exit .macro stackSize, ref_list
 .endm
 
 
-locals_pull_value_8 .macro rel_pos, ref 
+locals_pull_value8 .macro rel_pos, ref 
 
   ldy stackPointer
 
@@ -109,16 +109,24 @@ locals_pull_value_8 .macro rel_pos, ref
   .endif
 .endm
 
-locals_push_value_8 .macro rel_pos
+locals_push_value8 .macro rel_pos
   ldy stackPointer
   lda localsStack-\rel_pos,y
   #stack_push_int_a
 .endm
 
-locals_push_value_16 .macro rel_pos
+locals_push_value16 .macro rel_pos
   ldy stackPointer
   lda localsStack-\rel_pos+1,y
   #stack_push_int_a
   lda localsStack-\rel_pos,y
   #stack_push_int_a
+.endm
+
+locals_pull_value16 .macro rel_pos
+  ldy stackPointer
+  #stack_pull_int_a
+  sta localsStack-\rel_pos,y
+  #stack_pull_int_a
+  sta localsStack-\rel_pos+1,y
 .endm

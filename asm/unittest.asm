@@ -40,6 +40,9 @@ endtest:
     sta result
     #stack_pull_int_a
     sta zp_tmp5          ; copy method return value
+    #stack_pull_int_a
+    sta zp_tmp5+1        ; copy method return value
+
     brk
 
 result = $20

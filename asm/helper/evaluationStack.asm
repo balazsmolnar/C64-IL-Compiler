@@ -65,10 +65,17 @@ stack_push_var8 .macro address
   pha
 .endm
 
-stack_duplicate .macro
-  pla
-  pha
-  pha
+stack_duplicate8 .macro
+  #stack_pull_int_a
+  #stack_push_int_a
+  #stack_push_int_a
+.endm
+
+stack_duplicate16 .macro
+  #stack_pull_int_x
+  #stack_pull_int_a
+  #stack_push_int_a
+  #stack_push_int_x
 .endm
 
 stack_pop .macro

@@ -24,9 +24,10 @@ namespace Compiler
                     int value = (int)lines[i].RawParameter;
                     ILOperation newOperation = new ILOperation
                     {
-                        Operation = new OpArithmetic2("compareEqual8_const"),
+                        Operation = new OpArithmetic2("compareEqual_const"),
                     };
                     newOperation.RawParameter = lines[i].RawParameter;
+                    newOperation.StackContent = lines[i + 1].StackContent;
                     lines.Insert(i + 2, newOperation);
                     lines[i].Optimized = true;
                     lines[i + 1].Optimized = true;

@@ -20,7 +20,7 @@ namespace C64TestFramework
             emulator.SetMemory(0x09fe, GetMethodAddress(prgFolder, args.Method));
             emulator.LoadPrg(Path.Combine(prgFolder, "unittest.prg"));
 
-            emulator.SetMemory(0x9e0, (byte)args.Arguments.Count);
+            var pointer = 0;
             for (byte i = 0; i < (byte)args.Arguments.Count; i++)
             {
                 if (args.Arguments[i] is int)
@@ -28,11 +28,27 @@ namespace C64TestFramework
                     int v = (int)args.Arguments[i];
                     if (v < -127 || v > 127)
                         throw new ArgumentOutOfRangeException("int");
-                    emulator.SetMemory(0x9e1 + i, v < 0 ? (byte)(256 + v) : (byte)v);
+                    emulator.SetMemory(
+                        0x9e1 + pointer++, v < 0 ? (byte)(256 + v) : (byte)v);
                 }
+
                 if (args.Arguments[i] is uint)
-                    emulator.SetMemory(0x9e1 + i, (byte)(uint)args.Arguments[i]);
+                {
+                    emulator.SetMemory(0x9e1 + pointer++, (byte)(uint)args.Arguments[i]);
+                }
+                if (args.Arguments[i] is long)
+                {
+                    emulator.SetMemory(0x9e1 + pointer++, (byte)((long)args.Arguments[i] / 256));
+                    emulator.SetMemory(0x9e1 + pointer++, (byte)((long)args.Arguments[i] % 256));
+                }
+                if (args.Arguments[i] is ulong)
+                {
+                    emulator.SetMemory(0x9e1 + pointer++, (byte)((ulong)args.Arguments[i] / 256));
+                    emulator.SetMemory(0x9e1 + pointer++, (byte)((ulong)args.Arguments[i] % 256));
+                }
+
             }
+            emulator.SetMemory(0x9e0, (byte)pointer);
 
             emulator.Start(0x1000);
 
@@ -49,6 +65,11 @@ namespace C64TestFramework
                     args.ReturnValue = emulator.GetMemory(0x2c) != 0;
                 if (type == typeof(uint))
                     args.ReturnValue = (uint)emulator.GetMemory(0x2c);
+                if (type == typeof(long))
+                    args.ReturnValue = (long)(emulator.GetMemory(0x2c + 1) * 256 + emulator.GetMemory(0x2c));
+                if (type == typeof(ulong))
+                    args.ReturnValue = (ulong)(emulator.GetMemory(0x2c + 1) * 256 + emulator.GetMemory(0x2c));
+
             }
         }
 

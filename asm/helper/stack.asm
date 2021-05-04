@@ -16,9 +16,9 @@ stack_pull_pointer .macro address
 .endm
 
 stack_push_int16 .macro value 
-  lda # < \value
-  pha
   lda # > \value
+  pha
+  lda # < \value
   pha
 .endm
 
@@ -51,10 +51,19 @@ stack_push_var8 .macro address
   pha
 .endm
 
-stack_duplicate .macro
-  pla
-  pha
-  pha
+stack_duplicate8 .macro
+  #stack_pull_int_a
+  #stack_push_int_a
+  #stack_push_int_a
+.endm
+
+stack_duplicate16 .macro
+  #stack_pull_int_x
+  #stack_pull_int_y
+  #stack_push_int_y
+  #stack_push_int_x
+  #stack_push_int_y
+  #stack_push_int_x
 .endm
 
 stack_pop .macro
@@ -96,6 +105,11 @@ stack_push_int_a .macro
 
 stack_push_int_x .macro
   txa
+  #stack_push_int_a
+.endm
+
+stack_push_int_y .macro
+  tya
   #stack_push_int_a
 .endm
 

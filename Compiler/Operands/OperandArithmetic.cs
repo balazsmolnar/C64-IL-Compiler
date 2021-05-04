@@ -24,6 +24,8 @@ namespace Compiler.Ops
             operation.StackContent.RemoveLast(2);
             operation.StackContent.Add(last);
         }
+        public override bool Is16BitSupported => true;
+
     }
 
     class OpArithmetic1 : OpBase
@@ -41,6 +43,8 @@ namespace Compiler.Ops
             operation.StackContent.RemoveLast(1);
             operation.StackContent.Add(last);
         }
+
+        public override bool Is16BitSupported => true;
     }
 
     class OpCompare : OpArithmetic2
@@ -61,6 +65,7 @@ namespace Compiler.Ops
             operation.StackContent.RemoveLast(2);
             operation.StackContent.Add(typeof(bool));
         }
+
     }
 
 }

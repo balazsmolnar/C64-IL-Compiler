@@ -1,7 +1,10 @@
 add16 .macro 
 
     #stack_pull_int $32
+    #stack_pull_int $33
+
     #stack_pull_int $34
+    #stack_pull_int $35
 
     clc
     lda $34
@@ -9,7 +12,7 @@ add16 .macro
     sta $34
     lda $35
     adc $33
-    sta $35
+    #stack_push_int_a
     #stack_push_var $34
 .endm
 
@@ -31,6 +34,24 @@ sub8 .macro
     sec
     sbc $32
     #stack_push_int_a
+.endm
+
+sub16 .macro 
+
+    #stack_pull_int $32
+    #stack_pull_int $33
+
+    #stack_pull_int $34
+    #stack_pull_int $35
+
+    sec
+    lda $34
+    sbc $32
+    sta $34
+    lda $35
+    sbc $33
+    #stack_push_int_a
+    #stack_push_var $34
 .endm
 
 negate16 .macro 
@@ -92,7 +113,7 @@ compareLess8 .macro
 +        #stack_push_int_x
 .endm
 
-compareLess8_unsigned .macro 
+compareLess_unsigned8 .macro 
         #stack_pull_int $34
         #stack_pull_int_a
 
@@ -115,7 +136,7 @@ compareGreater8 .macro
 +       #stack_push_int_x
 .endm
 
-compareGreater8_const .macro value
+compareGreater_const8 .macro value
         #stack_pull_int_a
 
         ldx #0
@@ -126,7 +147,7 @@ compareGreater8_const .macro value
 +       #stack_push_int_x
 .endm
 
-compareGreater_unsigned .macro 
+compareGreater_unsigned8 .macro 
         #stack_pull_int $34
         #stack_pull_int_a
 
@@ -138,7 +159,7 @@ compareGreater_unsigned .macro
 +       #stack_push_int_x
 .endm
 
-compareGreater_unsigned8_const .macro value
+compareGreater_unsigned_const8 .macro value
         #stack_pull_int_a
 
         ldx #0
@@ -181,7 +202,7 @@ compareEqual8 .macro
         #stack_push_int_x
 .endm
 
-compareEqual8_const .macro value
+compareEqual_const8 .macro value
         #stack_pull_int_a
 
         ldx #0
@@ -192,7 +213,7 @@ compareEqual8_const .macro value
         #stack_push_int_x
 .endm
 
-shift_left .macro 
+shift_left8 .macro 
 
     #stack_pull_int_x
     #stack_pull_int_a
@@ -209,5 +230,22 @@ and8 .macro
     #stack_pull_int_a
 
     and $32
+    #stack_push_int_a
+.endm
+
+conv_8_16 .macro
+
+    #stack_pull_int $32
+    lda #0
+    stack_push_int_a
+    lda $32
+    stack_push_int_a
+
+.endm
+
+conv_16_8 .macro
+
+    #stack_pull_int_a
+    #stack_pull_int_a
     #stack_push_int_a
 .endm

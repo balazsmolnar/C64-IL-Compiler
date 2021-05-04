@@ -24,6 +24,7 @@ namespace Compiler
                     // hack
                     var p = ((string)lines[i].RawParameter).Split('_')[1];
                     newOperation.RawParameter = context.CompilerContext.StringValues[int.Parse(p)];
+                    newOperation.StackContent = lines[i + 1].StackContent;
                     lines.Insert(i + 2, newOperation);
                     lines[i].Optimized = true;
                     lines[i + 1].Optimized = true;

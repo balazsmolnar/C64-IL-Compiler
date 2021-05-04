@@ -38,6 +38,7 @@ namespace Compiler
                         Operation = new OpBranchIfNotEqual(variable, value, label),
                     };
                     newOperation.RawParameter = newOperation.Operation.ConvertParameter(context, null);
+                    newOperation.StackContent = lines[i + 5].StackContent;
                     lines.Insert(i + 6, newOperation);
 
                     for (int j = i; j < i + 6; j++)

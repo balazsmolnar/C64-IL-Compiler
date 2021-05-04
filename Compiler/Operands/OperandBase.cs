@@ -25,9 +25,17 @@ namespace Compiler.Ops
 
         public virtual string Emit(CompilerMethodContext context, ILOperation operation)
         {
+            var command = Command;
+            if (Is16BitSupported)
+            {
+                if (Is16Bit(context, operation))
+                    command += "16";
+                else
+                    command += "8";
+            }
             if (operation.RawParameter == null)
-                return Command;
-            return $"{Command} {operation.RawParameter}";
+                return command;
+            return $"{command} {operation.RawParameter}";
         }
 
         public virtual object ConvertParameter(CompilerMethodContext context, ILOperation operation) => null;
@@ -40,6 +48,13 @@ namespace Compiler.Ops
         public virtual void SetStackContent(CompilerMethodContext context, ILOperation operation)
         {
 
+        }
+
+        public virtual bool Is16BitSupported => false;
+
+        public virtual bool Is16Bit(CompilerMethodContext context, ILOperation operation)
+        {
+            return operation.StackContent.Last().GetStorageBytes() == 2;
         }
     }
 
@@ -308,6 +323,8 @@ namespace Compiler.Ops
             var last = operation.StackContent.Last();
             operation.StackContent.Add(last);
         }
+
+        public override bool Is16BitSupported => true;
     }
 
     class OpPop : OpBase
@@ -339,6 +356,22 @@ namespace Compiler.Ops
         {
 
         }
+
+        public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
+        {
+            if (operation.NextInstructions[0].OpCode == ILOpCode.Conv_i8 || operation.NextInstructions[0].OpCode == ILOpCode.Conv_u8)
+                operation.StackContent.Add(typeof(long));
+            else
+                operation.StackContent.Add(typeof(int));
+        }
+
+        public override bool Is16BitSupported => true;
+
+        public override bool Is16Bit(CompilerMethodContext context, ILOperation operation)
+        {
+            return operation.NextInstructions[0].OpCode == ILOpCode.Conv_i8 || operation.NextInstructions[0].OpCode == ILOpCode.Conv_u8;
+        }
+
     }
 
     class OpLdc_i4_const : OpLdConst
@@ -354,10 +387,6 @@ namespace Compiler.Ops
             return _value;
         }
 
-        public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
-        {
-            operation.StackContent.Add(typeof(int));
-        }
     }
 
     class OpLdc_i4 : OpLdConst
@@ -368,13 +397,8 @@ namespace Compiler.Ops
 
         public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
         {
-            return ((int)(operation.RawParameter)).ToByte();
+            return ((int)(operation.RawParameter));
         }
-        public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
-        {
-            operation.StackContent.Add(typeof(int));
-        }
-
     }
 
     class OpLdc_i4_s : OpLdConst
@@ -387,18 +411,12 @@ namespace Compiler.Ops
         {
             return operation.RawParameter;
         }
-
-        public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
-        {
-            operation.StackContent.Add(typeof(int));
-        }
-
     }
 
     class OpLdloc : OpPushBase
     {
         public int VarIndex;
-        public OpLdloc(int varIndex) : base(0, "#locals_push_value_8")
+        public OpLdloc(int varIndex) : base(0, "#locals_push_value")
         {
             VarIndex = varIndex;
         }
@@ -415,11 +433,18 @@ namespace Compiler.Ops
             operation.StackContent.Add(context.GetLocalVariableType(VarIndex));
         }
 
+        public override bool Is16BitSupported => true;
+
+        public override bool Is16Bit(CompilerMethodContext context, ILOperation operation)
+        {
+            return context.GetLocalVariableType(VarIndex).GetStorageBytes() == 2;
+        }
+
     }
 
     class OpLdloc_s : OpPushBase
     {
-        public OpLdloc_s() : base(1, "#locals_push_value_8")
+        public OpLdloc_s() : base(1, "#locals_push_value")
         {
         }
 
@@ -434,12 +459,20 @@ namespace Compiler.Ops
         {
             operation.StackContent.Add(context.GetLocalVariableType((int)operation.OriginalParameter));
         }
+
+        public override bool Is16BitSupported => true;
+
+        public override bool Is16Bit(CompilerMethodContext context, ILOperation operation)
+        {
+            return context.GetLocalVariableType((int)operation.OriginalParameter).GetStorageBytes() == 2;
+        }
+
     }
 
     class OpLdarg : OpPushBase
     {
         private int _argIndex;
-        public OpLdarg(int argIndex) : base(0, "#locals_push_value_8")
+        public OpLdarg(int argIndex) : base(0, "#locals_push_value")
         {
             _argIndex = argIndex;
         }
@@ -449,16 +482,18 @@ namespace Compiler.Ops
             int relPos = context.GetParameterReferencePosition(_argIndex);
             return $"{relPos}";
         }
-        public override string Emit(CompilerMethodContext context, ILOperation operation)
-        {
-            int size = context.GetParameterSize(_argIndex);
-            var command = size == 2 ? "#locals_push_value_16" : "#locals_push_value_8";
-            return $"{command} {operation.RawParameter}";
-        }
 
         public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
         {
             operation.StackContent.Add(context.GetParameterType((int)_argIndex));
+        }
+
+
+        public override bool Is16BitSupported => true;
+
+        public override bool Is16Bit(CompilerMethodContext context, ILOperation operation)
+        {
+            return context.GetParameterSize(_argIndex) == 2;
         }
 
     }
@@ -509,7 +544,7 @@ namespace Compiler.Ops
     class OpStloc : OpBase
     {
         public int VarIndex { get; }
-        public OpStloc(int varIndex) : base(0, "#locals_pull_value_8")
+        public OpStloc(int varIndex) : base(0, "#locals_pull_value")
         {
             VarIndex = varIndex;
         }
@@ -528,6 +563,13 @@ namespace Compiler.Ops
             var last = operation.StackContent.Last();
             last.CheckCompatible(context.GetLocalVariableType(VarIndex));
             operation.StackContent.RemoveLast(1);
+        }
+
+        public override bool Is16BitSupported => true;
+
+        public override bool Is16Bit(CompilerMethodContext context, ILOperation operation)
+        {
+            return context.GetLocalVariableType(VarIndex).GetStorageBytes() == 2;
         }
     }
 
@@ -556,7 +598,7 @@ namespace Compiler.Ops
 
     class OpStloc_s : OpBase
     {
-        public OpStloc_s() : base(1, "#locals_pull_value_8")
+        public OpStloc_s() : base(1, "#locals_pull_value")
         {
         }
 
@@ -573,6 +615,14 @@ namespace Compiler.Ops
         {
             operation.StackContent.RemoveLast(1);
         }
+
+        public override bool Is16BitSupported => true;
+
+        public override bool Is16Bit(CompilerMethodContext context, ILOperation operation)
+        {
+            return context.GetLocalVariableType((int)operation.OriginalParameter).GetStorageBytes() == 2;
+        }
+
     }
 
 
@@ -645,7 +695,7 @@ namespace Compiler.Ops
         {
             var method = context.Method as MethodInfo;
             if (method.ReturnType == typeof(void) && operation.StackContent.Count != 0)
-                throw  new InvalidOperationException($"Stack should be empty. {context.Method.Name}");
+                throw new InvalidOperationException($"Stack should be empty. {context.Method.Name}");
 
             if (method.ReturnType != typeof(void))
             {

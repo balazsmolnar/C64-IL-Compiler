@@ -70,7 +70,7 @@ namespace Hunchback
             {
                 sprite_.DataBlock = C64Address.FromLabel("spt_arrow_right");
             }
-            C64.Sound.PlayEffectReg2(WaveForm.Noise, 100, 44, 0, 0, 128, 0, false);
+            C64.Sound.PlayEffectReg2(WaveForm.Noise, 0x2C64UL, 0UL, 128, 0, false);
         }
 
         public void Move()

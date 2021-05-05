@@ -11,7 +11,7 @@ namespace C64Lib
     {
         public uint Volume { get; set; }
 
-        public void PlayEffectReg1(WaveForm waveForm, uint lowFreq, uint highFreq, uint pulseWidthLow, uint pulseWidthHigh, uint attackDecay, uint sustain, bool pulse) { }
-        public void PlayEffectReg2(WaveForm waveForm, uint lowFreq, uint highFreq, uint pulseWidthLow, uint pulseWidthHigh, uint attackDecay, uint sustain, bool pulse) { }
+        public void PlayEffectReg1(WaveForm waveForm, ulong freq, ulong pulseWidth, uint attackDecay, uint sustain, bool pulse) { }
+        public void PlayEffectReg2(WaveForm waveForm, ulong freq, ulong pulseWidth, uint attackDecay, uint sustain, bool pulse) { }
     }
 }

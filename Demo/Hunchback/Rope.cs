@@ -53,7 +53,7 @@ namespace Hunchback
             counter_ = 0;
 
             if (frameCounter_ == 0 || frameCounter_ == 16)
-                C64.Sound.PlayEffectReg2(WaveForm.Noise, 100, 15, 0, 0, 176, 0, false);
+                C64.Sound.PlayEffectReg2(WaveForm.Noise, 0x0F64UL, 0UL, 176, 0, false);
             frameCounter_++;
             if (frameCounter_ == 32)
                 frameCounter_ = 0;

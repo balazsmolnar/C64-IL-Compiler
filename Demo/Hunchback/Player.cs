@@ -90,7 +90,7 @@ namespace Hunchback
 
             if (!jump_ && C64.IsKeyPressed(Keys.W))
             {
-                C64.Sound.PlayEffectReg1(WaveForm.Rectangle, 0, 4, 0x28, 0x40, 0, 9, true);
+                C64.Sound.PlayEffectReg1(WaveForm.Rectangle, 1024UL, 0x4028UL, 0, 9, true);
                 if (OnRope)
                 {
                     jumpFromRope_ = true;
@@ -246,13 +246,13 @@ namespace Hunchback
         private void LevelComplete()
         {
             Complete = true;
-            C64.Sound.PlayEffectReg2(WaveForm.Triangle, 0x64, 0x48, 0x00, 0x10, 0x0a, 0x00, false);
+            C64.Sound.PlayEffectReg2(WaveForm.Triangle, 0x4864UL, 0x1000UL, 0x0a, 0x00, false);
             for (int x = 0; x < 127; x++)
             {
                 for (int y = 0; y < 50; y++)
                 { }
             }
-            C64.Sound.PlayEffectReg2(WaveForm.Triangle, 0x64, 0x12, 0x00, 0x10, 0x0a, 0x00, false);
+            C64.Sound.PlayEffectReg2(WaveForm.Triangle, 0x1264UL, 0x1000UL, 0x0a, 0x00, false);
         }
         private void InitJumpOffsets()
         {

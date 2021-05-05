@@ -120,16 +120,16 @@ Player_Move_35:  ; OPT   #locals_push_value8 1 ; Ldarg_0
 Player_Move_75:  ; OPT   #locals_push_value8 1 ; Ldarg_0
   ; OPT   #ldfld 8 ; Ldfld
     #pushfld 8 ; Nop
-    #branch_true Player_Move_150 ; Brtrue_s
+    #branch_true Player_Move_156 ; Brtrue_s
     #stack_push_int8 22 ; Ldc_i4_s
     jsr C64_IsKeyPressed ; Call
-    #branch_false Player_Move_150 ; Brfalse_s
+    #branch_false Player_Move_156 ; Brfalse_s
     jsr C64_get_Sound ; Call
     #stack_push_int8 64 ; Ldc_i4_s
-    #stack_push_int8 0 ; Ldc_i4_0
-    #stack_push_int8 4 ; Ldc_i4_4
-    #stack_push_int8 40 ; Ldc_i4_s
-    #stack_push_int8 64 ; Ldc_i4_s
+    #stack_push_int16 1024 ; Ldc_i4
+    ; conv ; Conv_i8
+    #stack_push_int16 16424 ; Ldc_i4
+    ; conv ; Conv_i8
     #stack_push_int8 0 ; Ldc_i4_0
     #stack_push_int8 9 ; Ldc_i4_s
     #stack_push_int8 1 ; Ldc_i4_1
@@ -137,23 +137,23 @@ Player_Move_75:  ; OPT   #locals_push_value8 1 ; Ldarg_0
   ; OPT   #locals_push_value8 1 ; Ldarg_0
   ; OPT   #ldfld 11 ; Ldfld
     #pushfld 11 ; Nop
-    #branch_false Player_Move_136 ; Brfalse_s
+    #branch_false Player_Move_142 ; Brfalse_s
     #locals_push_value8 1 ; Ldarg_0
     #stack_push_int8 1 ; Ldc_i4_1
     #stfld 9 ; Stfld
     #locals_push_value8 1 ; Ldarg_0
     #stack_push_int8 0 ; Ldc_i4_0
     #stfld 11 ; Stfld
-Player_Move_136:    #locals_push_value8 1 ; Ldarg_0
+Player_Move_142:    #locals_push_value8 1 ; Ldarg_0
     #stack_push_int8 1 ; Ldc_i4_1
     #stfld 8 ; Stfld
     #locals_push_value8 1 ; Ldarg_0
     #stack_push_int8 0 ; Ldc_i4_0
     #stfld 6 ; Stfld
-Player_Move_150:  ; OPT   #locals_push_value8 1 ; Ldarg_0
+Player_Move_156:  ; OPT   #locals_push_value8 1 ; Ldarg_0
   ; OPT   #ldfld 8 ; Ldfld
     #pushfld 8 ; Nop
-    #branch_false Player_Move_218 ; Brfalse_s
+    #branch_false Player_Move_224 ; Brfalse_s
     #locals_push_value8 1 ; Ldarg_0
     #stack_push_int8 117 ; Ldc_i4_s
   ; OPT   #locals_push_value8 1 ; Ldarg_0
@@ -176,24 +176,24 @@ Player_Move_150:  ; OPT   #locals_push_value8 1 ; Ldarg_0
   ; OPT   #ldfld 6 ; Ldfld
     #pushfld 6 ; Nop
   ; OPT   #stack_push_int8 16 ; Ldc_i4_s
-  ; OPT   #branch_not_equal Player_Move_218 ; Bne_un_s
-    #branch_not_equal_const 16, Player_Move_218 ; Nop
+  ; OPT   #branch_not_equal Player_Move_224 ; Bne_un_s
+    #branch_not_equal_const 16, Player_Move_224 ; Nop
     #locals_push_value8 1 ; Ldarg_0
     #stack_push_int8 0 ; Ldc_i4_0
     #stfld 8 ; Stfld
     #locals_push_value8 1 ; Ldarg_0
     #stack_push_int8 0 ; Ldc_i4_0
     #stfld 9 ; Stfld
-Player_Move_218:    #stack_push_int8 0 ; Ldc_i4_0
+Player_Move_224:    #stack_push_int8 0 ; Ldc_i4_0
     jsr C64_IsKeyPressed ; Call
-    #branch_false Player_Move_304 ; Brfalse_s
+    #branch_false Player_Move_310 ; Brfalse_s
     #locals_push_value8 1 ; Ldarg_0
     #stack_push_int8 1 ; Ldc_i4_1
     #stfld 7 ; Stfld
   ; OPT   #locals_push_value8 1 ; Ldarg_0
   ; OPT   #ldfld 11 ; Ldfld
     #pushfld 11 ; Nop
-    #branch_true Player_Move_304 ; Brtrue_s
+    #branch_true Player_Move_310 ; Brtrue_s
     #locals_push_value8 1 ; Ldarg_0
     #locals_push_value8 1 ; Ldarg_0
     jsr Player_get_X ; Call
@@ -203,10 +203,10 @@ Player_Move_218:    #stack_push_int8 0 ; Ldc_i4_0
   ; OPT   #locals_push_value8 1 ; Ldarg_0
   ; OPT   #ldfld 13 ; Ldfld
     #pushfld 13 ; Nop
-    #branch_false Player_Move_290 ; Brfalse_s
+    #branch_false Player_Move_296 ; Brfalse_s
     #locals_push_value8 1 ; Ldarg_0
     jsr Player_get_X ; Call
-    #branch_true Player_Move_290 ; Brtrue_s
+    #branch_true Player_Move_296 ; Brtrue_s
   ; OPT   #locals_push_value8 1 ; Ldarg_0
   ; OPT   #ldfld 14 ; Ldfld
     #pushfld 14 ; Nop
@@ -215,23 +215,23 @@ Player_Move_218:    #stack_push_int8 0 ; Ldc_i4_0
     #locals_push_value8 1 ; Ldarg_0
     #stack_push_int8 0 ; Ldc_i4_0
     #stfld 13 ; Stfld
-Player_Move_290:    #locals_push_value8 1 ; Ldarg_0
+Player_Move_296:    #locals_push_value8 1 ; Ldarg_0
   ; OPT   #locals_push_value8 1 ; Ldarg_0
   ; OPT   #ldfld 5 ; Ldfld
     #pushfld 5 ; Nop
     #stack_push_int8 1 ; Ldc_i4_1
     #add8 ; Add
     #stfld 5 ; Stfld
-Player_Move_304:    #stack_push_int8 3 ; Ldc_i4_3
+Player_Move_310:    #stack_push_int8 3 ; Ldc_i4_3
     jsr C64_IsKeyPressed ; Call
-    #branch_false Player_Move_390 ; Brfalse_s
+    #branch_false Player_Move_396 ; Brfalse_s
     #locals_push_value8 1 ; Ldarg_0
     #stack_push_int8 0 ; Ldc_i4_0
     #stfld 7 ; Stfld
   ; OPT   #locals_push_value8 1 ; Ldarg_0
   ; OPT   #ldfld 11 ; Ldfld
     #pushfld 11 ; Nop
-    #branch_true Player_Move_390 ; Brtrue_s
+    #branch_true Player_Move_396 ; Brtrue_s
     #locals_push_value8 1 ; Ldarg_0
     #locals_push_value8 1 ; Ldarg_0
     jsr Player_get_X ; Call
@@ -241,10 +241,10 @@ Player_Move_304:    #stack_push_int8 3 ; Ldc_i4_3
   ; OPT   #locals_push_value8 1 ; Ldarg_0
   ; OPT   #ldfld 13 ; Ldfld
     #pushfld 13 ; Nop
-    #branch_true Player_Move_376 ; Brtrue_s
+    #branch_true Player_Move_382 ; Brtrue_s
     #locals_push_value8 1 ; Ldarg_0
     jsr Player_get_X ; Call
-    #branch_true Player_Move_376 ; Brtrue_s
+    #branch_true Player_Move_382 ; Brtrue_s
   ; OPT   #locals_push_value8 1 ; Ldarg_0
   ; OPT   #ldfld 14 ; Ldfld
     #pushfld 14 ; Nop
@@ -253,31 +253,31 @@ Player_Move_304:    #stack_push_int8 3 ; Ldc_i4_3
     #locals_push_value8 1 ; Ldarg_0
     #stack_push_int8 1 ; Ldc_i4_1
     #stfld 13 ; Stfld
-Player_Move_376:    #locals_push_value8 1 ; Ldarg_0
+Player_Move_382:    #locals_push_value8 1 ; Ldarg_0
   ; OPT   #locals_push_value8 1 ; Ldarg_0
   ; OPT   #ldfld 5 ; Ldfld
     #pushfld 5 ; Nop
     #stack_push_int8 1 ; Ldc_i4_1
     #add8 ; Add
     #stfld 5 ; Stfld
-Player_Move_390:  ; OPT   #locals_push_value8 1 ; Ldarg_0
+Player_Move_396:  ; OPT   #locals_push_value8 1 ; Ldarg_0
   ; OPT   #ldfld 5 ; Ldfld
     #pushfld 5 ; Nop
   ; OPT   #stack_push_int8 4 ; Ldc_i4_4
-  ; OPT   #branch_not_equal Player_Move_406 ; Bne_un_s
-    #branch_not_equal_const 4, Player_Move_406 ; Nop
+  ; OPT   #branch_not_equal Player_Move_412 ; Bne_un_s
+    #branch_not_equal_const 4, Player_Move_412 ; Nop
     #locals_push_value8 1 ; Ldarg_0
     #stack_push_int8 0 ; Ldc_i4_0
     #stfld 5 ; Stfld
-Player_Move_406:    #locals_push_value8 1 ; Ldarg_0
+Player_Move_412:    #locals_push_value8 1 ; Ldarg_0
     jsr Player_get_Y ; Call
   ; OPT   #stack_push_int8 117 ; Ldc_i4_s
-  ; OPT   #branch_not_equal Player_Move_449 ; Bne_un_s
-    #branch_not_equal_const 117, Player_Move_449 ; Nop
+  ; OPT   #branch_not_equal Player_Move_455 ; Bne_un_s
+    #branch_not_equal_const 117, Player_Move_455 ; Nop
   ; OPT   #locals_push_value8 1 ; Ldarg_0
   ; OPT   #ldfld 9 ; Ldfld
     #pushfld 9 ; Nop
-    #branch_true Player_Move_449 ; Brtrue_s
+    #branch_true Player_Move_455 ; Brtrue_s
   ; OPT   #locals_push_value8 1 ; Ldarg_0
   ; OPT   #ldfld 1 ; Ldfld
     #pushfld 1 ; Nop
@@ -285,10 +285,10 @@ Player_Move_406:    #locals_push_value8 1 ; Ldarg_0
   ; OPT   #ldfld 3 ; Ldfld
     #pushfld 3 ; Nop
     jsr Wall_IsHole ; Callvirt
-    #branch_false Player_Move_449 ; Brfalse_s
+    #branch_false Player_Move_455 ; Brfalse_s
     #locals_push_value8 1 ; Ldarg_0
     jsr Player_Die ; Call
-Player_Move_449:    #locals_push_value8 1 ; Ldarg_0
+Player_Move_455:    #locals_push_value8 1 ; Ldarg_0
     jsr Player_SetFrame ; Call
     #method_exit 3, [] ; Ret
 
@@ -614,10 +614,10 @@ Player_LevelComplete
     #stfld 12 ; Stfld
     jsr C64_get_Sound ; Call
     #stack_push_int8 16 ; Ldc_i4_s
-    #stack_push_int8 100 ; Ldc_i4_s
-    #stack_push_int8 72 ; Ldc_i4_s
-    #stack_push_int8 0 ; Ldc_i4_0
-    #stack_push_int8 16 ; Ldc_i4_s
+    #stack_push_int16 18532 ; Ldc_i4
+    ; conv ; Conv_i8
+    #stack_push_int16 4096 ; Ldc_i4
+    ; conv ; Conv_i8
     #stack_push_int8 10 ; Ldc_i4_s
     #stack_push_int8 0 ; Ldc_i4_0
     #stack_push_int8 0 ; Ldc_i4_0
@@ -625,35 +625,35 @@ Player_LevelComplete
   ; OPT   #stack_push_int8 0 ; Ldc_i4_0
   ; OPT   #locals_pull_value8 2, 0 ; Stloc_0
     #init_var 2, 0 ; Nop
-    jmp Player_LevelComplete_51 ; Br_s
-Player_LevelComplete_34:  ; OPT   #stack_push_int8 0 ; Ldc_i4_0
+    jmp Player_LevelComplete_56 ; Br_s
+Player_LevelComplete_39:  ; OPT   #stack_push_int8 0 ; Ldc_i4_0
   ; OPT   #locals_pull_value8 3, 0 ; Stloc_1
     #init_var 3, 0 ; Nop
-    jmp Player_LevelComplete_42 ; Br_s
-Player_LevelComplete_38:  ; OPT   #locals_push_value8 3 ; Ldloc_1
+    jmp Player_LevelComplete_47 ; Br_s
+Player_LevelComplete_43:  ; OPT   #locals_push_value8 3 ; Ldloc_1
   ; OPT   #stack_push_int8 1 ; Ldc_i4_1
   ; OPT   #add8 ; Add
   ; OPT   #locals_pull_value8 3, 0 ; Stloc_1
     #inc_var 3 ; Nop
-Player_LevelComplete_42:    #locals_push_value8 3 ; Ldloc_1
+Player_LevelComplete_47:    #locals_push_value8 3 ; Ldloc_1
   ; OPT   #stack_push_int8 50 ; Ldc_i4_s
-  ; OPT   #branch_less Player_LevelComplete_38 ; Blt_s
-    #branch_less_const 50, Player_LevelComplete_38 ; Nop
+  ; OPT   #branch_less Player_LevelComplete_43 ; Blt_s
+    #branch_less_const 50, Player_LevelComplete_43 ; Nop
   ; OPT   #locals_push_value8 2 ; Ldloc_0
   ; OPT   #stack_push_int8 1 ; Ldc_i4_1
   ; OPT   #add8 ; Add
   ; OPT   #locals_pull_value8 2, 0 ; Stloc_0
     #inc_var 2 ; Nop
-Player_LevelComplete_51:    #locals_push_value8 2 ; Ldloc_0
+Player_LevelComplete_56:    #locals_push_value8 2 ; Ldloc_0
   ; OPT   #stack_push_int8 127 ; Ldc_i4_s
-  ; OPT   #branch_less Player_LevelComplete_34 ; Blt_s
-    #branch_less_const 127, Player_LevelComplete_34 ; Nop
+  ; OPT   #branch_less Player_LevelComplete_39 ; Blt_s
+    #branch_less_const 127, Player_LevelComplete_39 ; Nop
     jsr C64_get_Sound ; Call
     #stack_push_int8 16 ; Ldc_i4_s
-    #stack_push_int8 100 ; Ldc_i4_s
-    #stack_push_int8 18 ; Ldc_i4_s
-    #stack_push_int8 0 ; Ldc_i4_0
-    #stack_push_int8 16 ; Ldc_i4_s
+    #stack_push_int16 4708 ; Ldc_i4
+    ; conv ; Conv_i8
+    #stack_push_int16 4096 ; Ldc_i4
+    ; conv ; Conv_i8
     #stack_push_int8 10 ; Ldc_i4_s
     #stack_push_int8 0 ; Ldc_i4_0
     #stack_push_int8 0 ; Ldc_i4_0

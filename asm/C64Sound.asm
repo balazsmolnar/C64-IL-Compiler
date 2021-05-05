@@ -17,10 +17,10 @@ Sound_PlayEffectReg1:
     #stack_pull_int_x
     #stack_pull_int $D406
     #stack_pull_int $D405
-    #stack_pull_int $D403
     #stack_pull_int $D402
-    #stack_pull_int $D401
+    #stack_pull_int $D403
     #stack_pull_int $D400
+    #stack_pull_int $D401
     #stack_pull_int_a
     eor #01
     sta $D404
@@ -38,10 +38,10 @@ Sound_PlayEffectReg2:
     #stack_pull_int_x
     #stack_pull_int $D40D
     #stack_pull_int $D40C
-    #stack_pull_int $D40A
     #stack_pull_int $D409
+    #stack_pull_int $D40A
+    #stack_pull_int $D407
     #stack_pull_int $D408
-    #stack_pull_int $D407.
     #stack_pull_int_a
     eor #01
     sta $D40B

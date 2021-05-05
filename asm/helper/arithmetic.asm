@@ -82,10 +82,32 @@ negate8 .macro
 .endm
 
 compareLess16 .macro 
-        #stack_pull_int $34
-        #stack_pull_int $32
 
-        clc
+        #stack_pull_int $32
+        #stack_pull_int $33
+        #stack_pull_int $34
+        #stack_pull_int $35
+
+        ldx #0
+        lda $35
+        cmp $33
+        bcc +
+        bne l1
+        lda $34
+        cmp $32
+        bcs l1
++       inx
+l1      
+        #stack_push_int_x
+.endm
+
+compareGreater16 .macro 
+
+        #stack_pull_int $32
+        #stack_pull_int $33
+        #stack_pull_int $34
+        #stack_pull_int $35
+
         ldx #0
         lda $33
         cmp $35
@@ -94,12 +116,49 @@ compareLess16 .macro
         lda $32
         cmp $34
         bcs l1
-+       ldx #1
-l1      stx $34
++       inx
+l1      
+        #stack_push_int_x
+.endm
+
+compareGreater_unsigned16 .macro 
+
+        #stack_pull_int $32
+        #stack_pull_int $33
+        #stack_pull_int $34
+        #stack_pull_int $35
 
         ldx #0
-        stx $35
-        #stack_push_var $34
+        lda $33
+        cmp $35
+        bcc +
+        bne l1
+        lda $32
+        cmp $34
+        bcs l1
++       inx
+l1      
+        #stack_push_int_x
+.endm
+
+compareLess_unsigned16 .macro 
+
+        #stack_pull_int $32
+        #stack_pull_int $33
+        #stack_pull_int $34
+        #stack_pull_int $35
+
+        ldx #0
+        lda $35
+        cmp $33
+        bcc +
+        bne l1
+        lda $34
+        cmp $32
+        bcs l1
++       inx
+l1      
+        #stack_push_int_x
 .endm
 
 compareLess8 .macro 

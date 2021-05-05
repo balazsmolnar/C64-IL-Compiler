@@ -171,23 +171,21 @@ compareGreater_unsigned_const8 .macro value
 .endm
 
 compareEqual16 .macro 
-        #stack_pull_int $34
         #stack_pull_int $32
+        #stack_pull_int $33
+        #stack_pull_int $34
+        #stack_pull_int $35
 
-        clc
         ldx #0
-        lda $33
-        cmp $35
-        bne ++
         lda $32
         cmp $34
-        bne ++
-        ldx #1
-++      stx $34
-
-        ldx #0
-        stx $35
-        #stack_push_var $34
+        bne +
+        lda $33
+        cmp $35
+        bne +
+        inx
++
+        #stack_push_int_x 
 .endm
 
 compareEqual8 .macro

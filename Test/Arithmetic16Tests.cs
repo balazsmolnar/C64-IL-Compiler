@@ -57,20 +57,21 @@ namespace Compiler.Test
             return a - b;
         }
 
-        //[TestCase(5, 4, ExpectedResult = false)]
-        //[TestCase(100, 100, ExpectedResult = true)]
-        //[TestCase(-10, -10, ExpectedResult = true)]
-        //public bool TestEquality(long a, long b)
-        //{
-        //    return a == b;
-        //}
+        [TestCase(5, 4, ExpectedResult = false)]
+        [TestCase(100, 100, ExpectedResult = true)]
+        [TestCase(10000, 10000, ExpectedResult = true)]
+        [TestCase(10000, 10001, ExpectedResult = false)]
+        public bool TestEquality(long a, long b)
+        {
+            return a == b;
+        }
 
-        //[TestCase(5, ExpectedResult = false)]
-        //[TestCase(4, ExpectedResult = true)]
-        //public bool TestEquality_Const(long a)
-        //{
-        //    return a == 4;
-        //}
+        [TestCase(10001, ExpectedResult = false)]
+        [TestCase(10000, ExpectedResult = true)]
+        public bool TestEquality_Const(long a)
+        {
+            return a == 10000L;
+        }
 
         //[TestCase(5u, 4u, ExpectedResult = false)]
         //[TestCase(100u, 100u, ExpectedResult = true)]

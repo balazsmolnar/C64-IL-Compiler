@@ -66,6 +66,11 @@ namespace Compiler.Ops
             operation.StackContent.Add(typeof(bool));
         }
 
+        public override bool Is16Bit(CompilerMethodContext context, ILOperation operation)
+        {
+            return operation.PreviousInstructions[0].StackContent.Last().GetStorageBytes() == 2;
+        }
+
     }
 
 }

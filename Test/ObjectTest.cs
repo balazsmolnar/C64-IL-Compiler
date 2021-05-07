@@ -10,7 +10,10 @@ namespace Compiler.Test
         public static int staticField;
         public int Property1 { get; set; }
 
+        public ulong Ulong1;
         private int prop2;
+
+        public ulong Ulong2;
 
         public int Property2
         {
@@ -100,5 +103,25 @@ namespace Compiler.Test
             Assert.AreEqual(sut1.field1, 5);
             Assert.AreEqual(sut2.field1, 6);
         }
+
+        [Test]
+        public void Ulong_Property()
+        {
+            var sut1 = new Test();
+            sut1.Ulong1 = 1000;
+            sut1.Ulong2 = 2000;
+            if (sut1.Ulong1 != 1000)
+                Assert.Fail();
+            if (sut1.Ulong2 != 2000)
+                Assert.Fail();
+
+            sut1.Ulong1 += 5;
+            if (sut1.Ulong1 != 1005)
+                Assert.Fail();
+
+
+        }
+
+
     }
 }

@@ -32,6 +32,12 @@ namespace Compiler.Ops
             operation.NextInstructions.Add(jmpInstruction);
         }
 
+        public override bool Is16BitSupported => _jumpType == JumpType.Compare;
+
+        public override bool Is16Bit(CompilerMethodContext context, ILOperation operation)
+        {
+            return operation.PreviousInstructions[0].StackContent.Last().GetStorageBytes() == 2;
+        }
 
         public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
         {

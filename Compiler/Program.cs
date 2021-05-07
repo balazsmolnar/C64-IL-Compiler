@@ -40,7 +40,7 @@ namespace Compiler
                             new ILMethodCodePass(),
                             new ILMethodLabelPass(),
                             new ILMethodNextInstructionPass(),
-                            new ILMethodBuildEvaluationStackPass(), 
+                            new ILMethodBuildEvaluationStackPass(),
                             new ILAddressFromLabelPass(),
                             new ILMethodIncOptimizer(),
                             new ILPropertyGettterOptimizer(),

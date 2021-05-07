@@ -4,14 +4,13 @@ namespace Hunchback
     class Enemy
     {
 
-        private uint x_;
+        private ulong x_;
         private uint y_;
         private int frameCounter_;
 
         private EnemyType enemyType_;
 
-        private bool highPosition;
-        public uint X
+        public ulong X
         {
             get { return x_; }
             set
@@ -55,15 +54,11 @@ namespace Hunchback
             arrow_ = (enemyType_ & EnemyType.Arrow) > 0;
             if (leftToRight_)
             {
-                X = 0;
-                highPosition = false;
-                sprite_.HighPosition = false;
+                X = 0UL;
             }
             else
             {
-                highPosition = true;
-                sprite_.HighPosition = true;
-                X = 60;
+                X = 316UL;
             }
 
             if (arrow_ && leftToRight_)
@@ -83,33 +78,20 @@ namespace Hunchback
 
             if (leftToRight_)
             {
-                X += 4;
-                if (X == 0)
-                {
-                    highPosition = true;
-                    sprite_.HighPosition = true;
-                }
+                X += 4UL;
 
-                if (X == 60 && highPosition)
+                if (X == 316UL)
                 {
                     Init(enemyType_);
                 }
             }
             else
             {
-                X -= 4;
+                X -= 4UL;
 
-                if (X == 0)
+                if (X == 20UL)
                 {
-                    if (highPosition)
-                    {
-                        highPosition = false;
-                        sprite_.HighPosition = false;
-                    }
-                    else
-                    {
-                        Init(enemyType_);
-                    }
+                    Init(enemyType_);
                 }
             }
             SetFrame();

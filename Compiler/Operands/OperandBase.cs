@@ -128,14 +128,7 @@ namespace Compiler.Ops
             var referenceFields = 0;
             foreach (var f in t.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
             {
-                if (f.FieldType == typeof(string))
-                {
-                    size += 2;
-                }
-                else
-                {
-                    size += 1;
-                }
+                size += f.FieldType.GetStorageBytes();
                 if (f.FieldType.IsReferenceCounted())
                     referenceFields++;
             }
@@ -187,6 +180,13 @@ namespace Compiler.Ops
             last.CheckCompatible(field.FieldType);
             operation.StackContent.RemoveLast(2);
         }
+        public override bool Is16BitSupported => true;
+
+        public override bool Is16Bit(CompilerMethodContext context, ILOperation operation)
+        {
+            return operation.PreviousInstructions[0].StackContent.Last().GetStorageBytes() == 2;
+        }
+
     }
 
     class OpStElem : OpBase
@@ -251,6 +251,8 @@ namespace Compiler.Ops
             var field = context.CompilerContext.Assembly.ManifestModule.ResolveField((int)operation.OriginalParameter);
             operation.StackContent.Add(field.FieldType);
         }
+
+        public override bool Is16BitSupported => true;
     }
 
     class OpIncfld : OpBase
@@ -268,19 +270,23 @@ namespace Compiler.Ops
         {
             return $"{pos}";
         }
+        public override bool Is16BitSupported => true;
+
     }
 
     class OpSetfld : OpBase
     {
         private readonly string pos;
+        private readonly bool _is16Bit;
         private readonly string objRelPos;
         private readonly string valueRelPos;
 
-        public OpSetfld(string objRelPos, string valueRelPos, string pos) : base(0, "#setfld")
+        public OpSetfld(string objRelPos, string valueRelPos, string pos, bool Is16Bit) : base(0, "#setfld")
         {
             this.objRelPos = objRelPos;
             this.valueRelPos = valueRelPos;
             this.pos = pos;
+            _is16Bit = Is16Bit;
         }
 
         public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
@@ -292,23 +298,34 @@ namespace Compiler.Ops
         {
             operation.StackContent.RemoveLast(2);
         }
+
+        public override bool Is16BitSupported => true;
+
+        public override bool Is16Bit(CompilerMethodContext context, ILOperation operation) => _is16Bit;
     }
 
     class OpPushFld : OpBase
     {
         private readonly string thisVar;
         private readonly string pos;
+        private readonly bool is16Bit;
 
-        public OpPushFld(string thisVar, string pos) : base(0, "#pushfld")
+        public OpPushFld(string thisVar, string pos, bool is16Bit) : base(0, "#pushfld")
         {
             this.thisVar = thisVar;
             this.pos = pos;
+            this.is16Bit = is16Bit;
         }
 
         public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
         {
             return $"{pos}";
         }
+
+        public override bool Is16BitSupported => true;
+
+        public override bool Is16Bit(CompilerMethodContext context, ILOperation operation) => is16Bit;
+
     }
 
     class OpDup : OpBase

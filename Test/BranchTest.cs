@@ -26,10 +26,30 @@ namespace Compiler.Test
         }
 
         [Test]
+        public void Branch_If_Equal_ulong()
+        {
+            ulong a = 5000;
+            ulong b = 6000;
+
+            if (a == b)
+                Assert.Fail();
+        }
+
+        [Test]
         public void Branch_If_Not_Equal()
         {
             int a = 5;
             int b = 5;
+
+            if (a != b)
+                Assert.Fail();
+        }
+
+        [Test]
+        public void Branch_If_Not_Equal_ulong()
+        {
+            ulong a = 5000;
+            ulong b = 5000;
 
             if (a != b)
                 Assert.Fail();
@@ -46,10 +66,30 @@ namespace Compiler.Test
         }
 
         [Test]
+        public void Branch_If_Greater_ulong()
+        {
+            ulong a = 5000;
+            ulong b = 5000;
+
+            if (a > b)
+                Assert.Fail();
+        }
+
+        [Test]
         public void Branch_If_Less()
         {
             int a = 6;
             int b = 5;
+
+            if (a < b)
+                Assert.Fail();
+        }
+
+        [Test]
+        public void Branch_If_Less_ulong()
+        {
+            ulong a = 6;
+            ulong b = 5;
 
             if (a < b)
                 Assert.Fail();
@@ -71,11 +111,53 @@ namespace Compiler.Test
         }
 
         [Test]
+        public void Branch_If_Greater_Equal_ulong()
+        {
+            ulong a = 6000;
+
+            if (a >= 6000)
+            {
+
+            }
+            else
+            {
+                Assert.Fail();
+            }
+        }
+
+        [Test]
+        public void Branch_Combined_ulong()
+        {
+            ulong a = 6000;
+
+            if (a >= 6000 && a <= 6001)
+            {
+                return;
+            }
+            Assert.Fail();
+        }
+
+        [Test]
         public void Branch_If_Less_Equal()
         {
             int a = 6;
 
             if (a <= 6)
+            {
+
+            }
+            else
+            {
+                Assert.Fail();
+            }
+        }
+
+        [Test]
+        public void Branch_If_Less_Equal_ulong()
+        {
+            ulong a = 6000;
+
+            if (a <= 6000)
             {
 
             }
@@ -94,6 +176,19 @@ namespace Compiler.Test
 
             }
             Assert.AreEqual(i, 10);
+        }
+
+        [Test]
+        public void For_Loop_ulong()
+        {
+            ulong i = 0;
+            for (; i < 1000; i++)
+            {
+
+            }
+
+            if (i != 1000)
+                Assert.Fail();
         }
 
         [Test]

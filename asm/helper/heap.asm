@@ -43,7 +43,7 @@ newArr .macro
   #stack_push_int_a
 .endm
 
-stfld .macro  pos 
+stfld8 .macro  pos 
   #stack_pull_int $fd
   #stack_pull_int_x
 
@@ -54,6 +54,24 @@ stfld .macro  pos
 
   ldy #\pos
   lda $fd
+  sta (tmpPointer),y 
+.endm
+
+stfld16 .macro  pos 
+  #stack_pull_int $fd
+  #stack_pull_int $fe
+  #stack_pull_int_x
+
+  lda objTableLow,x
+  sta tmpPointer
+  lda objTableHigh,x
+  sta tmpPointer+1
+
+  ldy #\pos
+  lda $fd
+  sta (tmpPointer),y 
+  lda $fe
+  iny
   sta (tmpPointer),y 
 .endm
 
@@ -95,7 +113,7 @@ stelem .macro
   sta (tmpPointer),y 
 .endm
 
-ldfld .macro pos 
+ldfld8 .macro pos 
   #stack_pull_int_x
   lda objTableLow,x
   sta tmpPointer
@@ -106,6 +124,22 @@ ldfld .macro pos
   lda (tmpPointer),y
 
   #stack_push_int_a
+.endm
+
+ldfld16 .macro pos 
+  #stack_pull_int_x
+  lda objTableLow,x
+  sta tmpPointer
+  lda objTableHigh,x
+  sta tmpPointer+1
+
+  ldy #\pos+1
+  lda (tmpPointer),y
+  #stack_push_int_a
+  dey
+  lda (tmpPointer),y
+  #stack_push_int_a
+
 .endm
 
 ldelemRef .macro   

@@ -24,9 +24,10 @@ namespace Compiler
                     lines[i + 1].Operation is OpLdarg &&
                     lines[i + 2].Operation is OpStfld)
                 {
+                    bool is16Bit = lines[i + 2].Operation.Is16Bit(context, lines[i + 2]);
                     ILOperation newOperation = new ILOperation
                     {
-                        Operation = new OpSetfld(lines[i].RawParameter.ToString(), lines[i + 1].RawParameter.ToString(), lines[i + 2].RawParameter.ToString()),
+                        Operation = new OpSetfld(lines[i].RawParameter.ToString(), lines[i + 1].RawParameter.ToString(), lines[i + 2].RawParameter.ToString(), is16Bit),
                     };
                     newOperation.RawParameter = newOperation.Operation.ConvertParameter(context, null);
                     newOperation.StackContent = lines[i + 2].StackContent;

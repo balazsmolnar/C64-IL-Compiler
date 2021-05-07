@@ -218,14 +218,29 @@ Sprite_set_Color:
     sta spriteColor,x    
     #stack_return_to_saved_address zp_tmp1_low
 
+sprite_bit_table: .byte $01, $02, $04, $08, $10, $20, $40, $80
+
 Sprite_set_X:
     #stack_save_return_adress zp_tmp1_low
     #stack_pull_int_y
+    #stack_pull_int $32
     #stack_pull_int_a
     asl
     tax
     tya
-    sta spriteX,x    
+    sta spriteX,x
+    txa
+    lsr
+    tay    
+    lda sprite_bit_table, y
+    ldy $32
+    beq +
+    ora spriteExtraPosition
+    jmp Sprite_set_X_l1
++   eor #$FF
+    and spriteExtraPosition
+Sprite_set_X_l1:
+    sta spriteExtraPosition
     #stack_return_to_saved_address zp_tmp1_low
 
 Sprite_set_Y:

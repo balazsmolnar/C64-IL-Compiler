@@ -95,7 +95,7 @@ namespace Hunchback
             }
         }
 
-        public bool IsHole(uint x)
+        public bool IsHole(ulong x)
         {
             if (wallType_ == WallType.EmptyPits || wallType_ == WallType.KnightPits)
             {

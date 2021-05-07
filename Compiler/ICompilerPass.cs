@@ -25,14 +25,7 @@ namespace Compiler
             {
                 if (f == field)
                     break;
-                if (f.FieldType == typeof(string))
-                {
-                    pos += 2;
-                }
-                else
-                {
-                    pos += 1;
-                }
+                pos += f.FieldType.GetStorageBytes();
             }
             return pos;
         }

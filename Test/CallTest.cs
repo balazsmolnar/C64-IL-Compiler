@@ -26,6 +26,13 @@ namespace Compiler.Test
             return 5;
         }
 
+        public ulong InstanceMethod_ulong(ulong a)
+        {
+            if (a != 1000)
+                Assert.Fail();
+            return 2000;
+        }
+
         [Test]
         public void Test_Static_Method()
         {
@@ -50,6 +57,13 @@ namespace Compiler.Test
         public void Test_Instance_Method_Returns_Obj()
         {
             Assert.AreEqual(StaticMethodReturnObj().F, 12);
+        }
+
+        [Test]
+        public void Test_Instance_Method_ulong()
+        {
+            if (InstanceMethod_ulong(1000) != 2000)
+                Assert.Fail();
         }
 
 

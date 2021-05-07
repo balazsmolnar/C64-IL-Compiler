@@ -16,6 +16,21 @@ namespace Demo
             var game = new Game();
             game.Start();
 
+            var sprite = C64.Sprites.Sprite1;
+            sprite.DataBlock = C64Address.FromLabel("spt_player_right_0");
+            sprite.MultiColor = true;
+            sprite.Visible = true;
+            sprite.Color = Colors.Green;
+
+            sprite.X = 300UL;
+            sprite.Y = 100;
+
+            for (ulong x = 0UL; x < 320UL; x++)
+            {
+                sprite.X = x;
+                Delay.Wait(10);
+            }
+
             // Ball.RunBalls();
             //Foo(0, C64Address.FromLabel("label1"), 0);
             // Foo("X");

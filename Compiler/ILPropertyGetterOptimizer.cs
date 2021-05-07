@@ -28,9 +28,10 @@ namespace Compiler
                     lines[i + 3].OpCode == ILOpCode.Br_s &&
                     lines[i + 4].Operation is OpLdloc)
                 {
+                    bool is16Bit = lines[i + 1].Operation.Is16Bit(context, lines[i + 1]);
                     ILOperation newOperation = new ILOperation
                     {
-                        Operation = new OpPushFld(lines[i].RawParameter.ToString(), lines[i + 1].RawParameter.ToString()),
+                        Operation = new OpPushFld(lines[i].RawParameter.ToString(), lines[i + 1].RawParameter.ToString(), is16Bit),
                     };
                     newOperation.RawParameter = newOperation.Operation.ConvertParameter(context, null);
                     newOperation.StackContent = lines[i + 4].StackContent;
@@ -44,9 +45,10 @@ namespace Compiler
                 else if (lines[i].OpCode == ILOpCode.Ldarg_0 &&
                   lines[i + 1].Operation is OpLdfld)
                 {
+                    bool is16Bit = lines[i + 1].Operation.Is16Bit(context, lines[i + 1]);
                     ILOperation newOperation = new ILOperation
                     {
-                        Operation = new OpPushFld(lines[i].RawParameter.ToString(), lines[i + 1].RawParameter.ToString()),
+                        Operation = new OpPushFld(lines[i].RawParameter.ToString(), lines[i + 1].RawParameter.ToString(), is16Bit),
                     };
                     newOperation.RawParameter = newOperation.Operation.ConvertParameter(context, null);
                     lines.Insert(i + 2, newOperation);

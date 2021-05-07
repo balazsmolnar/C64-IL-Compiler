@@ -4,7 +4,7 @@ namespace Hunchback
     class Player
     {
 
-        private uint x_;
+        private ulong x_;
         private uint y_;
         private int frameCounter_;
         private int jumpFrameCounter_;
@@ -16,11 +16,9 @@ namespace Hunchback
         public Rope Rope;
         public bool Complete;
         private Wall wall_;
-
-        private bool highPosition_;
         private int[] jumpOffsets_;
 
-        public uint X
+        public ulong X
         {
             get { return x_; }
             set
@@ -54,10 +52,8 @@ namespace Hunchback
             sprite_.MultiColor = true;
             sprite_.Visible = true;
             sprite_.Color = Colors.Green;
-            sprite_.HighPosition = false;
             var tmp = sprite_.IsInCollision;
             tmp = sprite_.IsInBackgroundCollision;
-            highPosition_ = false;
             jump_ = false;
             Dead = false;
             wall_ = wall;
@@ -72,7 +68,7 @@ namespace Hunchback
 
             if (sprite_.IsInBackgroundCollision)
             {
-                if (highPosition_)
+                if (X > 300)
                 {
                     LevelComplete();
                 }
@@ -117,11 +113,6 @@ namespace Hunchback
                 if (!OnRope)
                 {
                     X -= 2;
-                    if (highPosition_ && X == 0)
-                    {
-                        sprite_.HighPosition = false;
-                        highPosition_ = false;
-                    }
                     frameCounter_++;
                 }
 
@@ -132,11 +123,6 @@ namespace Hunchback
                 if (!OnRope)
                 {
                     X += 2;
-                    if (!highPosition_ && X == 0)
-                    {
-                        sprite_.HighPosition = true;
-                        highPosition_ = true;
-                    }
                     frameCounter_++;
                 }
             }

@@ -8,6 +8,7 @@ namespace Compiler.Test
 
     public class TestObject
     {
+
         public int Id;
 
         public TestObject Child;

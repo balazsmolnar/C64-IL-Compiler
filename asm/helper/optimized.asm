@@ -9,7 +9,7 @@ init_var .macro  rel_pos, value
   sta localsStack-\rel_pos,y
 .endm
 
-setfld .macro objRelPos, objValuePos, pos 
+setfld8 .macro objRelPos, objValuePos, pos 
 
   ldy stackPointer
   ldx localsStack-\objRelPos,y
@@ -25,7 +25,30 @@ setfld .macro objRelPos, objValuePos, pos
   sta (tmpPointer),y
 .endm
 
-pushfld .macro pos 
+setfld16 .macro objRelPos, objValuePos, pos 
+
+  ldy stackPointer
+  ldx localsStack-\objRelPos,y
+  lda objTableLow,x
+  sta tmpPointer
+  lda objTableHigh,x
+  sta tmpPointer+1
+
+  ldy stackPointer
+  ldx localsStack-\objValuePos,y
+  txa
+  ldy #\pos
+  sta (tmpPointer),y
+
+  ldy stackPointer
+  ldx localsStack-\objValuePos+1,y
+  txa
+  ldy #\pos+1
+  sta (tmpPointer),y
+
+.endm
+
+pushfld8 .macro pos 
 
   ldy stackPointer
   dey
@@ -36,6 +59,25 @@ pushfld .macro pos
   sta tmpPointer+1
 
   ldy #\pos
+  lda (tmpPointer),y
+  pha
+
+.endm
+
+pushfld16 .macro pos 
+
+  ldy stackPointer
+  dey
+  ldx localsStack,y
+  lda objTableLow,x
+  sta tmpPointer
+  lda objTableHigh,x
+  sta tmpPointer+1
+
+  ldy #\pos+1
+  lda (tmpPointer),y
+  pha
+  dey
   lda (tmpPointer),y
   pha
 

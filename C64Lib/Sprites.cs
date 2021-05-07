@@ -22,11 +22,10 @@ namespace C64Lib
         public bool IsInBackgroundCollision { get; }
         public Colors Color { get; set; }
         public bool MultiColor { get; set; }
-        public bool HighPosition { get; set; }
         public bool ExpandX { get; set; }
         public bool ExpandY { get; set; }
         public ulong DataBlock { get; set; }
-        public uint X { get; set; }
+        public ulong X { get; set; }
         public uint Y { get; set; }
 
     }

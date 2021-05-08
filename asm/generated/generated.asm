@@ -14,19 +14,20 @@
 .include "./Screen.asm"
 .include "./TitleScreen.asm"
 .include "./Wall.asm"
-string_1879048193 .text "spt_player_right_0",0
-string_1879048231 .text "spt_arrow_right",0
-string_1879048263 .text "spt_fireball_0",0
-string_1879048293 .text "spt_fireball_1",0
-string_1879048323 .text "spt_fireball_2",0
-string_1879048353 .text "spt_fireball_3",0
-string_1879048383 .text "charset",0
-string_1879048399 .text "spt_knight_climb_0",0
-string_1879048437 .text "spt_knight_climb_1",0
-string_1879048475 .text "spt_knight_walk_0",0
-string_1879048511 .text "spt_knight_walk_1",0
-string_1879048547 .text "GET READY",0
-string_1879048567 .text "         ",0
+.include "./Tone.asm"
+string_1879048193 .text "spt_arrow_right",0
+string_1879048225 .text "spt_fireball_0",0
+string_1879048255 .text "spt_fireball_1",0
+string_1879048285 .text "spt_fireball_2",0
+string_1879048315 .text "spt_fireball_3",0
+string_1879048345 .text "charset",0
+string_1879048361 .text "spt_knight_climb_0",0
+string_1879048399 .text "spt_knight_climb_1",0
+string_1879048437 .text "spt_knight_walk_0",0
+string_1879048473 .text "spt_knight_walk_1",0
+string_1879048509 .text "GET READY",0
+string_1879048529 .text "         ",0
+string_1879048549 .text "spt_player_right_0",0
 string_1879048587 .text "spt_player_rope_left",0
 string_1879048629 .text "spt_player_rope_right",0
 string_1879048673 .text "spt_player_jump_left_0",0

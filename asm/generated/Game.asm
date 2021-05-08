@@ -50,7 +50,7 @@ Game_Start_68:    #locals_push_value8 3 ; Ldloc_1
 ;----------------------------------------
 Game_Init 
     #init_locals_pull_parameters 0, [0]
-  ; OPT   #stack_push_pointer string_1879048383 ; Ldstr
+  ; OPT   #stack_push_pointer string_1879048345 ; Ldstr
   ; OPT   jsr C64Address_FromLabel ; Call
     #stack_push_pointer charset ; Nop
     jsr C64_SetCharSet ; Call

@@ -22,7 +22,7 @@ Player_Init
   ; OPT   #locals_push_value8 1 ; Ldarg_0
   ; OPT   #ldfld8 14 ; Ldfld
     #pushfld8 14 ; Nop
-  ; OPT   #stack_push_pointer string_1879048193 ; Ldstr
+  ; OPT   #stack_push_pointer string_1879048549 ; Ldstr
   ; OPT   jsr C64Address_FromLabel ; Call
     #stack_push_pointer spt_player_right_0 ; Nop
     jsr Sprite_set_DataBlock ; Callvirt
@@ -537,7 +537,7 @@ Player_SetFrame_375:  ; OPT   #locals_push_value8 1 ; Ldarg_0
 Player_SetFrame_405:  ; OPT   #locals_push_value8 1 ; Ldarg_0
   ; OPT   #ldfld8 14 ; Ldfld
     #pushfld8 14 ; Nop
-  ; OPT   #stack_push_pointer string_1879048193 ; Ldstr
+  ; OPT   #stack_push_pointer string_1879048549 ; Ldstr
   ; OPT   jsr C64Address_FromLabel ; Call
     #stack_push_pointer spt_player_right_0 ; Nop
     jsr Sprite_set_DataBlock ; Callvirt

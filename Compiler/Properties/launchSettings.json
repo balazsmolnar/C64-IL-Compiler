@@ -2,7 +2,7 @@
   "profiles": {
     "Compiler": {
       "commandName": "Project",
-      "commandLineArgs": "c:\\Balazs\\Projects\\C64-IL-Compiler\\Test\\obj\\Debug\\Before-PostSharp\\Compiler.Test.dll   .\\asm\\unittest",
+      "commandLineArgs": ".\\demo\\bin\\debug\\demo.dll .\\asm\\generated",
       "workingDirectory": "C:\\Balazs\\Projects\\C64-IL-Compiler"
     }
   }

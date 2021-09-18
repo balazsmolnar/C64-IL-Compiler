@@ -34,6 +34,30 @@ newObj .macro size, referenceFields
   #stack_push_int_a
 .endm
 
+;
+; Creates a new object on the heap and initializes with default values
+; Inputs:
+; size: Size of the object on the heap
+; referenceFields: Number of fields references to other objects (always the first fields)
+; initValues: address of initial value table
+; Output:
+; Newly created object id on the stack
+;
+newObjInit .macro size, referenceFields, initValues
+
+  lda #<\initValues
+  sta $32
+  lda #>\initValues
+  sta $33
+
+  lda #\size
+  ldy #\referenceFields
+
+  jsr newObjLInit
+
+  #stack_push_int_a
+.endm
+
 newArr .macro  
 
   #stack_pull_int_a  ; size

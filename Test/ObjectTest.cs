@@ -59,6 +59,7 @@ namespace Compiler.Test
             {
                 field1 = 3,
                 field2 = 5,
+                Ulong1 = 1234,
                 Property1 = 6
             };
             Assert.AreEqual(sut.field1, 3);

@@ -304,6 +304,32 @@ namespace Compiler.Ops
         public override bool Is16Bit(CompilerMethodContext context, ILOperation operation) => _is16Bit;
     }
 
+    class OpNewObjInit : OpBase
+    {
+        byte[] _mem;
+        int _size;
+        int _referenceFields;
+        public OpNewObjInit(byte[] mem, int size, int referenceFields) : base(0, "#newObjInit")
+        {
+            _mem = mem;
+            _size = size;
+            _referenceFields = referenceFields;
+        }
+
+        public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
+        {
+            var memLabel = context.CompilerContext.GetInitValueLabel(string.Join(',', _mem));
+            return $"{_size}, {_referenceFields}, {memLabel}";
+        }
+
+        public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
+        {
+            operation.StackContent.Add(typeof(object));
+        }
+
+        public override bool Is16BitSupported => false;
+    }
+
     class OpPushFld : OpBase
     {
         private readonly string thisVar;

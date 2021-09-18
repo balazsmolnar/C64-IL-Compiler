@@ -22,7 +22,7 @@ Player_Init
   ; OPT   #locals_push_value8 1 ; Ldarg_0
   ; OPT   #ldfld8 14 ; Ldfld
     #pushfld8 14 ; Nop
-  ; OPT   #stack_push_pointer string_1879048549 ; Ldstr
+  ; OPT   #stack_push_pointer string_1879048575 ; Ldstr
   ; OPT   jsr C64Address_FromLabel ; Call
     #stack_push_pointer spt_player_right_0 ; Nop
     jsr Sprite_set_DataBlock ; Callvirt
@@ -391,7 +391,7 @@ Player_SetFrame
   ; OPT   #locals_push_value8 1 ; Ldarg_0
   ; OPT   #ldfld8 14 ; Ldfld
     #pushfld8 14 ; Nop
-  ; OPT   #stack_push_pointer string_1879048587 ; Ldstr
+  ; OPT   #stack_push_pointer string_1879048613 ; Ldstr
   ; OPT   jsr C64Address_FromLabel ; Call
     #stack_push_pointer spt_player_rope_left ; Nop
     jsr Sprite_set_DataBlock ; Callvirt
@@ -399,7 +399,7 @@ Player_SetFrame
 Player_SetFrame_38:  ; OPT   #locals_push_value8 1 ; Ldarg_0
   ; OPT   #ldfld8 14 ; Ldfld
     #pushfld8 14 ; Nop
-  ; OPT   #stack_push_pointer string_1879048629 ; Ldstr
+  ; OPT   #stack_push_pointer string_1879048655 ; Ldstr
   ; OPT   jsr C64Address_FromLabel ; Call
     #stack_push_pointer spt_player_rope_right ; Nop
     jsr Sprite_set_DataBlock ; Callvirt
@@ -421,7 +421,7 @@ Player_SetFrame_60:  ; OPT   #locals_push_value8 1 ; Ldarg_0
   ; OPT   #locals_push_value8 1 ; Ldarg_0
   ; OPT   #ldfld8 14 ; Ldfld
     #pushfld8 14 ; Nop
-  ; OPT   #stack_push_pointer string_1879048673 ; Ldstr
+  ; OPT   #stack_push_pointer string_1879048699 ; Ldstr
   ; OPT   jsr C64Address_FromLabel ; Call
     #stack_push_pointer spt_player_jump_left_0 ; Nop
     jsr Sprite_set_DataBlock ; Callvirt
@@ -435,7 +435,7 @@ Player_SetFrame_110:  ; OPT   #locals_push_value8 1 ; Ldarg_0
   ; OPT   #locals_push_value8 1 ; Ldarg_0
   ; OPT   #ldfld8 14 ; Ldfld
     #pushfld8 14 ; Nop
-  ; OPT   #stack_push_pointer string_1879048719 ; Ldstr
+  ; OPT   #stack_push_pointer string_1879048745 ; Ldstr
   ; OPT   jsr C64Address_FromLabel ; Call
     #stack_push_pointer spt_player_jump_left_1 ; Nop
     jsr Sprite_set_DataBlock ; Callvirt
@@ -443,7 +443,7 @@ Player_SetFrame_110:  ; OPT   #locals_push_value8 1 ; Ldarg_0
 Player_SetFrame_142:  ; OPT   #locals_push_value8 1 ; Ldarg_0
   ; OPT   #ldfld8 14 ; Ldfld
     #pushfld8 14 ; Nop
-  ; OPT   #stack_push_pointer string_1879048765 ; Ldstr
+  ; OPT   #stack_push_pointer string_1879048791 ; Ldstr
   ; OPT   jsr C64Address_FromLabel ; Call
     #stack_push_pointer spt_player_jump_left_2 ; Nop
     jsr Sprite_set_DataBlock ; Callvirt
@@ -457,7 +457,7 @@ Player_SetFrame_164:  ; OPT   #locals_push_value8 1 ; Ldarg_0
   ; OPT   #locals_push_value8 1 ; Ldarg_0
   ; OPT   #ldfld8 14 ; Ldfld
     #pushfld8 14 ; Nop
-  ; OPT   #stack_push_pointer string_1879048811 ; Ldstr
+  ; OPT   #stack_push_pointer string_1879048837 ; Ldstr
   ; OPT   jsr C64Address_FromLabel ; Call
     #stack_push_pointer spt_player_jump_right_0 ; Nop
     jsr Sprite_set_DataBlock ; Callvirt
@@ -471,7 +471,7 @@ Player_SetFrame_195:  ; OPT   #locals_push_value8 1 ; Ldarg_0
   ; OPT   #locals_push_value8 1 ; Ldarg_0
   ; OPT   #ldfld8 14 ; Ldfld
     #pushfld8 14 ; Nop
-  ; OPT   #stack_push_pointer string_1879048859 ; Ldstr
+  ; OPT   #stack_push_pointer string_1879048885 ; Ldstr
   ; OPT   jsr C64Address_FromLabel ; Call
     #stack_push_pointer spt_player_jump_right_1 ; Nop
     jsr Sprite_set_DataBlock ; Callvirt
@@ -479,7 +479,7 @@ Player_SetFrame_195:  ; OPT   #locals_push_value8 1 ; Ldarg_0
 Player_SetFrame_227:  ; OPT   #locals_push_value8 1 ; Ldarg_0
   ; OPT   #ldfld8 14 ; Ldfld
     #pushfld8 14 ; Nop
-  ; OPT   #stack_push_pointer string_1879048907 ; Ldstr
+  ; OPT   #stack_push_pointer string_1879048933 ; Ldstr
   ; OPT   jsr C64Address_FromLabel ; Call
     #stack_push_pointer spt_player_jump_right_2 ; Nop
     jsr Sprite_set_DataBlock ; Callvirt
@@ -498,7 +498,7 @@ Player_SetFrame_249:  ; OPT   #locals_push_value8 1 ; Ldarg_0
 Player_SetFrame_287:  ; OPT   #locals_push_value8 1 ; Ldarg_0
   ; OPT   #ldfld8 14 ; Ldfld
     #pushfld8 14 ; Nop
-  ; OPT   #stack_push_pointer string_1879048955 ; Ldstr
+  ; OPT   #stack_push_pointer string_1879048981 ; Ldstr
   ; OPT   jsr C64Address_FromLabel ; Call
     #stack_push_pointer spt_player_left_0 ; Nop
     jsr Sprite_set_DataBlock ; Callvirt
@@ -506,7 +506,7 @@ Player_SetFrame_287:  ; OPT   #locals_push_value8 1 ; Ldarg_0
 Player_SetFrame_309:  ; OPT   #locals_push_value8 1 ; Ldarg_0
   ; OPT   #ldfld8 14 ; Ldfld
     #pushfld8 14 ; Nop
-  ; OPT   #stack_push_pointer string_1879048991 ; Ldstr
+  ; OPT   #stack_push_pointer string_1879049017 ; Ldstr
   ; OPT   jsr C64Address_FromLabel ; Call
     #stack_push_pointer spt_player_left_3 ; Nop
     jsr Sprite_set_DataBlock ; Callvirt
@@ -514,7 +514,7 @@ Player_SetFrame_309:  ; OPT   #locals_push_value8 1 ; Ldarg_0
 Player_SetFrame_331:  ; OPT   #locals_push_value8 1 ; Ldarg_0
   ; OPT   #ldfld8 14 ; Ldfld
     #pushfld8 14 ; Nop
-  ; OPT   #stack_push_pointer string_1879049027 ; Ldstr
+  ; OPT   #stack_push_pointer string_1879049053 ; Ldstr
   ; OPT   jsr C64Address_FromLabel ; Call
     #stack_push_pointer spt_player_left_1 ; Nop
     jsr Sprite_set_DataBlock ; Callvirt
@@ -522,7 +522,7 @@ Player_SetFrame_331:  ; OPT   #locals_push_value8 1 ; Ldarg_0
 Player_SetFrame_353:  ; OPT   #locals_push_value8 1 ; Ldarg_0
   ; OPT   #ldfld8 14 ; Ldfld
     #pushfld8 14 ; Nop
-  ; OPT   #stack_push_pointer string_1879049063 ; Ldstr
+  ; OPT   #stack_push_pointer string_1879049089 ; Ldstr
   ; OPT   jsr C64Address_FromLabel ; Call
     #stack_push_pointer spt_player_left_2 ; Nop
     jsr Sprite_set_DataBlock ; Callvirt
@@ -537,7 +537,7 @@ Player_SetFrame_375:  ; OPT   #locals_push_value8 1 ; Ldarg_0
 Player_SetFrame_405:  ; OPT   #locals_push_value8 1 ; Ldarg_0
   ; OPT   #ldfld8 14 ; Ldfld
     #pushfld8 14 ; Nop
-  ; OPT   #stack_push_pointer string_1879048549 ; Ldstr
+  ; OPT   #stack_push_pointer string_1879048575 ; Ldstr
   ; OPT   jsr C64Address_FromLabel ; Call
     #stack_push_pointer spt_player_right_0 ; Nop
     jsr Sprite_set_DataBlock ; Callvirt
@@ -545,7 +545,7 @@ Player_SetFrame_405:  ; OPT   #locals_push_value8 1 ; Ldarg_0
 Player_SetFrame_427:  ; OPT   #locals_push_value8 1 ; Ldarg_0
   ; OPT   #ldfld8 14 ; Ldfld
     #pushfld8 14 ; Nop
-  ; OPT   #stack_push_pointer string_1879049099 ; Ldstr
+  ; OPT   #stack_push_pointer string_1879049125 ; Ldstr
   ; OPT   jsr C64Address_FromLabel ; Call
     #stack_push_pointer spt_player_right_3 ; Nop
     jsr Sprite_set_DataBlock ; Callvirt
@@ -553,7 +553,7 @@ Player_SetFrame_427:  ; OPT   #locals_push_value8 1 ; Ldarg_0
 Player_SetFrame_449:  ; OPT   #locals_push_value8 1 ; Ldarg_0
   ; OPT   #ldfld8 14 ; Ldfld
     #pushfld8 14 ; Nop
-  ; OPT   #stack_push_pointer string_1879049137 ; Ldstr
+  ; OPT   #stack_push_pointer string_1879049163 ; Ldstr
   ; OPT   jsr C64Address_FromLabel ; Call
     #stack_push_pointer spt_player_right_1 ; Nop
     jsr Sprite_set_DataBlock ; Callvirt
@@ -561,7 +561,7 @@ Player_SetFrame_449:  ; OPT   #locals_push_value8 1 ; Ldarg_0
 Player_SetFrame_471:  ; OPT   #locals_push_value8 1 ; Ldarg_0
   ; OPT   #ldfld8 14 ; Ldfld
     #pushfld8 14 ; Nop
-  ; OPT   #stack_push_pointer string_1879049175 ; Ldstr
+  ; OPT   #stack_push_pointer string_1879049201 ; Ldstr
   ; OPT   jsr C64Address_FromLabel ; Call
     #stack_push_pointer spt_player_right_2 ; Nop
     jsr Sprite_set_DataBlock ; Callvirt

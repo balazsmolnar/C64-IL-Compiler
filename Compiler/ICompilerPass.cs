@@ -11,7 +11,8 @@ namespace Compiler
         public Assembly Assembly { get; set; }
         public StreamWriter GlobalOutputFile { get; set; }
         public IList<CompilerMethodContext> Methods { get; set; }
-        public Dictionary<int, string> StringValues { get; set; } = new Dictionary<int, string>();
+        public Dictionary<int, string> StringValues { get; } = new Dictionary<int, string>();
+        public HashSet<string> OptimizedStringValues { get; } = new HashSet<string>();
 
         public string OutputDirectory { get; set; }
 
@@ -28,6 +29,21 @@ namespace Compiler
                 pos += f.FieldType.GetStorageBytes();
             }
             return pos;
+        }
+
+        public List<string> InitValues { get; } = new();
+
+        public string GetInitValueLabel(string initValue)
+        {
+
+            var index = InitValues.IndexOf(initValue);
+            if (index < 0)
+            {
+                InitValues.Add(initValue);
+                index = InitValues.Count - 1;
+            }
+
+            return $"Init_Values_{index}";
         }
     }
 

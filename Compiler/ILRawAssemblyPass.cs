@@ -15,7 +15,7 @@ namespace Compiler
 
             using (var outputFile = File.CreateText(Path.Combine(context.OutputDirectory, $"data.asm")))
             {
-                foreach (var attr in attributes.OrderBy(a => a.Order)) 
+                foreach (var attr in attributes.OrderBy(a => a.Order))
                 {
                     if (!string.IsNullOrEmpty(attr.Asm))
                         outputFile.WriteLine(attr.Asm);

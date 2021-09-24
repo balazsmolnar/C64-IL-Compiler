@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 
 namespace Compiler
@@ -41,5 +43,34 @@ namespace Compiler
                     throw new InvalidOperationException($"Incompatible types: {type.Name}, {otherType.Name}");
             }
         }
+
+        public static List<MethodInfo> VirtualMethods(this Type type2)
+        {
+            List<MethodInfo> result = new();
+            List<Type> types = new();
+            var @type = type2;
+            while (@type != typeof(object) && @type != null)
+            {
+                types.Add(@type);
+                @type = @type.BaseType;
+            }
+            types.Reverse();
+
+            foreach (var t in types)
+            {
+                var methods = type2.GetMethods(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public).Where(m => m.DeclaringType == t);
+                foreach (var method in methods)
+                {
+                    if (!method.IsVirtual)
+                        continue;
+
+                    result.Add(method);
+                }
+
+            }
+
+            return result;
+        }
+
     }
 }

@@ -19,7 +19,7 @@ namespace Compiler
         public bool Optimize { get; set; }
         public int GetFieldPosition(FieldInfo field)
         {
-            var t = field.DeclaringType;
+            var t = field.ReflectedType;
             var pos = 0;
             var fields = t.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
             foreach (var f in fields.Where(f => !f.IsLiteral).OrderBy(f => f.FieldType.IsReferenceCounted() ? 0 : 1))

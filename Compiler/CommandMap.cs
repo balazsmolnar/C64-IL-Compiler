@@ -10,7 +10,7 @@ namespace Compiler
             {
                 { ILOpCode.Ldstr, new OpLdstr() },
                 { ILOpCode.Call, new OpCall() },
-                { ILOpCode.Callvirt, new OpCall() },
+                { ILOpCode.Callvirt, new OpCallVirt() },
                 { ILOpCode.Ldc_i4_0, new OpLdc_i4_const(0) },
                 { ILOpCode.Ldc_i4_1, new OpLdc_i4_const(1) },
                 { ILOpCode.Ldc_i4_2, new OpLdc_i4_const(2) },

@@ -21,7 +21,7 @@ namespace Compiler
             output.WriteLine("");
             output.WriteLine("");
             output.WriteLine(";----------------------------------------");
-            output.WriteLine($"; TYPE: {context.Method.DeclaringType.FullName}");
+            output.WriteLine($"; TYPE: {context.Method.ReflectedType.FullName}");
             output.WriteLine($"; METHOD: {context.Method.Name}");
             output.WriteLine(";----------------------------------------");
             output.WriteLine($"{context.Method.GetLabel()} ");

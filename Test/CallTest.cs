@@ -43,7 +43,7 @@ namespace Compiler.Test
         [Test]
         public void Test_Instance_Method()
         {
-            var result = StaticMethod(3, new MockObject { F = 12 }, new MockObject { F = 13 });
+            var result = InstanceMethod(3, new MockObject { F = 12 }, new MockObject { F = 13 });
             Assert.AreEqual(result, 5);
         }
 
@@ -56,7 +56,7 @@ namespace Compiler.Test
         [Test]
         public void Test_Instance_Method_Returns_Obj()
         {
-            Assert.AreEqual(StaticMethodReturnObj().F, 12);
+            Assert.AreEqual(InstanceMethodReturnObj().F, 12);
         }
 
         [Test]

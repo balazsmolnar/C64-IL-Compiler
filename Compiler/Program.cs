@@ -34,7 +34,8 @@ namespace Compiler
                     new ILRawAssemblyPass(),
                     new ILCodePass(
                         new ICompilerTypePass[] {
-                            new ILTypeStaticFieldInitPass()
+                            new ILTypeStaticFieldInitPass(),
+                            new ILTypeVTablePass(),
                         },
                         new ICompilerMethodPass[] {
                             new ILMethodCodePass(),

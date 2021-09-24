@@ -114,6 +114,26 @@ namespace Compiler.Ops
         }
     }
 
+    class OpCallVirt : OpCall
+    {
+        public OpCallVirt()
+        {
+        }
+
+        public override string Emit(CompilerMethodContext context, ILOperation operation)
+        {
+            var methodInfo = context.CompilerContext.Assembly.ManifestModule.ResolveMethod((int)operation.OriginalParameter);
+            if (!methodInfo.IsVirtual)
+                return base.Emit(context, operation);
+
+            var index = methodInfo.ReflectedType.VirtualMethods().IndexOf(methodInfo as MethodInfo);
+           
+            if (index == -1)
+                throw new InvalidOperationException($"Virtual method not found: {methodInfo.Name}. Type: {methodInfo.ReflectedType.Name}");
+            return $"#callVirt {index}";
+        }
+    }
+
     class OpNewObj : OpBase
     {
         public OpNewObj() : base(4, "#newObj")
@@ -123,7 +143,7 @@ namespace Compiler.Ops
         public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
         {
             var method = context.CompilerContext.Assembly.ManifestModule.ResolveMethod((int)operation.RawParameter);
-            var t = method.DeclaringType;
+            var t = method.ReflectedType;
             var size = 0;
             var referenceFields = 0;
             foreach (var f in t.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
@@ -134,7 +154,7 @@ namespace Compiler.Ops
             }
             //var label = context.CompilerContext.Assembly.ManifestModule.ResolveMethod(operation.RawParameter).GetLabel();
 
-            return $"{size}, {referenceFields}";
+            return $"{size}, {referenceFields}, {t.Name}_VTable";
         }
 
         public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
@@ -309,17 +329,21 @@ namespace Compiler.Ops
         byte[] _mem;
         int _size;
         int _referenceFields;
-        public OpNewObjInit(byte[] mem, int size, int referenceFields) : base(0, "#newObjInit")
+
+        string _vtable;
+
+        public OpNewObjInit(byte[] mem, int size, int referenceFields, string vtable) : base(0, "#newObjInit")
         {
             _mem = mem;
             _size = size;
             _referenceFields = referenceFields;
+            _vtable = vtable;
         }
 
         public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
         {
             var memLabel = context.CompilerContext.GetInitValueLabel(string.Join(',', _mem));
-            return $"{_size}, {_referenceFields}, {memLabel}";
+            return $"{_size}, {_referenceFields}, {_vtable}, {memLabel}";
         }
 
         public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
@@ -549,13 +573,13 @@ namespace Compiler.Ops
 
         public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
         {
-            var field = context.Method.DeclaringType.Module.ResolveField((int)operation.RawParameter);
+            var field = context.Method.ReflectedType.Module.ResolveField((int)operation.RawParameter);
             return $"{field.DeclaringType.Name.ToValidName()}_field_{field.Name.ToValidName()}";
         }
 
         public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
         {
-            var field = context.Method.DeclaringType.Module.ResolveField((int)operation.OriginalParameter);
+            var field = context.Method.ReflectedType.Module.ResolveField((int)operation.OriginalParameter);
             operation.StackContent.Add(field.FieldType);
         }
 
@@ -623,15 +647,15 @@ namespace Compiler.Ops
         }
         public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
         {
-            var field = context.Method.DeclaringType.Module.ResolveField((int)operation.RawParameter);
-            var address = $"{field.DeclaringType.Name.ToValidName()}_field_{field.Name.ToValidName()}";
+            var field = context.Method.ReflectedType.Module.ResolveField((int)operation.RawParameter);
+            var address = $"{field.ReflectedType.Name.ToValidName()}_field_{field.Name.ToValidName()}";
             string isRef = field.FieldType.IsReferenceCounted() ? "1" : "0";
             return $"{address}, {isRef}";
         }
 
         public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
         {
-            var field = context.Method.DeclaringType.Module.ResolveField((int)operation.OriginalParameter);
+            var field = context.Method.ReflectedType.Module.ResolveField((int)operation.OriginalParameter);
             var last = operation.StackContent.Last();
             last.CheckCompatible(field.FieldType);
             operation.StackContent.RemoveLast(1);

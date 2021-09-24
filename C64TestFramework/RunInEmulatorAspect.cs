@@ -76,7 +76,7 @@ namespace C64TestFramework
         private static Dictionary<string, string> labels;
         public static byte[] GetMethodAddress(string prgFolder, MethodBase method)
         {
-            string label = $".{method.DeclaringType.Name}_{method.Name}";
+            string label = $".{method.ReflectedType.Name}_{method.Name}";
 
             if (labels == null)
             {

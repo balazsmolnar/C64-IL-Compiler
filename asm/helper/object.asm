@@ -68,6 +68,11 @@ out_of_memory
 
 setObjParams
   ; set values in the tables: Size, referenceFieldCount, pointer
+  lda $30
+  sta objTableDescLow,x
+  lda $31
+  sta objTableDescHigh,x
+
   lda $34
   sta objTableSize,x
   lda $35
@@ -88,3 +93,33 @@ setObjParams
   inc heapPointer+1
 + txa
   rts
+
+callVirt .macro methodIndex
+  #stack_pull_int_x
+  lda #\methodIndex
+
+  jsr callVirtL
+  
+.endm
+
+;
+; A - methodIndex
+;
+callVirtL
+
+  asl
+  tay
+
+  lda objTableDescLow,x
+  sta $30
+  lda objTableDescHigh,x
+  sta $31
+
+  lda ($30),y
+  sta mod+1
+  iny
+  lda ($30),y
+  sta mod+2
+
+mod:
+  jmp 0

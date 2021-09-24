@@ -32,6 +32,7 @@ namespace Compiler
                     lines[i].Optimized = true;
 
                     var size = this.GetIntParam(lines[i].RawParameter, 0);
+                    var vtable = this.GetStringParam(lines[i].RawParameter, 2);
 
                     byte[] mem = new byte[size];
 
@@ -66,7 +67,7 @@ namespace Compiler
 
                     ILOperation newOperation = new ILOperation
                     {
-                        Operation = new OpNewObjInit(mem, size, 0),
+                        Operation = new OpNewObjInit(mem, size, 0, vtable),
                     };
                     newOperation.RawParameter = newOperation.Operation.ConvertParameter(context, null);
                     newOperation.StackContent = lines[i].StackContent;
@@ -78,6 +79,11 @@ namespace Compiler
         private int GetIntParam(object parameter, int index)
         {
             return int.Parse(parameter.ToString().Split(',')[index]);
+        }
+
+        private string GetStringParam(object parameter, int index)
+        {
+            return parameter.ToString().Split(',')[index];
         }
 
     }

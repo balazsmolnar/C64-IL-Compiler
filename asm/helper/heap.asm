@@ -24,7 +24,12 @@ initHeap .macro heap
 ; Output:
 ; Newly created object id on the stack
 ;
-newObj .macro size, referenceFields 
+newObj .macro size, referenceFields, objDescriptor
+
+  lda #<\objDescriptor
+  sta $30
+  lda #>\objDescriptor
+  sta $31
 
   lda #\size
   ldy #\referenceFields
@@ -43,7 +48,12 @@ newObj .macro size, referenceFields
 ; Output:
 ; Newly created object id on the stack
 ;
-newObjInit .macro size, referenceFields, initValues
+newObjInit .macro size, referenceFields, objDescriptor, initValues
+
+  lda #<\objDescriptor
+  sta $30
+  lda #>\objDescriptor
+  sta $31
 
   lda #<\initValues
   sta $32

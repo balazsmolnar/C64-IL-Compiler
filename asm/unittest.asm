@@ -104,6 +104,11 @@ objTableReferences
 .fill 256, 0
 objTableRootCount
 .fill 256, 0
+.fill 256, 0
+objTableDescLow
+.fill 256, 0
+objTableDescHigh
+.fill 256, 0
 
 localsStack
 .fill 256, 0 

@@ -33,6 +33,8 @@ namespace Compiler
             context.Methods = new List<CompilerMethodContext>();
             foreach (var @type in context.Assembly.GetTypes())
             {
+                if (@type.IsValueType)
+                    continue;
                 // context.GlobalOutputFile.WriteLine($".include \".\\\\{type.Name}.asm\"");
 
                 var normalizedName = type.Name.ToValidName();
@@ -53,7 +55,7 @@ namespace Compiler
                     }
 
                     var methods = @type.GetMethods(BindingFlags.Static | BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
-                    foreach (var method in methods.Where(m => m.DeclaringType == @type))
+                    foreach (var method in methods.Where(m => m.DeclaringType != typeof(object)))
                     {
                         var methodContext = new CompilerMethodContext()
                         {

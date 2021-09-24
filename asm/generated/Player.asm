@@ -1,4 +1,6 @@
 
+Player_VTable:  .byte 0
+
 
 ;----------------------------------------
 ; TYPE: Hunchback.Player

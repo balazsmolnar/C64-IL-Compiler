@@ -8,6 +8,9 @@ namespace Compiler
     {
         public void Execute(CompilerMethodContext context)
         {
+            if (context.Method.IsAbstract)
+                return;
+
             var body = context.Method.GetMethodBody();
             var input = body.GetILAsByteArray();
             var lines = new List<ILOperation>();
@@ -54,7 +57,7 @@ namespace Compiler
                     operation.OriginalParameter = parameter;
                 }
 
-                if (op.ParameterSize > -1) 
+                if (op.ParameterSize > -1)
                     operation.RawParameter = op.ConvertParameter(context, operation);
                 operation.Size = index - operation.Position;
 

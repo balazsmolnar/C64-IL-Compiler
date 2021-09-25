@@ -26,6 +26,12 @@ namespace Compiler
             output.WriteLine(";----------------------------------------");
             output.WriteLine($"{context.Method.GetLabel()} ");
 
+            if (context.Method.IsAbstract)
+            {
+                output.WriteLine("    brk");
+                return;
+            }
+
             var ref_params = new List<string>();
             foreach (var param in context.Method.GetParameters().Reverse())
             {

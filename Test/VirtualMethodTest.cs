@@ -38,6 +38,17 @@ namespace Compiler.Test
         }
     }
 
+    public abstract class TestAbstract
+    {
+        public abstract int Ab();
+        public int M() => 17;
+    }
+
+    public class TestDerived : TestAbstract
+    {
+        public override int Ab() => M();
+    }
+
     [TestFixture]
     class VirtualMethodTest
     {
@@ -66,13 +77,20 @@ namespace Compiler.Test
             Assert.AreEqual(TestA.F, 14);
         }
 
-        [Test]
+        // [Test]
         public void Test_Virtual_Chain()
         {
             TestA a = new TestA();
             TestA b = new TestB();
             a.Virtual2(2);
-            // Assert.AreEqual(a.Virtual2(2), 20);
+            Assert.AreEqual(a.Virtual2(2), 20);
+        }
+
+        [Test]
+        public void Test_Abstract_Method()
+        {
+            TestAbstract a = new TestDerived();
+            Assert.AreEqual(a.Ab(), 17);
         }
     }
 }

@@ -9,6 +9,8 @@ namespace Compiler
     {
         public void Execute(CompilerMethodContext context)
         {
+            if (context.Method.IsAbstract)
+                return;
             var stack = new Stack<ILOperation>();
             stack.Push(context.Lines[0]);
 
@@ -20,7 +22,7 @@ namespace Compiler
                 if (op.PreviousInstructions.Count == 0)
                     op.StackContent = new List<Type>();
                 else
-                    op.StackContent = new List<Type>(op.PreviousInstructions.First(x => x.StackContent!=null).StackContent);
+                    op.StackContent = new List<Type>(op.PreviousInstructions.First(x => x.StackContent != null).StackContent);
                 op.Operation.SetStackContent(context, op);
                 foreach (var instruction in op.NextInstructions)
                 {

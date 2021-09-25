@@ -44,27 +44,59 @@ namespace Compiler
             }
         }
 
-        public static List<MethodInfo> VirtualMethods(this Type type2)
+        public static int GetVirtualMethodIndex(this Type type2, MethodBase methodInfo)
         {
-            List<MethodInfo> result = new();
-            List<Type> types = new();
-            var @type = type2;
-            while (@type != typeof(object) && @type != null)
-            {
-                types.Add(@type);
-                @type = @type.BaseType;
-            }
-            types.Reverse();
+
+            int index = 0;
+            var types = GetBaseTypes(type2);
 
             foreach (var t in types)
             {
-                var methods = type2.GetMethods(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public).Where(m => m.DeclaringType == t);
+                var methods = t.GetMethods(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public).Where(m => m.DeclaringType == t);
                 foreach (var method in methods)
                 {
                     if (!method.IsVirtual)
                         continue;
 
-                    result.Add(method);
+                    if (methodInfo.Name == method.Name)
+                        return index;
+                    index++;
+                }
+
+            }
+
+            return index;
+        }
+
+        public static List<MethodInfo> GetVirtualMethods(this Type type2)
+        {
+
+            var types = GetBaseTypes(type2);
+            var typesRev = types.Reverse<Type>().ToList();
+
+            List<MethodInfo> result = new();
+
+            foreach (var t in types)
+            {
+                var methods = t.GetMethods(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public).Where(m => m.DeclaringType == t);
+                foreach (var method in methods)
+                {
+                    if (!method.IsVirtual)
+                        continue;
+
+                    if (result.Any(x => x.Name == method.Name))
+                        continue;
+
+                    foreach (var t2 in typesRev)
+                    {
+                        var m = t2.GetMethod(method.Name, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+
+                        if (m.DeclaringType == t2)
+                        {
+                            result.Add(m);
+                            break;
+                        }
+                    }
                 }
 
             }
@@ -72,5 +104,18 @@ namespace Compiler
             return result;
         }
 
+        private static List<Type> GetBaseTypes(Type type)
+        {
+            List<Type> types = new();
+            var type2 = type;
+            while (type2 != typeof(object) && type2 != null)
+            {
+                types.Add(type2);
+                type2 = type2.BaseType;
+            }
+            types.Reverse();
+
+            return types;
+        }
     }
 }

@@ -15,10 +15,15 @@ namespace Compiler.Test
             F = 12;
         }
 
-        public virtual int Virtual2(int param)
+        public virtual int Virtual2()
         {
             VirtualVoid();
-            return param;
+            return 5;
+        }
+
+        public virtual int Virtual3()
+        {
+            return 5;
         }
 
     }
@@ -32,9 +37,9 @@ namespace Compiler.Test
             F = 14;
         }
 
-        public override int Virtual2(int param)
+        public override int Virtual2()
         {
-            return base.Virtual2(param) + 1;
+            return base.Virtual2() + 1;
         }
     }
 
@@ -63,7 +68,8 @@ namespace Compiler.Test
             Assert.AreEqual(a.Virtual(), 18);
             Assert.AreEqual(a.NonVirtual2(), 19);
 
-            Assert.AreEqual(b.Virtual(), 20);
+            // for (ulong i = 0; i < 5ul; i++)
+            // a.Virtual3(5);
         }
 
         [Test]
@@ -77,13 +83,20 @@ namespace Compiler.Test
             Assert.AreEqual(TestA.F, 14);
         }
 
-        // [Test]
+        [Test]
+        public void Test_Virtual_No_Implementation()
+        {
+            TestA b = new TestB();
+            Assert.AreEqual(b.Virtual3(), 5);
+        }
+
+        [Test]
         public void Test_Virtual_Chain()
         {
             TestA a = new TestA();
             TestA b = new TestB();
-            a.Virtual2(2);
-            Assert.AreEqual(a.Virtual2(2), 20);
+            Assert.AreEqual(a.Virtual2(), 5);
+            Assert.AreEqual(b.Virtual2(), 6);
         }
 
         [Test]

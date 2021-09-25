@@ -16,7 +16,7 @@ namespace Compiler
             context.OutputFile.WriteLine();
             List<string> labels = new();
 
-            foreach (var m in @type.VirtualMethods())
+            foreach (var m in @type.GetVirtualMethods())
             {
                 labels.Add(m.GetLabel());
             }

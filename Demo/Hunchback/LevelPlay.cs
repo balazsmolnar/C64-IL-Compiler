@@ -39,10 +39,12 @@ namespace Hunchback
 
             Enemy enemy = new Enemy()
             {
-                Sprite = C64.Sprites.Sprite2
-            };
-            enemy.Init(description.EnemyType);
+                Sprite = C64.Sprites.Sprite2,
+                EnemyType = description.EnemyType
 
+            };
+            enemy.Init();
+            var gameObjects = new GameObject[] { enemy, knight, rope, wall };
             for (; ; )
             {
                 player.Move();
@@ -63,11 +65,9 @@ namespace Hunchback
                     return false;
                 if (player.Complete)
                     return true;
-                knight.Move();
-                enemy.Move();
-                wall.Move();
-                if (rope != null)
-                    rope.Move();
+                foreach (var go in gameObjects)
+                    go?.Move();
+
                 Delay.Wait(100);
                 if (C64.IsKeyPressed(Keys.L))
                     return true;

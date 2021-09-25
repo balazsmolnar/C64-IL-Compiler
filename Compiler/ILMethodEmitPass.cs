@@ -17,6 +17,9 @@ namespace Compiler
     {
         public void Execute(CompilerMethodContext context)
         {
+            if (context.Method.DeclaringType != context.TypeContext.Type)
+                return;
+
             var output = context.TypeContext.OutputFile;
             output.WriteLine("");
             output.WriteLine("");

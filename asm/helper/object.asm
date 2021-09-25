@@ -96,6 +96,7 @@ setObjParams
 
 callVirt .macro methodIndex
   #stack_pull_int_x
+  #stack_push_int_x
   lda #\methodIndex
 
   jsr callVirtL

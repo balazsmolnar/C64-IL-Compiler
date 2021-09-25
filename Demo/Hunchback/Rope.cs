@@ -1,7 +1,7 @@
 using C64Lib;
 namespace Hunchback
 {
-    class Rope
+    class Rope : GameObject
     {
 
         private uint frameCounter_;
@@ -28,7 +28,7 @@ namespace Hunchback
             }
         }
 
-        public void Init()
+        public override void Init()
         {
             sprite1_.Visible = true;
             sprite2_.Visible = true;
@@ -45,7 +45,7 @@ namespace Hunchback
             frameCounter_ = 0;
         }
 
-        public void Move()
+        public override void Move()
         {
             counter_++;
             if (counter_ < 2)

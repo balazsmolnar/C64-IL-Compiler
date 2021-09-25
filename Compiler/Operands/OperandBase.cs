@@ -126,8 +126,8 @@ namespace Compiler.Ops
             if (!methodInfo.IsVirtual)
                 return base.Emit(context, operation);
 
-            var index = methodInfo.ReflectedType.VirtualMethods().IndexOf(methodInfo as MethodInfo);
-           
+            var index = methodInfo.ReflectedType.GetVirtualMethodIndex(methodInfo);
+
             if (index == -1)
                 throw new InvalidOperationException($"Virtual method not found: {methodInfo.Name}. Type: {methodInfo.ReflectedType.Name}");
             return $"#callVirt {index}";

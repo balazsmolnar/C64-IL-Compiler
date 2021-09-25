@@ -1,7 +1,7 @@
 using C64Lib;
 namespace Hunchback
 {
-    class Knight
+    class Knight : GameObject
     {
 
         private uint x_;
@@ -37,7 +37,7 @@ namespace Hunchback
             }
         }
 
-        public void Init()
+        public override void Init()
         {
             sprite_.DataBlock = C64Address.FromLabel("spt_knight_climb_0");
             sprite_.MultiColor = true;
@@ -48,7 +48,7 @@ namespace Hunchback
             X = 40;
         }
 
-        public void Move()
+        public override void Move()
         {
             counter_++;
             if (counter_ < 32)

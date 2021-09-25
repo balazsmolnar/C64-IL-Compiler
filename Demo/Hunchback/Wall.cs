@@ -2,7 +2,7 @@ using C64Lib;
 
 namespace Hunchback
 {
-    class Wall
+    class Wall : GameObject
     {
         const uint WallChar = 62;
         const uint Space = 32;
@@ -115,7 +115,11 @@ namespace Hunchback
             return false;
         }
 
-        public void Move()
+        public override void Init()
+        {
+        }
+
+        public override void Move()
         {
             if (wallType_ != WallType.KnightPits)
                 return;

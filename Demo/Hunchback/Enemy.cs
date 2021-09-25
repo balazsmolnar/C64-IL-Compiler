@@ -1,14 +1,12 @@
 using C64Lib;
 namespace Hunchback
 {
-    class Enemy
+    class Enemy : GameObject
     {
 
         private ulong x_;
         private uint y_;
         private int frameCounter_;
-
-        private EnemyType enemyType_;
 
         public ulong X
         {
@@ -40,18 +38,18 @@ namespace Hunchback
             }
         }
 
-        public void Init(EnemyType enemyType)
+        public EnemyType EnemyType;
+        public override void Init()
         {
-            enemyType_ = enemyType;
             sprite_.MultiColor = true;
-            sprite_.Visible = enemyType_ != EnemyType.None;
+            sprite_.Visible = EnemyType != EnemyType.None;
             sprite_.Color = Colors.Violet;
 
             Y = 117u;
-            if ((enemyType_ & EnemyType.Top) > 0)
+            if ((EnemyType & EnemyType.Top) > 0)
                 Y = 87u;
-            leftToRight_ = (enemyType_ & EnemyType.LeftRight) > 0;
-            arrow_ = (enemyType_ & EnemyType.Arrow) > 0;
+            leftToRight_ = (EnemyType & EnemyType.LeftRight) > 0;
+            arrow_ = (EnemyType & EnemyType.Arrow) > 0;
             if (leftToRight_)
             {
                 X = 0UL;
@@ -68,9 +66,9 @@ namespace Hunchback
             C64.Sound.PlayEffectReg2(WaveForm.Noise, 0x2C64UL, 0UL, 128, 0, false);
         }
 
-        public void Move()
+        public override void Move()
         {
-            if (enemyType_ == EnemyType.None)
+            if (EnemyType == EnemyType.None)
                 return;
             frameCounter_++;
             if (frameCounter_ == 4)
@@ -82,7 +80,7 @@ namespace Hunchback
 
                 if (X == 316UL)
                 {
-                    Init(enemyType_);
+                    Init();
                 }
             }
             else
@@ -91,7 +89,7 @@ namespace Hunchback
 
                 if (X == 20UL)
                 {
-                    Init(enemyType_);
+                    Init();
                 }
             }
             SetFrame();

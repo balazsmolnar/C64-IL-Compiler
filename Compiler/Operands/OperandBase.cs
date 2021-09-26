@@ -127,10 +127,10 @@ namespace Compiler.Ops
                 return base.Emit(context, operation);
 
             var index = methodInfo.ReflectedType.GetVirtualMethodIndex(methodInfo);
-
+            var stackPosition = methodInfo.GetParameters().Select(x => x.ParameterType.GetStorageBytes()).Sum() + 1;
             if (index == -1)
                 throw new InvalidOperationException($"Virtual method not found: {methodInfo.Name}. Type: {methodInfo.ReflectedType.Name}");
-            return $"#callVirt {index}";
+            return $"#callVirt {index}, {stackPosition}";
         }
     }
 

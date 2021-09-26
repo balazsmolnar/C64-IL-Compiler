@@ -26,6 +26,8 @@ namespace Compiler.Test
             return 5;
         }
 
+        public virtual int VirtualParam(int param) => param + 1;
+
     }
 
     public class TestB : TestA
@@ -41,6 +43,8 @@ namespace Compiler.Test
         {
             return base.Virtual2() + 1;
         }
+
+        public override int VirtualParam(int param) => param + 2;
     }
 
     public abstract class TestAbstract
@@ -97,6 +101,15 @@ namespace Compiler.Test
             TestA b = new TestB();
             Assert.AreEqual(a.Virtual2(), 5);
             Assert.AreEqual(b.Virtual2(), 6);
+        }
+
+        [Test]
+        public void Test_Virtual_With_Parameter()
+        {
+            TestA a = new TestA();
+            TestA b = new TestB();
+            Assert.AreEqual(a.VirtualParam(5), 6);
+            Assert.AreEqual(b.VirtualParam(5), 7);
         }
 
         [Test]

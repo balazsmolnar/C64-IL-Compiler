@@ -94,9 +94,10 @@ setObjParams
 + txa
   rts
 
-callVirt .macro methodIndex
-  #stack_pull_int_x
-  #stack_push_int_x
+callVirt .macro methodIndex, objStackPos
+  tsx
+  lda $0100+\objStackPos, x
+  tax
   lda #\methodIndex
 
   jsr callVirtL

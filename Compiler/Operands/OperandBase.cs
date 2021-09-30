@@ -165,19 +165,32 @@ namespace Compiler.Ops
 
     class OpNewArr : OpBase
     {
-        public OpNewArr() : base(4, "#newArr")
+        public OpNewArr() : base(4)
         {
-        }
-
-        public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
-        {
-            return "";
         }
 
         public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
         {
             operation.StackContent.RemoveLast(1);
-            operation.StackContent.Add(typeof(object));
+            var type = context.CompilerContext.Assembly.ManifestModule.ResolveType((int)operation.OriginalParameter);
+            var dummy = Array.CreateInstance(type, 0);
+            operation.StackContent.Add(dummy.GetType());
+        }
+
+        public override string Emit(CompilerMethodContext context, ILOperation operation)
+        {
+            var arrayType = operation.StackContent.Last().GetElementType();
+
+            string command;
+            if (arrayType == typeof(string))
+                command = "#newArr16";
+            else if (!arrayType.IsValueType)
+                command = "#newArrRef";
+            else if (arrayType.GetStorageBytes() == 2)
+                command = "#newArr16";
+            else
+                command = "#newArr";
+            return $"{command}";
         }
     }
 
@@ -211,29 +224,63 @@ namespace Compiler.Ops
 
     class OpStElem : OpBase
     {
-        public OpStElem(bool @ref) : base(0, @ref ? "#stelemRef" : "#stelem")
+        public OpStElem() : base(0)
         {
         }
 
         public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
         {
+            operation.RawParameter = operation.StackContent.Last(2).GetElementType();
             operation.StackContent.RemoveLast(3);
         }
+
+        public override string Emit(CompilerMethodContext context, ILOperation operation)
+        {
+            var arrayType = (Type)operation.RawParameter;
+
+            string command;
+            if (arrayType == typeof(string))
+                command = "#stelem16";
+            else if (!arrayType.IsValueType)
+                command = "#stelemRef";
+            else if (arrayType.GetStorageBytes() == 2)
+                command = "#stelem16";
+            else
+                command = "#stelem";
+            return $"{command}";
+        }
+
     }
 
     class OpLdElem : OpBase
     {
-        private readonly Type _valueType;
-
-        public OpLdElem(bool @ref, Type valueType) : base(0, @ref ? "#ldelemRef" : "#ldelem")
+        public OpLdElem() : base(0)
         {
-            _valueType = valueType;
         }
 
         public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
         {
+            var elemType = operation.StackContent.Last(1).GetElementType();
+            operation.RawParameter = elemType;
+
             operation.StackContent.RemoveLast(2);
-            operation.StackContent.Add(_valueType);
+            operation.StackContent.Add(elemType);
+        }
+
+        public override string Emit(CompilerMethodContext context, ILOperation operation)
+        {
+            var arrayType = (Type)operation.RawParameter;
+
+            string command;
+            if (arrayType == typeof(string))
+                command = "#ldelem16";
+            else if (!arrayType.IsValueType)
+                command = "#ldelemRef";
+            else if (arrayType.GetStorageBytes() == 2)
+                command = "#ldelem16";
+            else
+                command = "#ldelem";
+            return $"{command}";
         }
 
     }
@@ -246,8 +293,23 @@ namespace Compiler.Ops
 
         public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
         {
+            var elemType = operation.StackContent.Last().GetElementType();
+            operation.RawParameter = elemType;
+
             operation.StackContent.RemoveLast(1);
             operation.StackContent.Add(typeof(int));
+        }
+
+        public override string Emit(CompilerMethodContext context, ILOperation operation)
+        {
+            var arrayType = (Type)operation.RawParameter;
+
+            string command;
+            if (arrayType.GetStorageBytes() == 2)
+                command = "#ldlen16";
+            else
+                command = "#ldlen";
+            return $"{command}";
         }
 
     }

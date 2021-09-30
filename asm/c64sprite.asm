@@ -75,7 +75,7 @@ SpriteCollection_get_Collisions:
 
 Sprite_set_Visible:
     #stack_save_return_adress zp_tmp1_low
-    #stack_pull_int_a
+    #stack_pull_int_y
     #stack_pull_int_x
     
     lda #1
@@ -83,7 +83,13 @@ Sprite_set_Visible:
     dex
     bpl -
     lsr
+    cpy #1
+    bne +
     ora spriteEnabled
+    jmp Sprite_set_Visible_l1
++   eor #$FF
+    and spriteEnabled
+Sprite_set_Visible_l1:
     sta spriteEnabled
     #stack_return_to_saved_address zp_tmp1_low
 
@@ -189,8 +195,8 @@ Sprite_set_ExpandY_l1:
 
 Sprite_set_DataBlock:
     #stack_save_return_adress zp_tmp1_low
-    #stack_pull_int $34
     #stack_pull_int_y
+    #stack_pull_int $34
     #stack_pull_int_x
     tya
 

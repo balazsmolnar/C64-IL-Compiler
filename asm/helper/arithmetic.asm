@@ -292,17 +292,16 @@ and8 .macro
 
 conv_8_16 .macro
 
-    #stack_pull_int $32
+    #stack_pull_int_x
     lda #0
     stack_push_int_a
-    lda $32
-    stack_push_int_a
+    stack_push_int_x
 
 .endm
 
 conv_16_8 .macro
 
+    #stack_pull_int_x
     #stack_pull_int_a
-    #stack_pull_int_a
-    #stack_push_int_a
+    #stack_push_int_x
 .endm

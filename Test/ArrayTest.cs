@@ -21,6 +21,17 @@ namespace Compiler.Test
         }
 
         [Test]
+        public void Long_Array()
+        {
+            var sut = new long[5];
+            Assert.AreEqual(sut.Length, 5);
+            sut[0] = 12L;
+            sut[3] = 13L;
+            Assert.AreEqual((int)sut[0], 12);
+            Assert.AreEqual((int)sut[3], 13);
+        }
+
+        [Test]
         public void Multiple_Int_Array()
         {
             var sut1 = new int[3];
@@ -60,6 +71,17 @@ namespace Compiler.Test
             var sut = new MockObject[] { new MockObject { F = 12 }, new MockObject { F = 13 } };
             Assert.AreEqual(sut.Length, 2);
             Assert.AreEqual(sut[1].F, 13);
+        }
+
+        [Test]
+        public void String_Array_Initializer()
+        {
+            var sut = new string[] { "a", "b" };
+            Assert.AreEqual(sut.Length, 2);
+            foreach (var s in sut)
+            {
+
+            }
         }
 
     }

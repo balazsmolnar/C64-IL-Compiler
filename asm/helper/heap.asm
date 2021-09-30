@@ -68,10 +68,29 @@ newObjInit .macro size, referenceFields, objDescriptor, initValues
   #stack_push_int_a
 .endm
 
-newArr .macro  
+newArrRef .macro  
 
   #stack_pull_int_a  ; size
   tay                ; reference fields
+  jsr newObjL
+
+  #stack_push_int_a
+.endm
+
+newArr .macro  
+
+  #stack_pull_int_a  ; size
+  ldy 0              ; reference fields
+  jsr newObjL
+
+  #stack_push_int_a
+.endm
+
+newArr16 .macro  
+
+  #stack_pull_int_a  ; size
+  asl
+  ldy 0              ; reference fields
   jsr newObjL
 
   #stack_push_int_a
@@ -147,6 +166,24 @@ stelem .macro
   sta (tmpPointer),y 
 .endm
 
+stelem16 .macro  
+  #stack_pull_int16 $fd   ; value
+  #stack_pull_int_a     ; index
+  asl
+  tay
+  #stack_pull_int_x     ; object refernce to array
+
+  lda objTableLow,x
+  sta tmpPointer
+  lda objTableHigh,x
+  sta tmpPointer+1
+
+  lda $fd
+  sta (tmpPointer),y
+  lda $fe
+  sta (tmpPointer+1),y
+.endm
+
 ldfld8 .macro pos 
   #stack_pull_int_x
   lda objTableLow,x
@@ -204,8 +241,32 @@ ldelem .macro
   #stack_push_int_a
 .endm
 
+ldelem16 .macro   
+  #stack_pull_int_a
+  asl
+  tay
+  #stack_pull_int_x
+
+  lda objTableLow,x
+  sta tmpPointer
+  lda objTableHigh,x
+  sta tmpPointer+1
+
+  lda (tmpPointer+1),y
+  #stack_push_int_a
+  lda (tmpPointer),y
+  #stack_push_int_a
+.endm
+
 ldlen .macro  
   #stack_pull_int_x
   lda objTableSize,x
+  #stack_push_int_a
+.endm
+
+ldlen16 .macro  
+  #stack_pull_int_x
+  lda objTableSize,x
+  lsr
   #stack_push_int_a
 .endm

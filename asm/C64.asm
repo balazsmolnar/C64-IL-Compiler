@@ -140,11 +140,12 @@ C64_SetCharSet
     and #%11110001
     sta $D018
     #stack_pull_int_a
+    #stack_pull_int_a
+
     lsr
     lsr
     ora $D018
     sta $D018
-    #stack_pull_int_a
     #stack_return_to_saved_address zp_tmp1_low
 
 C64_CopyMemory

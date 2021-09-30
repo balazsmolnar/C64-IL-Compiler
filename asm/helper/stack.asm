@@ -2,17 +2,17 @@
 ; less space, but faster
 ;
 stack_push_pointer .macro ptr
-  lda # < \ptr
-  pha
   lda # > \ptr
+  pha
+  lda # < \ptr
   pha
 .endm
 
 stack_pull_pointer .macro address 
   pla
-  sta \address+1
-  pla
   sta \address
+  pla
+  sta \address+1
 .endm
 
 stack_push_int16 .macro value 
@@ -29,9 +29,9 @@ stack_push_int8 .macro value
 
 stack_pull_int16 .macro address 
   pla
-  sta \address+1
-  pla
   sta \address
+  pla
+  sta \address+1
 .endm
 
 stack_pull_int8 .macro address 
@@ -40,9 +40,9 @@ stack_pull_int8 .macro address
 .endm
 
 stack_push_var16 .macro address 
-  lda \address
-  pha
   lda \address+1
+  pha
+  lda \address
   pha
 .endm
 
@@ -72,15 +72,15 @@ stack_pop .macro
 
 stack_save_return_adress .macro variable
   pla
-  sta \variable+1
-  pla
   sta \variable
+  pla
+  sta \variable+1
 .endm
 
 stack_return_to_saved_address .macro  variable 
-  lda \variable
-  pha
   lda \variable+1
+  pha
+  lda \variable
   pha
   rts
 .endm

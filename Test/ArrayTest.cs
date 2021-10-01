@@ -76,12 +76,10 @@ namespace Compiler.Test
         [Test]
         public void String_Array_Initializer()
         {
-            var sut = new string[] { "a", "b" };
+            var sut = new string[] { "a", "bb" };
             Assert.AreEqual(sut.Length, 2);
-            foreach (var s in sut)
-            {
-
-            }
+            Assert.AreEqual(sut[0].Length, 1);
+            Assert.AreEqual(sut[1].Length, 2);
         }
 
     }

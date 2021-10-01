@@ -281,6 +281,17 @@ shift_left8 .macro
     #stack_push_int_a
 .endm
 
+shift_right8 .macro 
+
+    #stack_pull_int_x
+    #stack_pull_int_a
+    
+-   lsr
+    dex
+    bne -
+    #stack_push_int_a
+.endm
+
 and8 .macro
 
     #stack_pull_int $32

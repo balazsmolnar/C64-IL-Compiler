@@ -76,6 +76,14 @@ namespace Compiler.Test
             return a << 3;
         }
 
+
+        [TestCase(16, ExpectedResult = 8)]
+        [TestCase(32, ExpectedResult = 16)]
+        public int TestShiftRight1(int a)
+        {
+            return a >> 1;
+        }
+
         [TestCase(5, 4, ExpectedResult = false)]
         [TestCase(100, 100, ExpectedResult = true)]
         [TestCase(-10, -10, ExpectedResult = true)]

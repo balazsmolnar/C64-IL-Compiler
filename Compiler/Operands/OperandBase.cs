@@ -106,11 +106,15 @@ namespace Compiler.Ops
 
         public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
         {
-            var method = context.CompilerContext.Assembly.ManifestModule.ResolveMethod((int)operation.OriginalParameter) as MethodInfo;
+            var method = context.CompilerContext.Assembly.ManifestModule.ResolveMethod((int)operation.OriginalParameter) as MethodBase;
             var parameterNum = method.GetParameters().Length + (method.IsStatic ? 0 : 1);
             operation.StackContent.RemoveLast(parameterNum);
-            if (method.ReturnType != typeof(void))
-                operation.StackContent.Add(method.ReturnType);
+
+            if (method is MethodInfo)
+            {
+                if (((MethodInfo)method).ReturnType != typeof(void))
+                    operation.StackContent.Add(((MethodInfo)method).ReturnType);
+            }
         }
     }
 
@@ -122,8 +126,13 @@ namespace Compiler.Ops
 
         public override string Emit(CompilerMethodContext context, ILOperation operation)
         {
+            bool normalCall = false;
             var methodInfo = context.CompilerContext.Assembly.ManifestModule.ResolveMethod((int)operation.OriginalParameter);
-            if (!methodInfo.IsVirtual)
+            // for Func<>
+            if (!methodInfo.IsVirtual || methodInfo.ReflectedType.Name.StartsWith("Func"))
+                normalCall = true;
+
+            if (normalCall)
                 return base.Emit(context, operation);
 
             var index = methodInfo.ReflectedType.GetVirtualMethodIndex(methodInfo);
@@ -154,11 +163,22 @@ namespace Compiler.Ops
             }
             //var label = context.CompilerContext.Assembly.ManifestModule.ResolveMethod(operation.RawParameter).GetLabel();
 
-            return $"{size}, {referenceFields}, {t.Name}_VTable";
+
+            var vtable = t.IsGenericType ? "0" : $"{t.Name}_VTable";
+            // var ctor = $"{t.Name}_x_ctor";
+            var ctor = "0";
+
+            if (t.Assembly == typeof(Func<object>).Assembly)
+                ctor = $"{t.Name}_x_ctor".ToValidName();
+            return $"{size}, {referenceFields}, {vtable}, {ctor}";
         }
 
         public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
         {
+            var method = context.CompilerContext.Assembly.ManifestModule.ResolveMethod((int)operation.OriginalParameter) as MethodBase;
+            var parameterNum = method.GetParameters().Length;
+            operation.StackContent.RemoveLast(parameterNum);
+
             operation.StackContent.Add(typeof(object));
         }
     }
@@ -405,11 +425,18 @@ namespace Compiler.Ops
         public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
         {
             var memLabel = context.CompilerContext.GetInitValueLabel(string.Join(',', _mem));
-            return $"{_size}, {_referenceFields}, {_vtable}, {memLabel}";
+
+            // var ctor = $"{context.TypeContext.Type.Name}_x_ctor";
+            var ctor = 0;
+            return $"{_size}, {_referenceFields}, {_vtable}, {memLabel}, {ctor}";
         }
 
         public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
         {
+            var method = context.CompilerContext.Assembly.ManifestModule.ResolveMethod((int)operation.OriginalParameter) as MethodBase;
+            var parameterNum = method.GetParameters().Length;
+            operation.StackContent.RemoveLast(parameterNum);
+
             operation.StackContent.Add(typeof(object));
         }
 
@@ -823,10 +850,10 @@ namespace Compiler.Ops
         public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
         {
             var method = context.Method as MethodInfo;
-            if (method.ReturnType == typeof(void) && operation.StackContent.Count != 0)
+            if (method != null && method.ReturnType == typeof(void) && operation.StackContent.Count != 0)
                 throw new InvalidOperationException($"Stack should be empty. {context.Method.Name}");
 
-            if (method.ReturnType != typeof(void))
+            if (method != null && method.ReturnType != typeof(void))
             {
                 if (operation.StackContent.Count != 1)
                     throw new InvalidOperationException($"Stack should contain 1 element. {context.Method.Name}");

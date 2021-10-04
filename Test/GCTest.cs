@@ -21,23 +21,6 @@ namespace Compiler.Test
         static TestObject s_a2;
 
         [Test]
-        public void Two_Instances_First_GCd_Static_Field()
-        {
-            s_a1 = new TestObject() { Id = 4 };
-            s_a2 = new TestObject() { Id = 5 };
-
-            var objId = C64.Debug.GetObjectId(s_a1);
-            var objId2 = C64.Debug.GetObjectId(s_a2);
-            Assert.IsTrue(C64.Debug.IsAlive(objId), "instance should be alive");
-            s_a1 = null;
-            GC.Collect();
-
-            Assert.IsFalse(C64.Debug.IsAlive(objId), "instance should not be alive");
-            Assert.IsTrue(C64.Debug.IsAlive(objId2), "instance should be alive");
-            Assert.AreEqual(s_a2.Id, 5);
-        }
-
-        [Test]
         public void Single_Instance_GC()
         {
             var a = new TestObject();
@@ -55,6 +38,23 @@ namespace Compiler.Test
             a = new TestObject();
             GC.Collect();
             Assert.IsFalse(C64.Debug.IsAlive(aid), "instance should not be alive");
+        }
+
+        [Test]
+        public void Two_Instances_First_GCd_Static_Field()
+        {
+            s_a1 = new TestObject() { Id = 4 };
+            s_a2 = new TestObject() { Id = 5 };
+
+            var objId = C64.Debug.GetObjectId(s_a1);
+            var objId2 = C64.Debug.GetObjectId(s_a2);
+            Assert.IsTrue(C64.Debug.IsAlive(objId), "instance should be alive");
+            s_a1 = null;
+            GC.Collect();
+
+            Assert.IsFalse(C64.Debug.IsAlive(objId), "instance should not be alive");
+            Assert.IsTrue(C64.Debug.IsAlive(objId2), "instance should be alive");
+            Assert.AreEqual(s_a2.Id, 5);
         }
 
         public void Foo(TestObject t)

@@ -24,7 +24,7 @@ initHeap .macro heap
 ; Output:
 ; Newly created object id on the stack
 ;
-newObj .macro size, referenceFields, objDescriptor
+newObj .macro size, referenceFields, objDescriptor, ctor
 
   lda #<\objDescriptor
   sta $30
@@ -36,7 +36,15 @@ newObj .macro size, referenceFields, objDescriptor
 
   jsr newObjL
 
-  #stack_push_int_a
+  .if \ctor=0
+    #stack_push_int_a
+  .else
+    sta $fa
+    #stack_push_int_a
+    jsr \ctor
+    lda $fa
+    #stack_push_int_a
+  .endif
 .endm
 
 ;
@@ -48,7 +56,7 @@ newObj .macro size, referenceFields, objDescriptor
 ; Output:
 ; Newly created object id on the stack
 ;
-newObjInit .macro size, referenceFields, objDescriptor, initValues
+newObjInit .macro size, referenceFields, objDescriptor, initValues, ctor
 
   lda #<\objDescriptor
   sta $30
@@ -65,7 +73,15 @@ newObjInit .macro size, referenceFields, objDescriptor, initValues
 
   jsr newObjLInit
 
-  #stack_push_int_a
+  .if \ctor=0
+    #stack_push_int_a
+  .else
+    sta $fa
+    #stack_push_int_a
+    jsr \ctor
+    lda $fa
+    #stack_push_int_a
+  .endif
 .endm
 
 newArrRef .macro  

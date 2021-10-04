@@ -10,7 +10,7 @@ namespace Compiler
         public void Execute(CompilerTypeContext context)
         {
             var @type = context.Type;
-            if (@type.IsValueType)
+            if (@type.IsValueType || @type.Name.Contains("<>"))
                 return;
 
             context.OutputFile.WriteLine();

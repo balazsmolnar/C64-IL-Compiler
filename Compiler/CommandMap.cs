@@ -83,6 +83,7 @@ namespace Compiler
                 { ILOpCode.Add, new OpArithmetic2("#add") },
                 { ILOpCode.Shl, new OpArithmetic2("#shift_left") },
                 { ILOpCode.Shr, new OpArithmetic2("#shift_right") },
+                { ILOpCode.Shr_un, new OpArithmetic2("#shift_right") },
                 { ILOpCode.Sub, new OpArithmetic2("#sub") },
                 { ILOpCode.Neg, new OpArithmetic1("#negate") },
                 { ILOpCode.And, new OpArithmetic2("#and") },

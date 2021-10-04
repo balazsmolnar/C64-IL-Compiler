@@ -10,7 +10,8 @@ namespace Compiler
             var result = s
                 ?.Replace('.', '_')
                 ?.Replace('<', '_')
-                ?.Replace('>', '_');
+                ?.Replace('>', '_')
+                ?.Replace('`', '_');
 
             return result.StartsWith('_') ? "x" + result : result;
         }

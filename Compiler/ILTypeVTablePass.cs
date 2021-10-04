@@ -10,7 +10,7 @@ namespace Compiler
         public void Execute(CompilerTypeContext context)
         {
             var @type = context.Type;
-            if (@type.IsValueType || @type.Name.Contains("<>"))
+            if (@type.IsValueType)
                 return;
 
             context.OutputFile.WriteLine();
@@ -21,7 +21,7 @@ namespace Compiler
                 labels.Add(m.GetLabel());
             }
 
-            string outputLine = $"{context.Type.Name}_VTable: ";
+            string outputLine = $"{context.Type.Name.ToValidName()}_VTable: ";
             if (labels.Count > 0)
                 outputLine += $" .word {string.Join(',', labels)}";
             else

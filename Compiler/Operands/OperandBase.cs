@@ -164,7 +164,7 @@ namespace Compiler.Ops
             //var label = context.CompilerContext.Assembly.ManifestModule.ResolveMethod(operation.RawParameter).GetLabel();
 
 
-            var vtable = t.IsGenericType ? "0" : $"{t.Name}_VTable";
+            var vtable = t.IsGenericType ? "0" : $"{t.Name.ToValidName()}_VTable";
             // var ctor = $"{t.Name}_x_ctor";
             var ctor = "0";
 

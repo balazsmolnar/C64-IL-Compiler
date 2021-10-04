@@ -55,6 +55,7 @@ namespace Compiler
                     }
 
                     var methods = @type.GetMethods(BindingFlags.Static | BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public).OfType<MethodBase>();
+                    // var staticconstructors = @type.GetConstructors(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic).OfType<MethodBase>();
                     // var constructors = @type.GetConstructors(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).OfType<MethodBase>();
                     // if (constructors.Count() > 1)
                     //     throw new Exception($"Only 1 constructor supported (at the moment). Type : {@type} ");

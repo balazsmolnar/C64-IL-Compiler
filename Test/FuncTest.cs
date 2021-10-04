@@ -19,12 +19,20 @@ namespace Compiler.Test
     [TestFixture]
     class FuncTest
     {
-        // [Test]
-        // public void FuncTest_Lambda()
-        // {
-        //     Func<int> func = () => 5;
-        //     Assert.AreEqual(func(), 5);
-        // }
+        [Test]
+        public void FuncTest_Lambda()
+        {
+            Func<int> func = () => 5;
+            Assert.AreEqual(func(), 5);
+        }
+
+        [Test]
+        public void FuncTest_Lambda_Closure()
+        {
+            int a = 5;
+            Func<int> func = () => a;
+            Assert.AreEqual(func(), 5);
+        }
 
         [Test]
         public void FuncTest_Static_Method()

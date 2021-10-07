@@ -96,7 +96,7 @@ newArrRef .macro
 newArr .macro  
 
   #stack_pull_int_a  ; size
-  ldy 0              ; reference fields
+  ldy #0              ; reference fields
   jsr newObjL
 
   #stack_push_int_a
@@ -106,7 +106,7 @@ newArr16 .macro
 
   #stack_pull_int_a  ; size
   asl
-  ldy 0              ; reference fields
+  ldy #0              ; reference fields
   jsr newObjL
 
   #stack_push_int_a
@@ -197,7 +197,8 @@ stelem16 .macro
   lda $fd
   sta (tmpPointer),y
   lda $fe
-  sta (tmpPointer+1),y
+  iny
+  sta (tmpPointer),y
 .endm
 
 ldfld8 .macro pos 
@@ -268,8 +269,10 @@ ldelem16 .macro
   lda objTableHigh,x
   sta tmpPointer+1
 
-  lda (tmpPointer+1),y
+  iny
+  lda (tmpPointer),y
   #stack_push_int_a
+  dey
   lda (tmpPointer),y
   #stack_push_int_a
 .endm

@@ -14,14 +14,25 @@
 .include "./TitleScreen.asm"
 .include "./Wall.asm"
 .include "./Tone.asm"
-string_1879048193 .text "hello world!",0
-string_1879048535 .text "GET READY",0
-string_1879048555 .text "         ",0
-string_1879050567 .text "OCEAN SOFTWARE",0
-string_1879050597 .text "   PRESENTS   ",0
-string_1879050627 .text "   BY J.STEELE",0
-string_1879050657 .text "PRESS F1 FOR INSTRUCTIONS",0
-string_1879050709 .text "    OR SPACE TO START    ",0
+string_1879048193 .text ".3C0F   A4 24      LDY STACKPOINTER",0
+string_1879048265 .text ".3C11   B9 FF C6   LDA LOCALSSTACK-1,Y",0
+string_1879048343 .text ".3C14   48         PHA",0
+string_1879048389 .text ".3C15   A4 24      LDY STACKPOINTER",0
+string_1879048461 .text ".3C17   B9 FE C6   LDA LOCALSSTACK-2,Y",0
+string_1879048539 .text ".3C1A   48         PHA",0
+string_1879048585 .text ".3C1B   68         PLA",0
+string_1879048631 .text ".3C1C   85 32      STA $32",0
+string_1879048685 .text ".3C1E   68         PLA",0
+string_1879048731 .text ".3C1F   18         CLC",0
+string_1879048777 .text ".3C20   65 32      ADC $32",0
+string_1879048831 .text ".3C22   48         PHA",0
+string_1879049193 .text "GET READY",0
+string_1879049213 .text "         ",0
+string_1879051225 .text "OCEAN SOFTWARE",0
+string_1879051255 .text "   PRESENTS   ",0
+string_1879051285 .text "   BY J.STEELE",0
+string_1879051315 .text "PRESS F1 FOR INSTRUCTIONS",0
+string_1879051367 .text "    OR SPACE TO START    ",0
 Init_Values_0 .byte 0,37,11
 Init_Values_1 .byte 3,0,11
 Init_Values_2 .byte 1,0,11

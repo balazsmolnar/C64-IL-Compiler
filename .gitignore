@@ -6,11 +6,8 @@ Test/x
 C64.sln.DotSettings.user
 asm/unittest/**
 asm/generated/**
+asm/presentation/**
 prg/**
 .vs/**
 NuGet.Config
 obj/**
-asm/generated/Ball.asm
-asm/generated/Platform.asm
-asm/generated/PlatformEnemy.asm
-asm/generated/Player.asm

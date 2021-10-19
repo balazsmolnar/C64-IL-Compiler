@@ -11,14 +11,14 @@ Game_Start
     #locals_push_value8 1 ; Ldarg_0
     jsr Game_Init ; Call
     jsr TitleScreen_Display ; Call
-    #newObj 0, 0, LevelPlay_VTable ; Newobj
+    #newObj 0, 0, LevelPlay_VTable, 0 ; Newobj
     #locals_pull_value8 2, 1 ; Stloc_0
   ; OPT   #stack_push_int8 0 ; Ldc_i4_0
   ; OPT   #locals_pull_value8 3, 0 ; Stloc_1
     #init_var 3, 0 ; Nop
     jsr LevelDescription_get_Levels ; Call
     #locals_pull_value8 4, 1 ; Stloc_2
-    #newObj 0, 0, PlayerStats_VTable ; Newobj
+    #newObj 0, 0, PlayerStats_VTable, 0 ; Newobj
     #locals_pull_value8 5, 1 ; Stloc_3
     jmp Game_Start_68 ; Br_s
 Game_Start_33:    #stack_push_int8 12 ; Ldc_i4_s
@@ -52,7 +52,7 @@ Game_Start_68:    #locals_push_value8 3 ; Ldloc_1
 ;----------------------------------------
 Game_Init 
     #init_locals_pull_parameters 0, [0]
-  ; OPT   #stack_push_pointer string_1879048371 ; Ldstr
+  ; OPT   #stack_push_pointer string_1879049029 ; Ldstr
   ; OPT   jsr C64Address_FromLabel ; Call
     #stack_push_pointer charset ; Nop
     jsr C64_SetCharSet ; Call

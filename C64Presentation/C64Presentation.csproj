@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+	<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+	<Optimize>true</Optimize>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="sprites.asm" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="sprites.asm" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\C64Lib\C64Lib.csproj" />
+  </ItemGroup>
+
+</Project>

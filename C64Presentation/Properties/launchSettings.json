@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "C64Presentation": {
+      "commandName": "Executable",
+      "executablePath": ".\\run.bat",
+      "workingDirectory": "."
+    }
+  }
+}

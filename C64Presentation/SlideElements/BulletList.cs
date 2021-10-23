@@ -23,10 +23,11 @@ namespace C64Presentation.SlideElements
                 C64.SetChar(Left, y, Symbol, Color);
                 C64.Write(Left + 2, y, item, Color);
                 y += 2;
-            }
 
-            if (Wait)
-                KeyBoard.WaitForKeys();
+                if (Wait)
+                    KeyBoard.WaitForKeys();
+
+            }
         }
     }
 }

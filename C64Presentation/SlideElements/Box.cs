@@ -67,7 +67,7 @@ namespace C64Presentation.SlideElements
             {
                 int length = Text.Length;
                 uint startX = ((Width - (uint)length) >> 1) + (uint)X;
-                uint startY = Y + (Height >> 1);
+                uint startY = Y + ((Height-1) >> 1);
 
                 C64.Write(startX, startY, Text, TextColor);
             }

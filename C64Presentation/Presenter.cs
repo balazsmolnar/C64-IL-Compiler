@@ -18,10 +18,12 @@ namespace C64Presentation
                 C64.SetBackgroundColor(Colors.Black);
                 C64.SetBorderColor(Colors.Black);
 
-                slides[currentSlide]().Present();
+                var slide = slides[currentSlide]();
+                slide.Present();
 
                 var key = KeyBoard.WaitForKeys();
-                slides[currentSlide]().CleanUp();
+                slide.CleanUp();
+                slide = null;
 
                 if (key == Keys.B)
                 {

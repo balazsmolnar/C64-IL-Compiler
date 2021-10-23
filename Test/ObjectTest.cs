@@ -29,6 +29,12 @@ namespace Compiler.Test
         }
     }
 
+    class TestWithString
+    {
+        public int field1;
+        public string field2;
+    }
+
     [TestFixture]
     class ObjectTest
     {
@@ -65,6 +71,18 @@ namespace Compiler.Test
             Assert.AreEqual(sut.field1, 3);
             Assert.AreEqual(sut.field2, 5);
             Assert.AreEqual(sut.Property1, 6);
+        }
+
+        [Test]
+        public void Object_Initializer_With_String()
+        {
+            var sut = new TestWithString()
+            {
+                field1 = 3,
+                field2 = "xxx",
+            };
+            Assert.AreEqual(sut.field1, 3);
+            Assert.AreEqual(sut.field2.Length, 3);
         }
 
         [Test]

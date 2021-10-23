@@ -408,13 +408,13 @@ namespace Compiler.Ops
 
     class OpNewObjInit : OpBase
     {
-        byte[] _mem;
+        string[] _mem;
         int _size;
         int _referenceFields;
 
         string _vtable;
 
-        public OpNewObjInit(byte[] mem, int size, int referenceFields, string vtable) : base(0, "#newObjInit")
+        public OpNewObjInit(string[] mem, int size, int referenceFields, string vtable) : base(0, "#newObjInit")
         {
             _mem = mem;
             _size = size;

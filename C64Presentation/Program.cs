@@ -11,13 +11,14 @@ namespace C64Presentation
 
             var slides = new Func<Slide>[]
             {
-                WhatIsItSlide.Create,
                 () =>  new IntroSlide(),
                 AgendaSlide.Create,
+                WhatIsItSlide.Create,
                 CompilerPassesSlide.Create,
                 () => new DemoSlide(),
                 FeaturesSlide.Create,
                 MemoryLayoutSlide.Create,
+                () => new GarbageCollectorSlide(),
             };
 
             Presenter.Present(slides);

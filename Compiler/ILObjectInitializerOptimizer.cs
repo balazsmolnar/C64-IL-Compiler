@@ -34,25 +34,39 @@ namespace Compiler
                     var size = this.GetIntParam(lines[i].RawParameter, 0);
                     var vtable = this.GetStringParam(lines[i].RawParameter, 2);
 
-                    byte[] mem = new byte[size];
+                    string[] mem = Enumerable.Repeat("0", size).ToArray();
 
                     int index = i + 1;
                     while (
                         lines[index].Operation is OpDup &&
-                        lines[index + 1].Operation is OpLdConst &&
+                        (lines[index + 1].Operation is OpLdConst || lines[index + 1].Operation is OpLdstr) &&
                         (lines[index + 2].Operation is OpStfld || lines[index + 3].Operation is OpStfld))
                     {
                         // there is a conversion between ldc and setfld
 
                         var conv = lines[index + 3].Operation is OpStfld;
                         var opPush = lines[index + 1].Operation as OpLdConst;
-                        var is16 = opPush.Is16Bit(context, lines[index + 1]);
-                        var value = GetIntParam(lines[index + 1].RawParameter, 0);
+                        var opLdstr = lines[index + 1].Operation as OpLdstr;
+                        var is16 = false;
+
+                        if (opPush != null)
+                        {
+                            is16 = opPush.Is16Bit(context, lines[index + 1]);
+                        }
+                        else if (opLdstr != null)
+                        {
+                            is16 = true; // ldstr;
+                        }
+                        else
+                        {
+                            throw new InvalidOperationException("Invalid operation.");
+                        }
+                        var value = GetStringParam(lines[index + 1].RawParameter, 0);
                         var pos = GetIntParam(lines[index + (conv ? 3 : 2)].RawParameter, 0);
-                        mem[pos] = (byte)(value % 256);
+                        mem[pos] = $"<{value}";
                         if (is16)
                         {
-                            mem[pos + 1] = (byte)(value / 256);
+                            mem[pos + 1] = $">{value}";
                         }
                         lines[index].Optimized = true;
                         lines[index + 1].Optimized = true;

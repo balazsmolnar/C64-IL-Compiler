@@ -23,7 +23,7 @@ namespace C64Presentation.SlideElements
         {
             elements = new ObjectElem[maxSize];
             pointer = -1;
-            box = new Box() { Color = Colors.Violet, X = X, Y = Y - (uint)pointer, Width = 5, Height = (uint)(pointer + 3) };
+            box = new Box() { Color = Colors.Violet, X = X, Y = Y - (uint)pointer, Width = 5, Height = (uint)(pointer + 3), Text = "" };
         }
 
         public void Push(ObjectElem elem)

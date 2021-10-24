@@ -35,7 +35,7 @@ namespace C64Presentation.Slides
                         "MEMORY", "64K", "32GB", "*524,288",
                         "CPU", "1MHZ", "8*1.8GHZ", "*14,400",
                         "BITS", "8", "64", "*8"
-                    }}, 
+                    }},
                 },
 
                 Animation = new DiagonalClearAnimation()

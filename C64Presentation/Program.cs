@@ -17,8 +17,10 @@ namespace C64Presentation
                 CompilerPassesSlide.Create,
                 () => new DemoSlide(),
                 FeaturesSlide.Create,
+                () => new DemoSlide(),
                 MemoryLayoutSlide.Create,
                 () => new GarbageCollectorSlide(),
+                () => new DemoSlide(),
             };
 
             Presenter.Present(slides);

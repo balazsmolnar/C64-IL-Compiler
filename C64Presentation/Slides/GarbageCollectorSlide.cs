@@ -22,12 +22,12 @@ namespace C64Presentation.Slides
                 new ObjectElem() {Id = "6", Alive = true, Size = 7 },
             };
 
-            objects[0].References = new ObjectElem[] {objects[2], objects[3]};
-            objects[1].References = new ObjectElem[] { objects[0], objects[5] };
-            objects[2].References = new ObjectElem[] { objects[0], objects[3], objects[4] };
-            objects[3].References = new ObjectElem[] { objects[0] };
-            objects[4].References = new ObjectElem[] { objects[2] };
-            objects[5].References = new ObjectElem[] { objects[0], objects[1], objects[4] };
+            objects[0].References = new [] {objects[2], objects[3]};
+            objects[1].References = new [] { objects[0], objects[5] };
+            objects[2].References = new [] { objects[0], objects[3], objects[4] };
+            objects[3].References = new [] { objects[0] };
+            objects[4].References = new [] { objects[2] };
+            objects[5].References = new [] { objects[0], objects[1], objects[4] };
 
             stack = new Stack() { X= 17, Y= 12 };
             stack.Init(objects.Length);
@@ -95,12 +95,14 @@ namespace C64Presentation.Slides
             KeyBoard.WaitForKeys();
         }
 
-
         private void Draw()
         {
             uint x = 0;
             uint x2 = 0;
             const uint width = 7;
+
+            var box = new Box()  { Y = 5, Width = width, Height = 3, BorderColor = Colors.Blue, ConnectToLeft = x != 0 };
+            var box2 = new Box() { Y = 18, Height = 6, BorderColor = Colors.Blue };
 
             foreach (var objectElem in objects)
             {
@@ -112,9 +114,10 @@ namespace C64Presentation.Slides
                 if (!objectElem.Alive)
                     color = Colors.Black;
 
-                var box = new Box() 
-                { X = x, Y = 5, Width = width, Height = 3, Text = objectElem.Id, BorderColor = Colors.Blue, TextColor = color, ConnectToLeft = x != 0 };
-                box.Draw();
+                box.Text = objectElem.Id;
+                box.TextColor = color;
+                box.ConnectToLeft = x != 0;
+                box.X = x;
 
                 C64.SetChar(x+3, 8, objectElem.Processing ? 0u : 0x20u);
                 x += width - 1;
@@ -123,8 +126,11 @@ namespace C64Presentation.Slides
                     continue;
 
                 var width2 = objectElem.Size + 3;
-                var box2 = new Box()
-                    { X = x2, Y = 18, Width = width2, Height = 6, Text = objectElem.Id, BorderColor = Colors.Blue, TextColor = objectElem.Alive ? Colors.Yellow : Colors.Black, ConnectToLeft = x2 != 0 };
+                box2.X = x2;
+                box2.Width = width;
+                box2.Text = objectElem.Id;
+                box2.TextColor = objectElem.Alive ? Colors.Yellow : Colors.Black;
+                box2.ConnectToLeft = x2 != 0;
                 box2.Draw();
                 var refx = x2 + 1;
                 if (objectElem.Alive)

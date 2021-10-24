@@ -63,14 +63,11 @@ namespace C64Presentation.SlideElements
                 C64.SetChar(X + Width - 1, y, V_LINE, BorderColor);
             }
 
-            if (Text != null)
-            {
-                int length = Text.Length;
-                uint startX = ((Width - (uint)length) >> 1) + (uint)X;
-                uint startY = Y + ((Height-1) >> 1);
+            int length = Text.Length;
+            uint startX = ((Width - (uint)length) >> 1) + (uint)X;
+            uint startY = Y + ((Height - 1) >> 1);
 
-                C64.Write(startX, startY, Text, TextColor);
-            }
+            C64.Write(startX, startY, Text, TextColor);
 
             if (WaitAfter)
             {

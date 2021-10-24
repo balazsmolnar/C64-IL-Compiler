@@ -118,6 +118,7 @@ namespace C64Presentation.Slides
                 box.TextColor = color;
                 box.ConnectToLeft = x != 0;
                 box.X = x;
+                box.Draw();
 
                 C64.SetChar(x+3, 8, objectElem.Processing ? 0u : 0x20u);
                 x += width - 1;
@@ -127,7 +128,7 @@ namespace C64Presentation.Slides
 
                 var width2 = objectElem.Size + 3;
                 box2.X = x2;
-                box2.Width = width;
+                box2.Width = width2;
                 box2.Text = objectElem.Id;
                 box2.TextColor = objectElem.Alive ? Colors.Yellow : Colors.Black;
                 box2.ConnectToLeft = x2 != 0;

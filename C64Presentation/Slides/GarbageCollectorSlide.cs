@@ -9,6 +9,7 @@ namespace C64Presentation.Slides
     {
         private ObjectElem[] objects;
         private Stack stack;
+
         public override void Present()
         {
             objects = new []
@@ -30,6 +31,9 @@ namespace C64Presentation.Slides
 
             stack = new Stack() { X= 17, Y= 12 };
             stack.Init(objects.Length);
+
+            var title = new Title() {Text = "GARBAGE COLLECTOR"};
+            title.Draw();
             RefreshWait();
             AddRoots();
             MarkObjects();
@@ -90,6 +94,7 @@ namespace C64Presentation.Slides
             Draw();
             KeyBoard.WaitForKeys();
         }
+
 
         private void Draw()
         {

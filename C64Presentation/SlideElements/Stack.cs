@@ -14,6 +14,7 @@ namespace C64Presentation.SlideElements
     {
         private ObjectElem[] elements;
         private int pointer;
+        private Box box;
 
         public uint X;
         public uint Y;
@@ -22,6 +23,7 @@ namespace C64Presentation.SlideElements
         {
             elements = new ObjectElem[maxSize];
             pointer = -1;
+            box = new Box() { Color = Colors.Violet, X = X, Y = Y - (uint)pointer, Width = 5, Height = (uint)(pointer + 3) };
         }
 
         public void Push(ObjectElem elem)
@@ -40,8 +42,10 @@ namespace C64Presentation.SlideElements
         public bool IsEmpty => pointer == -1;
         public override void Draw()
         {
+            this.box.Y = Y - (uint) pointer;
+            this.box.Height = (uint) (pointer + 3);
             Screen.ClearRect(X, X+5, Y-(uint)pointer-1, Y+1);
-            var box = new Box() {Color = Colors.Violet, X = X, Y = Y - (uint)pointer, Width = 5, Height = (uint) (pointer + 3)};
+            
             box.Draw();
 
             for (int p = 0; p <= pointer; p++)

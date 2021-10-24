@@ -1,5 +1,6 @@
 ﻿using System;
 using C64Lib;
+using C64Presentation.SlideElements;
 using C64Presentation.Slides;
 
 namespace C64Presentation
@@ -8,7 +9,6 @@ namespace C64Presentation
     {
         static void Main()
         {
-
             var slides = new Func<Slide>[]
             {
                 () =>  new IntroSlide(),

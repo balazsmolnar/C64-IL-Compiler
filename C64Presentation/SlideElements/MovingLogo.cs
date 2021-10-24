@@ -55,19 +55,19 @@ namespace C64Presentation.SlideElements
             if (Y >= MaxY || Y < MinY)
                 up = !up;
 
-            counter++;
-            if (counter == 10)
-            {
-                counter = 0;
-                delay1X = delay1Inc ? delay1X + 1 : delay1X - 1;
-                if (delay1X >= 15 || delay1X < 5)
-                    delay1Inc = !delay1Inc;
+            //counter++;
+            //if (counter == 10)
+            //{
+            //    counter = 0;
+            //    delay1X = delay1Inc ? delay1X + 1 : delay1X - 1;
+            //    if (delay1X >= 15 || delay1X < 5)
+            //        delay1Inc = !delay1Inc;
 
-                delay2X = delay2Inc ? delay2X + 1 : delay2X - 1;
-                if (delay2X >= 15 || delay2X < 5)
-                    delay2Inc = !delay2Inc;
+            //    delay2X = delay2Inc ? delay2X + 1 : delay2X - 1;
+            //    if (delay2X >= 15 || delay2X < 5)
+            //        delay2Inc = !delay2Inc;
 
-            }
+            //}
             SpriteTL.X = X;
             SpriteTL.Y = Y;
             SpriteBL.X = X;

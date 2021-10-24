@@ -14,6 +14,7 @@ namespace C64Presentation.Slides
                 C64.SetBackgroundColor(color);
                 C64.SetBorderColor(color);
                 color++;
+
                 if (C64.IsKeyPressed(Keys.Space))
                     break;
                 

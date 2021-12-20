@@ -770,7 +770,7 @@ Player_get_IsLeft
     jsr C64_IsKeyPressed ; Call
     #branch_true Player_get_IsLeft_29 ; Brtrue_s
     jsr C64_get_Joysticks ; Call
-    jsr JoystickCollection_get_Joystick2 ; Callvirt
+    jsr JoystickCollection_get_Joystick1 ; Callvirt
     jsr Joystick_get_Pressed ; Callvirt
     #stack_push_int8 4 ; Ldc_i4_4
     #and8 ; And
@@ -792,7 +792,7 @@ Player_get_IsRight
     jsr C64_IsKeyPressed ; Call
     #branch_true Player_get_IsRight_29 ; Brtrue_s
     jsr C64_get_Joysticks ; Call
-    jsr JoystickCollection_get_Joystick2 ; Callvirt
+    jsr JoystickCollection_get_Joystick1 ; Callvirt
     jsr Joystick_get_Pressed ; Callvirt
     #stack_push_int8 8 ; Ldc_i4_8
     #and8 ; And
@@ -814,7 +814,7 @@ Player_get_IsJump
     jsr C64_IsKeyPressed ; Call
     #branch_true Player_get_IsJump_32 ; Brtrue_s
     jsr C64_get_Joysticks ; Call
-    jsr JoystickCollection_get_Joystick2 ; Callvirt
+    jsr JoystickCollection_get_Joystick1 ; Callvirt
     jsr Joystick_get_Pressed ; Callvirt
     #stack_push_int8 16 ; Ldc_i4_s
     #and8 ; And

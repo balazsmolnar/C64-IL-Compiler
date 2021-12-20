@@ -84,7 +84,7 @@ namespace Hunchback
                 Y = 116u;
             }
 
-            if (!jump_ && C64.IsKeyPressed(Keys.W))
+            if (!jump_ && IsJump)
             {
                 C64.Sound.PlayEffectReg1(WaveForm.Rectangle, 1024UL, 0x4028UL, 0, 9, true);
                 if (OnRope)
@@ -107,7 +107,7 @@ namespace Hunchback
                 }
             }
 
-            if (C64.IsKeyPressed(Keys.A))
+            if (IsLeft)
             {
                 left_ = true;
                 if (!OnRope)
@@ -117,7 +117,7 @@ namespace Hunchback
                 }
 
             }
-            if (C64.IsKeyPressed(Keys.D))
+            if (IsRight)
             {
                 left_ = false;
                 if (!OnRope)
@@ -256,6 +256,30 @@ namespace Hunchback
             jumpOffsets_[5] = jumpOffsets_[10] = 18;
             jumpOffsets_[6] = jumpOffsets_[9] = 19;
             jumpOffsets_[7] = jumpOffsets_[8] = 20;
+        }
+
+        private bool IsLeft
+        {
+            get
+            {
+                return C64.IsKeyPressed(Keys.A) || (C64.Joysticks.Joystick2.Pressed & JoystickButtons.Left) == JoystickButtons.Left;
+            }
+        }
+
+        private bool IsRight
+        {
+            get
+            {
+                return C64.IsKeyPressed(Keys.D) || (C64.Joysticks.Joystick2.Pressed & JoystickButtons.Right) == JoystickButtons.Right;
+            }
+        }
+
+        private bool IsJump
+        {
+            get
+            {
+                return C64.IsKeyPressed(Keys.W) || (C64.Joysticks.Joystick2.Pressed & JoystickButtons.Fire) == JoystickButtons.Fire;
+            }
         }
     }
 }

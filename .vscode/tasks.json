@@ -12,6 +12,7 @@
                 "--no-restore",
                 // Ask dotnet build to generate full paths for file names.
                 "/property:GenerateFullPaths=true",
+                "/property:PostSharpDependencyRestoreDisabled=True",
                 // Do not generate summary otherwise it leads to duplicate errors in Problems panel
                 "/consoleloggerparameters:NoSummary"
             ],

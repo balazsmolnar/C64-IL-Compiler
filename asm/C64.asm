@@ -229,6 +229,7 @@ On_Interrupt_Ret
     rti
 
 .include "./C64sprite.asm"
+.include "./C64Joystick.asm"
 .include "./C64sound.asm"
 .include "./C64Keys.asm"
 .include "./C64Debug.asm"

@@ -45,7 +45,7 @@ namespace C64Presentation
             for (; ; )
             {
                 Delay.Wait(100);
-                if (C64.IsKeyPressed(Keys.Space))
+                if (C64.IsKeyPressed(Keys.Space) || (C64.Joysticks.Joystick2.Pressed & JoystickButtons.Fire) == JoystickButtons.Fire)
                 {
                     break;
                 }
@@ -57,7 +57,7 @@ namespace C64Presentation
 
         }
 
-        public  override void CleanUp()
+        public override void CleanUp()
         {
             C64.Sprites.Sprite0.Visible = false;
             C64.Sprites.Sprite1.Visible = false;

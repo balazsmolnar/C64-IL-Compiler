@@ -13,6 +13,17 @@
             "console": "internalConsole"
         },
         {
+            "name": "Presentation",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/C64Presentation/run.bat",
+            "args": [],
+            "cwd": "${workspaceFolder}/C64Presentation",
+            "stopAtEntry": false,
+            "console": "internalConsole"
+        },
+        {
             "name": ".NET Core DEBUG",
             "type": "coreclr",
             "request": "launch",

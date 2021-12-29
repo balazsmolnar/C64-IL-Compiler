@@ -37,11 +37,11 @@ namespace Hunchback
                     C64.FillMemory(C64Address.FromLabel("(colorMemory+$1CD)"), color, 0);
                     C64.FillMemory(C64Address.FromLabel("(colorMemory+$21B)"), color, 0);
 
-                    for (uint k = 0; k < 80u; k++)
+                    for (uint k = 0; k < 50u; k++)
                     {
                         for (uint kk = 0; kk < t.Sustain; kk++)
                         {
-                            if (C64.IsKeyPressed(Keys.Space))
+                            if (C64.IsKeyPressed(Keys.Space) || (C64.Joysticks.Joystick2.Pressed & JoystickButtons.Fire) == JoystickButtons.Fire)
                                 return;
                         }
                     }

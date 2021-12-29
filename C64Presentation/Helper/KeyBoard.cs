@@ -17,7 +17,7 @@ namespace C64Presentation.Helper
             while (true)
             {
 
-                if (C64.IsKeyPressed(Keys.Space))
+                if (C64.IsKeyPressed(Keys.Space) || (C64.Joysticks.Joystick2.Pressed & JoystickButtons.Fire) == JoystickButtons.Fire)
                 {
                     key = Keys.Space;
                     break;
@@ -35,6 +35,8 @@ namespace C64Presentation.Helper
             {
                 if (!C64.IsKeyPressed(key))
                     break;
+                Delay.Wait(500);
+
             }
             return key;
         }

@@ -23,7 +23,7 @@ namespace C64Presentation.Slides
                         Left = 0, Top = 7,
                         Items = new[]
                         {
-                            "C# CODE TO C64 PRG",
+                            "RUNNING C# CODE ON C64",
                             "CHALLENGES",
                         },
                         Color = Colors.Green,

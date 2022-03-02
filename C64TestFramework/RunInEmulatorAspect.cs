@@ -13,64 +13,82 @@ namespace C64TestFramework
     {
         public override void OnInvoke(MethodInterceptionArgs args)
         {
-            var location = typeof(RunInEmulatorAspect).Assembly.Location;
-            var directory = new FileInfo(location).DirectoryName;
-            var prgFolder = Path.Combine(directory, "..\\..\\..\\prg");
-            var emulator = new Emulator();
-            emulator.SetMemory(0x09fe, GetMethodAddress(prgFolder, args.Method));
-            emulator.LoadPrg(Path.Combine(prgFolder, "unittest.prg"));
+            var emulator = InitEmulator(args);
 
-            var pointer = 0;
-            for (byte i = 0; i < (byte)args.Arguments.Count; i++)
-            {
-                if (args.Arguments[i] is int)
-                {
-                    int v = (int)args.Arguments[i];
-                    if (v < -127 || v > 127)
-                        throw new ArgumentOutOfRangeException("int");
-                    emulator.SetMemory(
-                        0x9e1 + pointer++, v < 0 ? (byte)(256 + v) : (byte)v);
-                }
 
-                if (args.Arguments[i] is uint)
-                {
-                    emulator.SetMemory(0x9e1 + pointer++, (byte)(uint)args.Arguments[i]);
-                }
-                if (args.Arguments[i] is long)
-                {
-                    emulator.SetMemory(0x9e1 + pointer++, (byte)((long)args.Arguments[i] / 256));
-                    emulator.SetMemory(0x9e1 + pointer++, (byte)((long)args.Arguments[i] % 256));
-                }
-                if (args.Arguments[i] is ulong)
-                {
-                    emulator.SetMemory(0x9e1 + pointer++, (byte)((ulong)args.Arguments[i] / 256));
-                    emulator.SetMemory(0x9e1 + pointer++, (byte)((ulong)args.Arguments[i] % 256));
-                }
-
-            }
-            emulator.SetMemory(0x9e0, (byte)pointer);
+            CopyMethodArgumentsToEmulator(args, emulator);
 
             emulator.Start(0x1000);
 
+            CopyResultFromEmulator(args, emulator);
+        }
+
+        private static void CopyResultFromEmulator(MethodInterceptionArgs args, Emulator emulator)
+        {
             var result = emulator.GetMemory(0x20);
             if (result != 0)
                 NUnit.Framework.Assert.Fail(GetMessage(emulator));
 
             if (args.Method is MethodInfo)
             {
-                var type = ((MethodInfo)args.Method).ReturnType;
+                var type = ((MethodInfo) args.Method).ReturnType;
                 if (type == typeof(int))
-                    args.ReturnValue = (int)(sbyte)emulator.GetMemory(0x2c);
+                    args.ReturnValue = (int) (sbyte) emulator.GetMemory(0x2c);
                 if (type == typeof(Boolean))
                     args.ReturnValue = emulator.GetMemory(0x2c) != 0;
                 if (type == typeof(uint))
-                    args.ReturnValue = (uint)emulator.GetMemory(0x2c);
+                    args.ReturnValue = (uint) emulator.GetMemory(0x2c);
                 if (type == typeof(long))
-                    args.ReturnValue = (long)(emulator.GetMemory(0x2c + 1) * 256 + emulator.GetMemory(0x2c));
+                    args.ReturnValue = (long) (emulator.GetMemory(0x2c + 1) * 256 + emulator.GetMemory(0x2c));
                 if (type == typeof(ulong))
-                    args.ReturnValue = (ulong)(emulator.GetMemory(0x2c + 1) * 256 + emulator.GetMemory(0x2c));
-
+                    args.ReturnValue = (ulong) (emulator.GetMemory(0x2c + 1) * 256 + emulator.GetMemory(0x2c));
             }
+        }
+
+        private static void CopyMethodArgumentsToEmulator(MethodInterceptionArgs args, Emulator emulator)
+        {
+            var pointer = 0;
+            for (byte i = 0; i < (byte) args.Arguments.Count; i++)
+            {
+                if (args.Arguments[i] is int)
+                {
+                    int v = (int) args.Arguments[i];
+                    if (v < -127 || v > 127)
+                        throw new ArgumentOutOfRangeException("int");
+                    emulator.SetMemory(
+                        0x9e1 + pointer++, v < 0 ? (byte) (256 + v) : (byte) v);
+                }
+
+                if (args.Arguments[i] is uint)
+                {
+                    emulator.SetMemory(0x9e1 + pointer++, (byte) (uint) args.Arguments[i]);
+                }
+
+                if (args.Arguments[i] is long)
+                {
+                    emulator.SetMemory(0x9e1 + pointer++, (byte) ((long) args.Arguments[i] / 256));
+                    emulator.SetMemory(0x9e1 + pointer++, (byte) ((long) args.Arguments[i] % 256));
+                }
+
+                if (args.Arguments[i] is ulong)
+                {
+                    emulator.SetMemory(0x9e1 + pointer++, (byte) ((ulong) args.Arguments[i] / 256));
+                    emulator.SetMemory(0x9e1 + pointer++, (byte) ((ulong) args.Arguments[i] % 256));
+                }
+            }
+
+            emulator.SetMemory(0x9e0, (byte) pointer);
+        }
+
+        private static Emulator InitEmulator(MethodInterceptionArgs args)
+        {
+            var location = typeof(RunInEmulatorAspect).Assembly.Location;
+            var directory = new FileInfo(location).DirectoryName;
+            var prgFolder = Path.Combine(directory, "..\\..\\..\\prg");
+            var emulator = new Emulator();
+            emulator.SetMemory(0x09fe, GetMethodAddress(prgFolder, args.Method));
+            emulator.LoadPrg(Path.Combine(prgFolder, "unittest.prg"));
+            return emulator;
         }
 
         private static Dictionary<string, string> labels;

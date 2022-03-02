@@ -37,12 +37,12 @@
             "stopAtEntry": false,
             "console": "internalConsole"
         },
-        {
-            "type": "asm",
-            "request": "launch",
-            "name": "C64",
-            "pc": "$c000",
-            "binary": "c:\\Balazs\\C64\\.cache\\asm\\test.prg"
-        }
+        // {
+        //     "type": "asm",
+        //     "request": "launch",
+        //     "name": "C64",
+        //     "pc": "$c000",
+        //     "binary": "c:\\Balazs\\C64\\.cache\\asm\\test.prg"
+        // }
     ]
 }

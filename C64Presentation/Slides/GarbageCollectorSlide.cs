@@ -12,7 +12,7 @@ namespace C64Presentation.Slides
 
         public override void Present()
         {
-            objects = new []
+            objects = new[]
             {
                 new ObjectElem() {Id = "1", Alive = true, Size = 3, Root = true },
                 new ObjectElem() {Id = "2", Alive = true, Size = 3 },
@@ -22,17 +22,17 @@ namespace C64Presentation.Slides
                 new ObjectElem() {Id = "6", Alive = true, Size = 7 },
             };
 
-            objects[0].References = new [] {objects[2], objects[3]};
-            objects[1].References = new [] { objects[0], objects[5] };
-            objects[2].References = new [] { objects[0], objects[3], objects[4] };
-            objects[3].References = new [] { objects[0] };
-            objects[4].References = new [] { objects[2] };
-            objects[5].References = new [] { objects[0], objects[1], objects[4] };
+            objects[0].References = new[] { objects[2], objects[3] };
+            objects[1].References = new[] { objects[0], objects[5] };
+            objects[2].References = new[] { objects[0], objects[3], objects[4] };
+            objects[3].References = new[] { objects[0] };
+            objects[4].References = new[] { objects[2] };
+            objects[5].References = new[] { objects[0], objects[1], objects[4] };
 
-            stack = new Stack() { X= 17, Y= 12 };
+            stack = new Stack() { X = 17, Y = 12 };
             stack.Init(objects.Length);
 
-            var title = new Title() {Text = "GARBAGE COLLECTOR"};
+            var title = new Title() { Text = "GARBAGE COLLECTOR" };
             title.Draw();
             RefreshWait();
             AddRoots();
@@ -82,7 +82,7 @@ namespace C64Presentation.Slides
                 if (!objectElem.Marked)
                 {
                     objectElem.Alive = false;
-                    Screen.ClearRect(0, 39, 18 ,23);
+                    Screen.ClearRect(0, 39, 18, 23);
 
                     RefreshWait();
                 }
@@ -101,12 +101,12 @@ namespace C64Presentation.Slides
             uint x2 = 0;
             const uint width = 7;
 
-            var box = new Box()  { Y = 5, Width = width, Height = 3, BorderColor = Colors.Blue, ConnectToLeft = x != 0 };
+            var box = new Box() { Y = 5, Width = width, Height = 3, BorderColor = Colors.Blue, ConnectToLeft = x != 0 };
             var box2 = new Box() { Y = 18, Height = 6, BorderColor = Colors.Blue };
 
             foreach (var objectElem in objects)
             {
-                
+
                 var color = objectElem.Root ? Colors.Cyan : Colors.Blue;
                 if (objectElem.Marked)
                     color = Colors.Orange;
@@ -120,7 +120,7 @@ namespace C64Presentation.Slides
                 box.X = x;
                 box.Draw();
 
-                C64.SetChar(x+3, 8, objectElem.Processing ? 0u : 0x20u);
+                C64.SetChar(x + 3, 8, objectElem.Processing ? 0u : 0x20u);
                 x += width - 1;
 
                 if (!objectElem.Alive)
@@ -143,7 +143,7 @@ namespace C64Presentation.Slides
                     }
                 }
 
-                x2 += width2-1;
+                x2 += width2 - 1;
 
             }
 

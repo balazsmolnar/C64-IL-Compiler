@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
-using PostSharp;
 using PostSharp.Aspects;
 using SimpleEmulator;
 
@@ -15,11 +14,8 @@ namespace C64TestFramework
         {
             var emulator = InitEmulator(args);
 
-
             CopyMethodArgumentsToEmulator(args, emulator);
-
             emulator.Start(0x1000);
-
             CopyResultFromEmulator(args, emulator);
         }
 

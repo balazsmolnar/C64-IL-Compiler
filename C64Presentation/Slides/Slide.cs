@@ -1,11 +1,10 @@
-﻿namespace C64Presentation
-{
-    abstract class Slide
-    {
-        public abstract void Present();
+﻿namespace C64Presentation;
 
-        public virtual void CleanUp()
-        {
-        }
+abstract class Slide
+{
+    public abstract void Present();
+
+    public virtual void CleanUp()
+    {
     }
 }

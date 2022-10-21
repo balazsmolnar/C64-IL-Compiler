@@ -1,12 +1,11 @@
 using System.Reflection;
 
-namespace Compiler
+namespace Compiler;
+
+static class MethodBaseExtension
 {
-    static class MethodBaseExtension
+    static public string GetLabel(this MethodBase method)
     {
-        static public string GetLabel(this MethodBase method)
-        {
-            return $"{method.ReflectedType.Name.ToValidName()}_{method.Name.ToValidName()}";
-        }
+        return $"{method.ReflectedType.Name.ToValidName()}_{method.Name.ToValidName()}";
     }
 }

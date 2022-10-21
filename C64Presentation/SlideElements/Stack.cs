@@ -8,50 +8,49 @@ using System.Threading.Tasks;
 using C64Lib;
 using C64Presentation.Helper;
 
-namespace C64Presentation.SlideElements
+namespace C64Presentation.SlideElements;
+
+class Stack : SlideElement
 {
-    class Stack : SlideElement
+    private ObjectElem[] elements;
+    private int pointer;
+    private Box box;
+
+    public uint X;
+    public uint Y;
+
+    public void Init(int maxSize)
     {
-        private ObjectElem[] elements;
-        private int pointer;
-        private Box box;
+        elements = new ObjectElem[maxSize];
+        pointer = -1;
+        box = new Box() { Color = Colors.Violet, X = X, Y = Y - (uint)pointer, Width = 5, Height = (uint)(pointer + 3), Text = "" };
+    }
 
-        public uint X;
-        public uint Y;
+    public void Push(ObjectElem elem)
+    {
+        pointer++;
+        elements[pointer] = elem;
+    }
 
-        public void Init(int maxSize)
-        {
-            elements = new ObjectElem[maxSize];
-            pointer = -1;
-            box = new Box() { Color = Colors.Violet, X = X, Y = Y - (uint)pointer, Width = 5, Height = (uint)(pointer + 3), Text = "" };
-        }
+    public ObjectElem Pull()
+    {
+        var result = elements[pointer];
+        pointer--;
+        return result;
+    }
 
-        public void Push(ObjectElem elem)
-        {
-            pointer++;
-            elements[pointer] = elem;
-        }
-
-        public ObjectElem Pull()
-        {
-            var result = elements[pointer];
-            pointer--;
-            return result;
-        }
-
-        public bool IsEmpty => pointer == -1;
-        public override void Draw()
-        {
-            this.box.Y = Y - (uint) pointer;
-            this.box.Height = (uint) (pointer + 3);
-            Screen.ClearRect(X, X+5, Y-(uint)pointer-1, Y+1);
+    public bool IsEmpty => pointer == -1;
+    public override void Draw()
+    {
+        this.box.Y = Y - (uint) pointer;
+        this.box.Height = (uint) (pointer + 3);
+        Screen.ClearRect(X, X+5, Y-(uint)pointer-1, Y+1);
             
-            box.Draw();
+        box.Draw();
 
-            for (int p = 0; p <= pointer; p++)
-            {
-                C64.Write(X+2, Y-(uint)pointer + (uint)(p+1), elements[pointer-p].Id, Colors.Yellow);
-            }
+        for (int p = 0; p <= pointer; p++)
+        {
+            C64.Write(X+2, Y-(uint)pointer + (uint)(p+1), elements[pointer-p].Id, Colors.Yellow);
         }
     }
 }

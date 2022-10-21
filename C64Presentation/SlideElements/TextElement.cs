@@ -2,16 +2,15 @@
 using C64Lib;
 using C64Presentation.Helper;
 
-namespace C64Presentation.SlideElements
+namespace C64Presentation.SlideElements;
+
+class TextElement : SlideElement
 {
-    class TextElement : SlideElement
+    public string Text;
+    public uint X, Y;
+    public Colors Color;
+    public override void Draw()
     {
-        public string Text;
-        public uint X, Y;
-        public Colors Color;
-        public override void Draw()
-        {
-            C64.Write(X, Y, Text, Color);
-        }
+        C64.Write(X, Y, Text, Color);
     }
 }

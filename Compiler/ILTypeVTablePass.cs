@@ -3,31 +3,30 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
-namespace Compiler
+namespace Compiler;
+
+class ILTypeVTablePass : ICompilerTypePass
 {
-    class ILTypeVTablePass : ICompilerTypePass
+    public void Execute(CompilerTypeContext context)
     {
-        public void Execute(CompilerTypeContext context)
+        var @type = context.Type;
+        if (@type.IsValueType)
+            return;
+
+        context.OutputFile.WriteLine();
+        List<string> labels = new();
+
+        foreach (var m in @type.GetVirtualMethods())
         {
-            var @type = context.Type;
-            if (@type.IsValueType)
-                return;
-
-            context.OutputFile.WriteLine();
-            List<string> labels = new();
-
-            foreach (var m in @type.GetVirtualMethods())
-            {
-                labels.Add(m.GetLabel());
-            }
-
-            string outputLine = $"{context.Type.Name.ToValidName()}_VTable: ";
-            if (labels.Count > 0)
-                outputLine += $" .word {string.Join(',', labels)}";
-            else
-                outputLine += $" .byte 0";
-
-            context.OutputFile.WriteLine(outputLine);
+            labels.Add(m.GetLabel());
         }
+
+        string outputLine = $"{context.Type.Name.ToValidName()}_VTable: ";
+        if (labels.Count > 0)
+            outputLine += $" .word {string.Join(',', labels)}";
+        else
+            outputLine += $" .byte 0";
+
+        context.OutputFile.WriteLine(outputLine);
     }
 }

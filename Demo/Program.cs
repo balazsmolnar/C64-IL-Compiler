@@ -2,14 +2,16 @@
 using C64Lib;
 using Hunchback;
 
-namespace Demo
+
+namespace Demo;
+
+class Program
 {
-    class Program
+    static void Main()
     {
-        static void Main()
-        {
-            var game = new Game();
-            game.Start();
-        }
+        //for (int i = 0; i < 10; i++)
+        //    Console.WriteLine("hello, c64");
+        var g = new Game();  
+        g.Start();
     }
 }

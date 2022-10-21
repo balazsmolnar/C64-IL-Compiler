@@ -17,9 +17,10 @@
   </ItemGroup>
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+	  <TargetFramework>net6.0</TargetFramework>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <Optimize>true</Optimize>
+    <OutputType>Library</OutputType>
   </PropertyGroup>
 
 </Project>

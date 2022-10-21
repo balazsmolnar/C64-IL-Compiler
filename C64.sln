@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.30907.101
+# Visual Studio Version 17
+VisualStudioVersion = 17.3.32825.248
 MinimumVisualStudioVersion = 15.0.26124.0
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Demo", "Demo\Demo.csproj", "{D09E1A1C-5B96-40F4-A30E-B0FF08FE1D96}"
 EndProject
@@ -15,7 +15,39 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "C64TestFramework", "C64Test
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "C64Lib", "C64Lib\C64Lib.csproj", "{233A9982-7738-42C2-A6AB-D1323AC48C05}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "C64Presentation", "C64Presentation\C64Presentation.csproj", "{69DDB2E5-47B1-480B-A559-7442D417B5A6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "C64Presentation", "C64Presentation\C64Presentation.csproj", "{69DDB2E5-47B1-480B-A559-7442D417B5A6}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "asm", "asm", "{6C456ECB-F27B-45C0-A97E-49C42B99766D}"
+	ProjectSection(SolutionItems) = preProject
+		asm\C64.asm = asm\C64.asm
+		asm\C64Debug.asm = asm\C64Debug.asm
+		asm\c64Joystick.asm = asm\c64Joystick.asm
+		asm\c64Keys.asm = asm\c64Keys.asm
+		asm\C64Sound.asm = asm\C64Sound.asm
+		asm\c64sprite.asm = asm\c64sprite.asm
+		asm\data.asm = asm\data.asm
+		asm\Delay.asm = asm\Delay.asm
+		asm\Enemy.asm = asm\Enemy.asm
+		asm\Game.asm = asm\Game.asm
+		asm\GameObject.asm = asm\GameObject.asm
+		asm\GC.asm = asm\GC.asm
+		asm\generated.asm = asm\generated.asm
+		asm\Knight.asm = asm\Knight.asm
+		asm\LevelDescription.asm = asm\LevelDescription.asm
+		asm\LevelPlay.asm = asm\LevelPlay.asm
+		asm\main.asm = asm\main.asm
+		asm\Player.asm = asm\Player.asm
+		asm\PlayerStats.asm = asm\PlayerStats.asm
+		asm\presentation.asm = asm\presentation.asm
+		asm\Program.asm = asm\Program.asm
+		asm\Rope.asm = asm\Rope.asm
+		asm\Screen.asm = asm\Screen.asm
+		asm\system.asm = asm\system.asm
+		asm\TitleScreen.asm = asm\TitleScreen.asm
+		asm\Tone.asm = asm\Tone.asm
+		asm\unittest.asm = asm\unittest.asm
+		asm\Wall.asm = asm\Wall.asm
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

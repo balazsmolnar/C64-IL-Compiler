@@ -1,9 +1,8 @@
 using C64Lib;
-namespace Hunchback
+namespace Hunchback;
+
+abstract class GameObject
 {
-    abstract class GameObject
-    {
-        public abstract void Init();
-        public abstract void Move();
-    }
+    public abstract void Init();
+    public abstract void Move();
 }

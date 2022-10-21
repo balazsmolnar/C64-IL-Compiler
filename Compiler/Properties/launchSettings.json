@@ -2,7 +2,7 @@
   "profiles": {
     "Compiler": {
       "commandName": "Project",
-      "commandLineArgs": ".\\demo\\bin\\debug\\demo.dll .\\asm\\generated",
+      "commandLineArgs": ".\\C64Presentation\\bin\\debug\\C64Presentation.dll .\\asm\\presentation",
       "workingDirectory": "C:\\Balazs\\Projects\\C64-IL-Compiler"
     }
   }

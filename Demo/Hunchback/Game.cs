@@ -1,44 +1,43 @@
 using C64Lib;
 using System;
 
-namespace Hunchback
+namespace Hunchback;
+
+class Game
 {
-    class Game
+    public void Start()
     {
-        public void Start()
-        {
-            Init();
-            TitleScreen.Display();
+        Init();
+        TitleScreen.Display();
 
-            var levelPlay = new LevelPlay();
-            var currentLevel = 0;
-            var levels = LevelDescription.Levels;
-            var playerStats = new PlayerStats();
-            while (currentLevel < levels.Length)
+        var levelPlay = new LevelPlay();
+        var currentLevel = 0;
+        var levels = LevelDescription.Levels;
+        var playerStats = new PlayerStats();
+        while (currentLevel < levels.Length)
+        {
+            Screen.Clear(Colors.Grey2);
+
+            if (levelPlay.Play(levels[currentLevel], playerStats))
             {
-                Screen.Clear(Colors.Grey2);
-
-                if (levelPlay.Play(levels[currentLevel], playerStats))
-                {
-                    currentLevel++;
-                    Delay.Wait(100);
-                }
-                GC.Collect();
+                currentLevel++;
+                Delay.Wait(100);
             }
+            GC.Collect();
         }
+    }
 
-        private void Init()
-        {
-            C64.SetCharSet(C64Address.FromLabel("charset"));
-            C64.SetMultiColor();
-            C64.SetBackgroundColor(Colors.Black);
-            C64.SetBorderColor(Colors.Black);
-            C64.SetCharBackgroundColor(0, Colors.Grey1);
-            C64.SetCharBackgroundColor(1, Colors.White);
-            C64.Sprites.CommonColor1 = Colors.Brown;
-            C64.Sprites.CommonColor2 = Colors.Grey3;
+    private void Init()
+    {
+        C64.SetCharSet(C64Address.FromLabel("charset"));
+        C64.SetMultiColor();
+        C64.SetBackgroundColor(Colors.Black);
+        C64.SetBorderColor(Colors.Black);
+        C64.SetCharBackgroundColor(0, Colors.Grey1);
+        C64.SetCharBackgroundColor(1, Colors.White);
+        C64.Sprites.CommonColor1 = Colors.Brown;
+        C64.Sprites.CommonColor2 = Colors.Grey3;
 
-            C64.Sound.Volume = 15;
-        }
+        C64.Sound.Volume = 15;
     }
 }

@@ -1,7 +1,6 @@
-﻿namespace C64Presentation.SlideElements
+﻿namespace C64Presentation.SlideElements;
+
+abstract class SlideElement
 {
-    abstract class SlideElement
-    {
-        public abstract void Draw();
-    }
+    public abstract void Draw();
 }

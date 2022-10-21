@@ -4,16 +4,15 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace C64Presentation.SlideElements
+namespace C64Presentation.SlideElements;
+
+class ObjectElem
 {
-    class ObjectElem
-    {
-        public uint Size;
-        public string Id;
-        public bool Alive;
-        public bool Marked;
-        public bool Root;
-        public bool Processing;
-        public ObjectElem[] References;
-    }
+    public uint Size;
+    public string Id;
+    public bool Alive;
+    public bool Marked;
+    public bool Root;
+    public bool Processing;
+    public ObjectElem[] References;
 }

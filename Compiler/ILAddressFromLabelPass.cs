@@ -4,32 +4,31 @@ using System.Reflection.Metadata;
 using System.Linq;
 using Compiler.Ops;
 
-namespace Compiler
+namespace Compiler;
+
+class ILAddressFromLabelPass : ICompilerMethodPass
 {
-    class ILAddressFromLabelPass : ICompilerMethodPass
+    public void Execute(CompilerMethodContext context)
     {
-        public void Execute(CompilerMethodContext context)
+        var lines = context.Lines;
+        for (int i = 0; i < lines.Count; i++)
         {
-            var lines = context.Lines;
-            for (int i = 0; i < lines.Count; i++)
+            if (lines[i].Operation is OpLdstr &&
+                lines[i + 1].Operation is OpCall && lines[i + 1].RawParameter.ToString() == typeof(C64Lib.C64Address).GetMethod("FromLabel").GetLabel())
             {
-                if (lines[i].Operation is OpLdstr &&
-                    lines[i + 1].Operation is OpCall && lines[i + 1].RawParameter.ToString() == typeof(C64Lib.C64Address).GetMethod("FromLabel").GetLabel())
+                string label = lines[i].RawParameter.ToString();
+                ILOperation newOperation = new ILOperation
                 {
-                    string label = lines[i].RawParameter.ToString();
-                    ILOperation newOperation = new ILOperation
-                    {
-                        Operation = new OpLoadPointerFromLabel(),
-                    };
-                    // hack
-                    var p = ((string)lines[i].RawParameter).Split('_')[1];
-                    newOperation.RawParameter = context.CompilerContext.StringValues[int.Parse(p)];
-                    context.CompilerContext.OptimizedStringValues.Add(newOperation.RawParameter.ToString());
-                    newOperation.StackContent = lines[i + 1].StackContent;
-                    lines.Insert(i + 2, newOperation);
-                    lines[i].Optimized = true;
-                    lines[i + 1].Optimized = true;
-                }
+                    Operation = new OpLoadPointerFromLabel(),
+                };
+                // hack
+                var p = ((string)lines[i].RawParameter).Split('_')[1];
+                newOperation.RawParameter = context.CompilerContext.StringValues[int.Parse(p)];
+                context.CompilerContext.OptimizedStringValues.Add(newOperation.RawParameter.ToString());
+                newOperation.StackContent = lines[i + 1].StackContent;
+                lines.Insert(i + 2, newOperation);
+                lines[i].Optimized = true;
+                lines[i + 1].Optimized = true;
             }
         }
     }

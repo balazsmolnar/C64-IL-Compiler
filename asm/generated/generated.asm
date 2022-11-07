@@ -14,13 +14,14 @@
 .include "./TitleScreen.asm"
 .include "./Wall.asm"
 .include "./Tone.asm"
-string_1879048509 .text "GET READY",0
-string_1879048529 .text "         ",0
-string_1879050541 .text "OCEAN SOFTWARE",0
-string_1879050571 .text "   PRESENTS   ",0
-string_1879050601 .text "   BY J.STEELE",0
-string_1879050631 .text "PRESS F1 FOR INSTRUCTIONS",0
-string_1879050683 .text "    OR SPACE TO START    ",0
+string_1879048193 .text "hello c64",0
+string_1879048529 .text "GET READY",0
+string_1879048549 .text "         ",0
+string_1879050561 .text "OCEAN SOFTWARE",0
+string_1879050591 .text "   PRESENTS   ",0
+string_1879050621 .text "   BY J.STEELE",0
+string_1879050651 .text "PRESS F1 FOR INSTRUCTIONS",0
+string_1879050703 .text "    OR SPACE TO START    ",0
 Init_Values_0 .byte <0,<37,<11
 Init_Values_1 .byte <3,<0,<11
 Init_Values_2 .byte <1,<0,<11

@@ -9,9 +9,7 @@ class Program
 {
     static void Main()
     {
-        //for (int i = 0; i < 10; i++)
-        //    Console.WriteLine("hello, c64");
-        var g = new Game();  
-        g.Start();
+        for (int i = 0; i < 10; i++)
+            Console.WriteLine("hello c64");
     }
 }

@@ -11,12 +11,13 @@ class BulletList : SlideElement
     public uint Left;
     public Colors Color;
     public uint Symbol;
+    private const uint BulletSymbol = 0x51;
 
     public override void Draw()
     {
         var y = Top;
         if (Symbol == 0)
-            Symbol = 0x51;
+            Symbol = BulletSymbol;
 
         foreach (var item in Items)
         {

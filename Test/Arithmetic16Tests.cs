@@ -10,6 +10,9 @@ public class Arithmetic16Tests
     [TestCase(5L, ExpectedResult = 6L)]
     [TestCase(0L, ExpectedResult = 1L)]
     [TestCase(10000L, ExpectedResult = 10001L)]
+    [TestCase(-5L, ExpectedResult = -4L)]
+    [TestCase(-1L, ExpectedResult = 0L)]
+    [TestCase(-1000L, ExpectedResult = -999L)]
     public long TestIncrement(long value)
     {
         var a = value;
@@ -20,6 +23,8 @@ public class Arithmetic16Tests
     [TestCase(100, ExpectedResult = 99)]
     [TestCase(10000, ExpectedResult = 9999)]
     [TestCase(1, ExpectedResult = 0)]
+    [TestCase(0, ExpectedResult = -1)]
+    [TestCase(-1000, ExpectedResult = -1001)]
     public long TestDecrement(long value)
     {
         var a = value;
@@ -29,6 +34,12 @@ public class Arithmetic16Tests
     [TestCase(5, 4, ExpectedResult = 9)]
     [TestCase(100, 0, ExpectedResult = 100)]
     [TestCase(10000, 10000, ExpectedResult = 20000)]
+    [TestCase(10000, 1, ExpectedResult = 10001)]
+    [TestCase(10000, -1, ExpectedResult = 9999)]
+    [TestCase(100, -100, ExpectedResult = 0)]
+    [TestCase(1000, -1000, ExpectedResult = 0)]
+    [TestCase(-1000, 1, ExpectedResult = -999)]
+    [TestCase(-1000, -1000, ExpectedResult = -2000)]
     public long TestAdd(long a, long b)
     {
         return a + b;

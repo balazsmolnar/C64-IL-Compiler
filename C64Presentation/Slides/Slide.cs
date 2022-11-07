@@ -4,7 +4,5 @@ abstract class Slide
 {
     public abstract void Present();
 
-    public virtual void CleanUp()
-    {
-    }
+    public virtual void CleanUp() {}
 }

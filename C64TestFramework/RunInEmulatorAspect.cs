@@ -11,6 +11,7 @@ namespace C64TestFramework;
 [PSerializable]
 public class RunInEmulatorAspect : MethodInterceptionAspect
 {
+    private const int RETURN_VALUE_ADDRESS = 0x2c;
     public override void OnInvoke(MethodInterceptionArgs args)
     {
         var emulator = InitEmulator(args);
@@ -28,23 +29,26 @@ public class RunInEmulatorAspect : MethodInterceptionAspect
 
         if (args.Method is MethodInfo)
         {
-            var type = ((MethodInfo) args.Method).ReturnType;
+            var type = ((MethodInfo)args.Method).ReturnType;
             if (type == typeof(int))
-                args.ReturnValue = (int) (sbyte) emulator.GetMemory(0x2c);
+                args.ReturnValue = (int)(sbyte)emulator.GetMemory(RETURN_VALUE_ADDRESS);
             if (type == typeof(Boolean))
-                args.ReturnValue = emulator.GetMemory(0x2c) != 0;
+                args.ReturnValue = emulator.GetMemory(RETURN_VALUE_ADDRESS) != 0;
             if (type == typeof(uint))
-                args.ReturnValue = (uint) emulator.GetMemory(0x2c);
+                args.ReturnValue = (uint)emulator.GetMemory(RETURN_VALUE_ADDRESS);
             if (type == typeof(long))
-                args.ReturnValue = (long) (emulator.GetMemory(0x2c + 1) * 256 + emulator.GetMemory(0x2c));
+                args.ReturnValue = (long)BitConverter.ToInt16(new[]
+                    { emulator.GetMemory(RETURN_VALUE_ADDRESS), emulator.GetMemory(RETURN_VALUE_ADDRESS+1) });
             if (type == typeof(ulong))
-                args.ReturnValue = (ulong) (emulator.GetMemory(0x2c + 1) * 256 + emulator.GetMemory(0x2c));
+                args.ReturnValue = (ulong)BitConverter.ToUInt16(new[]
+                    { emulator.GetMemory(RETURN_VALUE_ADDRESS), emulator.GetMemory(RETURN_VALUE_ADDRESS+1) });
         }
     }
 
     private static void CopyMethodArgumentsToEmulator(MethodInterceptionArgs args, Emulator emulator)
     {
-        var pointer = 0;
+        const int ARGUMENTS_ADDRESS = 0x9e0;
+        var pointer = ARGUMENTS_ADDRESS + 1;
         for (byte i = 0; i < (byte) args.Arguments.Count; i++)
         {
             if (args.Arguments[i] is int)
@@ -52,29 +56,30 @@ public class RunInEmulatorAspect : MethodInterceptionAspect
                 int v = (int) args.Arguments[i];
                 if (v < -127 || v > 127)
                     throw new ArgumentOutOfRangeException("int");
-                emulator.SetMemory(
-                    0x9e1 + pointer++, v < 0 ? (byte) (256 + v) : (byte) v);
+                emulator.SetMemory(pointer++, v < 0 ? (byte) (256 + v) : (byte) v);
             }
 
             if (args.Arguments[i] is uint)
             {
-                emulator.SetMemory(0x9e1 + pointer++, (byte) (uint) args.Arguments[i]);
+                emulator.SetMemory(pointer++, (byte) (uint) args.Arguments[i]);
             }
 
             if (args.Arguments[i] is long)
             {
-                emulator.SetMemory(0x9e1 + pointer++, (byte) ((long) args.Arguments[i] / 256));
-                emulator.SetMemory(0x9e1 + pointer++, (byte) ((long) args.Arguments[i] % 256));
+                var bytes = BitConverter.GetBytes((short)(long) args.Arguments[i]);
+                emulator.SetMemory(pointer++, bytes[1]);
+                emulator.SetMemory(pointer++, bytes[0]);
             }
 
             if (args.Arguments[i] is ulong)
             {
-                emulator.SetMemory(0x9e1 + pointer++, (byte) ((ulong) args.Arguments[i] / 256));
-                emulator.SetMemory(0x9e1 + pointer++, (byte) ((ulong) args.Arguments[i] % 256));
+                var bytes = BitConverter.GetBytes((ushort)(ulong)args.Arguments[i]);
+                emulator.SetMemory(pointer++, bytes[1]);
+                emulator.SetMemory(pointer++, bytes[0]);
             }
         }
 
-        emulator.SetMemory(0x9e0, (byte) pointer);
+        emulator.SetMemory(ARGUMENTS_ADDRESS, (byte) (pointer- ARGUMENTS_ADDRESS-1));
     }
 
     private static Emulator InitEmulator(MethodInterceptionArgs args)

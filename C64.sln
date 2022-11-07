@@ -26,27 +26,48 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "asm", "asm", "{6C456ECB-F27
 		asm\C64Sound.asm = asm\C64Sound.asm
 		asm\c64sprite.asm = asm\c64sprite.asm
 		asm\data.asm = asm\data.asm
-		asm\Delay.asm = asm\Delay.asm
-		asm\Enemy.asm = asm\Enemy.asm
-		asm\Game.asm = asm\Game.asm
-		asm\GameObject.asm = asm\GameObject.asm
 		asm\GC.asm = asm\GC.asm
-		asm\generated.asm = asm\generated.asm
-		asm\Knight.asm = asm\Knight.asm
-		asm\LevelDescription.asm = asm\LevelDescription.asm
-		asm\LevelPlay.asm = asm\LevelPlay.asm
 		asm\main.asm = asm\main.asm
-		asm\Player.asm = asm\Player.asm
-		asm\PlayerStats.asm = asm\PlayerStats.asm
-		asm\presentation.asm = asm\presentation.asm
 		asm\Program.asm = asm\Program.asm
-		asm\Rope.asm = asm\Rope.asm
-		asm\Screen.asm = asm\Screen.asm
 		asm\system.asm = asm\system.asm
-		asm\TitleScreen.asm = asm\TitleScreen.asm
-		asm\Tone.asm = asm\Tone.asm
 		asm\unittest.asm = asm\unittest.asm
-		asm\Wall.asm = asm\Wall.asm
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "helper", "helper", "{390B952B-D9EF-406B-A6A2-C2C29A1ABB3C}"
+	ProjectSection(SolutionItems) = preProject
+		asm\helper\16bit.asm = asm\helper\16bit.asm
+		asm\helper\8bit.asm = asm\helper\8bit.asm
+		asm\helper\arithmetic.asm = asm\helper\arithmetic.asm
+		asm\helper\branch.asm = asm\helper\branch.asm
+		asm\helper\customStack.asm = asm\helper\customStack.asm
+		asm\helper\heap.asm = asm\helper\heap.asm
+		asm\helper\loader.asm = asm\helper\loader.asm
+		asm\helper\localsStack.asm = asm\helper\localsStack.asm
+		asm\helper\object.asm = asm\helper\object.asm
+		asm\helper\optimized.asm = asm\helper\optimized.asm
+		asm\helper\stack.asm = asm\helper\stack.asm
+		asm\helper\zp.asm = asm\helper\zp.asm
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "generated", "generated", "{4BB6AA39-0331-41A3-9420-885062CF26DE}"
+	ProjectSection(SolutionItems) = preProject
+		asm\generated\data.asm = asm\generated\data.asm
+		asm\generated\Delay.asm = asm\generated\Delay.asm
+		asm\generated\Enemy.asm = asm\generated\Enemy.asm
+		asm\generated\Game.asm = asm\generated\Game.asm
+		asm\generated\GameObject.asm = asm\generated\GameObject.asm
+		asm\generated\generated.asm = asm\generated\generated.asm
+		asm\generated\Knight.asm = asm\generated\Knight.asm
+		asm\generated\LevelDescription.asm = asm\generated\LevelDescription.asm
+		asm\generated\LevelPlay.asm = asm\generated\LevelPlay.asm
+		asm\generated\Player.asm = asm\generated\Player.asm
+		asm\generated\PlayerStats.asm = asm\generated\PlayerStats.asm
+		asm\generated\Program.asm = asm\generated\Program.asm
+		asm\generated\Rope.asm = asm\generated\Rope.asm
+		asm\generated\Screen.asm = asm\generated\Screen.asm
+		asm\generated\TitleScreen.asm = asm\generated\TitleScreen.asm
+		asm\generated\Tone.asm = asm\generated\Tone.asm
+		asm\generated\Wall.asm = asm\generated\Wall.asm
 	EndProjectSection
 EndProject
 Global
@@ -146,6 +167,10 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{390B952B-D9EF-406B-A6A2-C2C29A1ABB3C} = {6C456ECB-F27B-45C0-A97E-49C42B99766D}
+		{4BB6AA39-0331-41A3-9420-885062CF26DE} = {6C456ECB-F27B-45C0-A97E-49C42B99766D}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D87EC081-913B-4FF1-9D29-17018065ED7E}

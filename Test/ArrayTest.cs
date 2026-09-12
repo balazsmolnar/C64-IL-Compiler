@@ -21,6 +21,18 @@ class ArrayTest
     }
 
     [Test]
+    public void Int_Array_Postincrement_Index()
+    {
+        var sut = new int[3];
+        int i = 0;
+        sut[i++] = 10;
+        sut[i++] = 20;
+        Assert.AreEqual(sut[0], 10);
+        Assert.AreEqual(sut[1], 20);
+        Assert.AreEqual(i, 2);
+    }
+
+    [Test]
     public void Long_Array()
     {
         var sut = new long[5];

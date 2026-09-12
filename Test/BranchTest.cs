@@ -336,26 +336,26 @@ class BranchTest
         Assert.IsTrue(b);
     }
 
-    // [Test]
-    // public void Test_Switch_Default()
-    // {
-    //     uint a = 27;
-    //     bool b = false;
-    //     switch (a)
-    //     {
-    //         case 0:
-    //         case 1:
-    //             Assert.Fail();
-    //             break;
-    //         case 2:
-    //             Assert.Fail();
-    //             break;
-    //         default:
-    //             b = true;
-    //             break;
-    //     }
-    //     Assert.IsTrue(b);
-    // }
+    [Test]
+    public void Test_Switch_Default()
+    {
+        uint a = 27;
+        bool b = false;
+        switch (a)
+        {
+            case 0:
+            case 1:
+                Assert.Fail();
+                break;
+            case 2:
+                Assert.Fail();
+                break;
+            default:
+                b = true;
+                break;
+        }
+        Assert.IsTrue(b);
+    }
 
 
 }

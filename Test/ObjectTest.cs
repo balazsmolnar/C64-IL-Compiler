@@ -73,6 +73,24 @@ class ObjectTest
         Assert.AreEqual(sut.Property1, 6);
     }
 
+    // Two separate object-initializer constructions in one method:
+    // ILObjectInitializerOptimizer previously had no guard against
+    // re-matching its own already-fused output once optimizer passes started
+    // running to a fixpoint (fixed -- see GCTest/commit history), which
+    // specifically corrupted methods with more than one match for it to find
+    // across repeated sweeps. A single-initializer test wouldn't catch a
+    // regression here as reliably as two independent ones in the same method.
+    [Test]
+    public void Object_Initializer_Twice_In_One_Method()
+    {
+        var a = new Test() { field1 = 1, Property1 = 10 };
+        var b = new Test() { field1 = 2, Property1 = 20 };
+        Assert.AreEqual(a.field1, 1);
+        Assert.AreEqual(a.Property1, 10);
+        Assert.AreEqual(b.field1, 2);
+        Assert.AreEqual(b.Property1, 20);
+    }
+
     [Test]
     public void Object_Initializer_With_String()
     {

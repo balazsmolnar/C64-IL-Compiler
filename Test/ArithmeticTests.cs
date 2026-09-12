@@ -38,6 +38,41 @@ public class ArithmeticTests
         return a;
     }
 
+    // Postfix (a++/a--) used as an expression compiles to a different IL
+    // shape than prefix: Roslyn dups the OLD value *before* the add/sub
+    // (dup; ldc.i4.1; add; stloc <new>; stloc <old, the expression result>),
+    // vs prefix's dup *after* (ldc.i4.1; add; dup; stloc <new>; stloc <new,
+    // same as the expression result>). Neither ILMethodIncOptimizer's nor
+    // ILMethodDecOptimizer's expression-form rule matches the postfix
+    // ordering -- these exist to confirm that's still at least *correct*,
+    // not just unoptimized, and to catch it if that ever silently changes.
+    [TestCase(5, ExpectedResult = 5)]
+    [TestCase(0, ExpectedResult = 0)]
+    [TestCase(-1, ExpectedResult = -1)]
+    public int TestIncrement_Postfix(int value)
+    {
+        var a = value;
+        return a++;
+    }
+
+    [TestCase(5, ExpectedResult = 5)]
+    [TestCase(100, ExpectedResult = 100)]
+    [TestCase(-100, ExpectedResult = -100)]
+    public int TestDecrement_Postfix(int value)
+    {
+        var a = value;
+        return a--;
+    }
+
+    [TestCase(5, ExpectedResult = 11)]
+    [TestCase(0, ExpectedResult = 1)]
+    [TestCase(-10, ExpectedResult = -19)]
+    public int TestIncrementThenDecrement(int value)
+    {
+        var a = value;
+        return ++a + --a;
+    }
+
     [TestCase(5, 4, ExpectedResult = 9)]
     [TestCase(100, 0, ExpectedResult = 100)]
     [TestCase(1, -1, ExpectedResult = 0)]
@@ -141,6 +176,17 @@ public class ArithmeticTests
     public bool TestLess_Const(int a)
     {
         return a < 10;
+    }
+
+    // compareLess_const8 (asm/helper/arithmetic.asm) is a plain signed CMP+BPL
+    // against an immediate -- untested against a negative immediate until now.
+    [TestCase(-10, ExpectedResult = true)]
+    [TestCase(0, ExpectedResult = false)]
+    [TestCase(-5, ExpectedResult = false)]
+    [TestCase(-6, ExpectedResult = true)]
+    public bool TestLess_Const_Negative(int a)
+    {
+        return a < -5;
     }
 
     [TestCase(5u, 4u, ExpectedResult = false)]

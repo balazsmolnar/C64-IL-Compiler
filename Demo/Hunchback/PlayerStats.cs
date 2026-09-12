@@ -4,7 +4,8 @@ namespace Hunchback;
 
 public class PlayerStats
 {
-    private const uint MarkerX = 24;
+    private const uint BonusX = 8;
+    private const uint LivesX = 24;
     private const uint LivesMarkerChar = 61;
     private const uint BonusMarkerChar = 63;
 
@@ -33,12 +34,12 @@ public class PlayerStats
     {
         var shown = Lives > 0 ? Lives - 1 : 0;
         for (uint i = 0; i < 4; i++)
-            C64.SetChar(MarkerX + i, 1, i < shown ? LivesMarkerChar : 32, Colors.White);
+            C64.SetChar(LivesX + i, 1, i < shown ? LivesMarkerChar : 32, Colors.White);
     }
 
     public void DrawBonus()
     {
         for (uint i = 0; i < 4; i++)
-            C64.SetChar(MarkerX + i, 0, i < Bonus ? BonusMarkerChar : 32, Colors.Cyan);
+            C64.SetChar(BonusX + i, 1, i < Bonus ? BonusMarkerChar : 32, Colors.Cyan);
     }
 }

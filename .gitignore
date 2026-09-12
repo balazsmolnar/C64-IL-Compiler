@@ -13,3 +13,4 @@ NuGet.Config
 obj/**
 /InternalTrace.*.log
 /asm/generated/*
+/.debug-tmp/

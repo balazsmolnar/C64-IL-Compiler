@@ -940,10 +940,16 @@ class OpDecVar : OpBase
     }
 }
 
-// "x = ++x;" / "x = --x;" used as an expression (Roslyn emits a Dup before
-// storing back, so the incremented/decremented value is also stored to a
-// second, separate local holding the expression's result) -- as opposed to
-// OpIncVar/OpDecVar's plain statement form ("x++;", result discarded).
+// "x = ++x;" / "x = --x;" (prefix) or "x = x++;" / "x = x--;" (postfix) used
+// as an expression -- Roslyn dups the value being stored back, so it's also
+// stored to a second, separate local holding the expression's result, as
+// opposed to OpIncVar/OpDecVar's plain statement form ("x++;", result
+// discarded). Prefix dups the NEW (post-inc/dec) value; postfix dups the
+// OLD value *before* incrementing/decrementing -- different IL shapes (see
+// the two PeepholeRules in ILMethodIncOptimizer/ILMethodDecOptimizer that
+// build this), hence isPostfix controlling the emit order here: postfix
+// must capture the old value into the result local *before* inc_var/dec_var
+// overwrites it, since that macro mutates in place with nothing pushed.
 // Emits three macro calls instead of trying to force this into the usual
 // single-Command-plus-parameter shape, since it doesn't fit that model.
 class OpIncOrDecVarExpr : OpBase
@@ -951,19 +957,48 @@ class OpIncOrDecVarExpr : OpBase
     private readonly string _incOrDecMacro;
     private readonly int _varIndex;
     private readonly int _resultVarIndex;
+    private readonly bool _isPostfix;
 
-    public OpIncOrDecVarExpr(string incOrDecMacro, int varIndex, int resultVarIndex) : base(0)
+    public OpIncOrDecVarExpr(string incOrDecMacro, int varIndex, int resultVarIndex, bool isPostfix) : base(0)
     {
         _incOrDecMacro = incOrDecMacro;
         _varIndex = varIndex;
         _resultVarIndex = resultVarIndex;
+        _isPostfix = isPostfix;
     }
 
     public override string Emit(CompilerMethodContext context, ILOperation operation)
     {
         var refPos = context.GetLocalVariableReferencePosition(_varIndex);
         var resultRefPos = context.GetLocalVariableReferencePosition(_resultVarIndex);
-        return $"{_incOrDecMacro} {refPos}\n    #locals_push_value8 {refPos}\n    #locals_pull_value8 {resultRefPos}, 0";
+        return _isPostfix
+            ? $"#locals_push_value8 {refPos}\n    #locals_pull_value8 {resultRefPos}, 0\n    {_incOrDecMacro} {refPos}"
+            : $"{_incOrDecMacro} {refPos}\n    #locals_push_value8 {refPos}\n    #locals_pull_value8 {resultRefPos}, 0";
+    }
+}
+
+// "arr[x++] = v;" / "Foo(x++)" -- x's postfix result isn't stored to a
+// second local at all, it's consumed directly by whatever follows (an array
+// index, a method argument, ...), so the dup'd old value is left on the
+// (custom) stack rather than pulled into a result local -- see
+// OpIncOrDecVarExpr for the "y = x++;" case that does have a result local.
+// Just 2 macro calls (push the still-current value, then mutate in place)
+// instead of the original 5 (push, dup, push-1, add, pull).
+class OpPostIncOrDecVarLeaveOnStack : OpBase
+{
+    private readonly string _incOrDecMacro;
+    private readonly int _varIndex;
+
+    public OpPostIncOrDecVarLeaveOnStack(string incOrDecMacro, int varIndex) : base(0)
+    {
+        _incOrDecMacro = incOrDecMacro;
+        _varIndex = varIndex;
+    }
+
+    public override string Emit(CompilerMethodContext context, ILOperation operation)
+    {
+        var refPos = context.GetLocalVariableReferencePosition(_varIndex);
+        return $"#locals_push_value8 {refPos}\n    {_incOrDecMacro} {refPos}";
     }
 }
 

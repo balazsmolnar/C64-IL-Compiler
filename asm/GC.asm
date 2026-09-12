@@ -4,8 +4,7 @@ GC_Collect
     jsr trackObjects
     jsr fillSortTable
     jsr quicksort
-    jsr sweepAndCompact
-    rts
+    jmp sweepAndCompact  ; tail call: its rts returns to GC_Collect's caller
 
 ; finds all objects which can be reached from roots
 ; Input: None
@@ -51,11 +50,9 @@ l2  pla
     beq l2                        ; no refences, end this phase
     lda ($33), y
     tax
-    lda objTableRootCount, x      ; check if track bit already set for the reference
-    and #$80
-    bne +                         ; it is already set, nothing to do --> continue
-    lda objTableRootCount, x      ; set track bit
-    ora #$80
+    lda objTableRootCount, x      ; check if track bit already set for the reference (N flag = bit 7)
+    bmi +                         ; it is already set, nothing to do --> continue
+    ora #$80                      ; set track bit
     sta objTableRootCount, x
     txa
     pha                           ; push to stack
@@ -93,7 +90,6 @@ PARTITION_LOW_INDEX = $36      ; partition low
 PARTITION_HIGH_INDEX = $37     ; partition high
 PIVOT_LOW = $39
 PIVOT_HIGH = $3a
-PIVOT_INDEX = $3b
 
 ;
 ; Sorts the sort table based on the pointer on the heap
@@ -101,10 +97,9 @@ PIVOT_INDEX = $3b
 quicksort:
 
     cpy #0
-    bne +
-    rts
+    beq end
     ; push end signal to stack
-+   lda #0
+    lda #0
     pha
     ; low index to stack
     pha
@@ -119,10 +114,9 @@ start:                 ; start main loop
     pla
     sta LOW_INDEX
     jsr partition       ; partition, partition index in X
-    txa
-    ; if parition_index > low_index 
+    ; if parition_index > low_index
     ; push (low_index, partition_index)
-    cmp LOW_INDEX       
+    cpx LOW_INDEX
     beq +
     lda LOW_INDEX
     pha
@@ -149,7 +143,6 @@ partition:
     clc
     adc HIGH_INDEX
     ror
-    sta PIVOT_INDEX
     tay
     lda (heapPointer),y
     tax
@@ -227,20 +220,19 @@ loop:
     beq sweepend                        ; trailing zero found
     tax
     lda objTableRootCount, X
-    and #$80                             
-    bne +
+    bmi keep
     lda #0                              ; object can be deleted
     sta objTableRootCount, X            ; delete object ids
     sta objTableLow,X
     sta objTableHigh,x
     sta objTableSize,x
-    iny
-    jmp loop
-+   lda objTableHigh, X                 ; keep object, but copy data, move pointer
+    beq tail                            ; A still 0 from lda #0 (sta leaves flags untouched) --> always taken
+keep
+    lda objTableHigh, X                 ; keep object, but copy data, move pointer
     sta HEAP_POINTER_ORIG_HIGH
     lda objTableLow, x
     sta HEAP_POINTER_ORIG_LOW
-    lda HEAP_POINTER_COMPACTED_LOW     
+    lda HEAP_POINTER_COMPACTED_LOW
     sta objTableLow, X
     lda HEAP_POINTER_COMPACTED_HIGH
     sta objTableHigh, x
@@ -255,7 +247,7 @@ loop:
     sta (HEAP_POINTER_COMPACTED_LOW),y
     iny
     cpy TMP
-    bne -    
+    bne -
 l1  lda objTableSize, X
     clc
     adc HEAP_POINTER_COMPACTED_LOW
@@ -264,6 +256,7 @@ l1  lda objTableSize, X
     inc HEAP_POINTER_COMPACTED_HIGH
 +   pla
     tay
+tail
     iny
     jmp loop
 sweepend

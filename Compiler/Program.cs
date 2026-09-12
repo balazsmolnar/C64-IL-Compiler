@@ -43,6 +43,8 @@ class Program
                         new ILMethodNextInstructionPass(),
                         new ILMethodBuildEvaluationStackPass(),
                         new ILAddressFromLabelPass(),
+                    },
+                    new ICompilerMethodPass[] {
                         new ILMethodIncOptimizer(),
                         new ILMethodDecOptimizer(),
                         // ILFieldIncrementOptimizer's 6-line "this.field++" pattern strictly
@@ -53,7 +55,11 @@ class Program
                         // gets a turn, shifting indices and permanently shadowing the longer
                         // match -- which is exactly what was happening (this.field++ silently
                         // never compiled to #incfld, falling back to the slower/larger
-                        // #pushfld+#stack_push_int+#add+#stfld sequence instead).
+                        // #pushfld+#stack_push_int+#add+#stfld sequence instead). Still worth
+                        // keeping this order even now that the optimizer set below runs to a
+                        // fixpoint (see ILCodePass): the shadowing happens *within* a single
+                        // sweep, before either pass has a chance to mark anything Optimized
+                        // that the other would respect on a later sweep.
                         new ILFieldIncrementOptimizer(),
                         new ILPropertyGettterOptimizer(),
                         new ILSetFieldOptimizer(),
@@ -63,6 +69,8 @@ class Program
                         new ILMethodBranchIfNotEqualOptimizer(),
                         new ILMethodCompareConstOptimizer(),
                         new ILMethodBranchConstOptimizer(),
+                    },
+                    new ICompilerMethodPass[] {
                         new ILMethodEmitPass(),
                         new ILMethodJumpTablePass()
                     }),

@@ -25,7 +25,8 @@ class ILObjectInitializerOptimizer : ICompilerMethodPass
         var lines = context.Lines;
         for (int i = 0; i < lines.Count; i++)
         {
-            if (lines[i].Operation is OpNewObj &&
+            if (!lines[i].Optimized &&
+                lines[i].Operation is OpNewObj &&
                 this.GetIntParam(lines[i].RawParameter, 1) == 0 &&
                 lines[i + 1].Operation is OpDup)
             {

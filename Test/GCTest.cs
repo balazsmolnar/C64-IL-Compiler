@@ -182,6 +182,27 @@ public class GCTest
     }
 
     [Test]
+    public void Repeated_Collect_On_Stable_Object_Does_Not_Corrupt_State()
+    {
+        // Isolates a bug found via bisection: repeated GC.Collect() calls alone
+        // (no allocation/deallocation churn at all) corrupt state after a fixed,
+        // reproducible number of collections (threshold found empirically around
+        // 35 on this build) even though nothing about the object graph changes
+        // between calls. See conversation/commit history for the bisection trail;
+        // root cause not yet identified (hand-traced trackObjects/fillSortTable/
+        // sweepAndCompact as stack-balanced for this exact single-object,
+        // no-references scenario -- the leak, if that's what it is, is elsewhere).
+        var stable = new TestObject() { Id = 99 };
+        var id = C64.Debug.GetObjectId(stable);
+        for (int i = 0; i < 40; i++)
+        {
+            GC.Collect();
+        }
+        Assert.IsTrue(C64.Debug.IsAlive(id), "stable instance should be alive after 40 collects");
+        Assert.AreEqual(stable.Id, 99);
+    }
+
+    [Test]
     public void Mixed_Size_Objects_Survive_Compaction()
     {
         var a = new TestObject() { Id = 1 };

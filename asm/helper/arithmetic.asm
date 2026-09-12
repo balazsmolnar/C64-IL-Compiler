@@ -81,47 +81,52 @@ negate8 .macro
     #stack_push_int_a
 .endm
 
-compareLess16 .macro 
-
+compareLess16 .macro
+; signed 16-bit a < b. $34/$35 = a (low/high), $32/$33 = b (low/high).
+; Full 16-bit subtract (a - b) via chained CMP/SBC, with the standard
+; overflow-corrected N-flag check for a signed result (a plain CMP/BCC
+; chain, as used by the _unsigned16 variants below, is only valid for
+; unsigned comparison). Relies on SBC's V flag being computed correctly
+; (see SimpleEmulator/Emulator.cs ADC/SBC cases, fixed alongside this).
         #stack_pull_int $32
         #stack_pull_int $33
         #stack_pull_int $34
         #stack_pull_int $35
 
         ldx #0
-        lda $35
-        cmp $33
-        bcc +
-        bne l1
         lda $34
         cmp $32
-        bcs l1
-+       inx
-l1      
+        lda $35
+        sbc $33
+        bvc +
+        eor #$80
++       bpl l1
+        inx
+l1
         #stack_push_int_x
 .endm
 
-compareGreater16 .macro 
-
+compareGreater16 .macro
+; signed 16-bit a > b, implemented as signed (b - a) < 0. See compareLess16.
         #stack_pull_int $32
         #stack_pull_int $33
         #stack_pull_int $34
         #stack_pull_int $35
 
         ldx #0
-        lda $33
-        cmp $35
-        bcc +
-        bne l1
         lda $32
         cmp $34
-        bcs l1
-+       inx
-l1      
+        lda $33
+        sbc $35
+        bvc +
+        eor #$80
++       bpl l1
+        inx
+l1
         #stack_push_int_x
 .endm
 
-compareGreater_unsigned16 .macro 
+compareGreater_unsigned16 .macro
 
         #stack_pull_int $32
         #stack_pull_int $33

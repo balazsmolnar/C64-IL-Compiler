@@ -156,20 +156,24 @@ namespace SimpleEmulator
             return (byte)(value - 1);
         }
 
-        private int counter = 0;
+        // NOTE: this used to fire a synthetic IRQ every 100000 instructions
+        // (when the I flag was clear), pushing PC/status and jumping to
+        // $FF48 -- the real KERNAL ROM's IRQ entry point, which eventually
+        // does JMP ($0314) through the user IRQ vector. This emulator never
+        // runs the KERNAL's own reset/init routine (callers jump straight
+        // to their program's own entry point, e.g. Start(0x1000)), so
+        // $0314/$0315 are never initialized and read back as $0000 --
+        // meaning the "interrupt" jumped into whatever 6502 opcode happens
+        // to sit at address 0, corrupting execution non-deterministically
+        // in any test that ran long enough to cross the 100000-instruction
+        // mark (confirmed: this was the actual cause of GCTest's sustained
+        // GC.Collect() failures, not a bug in the GC code itself). No test
+        // in this suite exercises real interrupt-handler behavior through
+        // this path, so removed rather than fixed properly (which would
+        // need this emulator to actually initialize the KERNAL vector
+        // table, e.g. by running LoadRom()'s reset routine first).
         private void Interrupt()
         {
-            if (registers.I == true)
-                return;
-            counter++;
-            if (counter == 100000)
-            {
-                counter = 0;
-                Push((byte)(pointer / 256));
-                Push((byte)(pointer % 256));
-                Push(registers.P);
-                pointer = 0xFF48;
-            }
         }
 
         private bool Step()
@@ -344,9 +348,14 @@ namespace SimpleEmulator
                         registers.C = result > 0xFF;
                         byte oldA = registers.A;
                         registers.A = (byte)(result & 0xFF);
-                        // SET_OVERFLOW(!((AC ^ src) & 0x80) && ((AC ^ temp) & 0x80)); 
-                        //registry.V = (((oldA ^ value) & 0x80) == 0) && ((registry.A ^ value) & 0x80) > 0;
-                        registers.V = (registers.A & 0x80) != (oldA & 0x80);
+                        // Real 6502 overflow rule: set when the two operands share a sign
+                        // but the (truncated) result's sign differs from theirs. The
+                        // previous "V = did the sign bit change" here was wrong -- that
+                        // fires on any sign flip, including plenty of non-overflowing
+                        // cases, which silently breaks anything using BVC/BVS after
+                        // ADC/SBC (e.g. the standard signed-compare-via-overflow-
+                        // correction technique).
+                        registers.V = ((~(oldA ^ value) & (oldA ^ registers.A)) & 0x80) != 0;
                         break;
                     }
                 case AssemblyInstructionType.SBC:
@@ -356,10 +365,10 @@ namespace SimpleEmulator
                         registers.C = (result >= 0);
                         byte oldA = registers.A;
                         registers.A = (byte)(result >= 0 ? result : result + 0x100);
-                        //SET_OVERFLOW(((AC ^ temp) & 0x80) && ((AC ^ src) & 0x80)); 
-                        registers.V = (registers.A & 0x80) != (oldA & 0x80);
-                        //registry.V = (((oldA ^ value) & 0x80) > 0) && ((registry.A ^ oldA) & 0x80) > 0;
-
+                        // See ADC above. SBC A,M is equivalent to ADC A,~M, so the
+                        // overflow condition uses (oldA ^ value) rather than its
+                        // complement.
+                        registers.V = ((oldA ^ value) & (oldA ^ registers.A) & 0x80) != 0;
                         break;
                     }
                 case AssemblyInstructionType.ASL:

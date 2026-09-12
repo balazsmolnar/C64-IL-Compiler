@@ -71,17 +71,17 @@ fillSortTable:
     ldx #0
     ldy #0
 -   inx                             ; 0th element (null) can be skipped
-    beq +
+    beq +                           ; X wrapped: scanned all 255 slots, done
     lda objTableHigh,X              ; if the high part of the pointer is 0 the object is not used
     beq -                           ; get next object
     txa
     sta (heapPointer),Y
     iny
     bne -
-    lda #0                          ; put a trailing 0, found all active objects
-    sta (heapPointer),Y
-+   dey
-    rts
++   lda #0                          ; put a trailing 0, found all active objects
+    sta (heapPointer),Y             ; (must run on every exit, not just the Y-wrap case --
+    dey                             ;  Y can't realistically wrap since there are at most 255
+    rts                             ;  live slots, so this was previously unreachable)
 
 LOW_INDEX = $34                ; Low index
 HIGH_INDEX = $35               ; High index

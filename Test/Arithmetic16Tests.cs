@@ -107,6 +107,13 @@ public class Arithmetic16Tests
     [TestCase(513, 10000, ExpectedResult = true)]
     [TestCase(10000, 513, ExpectedResult = false)]
     [TestCase(9999, 10000, ExpectedResult = true)]
+    [TestCase(-5, 3, ExpectedResult = true)]
+    [TestCase(5, -3, ExpectedResult = false)]
+    [TestCase(-5, -3, ExpectedResult = true)]
+    [TestCase(-3, -5, ExpectedResult = false)]
+    [TestCase(-3, -3, ExpectedResult = false)]
+    [TestCase(-32768, 32767, ExpectedResult = true)]
+    [TestCase(32767, -32768, ExpectedResult = false)]
     public bool TestLess(long a, long b)
     {
         return a < b;
@@ -171,6 +178,13 @@ public class Arithmetic16Tests
     [TestCase(513, 10000, ExpectedResult = false)]
     [TestCase(10000, 513, ExpectedResult = true)]
     [TestCase(9999, 10000, ExpectedResult = false)]
+    [TestCase(-5, 3, ExpectedResult = false)]
+    [TestCase(5, -3, ExpectedResult = true)]
+    [TestCase(-5, -3, ExpectedResult = false)]
+    [TestCase(-3, -5, ExpectedResult = true)]
+    [TestCase(-3, -3, ExpectedResult = false)]
+    [TestCase(-32768, 32767, ExpectedResult = false)]
+    [TestCase(32767, -32768, ExpectedResult = true)]
     public bool TestGreater(long a, long b)
     {
         return a > b;

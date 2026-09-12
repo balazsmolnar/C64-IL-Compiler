@@ -11,3 +11,5 @@ prg/**
 .vs/**
 NuGet.Config
 obj/**
+/InternalTrace.*.log
+/asm/generated/*

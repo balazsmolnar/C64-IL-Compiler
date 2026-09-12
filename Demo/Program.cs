@@ -11,5 +11,7 @@ class Program
     {
         for (int i = 0; i < 10; i++)
             Console.WriteLine("hello c64");
+
+        new Game().Start();
     }
 }

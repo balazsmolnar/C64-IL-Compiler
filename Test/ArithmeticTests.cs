@@ -27,6 +27,17 @@ public class ArithmeticTests
         return --a;
     }
 
+    [TestCase(5, ExpectedResult = 4)]
+    [TestCase(100, ExpectedResult = 99)]
+    [TestCase(-100, ExpectedResult = -101)]
+    [TestCase(1, ExpectedResult = 0)]
+    public int TestDecrement_Statement(int value)
+    {
+        var a = value;
+        a--;
+        return a;
+    }
+
     [TestCase(5, 4, ExpectedResult = 9)]
     [TestCase(100, 0, ExpectedResult = 100)]
     [TestCase(1, -1, ExpectedResult = 0)]
@@ -141,6 +152,15 @@ public class ArithmeticTests
     public bool TestLess_uint(uint a, uint b)
     {
         return a < b;
+    }
+
+    [TestCase(100u, ExpectedResult = true)]
+    [TestCase(200u, ExpectedResult = false)]
+    [TestCase(199u, ExpectedResult = true)]
+    [TestCase(240u, ExpectedResult = false)]
+    public bool TestLess_uint_const(uint a)
+    {
+        return a < 200;
     }
 
     [TestCase(5, 4, ExpectedResult = false)]

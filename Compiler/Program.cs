@@ -44,6 +44,7 @@ class Program
                         new ILMethodBuildEvaluationStackPass(),
                         new ILAddressFromLabelPass(),
                         new ILMethodIncOptimizer(),
+                        new ILMethodDecOptimizer(),
                         // ILFieldIncrementOptimizer's 6-line "this.field++" pattern strictly
                         // contains ILPropertyGettterOptimizer's 2-line "ldarg.0; ldfld" pattern
                         // as a sub-window (the pattern's own ldarg.0+ldfld read of the field).

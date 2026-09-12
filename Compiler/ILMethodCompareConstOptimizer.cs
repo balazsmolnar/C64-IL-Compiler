@@ -16,6 +16,8 @@ class ILMethodCompareConstOptimizer : PeepholeOptimizerPass
         (ILOpCode.Ceq, "compareEqual_const"),
         (ILOpCode.Cgt, "compareGreater_const"),
         (ILOpCode.Cgt_un, "compareGreater_unsigned_const"),
+        (ILOpCode.Clt, "compareLess_const"),
+        (ILOpCode.Clt_un, "compareLess_unsigned_const"),
     };
 
     // The three originals also each re-checked "!lines[i].Optimized" as part of

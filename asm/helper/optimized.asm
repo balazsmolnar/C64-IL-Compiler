@@ -3,6 +3,14 @@ inc_var .macro rel_pos
   inc localsStack-\rel_pos,x
 .endm
 
+; Single-byte only, like inc_var -- no carry into a second byte. Callers
+; must only use this for a confirmed 8-bit local (see ILMethodDecOptimizer's
+; WithGuard checks).
+dec_var .macro rel_pos
+  ldx stackPointer
+  dec localsStack-\rel_pos,x
+.endm
+
 init_var .macro  rel_pos, value  
   ldy stackPointer
   lda #\value

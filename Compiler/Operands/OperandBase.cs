@@ -884,6 +884,48 @@ class OpIncVar : OpBase
     }
 }
 
+class OpDecVar : OpBase
+{
+    private int _varIndex;
+    public OpDecVar(int varIndex) : base(0, "#dec_var")
+    {
+        _varIndex = varIndex;
+    }
+
+    public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
+    {
+        var refPos = context.GetLocalVariableReferencePosition(_varIndex);
+        return $"{refPos}";
+    }
+}
+
+// "x = ++x;" / "x = --x;" used as an expression (Roslyn emits a Dup before
+// storing back, so the incremented/decremented value is also stored to a
+// second, separate local holding the expression's result) -- as opposed to
+// OpIncVar/OpDecVar's plain statement form ("x++;", result discarded).
+// Emits three macro calls instead of trying to force this into the usual
+// single-Command-plus-parameter shape, since it doesn't fit that model.
+class OpIncOrDecVarExpr : OpBase
+{
+    private readonly string _incOrDecMacro;
+    private readonly int _varIndex;
+    private readonly int _resultVarIndex;
+
+    public OpIncOrDecVarExpr(string incOrDecMacro, int varIndex, int resultVarIndex) : base(0)
+    {
+        _incOrDecMacro = incOrDecMacro;
+        _varIndex = varIndex;
+        _resultVarIndex = resultVarIndex;
+    }
+
+    public override string Emit(CompilerMethodContext context, ILOperation operation)
+    {
+        var refPos = context.GetLocalVariableReferencePosition(_varIndex);
+        var resultRefPos = context.GetLocalVariableReferencePosition(_resultVarIndex);
+        return $"{_incOrDecMacro} {refPos}\n    #locals_push_value8 {refPos}\n    #locals_pull_value8 {resultRefPos}, 0";
+    }
+}
+
 class OpInitVar : OpBase
 {
     private int _varIndex;

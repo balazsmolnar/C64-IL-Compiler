@@ -120,6 +120,13 @@ class OpCall : OpBase
 
 class OpCallVirt : OpCall
 {
+    // Keyed by (call site's static receiver type, method name) -- this compiler's
+    // own vtable (TypeExtensions.GetVirtualMethodIndex/GetVirtualMethods) already
+    // resolves overrides by name only, not full signature, so this check matches
+    // that same (name-only) notion of "override" for consistency, rather than a
+    // stricter one that could disagree with it.
+    private readonly Dictionary<(Type, string), bool> _overriddenAnywhereCache = new();
+
     public OpCallVirt()
     {
     }
@@ -131,6 +138,16 @@ class OpCallVirt : OpCall
         // for Func<>
         if (!methodInfo.IsVirtual || methodInfo.ReflectedType.Name.StartsWith("Func"))
             normalCall = true;
+        else if (!methodInfo.IsAbstract && !IsOverriddenAnywhere(context.CompilerContext.Assembly, methodInfo.ReflectedType, methodInfo.Name))
+            // Closed-world devirtualization: a general JIT has to stay conservative
+            // here, since code can still load dynamically after it decides. This
+            // compiler never has that problem -- the entire program is one already-
+            // fully-loaded assembly by the time any of it is compiled, so "nothing
+            // anywhere overrides this" is a permanent fact, not just true so far.
+            // (methodInfo.IsAbstract is excluded because it never has a body of its
+            // own to jump to -- true regardless of overrides, and if it somehow had
+            // none, the vtable slot it'd otherwise use would be equally meaningless.)
+            normalCall = true;
 
         if (normalCall)
             return base.Emit(context, operation);
@@ -140,6 +157,30 @@ class OpCallVirt : OpCall
         if (index == -1)
             throw new InvalidOperationException($"Virtual method not found: {methodInfo.Name}. Type: {methodInfo.ReflectedType.Name}");
         return $"#callVirt {index}, {stackPosition}";
+    }
+
+    private bool IsOverriddenAnywhere(Assembly assembly, Type declaringType, string methodName)
+    {
+        var key = (declaringType, methodName);
+        if (_overriddenAnywhereCache.TryGetValue(key, out var cached))
+            return cached;
+
+        bool overridden = false;
+        foreach (var candidateType in assembly.GetTypes())
+        {
+            if (candidateType == declaringType || !declaringType.IsAssignableFrom(candidateType))
+                continue;
+
+            var methods = candidateType.GetMethods(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.DeclaredOnly);
+            if (methods.Any(m => m.IsVirtual && m.Name == methodName))
+            {
+                overridden = true;
+                break;
+            }
+        }
+
+        _overriddenAnywhereCache[key] = overridden;
+        return overridden;
     }
 }
 

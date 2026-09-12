@@ -1,12 +1,10 @@
-using System;
 using System.Collections.Generic;
 using System.Reflection.Metadata;
-using System.Linq;
 using Compiler.Ops;
 
 namespace Compiler;
 
-class ILFieldIncrementOptimizer : ICompilerMethodPass
+class ILFieldIncrementOptimizer : PeepholeOptimizerPass
 {
     // IL_00a8: ldarg.0
     // // this.data_++;
@@ -16,35 +14,19 @@ class ILFieldIncrementOptimizer : ICompilerMethodPass
     // IL_00b0: add
     // // (no C# code)
     // IL_00b1: stfld int32 Player::data_
-    public void Execute(CompilerMethodContext context)
+    protected override IEnumerable<PeepholeRule> Rules => new[]
     {
-        if (!context.TypeContext.CompilerContext.Optimize)
-            return;
-
-        var lines = context.Lines;
-        for (int i = 0; i < lines.Count; i++)
-        {
-            if (lines[i].Operation is OpLdarg &&
-                lines[i + 1].Operation is OpLdarg &&
-                lines[i + 2].Operation is OpLdfld &&
-                lines[i + 3].OpCode == ILOpCode.Ldc_i4_1 &&
-                lines[i + 4].OpCode == ILOpCode.Add &&
-                lines[i + 5].Operation is OpStfld)
-            {
-                ILOperation newOperation = new ILOperation
-                {
-                    Operation = new OpIncfld(lines[i].RawParameter.ToString(), lines[i + 2].RawParameter.ToString()),
-                };
-                newOperation.RawParameter = newOperation.Operation.ConvertParameter(context, null);
-                newOperation.StackContent = lines[i + 5].StackContent;
-                lines.Insert(i + 6, newOperation);
-                lines[i].Optimized = true;
-                lines[i + 1].Optimized = true;
-                lines[i + 2].Optimized = true;
-                lines[i + 3].Optimized = true;
-                lines[i + 4].Optimized = true;
-                lines[i + 5].Optimized = true;
-            }
-        }
-    }
+        new PeepholeRule(
+            (ctx, w) => new OpIncfld(w[0].RawParameter.ToString(), w[2].RawParameter.ToString()),
+            l => l.Operation is OpLdarg,
+            l => l.Operation is OpLdarg,
+            l => l.Operation is OpLdfld,
+            l => l.OpCode == ILOpCode.Ldc_i4_1,
+            l => l.OpCode == ILOpCode.Add,
+            l => l.Operation is OpStfld)
+            // "incfld" (asm/helper/optimized.asm) only handles a single byte;
+            // a 16-bit field must fall through to the general pushfld+add+setfld
+            // path instead, which does have both width variants.
+            .WithGuard((ctx, w) => !w[2].Operation.Is16Bit(ctx, w[2]))
+    };
 }

@@ -362,6 +362,13 @@ class OpIncfld : OpBase
     private readonly string thisVar;
     private readonly string pos;
 
+    // Unlike Setfld/Pushfld, the "incfld" asm macro (asm/helper/optimized.asm)
+    // has no 16-bit variant -- only a single byte-sized "incfld". Is16BitSupported
+    // is deliberately false (not true, despite the underlying field access being
+    // width-dependent in general): ILFieldIncrementOptimizer only ever builds one
+    // of these for a confirmed-8-bit field (see its WithGuard check), so there's
+    // no 16-bit case to size for here, and emitting "incfld8"/"incfld16" would
+    // just be calling an undefined macro.
     public OpIncfld(string thisVar, string pos) : base(0, "#incfld")
     {
         this.thisVar = thisVar;
@@ -372,8 +379,6 @@ class OpIncfld : OpBase
     {
         return $"{pos}";
     }
-    public override bool Is16BitSupported => true;
-
 }
 
 class OpSetfld : OpBase

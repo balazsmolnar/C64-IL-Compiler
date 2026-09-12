@@ -44,16 +44,23 @@ class Program
                         new ILMethodBuildEvaluationStackPass(),
                         new ILAddressFromLabelPass(),
                         new ILMethodIncOptimizer(),
-                        new ILPropertyGettterOptimizer(),
+                        // ILFieldIncrementOptimizer's 6-line "this.field++" pattern strictly
+                        // contains ILPropertyGettterOptimizer's 2-line "ldarg.0; ldfld" pattern
+                        // as a sub-window (the pattern's own ldarg.0+ldfld read of the field).
+                        // It must run first, or the property-getter pass matches that
+                        // sub-window on its own left-to-right scan before the increment pass
+                        // gets a turn, shifting indices and permanently shadowing the longer
+                        // match -- which is exactly what was happening (this.field++ silently
+                        // never compiled to #incfld, falling back to the slower/larger
+                        // #pushfld+#stack_push_int+#add+#stfld sequence instead).
                         new ILFieldIncrementOptimizer(),
+                        new ILPropertyGettterOptimizer(),
                         new ILSetFieldOptimizer(),
                         new ILObjectInitializerOptimizer(),
                         new ILMethodSetVariableOptimizer(),
                         new ILMethodBranchIfLessOptimizer(),
                         new ILMethodBranchIfNotEqualOptimizer(),
-                        new ILMethodCompareEqualConstOptimizer(),
-                        new ILMethodCompareGreaterConstOptimizer(),
-                        new ILMethodCompareGreaterUnsignedConstOptimizer(),
+                        new ILMethodCompareConstOptimizer(),
                         new ILMethodBranchConstOptimizer(),
                         new ILMethodEmitPass(),
                         new ILMethodJumpTablePass()

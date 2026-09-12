@@ -8,12 +8,19 @@ class Game
     public void Start()
     {
         Init();
-        TitleScreen.Display();
+        for (; ; )
+        {
+            TitleScreen.Display();
+            RunGame();
+        }
+    }
 
+    private void RunGame()
+    {
         var levelPlay = new LevelPlay();
         var currentLevel = 0;
         var levels = LevelDescription.Levels;
-        var playerStats = new PlayerStats();
+        var playerStats = new PlayerStats { Lives = 5 };
         while (currentLevel < levels.Length)
         {
             Screen.Clear(Colors.Grey2);
@@ -23,8 +30,20 @@ class Game
                 currentLevel++;
                 Delay.Wait(100);
             }
+            else if (playerStats.Lives == 0)
+            {
+                GameOver();
+                return;
+            }
             GC.Collect();
         }
+    }
+
+    private static void GameOver()
+    {
+        C64.Write(15, 12, "GAME OVER", Colors.Red);
+        for (int i = 0; i < 60; i++)
+            Delay.Wait(100);
     }
 
     private void Init()

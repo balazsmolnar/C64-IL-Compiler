@@ -4,10 +4,15 @@ namespace Hunchback;
 
 public class PlayerStats
 {
-    private const uint BonusX = 8;
+    private const uint BonusX = 2;
     private const uint LivesX = 24;
     private const uint LivesMarkerChar = 61;
-    private const uint BonusMarkerChar = 63;
+    // A bonus marker is a 2x2 tile assembled from 4 quarter-glyphs -- there's
+    // no single "bell" character in the charset, unlike the life marker.
+    private const uint BellUL = 63;
+    private const uint BellUR = 64;
+    private const uint BellLL = 65;
+    private const uint BellLR = 66;
 
     public uint Lives;
     public uint Bonus;
@@ -39,7 +44,15 @@ public class PlayerStats
 
     public void DrawBonus()
     {
+        var x = BonusX;
         for (uint i = 0; i < 4; i++)
-            C64.SetChar(BonusX + i, 1, i < Bonus ? BonusMarkerChar : 32, Colors.Cyan);
+        {
+            var on = i < Bonus;
+            C64.SetChar(x, 0, on ? BellUL : 32, Colors.Cyan);
+            C64.SetChar(x + 1, 0, on ? BellUR : 32, Colors.Cyan);
+            C64.SetChar(x, 1, on ? BellLL : 32, Colors.Cyan);
+            C64.SetChar(x + 1, 1, on ? BellLR : 32, Colors.Cyan);
+            x += 2;
+        }
     }
 }

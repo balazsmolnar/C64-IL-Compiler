@@ -7,7 +7,8 @@ public enum WallType
     Wall,
     EmptyPits,
     KnightPits,
-    Rope
+    Rope,
+    RowOfBells
 }
 
 public enum EnemyType
@@ -40,12 +41,13 @@ public class LevelDescription
     // Two things the original's per-level bitfields can express that this
     // port's simpler WallType/EnemyType model can't, both called out inline
     // below where they occur:
-    //   - "Row of bells" and "Esmerelda's Tower" wall layouts (2 of the
-    //     original's 6 tbl_LevelType bits) have no equivalent WallType --
-    //     they're substituted with the closest existing one (see comments).
-    //     Esmerelda's Tower is the original's rescue-the-princess finale
-    //     (every 16th level); implementing the finale itself is a separate,
-    //     much bigger feature, out of scope here.
+    //   - "Esmerelda's Tower" (1 of the original's 6 tbl_LevelType bits) has
+    //     no equivalent WallType -- it's the original's rescue-the-princess
+    //     finale (every 16th level), substituted with KnightPits.
+    //     Implementing the finale itself is a separate, much bigger feature,
+    //     out of scope here. ("Row of bells", the other originally-missing
+    //     wall layout, now has a real WallType -- see Wall.cs's
+    //     BuildRowOfBells.)
     //   - The original's 4 "Duo"/"...Both" obstacle types (two simultaneous
     //     enemies, e.g. one high + one low fireball) can't be represented by
     //     this port's single Enemy instance (see Enemy.cs -- one sprite, one
@@ -102,11 +104,8 @@ public class LevelDescription
                 EnemyType = EnemyType.Arrow | EnemyType.RightLeft | EnemyType.Top,
                 Color = Colors.Brown
             },
-            // Level type $2c (Row of Bells + Rope Pit, no actual rope
-            // obstacle) -- neither has a WallType equivalent; substituted
-            // with plain Wall (the "no special pit/rope hazard" default).
             new LevelDescription {
-                WallType = WallType.Wall,
+                WallType = WallType.RowOfBells,
                 EnemyType = EnemyType.FireBall | EnemyType.RightLeft | EnemyType.Bottom,
                 Color = Colors.Grey2
             },
@@ -134,11 +133,10 @@ public class LevelDescription
                 EnemyType = EnemyType.FireBall | EnemyType.RightLeft | EnemyType.Bottom,
                 Color = Colors.LightGreen
             },
-            // Level type $2c (Row of Bells + Rope Pit, no rope obstacle) ->
-            // Wall substitute; obstacle byte $80 (Duo Arrow HiLo Both) ->
+            // Obstacle byte $80 (Duo Arrow HiLo Both) -- substituted with a
             // single high arrow.
             new LevelDescription {
-                WallType = WallType.Wall,
+                WallType = WallType.RowOfBells,
                 EnemyType = EnemyType.Arrow | EnemyType.RightLeft | EnemyType.Top,
                 Color = Colors.Orange
             },
@@ -209,10 +207,9 @@ public class LevelDescription
                 EnemyType = EnemyType.FireBall | EnemyType.RightLeft | EnemyType.Bottom,
                 Color = Colors.Grey2
             },
-            // Level type $2c (Row of Bells + Rope Pit, no rope obstacle) ->
-            // Wall substitute; obstacle byte $80 -> single high arrow.
+            // Obstacle byte $80 -> single high arrow.
             new LevelDescription {
-                WallType = WallType.Wall,
+                WallType = WallType.RowOfBells,
                 EnemyType = EnemyType.Arrow | EnemyType.RightLeft | EnemyType.Top,
                 Color = Colors.LightGreen
             },
@@ -281,16 +278,14 @@ public class LevelDescription
                 EnemyType = EnemyType.Arrow | EnemyType.RightLeft | EnemyType.Top,
                 Color = Colors.Brown
             },
-            // Level type $2c -> Wall substitute, as above.
             new LevelDescription {
-                WallType = WallType.Wall,
+                WallType = WallType.RowOfBells,
                 EnemyType = EnemyType.FireBall | EnemyType.RightLeft | EnemyType.Bottom,
                 Color = Colors.Brown
             },
-            // Level type $2c -> Wall substitute; obstacle $80 -> single high
-            // arrow.
+            // Obstacle $80 -> single high arrow.
             new LevelDescription {
-                WallType = WallType.Wall,
+                WallType = WallType.RowOfBells,
                 EnemyType = EnemyType.Arrow | EnemyType.RightLeft | EnemyType.Top,
                 Color = Colors.Brown
             },
@@ -314,10 +309,9 @@ public class LevelDescription
                 EnemyType = EnemyType.None,
                 Color = Colors.LightGreen
             },
-            // Level type $2c -> Wall substitute; obstacle $80 -> single high
-            // arrow.
+            // Obstacle $80 -> single high arrow.
             new LevelDescription {
-                WallType = WallType.Wall,
+                WallType = WallType.RowOfBells,
                 EnemyType = EnemyType.Arrow | EnemyType.RightLeft | EnemyType.Top,
                 Color = Colors.LightGreen
             },

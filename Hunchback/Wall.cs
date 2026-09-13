@@ -9,6 +9,12 @@ class Wall : GameObject
     const uint Wall3DChar = 60;
     const uint Wall3DTopChar = 59;
     const uint FireChar = 114;
+    const uint BellUL = 63;
+    const uint BellUR = 64;
+    const uint BellLL = 65;
+    const uint BellLR = 66;
+    const uint BellLedge = 68;
+    const uint BellRope = 90;
 
     private WallType wallType_;
     private uint frameCounter_;
@@ -36,6 +42,11 @@ class Wall : GameObject
         if (wallType == WallType.Rope)
         {
             BuildRopePit();
+        }
+
+        if (wallType == WallType.RowOfBells)
+        {
+            BuildRowOfBells();
         }
     }
 
@@ -159,6 +170,37 @@ class Wall : GameObject
                 KnightPitFrame3(x);
                 break;
         }
+    }
+
+    // A row of 4 hanging bells (each a 2x2 tile like the bonus-marker icon
+    // in PlayerStats), spanning x=13..26 y=3..10, matching the original's
+    // Screen_BuildRowOfBells (Restructure/Screen.asm + tbl_RowOfBellsChars
+    // in Memory.asm -- decoded byte-for-byte: 4 bell icons at columns
+    // 13/17/21/25, a horizontal ledge connecting their tops, and a single
+    // vertical rope strand hanging from each down to the base wall).
+    private static void BuildRowOfBells()
+    {
+        BuildBellColumn(13);
+        BuildBellColumn(17);
+        BuildBellColumn(21);
+        BuildBellColumn(25);
+
+        C64.SetChar(15, 3, BellLedge, Colors.Grey2);
+        C64.SetChar(16, 3, BellLedge, Colors.Grey2);
+        C64.SetChar(19, 3, BellLedge, Colors.Grey2);
+        C64.SetChar(20, 3, BellLedge, Colors.Grey2);
+        C64.SetChar(23, 3, BellLedge, Colors.Grey2);
+        C64.SetChar(24, 3, BellLedge, Colors.Grey2);
+    }
+
+    private static void BuildBellColumn(uint x)
+    {
+        C64.SetChar(x, 3, BellUL, Colors.Grey2);
+        C64.SetChar(x + 1, 3, BellUR, Colors.Grey2);
+        C64.SetChar(x, 4, BellLL, Colors.Grey2);
+        C64.SetChar(x + 1, 4, BellLR, Colors.Grey2);
+        for (uint y = 5; y < 11; y++)
+            C64.SetChar(x, y, BellRope, Colors.Grey2);
     }
 
     private static void BuildRopePit()

@@ -25,7 +25,7 @@ class Game
         {
             Screen.Clear(Colors.Grey2);
 
-            if (levelPlay.Play(levels[currentLevel], playerStats))
+            if (levelPlay.Play(levels[currentLevel], playerStats, (uint)currentLevel))
             {
                 currentLevel++;
                 Delay.Wait(100);

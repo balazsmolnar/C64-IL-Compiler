@@ -4,11 +4,12 @@ namespace Hunchback;
 
 class LevelPlay
 {
-    public bool Play(LevelDescription description, PlayerStats playerStats)
+    public bool Play(LevelDescription description, PlayerStats playerStats, uint levelNumber)
     {
         Wall wall = new Wall();
         wall.Draw(description.Color, description.WallType);
         playerStats.Draw();
+        DrawDebugLevelNumber(levelNumber);
 
         Player player = new Player()
         {
@@ -76,6 +77,8 @@ class LevelPlay
                 {
                     BonusFanfare();
                     playerStats.Bonus = 0;
+                    playerStats.Lives++;
+                    playerStats.DrawLives();
                 }
                 playerStats.DrawBonus();
                 return true;
@@ -98,6 +101,24 @@ class LevelPlay
         for (int i = 0; i < 40; i++)
             Delay.Wait(100);
         C64.Write(16, 6, "         ", Colors.White);
+    }
+
+    // Debug aid: show the (0-based) level index at the top right of the
+    // header, in the free columns after the lives markers. No division/
+    // modulo support in the compiler, so tens/ones are split by repeated
+    // subtraction instead.
+    private static void DrawDebugLevelNumber(uint levelNumber)
+    {
+        uint tens = 0;
+        uint ones = levelNumber;
+        while (ones >= 10)
+        {
+            ones -= 10;
+            tens++;
+        }
+        C64.SetChar(36, 1, 76, Colors.Yellow); // 'L'
+        C64.SetChar(37, 1, 48 + tens, Colors.Yellow);
+        C64.SetChar(38, 1, 48 + ones, Colors.Yellow);
     }
 
     private static void BonusFanfare()

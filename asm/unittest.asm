@@ -95,6 +95,18 @@ Assert_IsFalse:
     jsr Assert_Fail
 +   #stack_return_to_saved_address zp_tmp2_low
 
+; This already floated right after code (no fixed org here), which is
+; correct/desired -- but with no safety fallback if the test assembly
+; ever grew large enough to risk landing in BASIC ROM at $a000. Added the
+; same guard the other three entry points use, for consistency: fall
+; back to $c000 (real, safe RAM) if there isn't room for the full
+; 2048-byte object-table block before $a000. See main.asm/hunchback.asm/
+; presentation.asm for the fuller rationale (SimpleEmulator.SetMemory
+; hard-blocks $a000-$c000/>$e000 the same way real ROM would).
+.if * < $9800
+.else
+* = $c000
+.endif
 objTableLow
 .fill 256, 0
 objTableHigh

@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "Hunchback": {
+      "commandName": "Executable",
+      "executablePath": ".\\run.bat",
+      "workingDirectory": "."
+    }
+  }
+}

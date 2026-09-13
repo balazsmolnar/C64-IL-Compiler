@@ -7,10 +7,12 @@ C64.sln.DotSettings.user
 asm/unittest/**
 asm/generated/**
 asm/presentation/**
+asm/hunchback/**
 prg/**
 .vs/**
 NuGet.Config
 obj/**
 /InternalTrace.*.log
 /asm/generated/*
+/asm/hunchback/*
 /.debug-tmp/

@@ -70,6 +70,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "generated", "generated", "{
 		asm\generated\Wall.asm = asm\generated\Wall.asm
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hunchback", "Hunchback\Hunchback.csproj", "{358AE8A2-64B0-484E-8153-2C8920FE65DE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -164,6 +166,18 @@ Global
 		{69DDB2E5-47B1-480B-A559-7442D417B5A6}.Release|x64.Build.0 = Release|Any CPU
 		{69DDB2E5-47B1-480B-A559-7442D417B5A6}.Release|x86.ActiveCfg = Release|Any CPU
 		{69DDB2E5-47B1-480B-A559-7442D417B5A6}.Release|x86.Build.0 = Release|Any CPU
+		{358AE8A2-64B0-484E-8153-2C8920FE65DE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{358AE8A2-64B0-484E-8153-2C8920FE65DE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{358AE8A2-64B0-484E-8153-2C8920FE65DE}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{358AE8A2-64B0-484E-8153-2C8920FE65DE}.Debug|x64.Build.0 = Debug|Any CPU
+		{358AE8A2-64B0-484E-8153-2C8920FE65DE}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{358AE8A2-64B0-484E-8153-2C8920FE65DE}.Debug|x86.Build.0 = Debug|Any CPU
+		{358AE8A2-64B0-484E-8153-2C8920FE65DE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{358AE8A2-64B0-484E-8153-2C8920FE65DE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{358AE8A2-64B0-484E-8153-2C8920FE65DE}.Release|x64.ActiveCfg = Release|Any CPU
+		{358AE8A2-64B0-484E-8153-2C8920FE65DE}.Release|x64.Build.0 = Release|Any CPU
+		{358AE8A2-64B0-484E-8153-2C8920FE65DE}.Release|x86.ActiveCfg = Release|Any CPU
+		{358AE8A2-64B0-484E-8153-2C8920FE65DE}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

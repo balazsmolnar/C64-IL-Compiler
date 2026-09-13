@@ -45,7 +45,22 @@ class LevelPlay
 
         };
         enemy.Init();
-        var gameObjects = new GameObject[] { enemy, knight, rope, wall };
+        Enemy enemy2 = null;
+        if (description.EnemyType2 != EnemyType.None)
+        {
+            enemy2 = new Enemy()
+            {
+                Sprite = C64.Sprites.Sprite5,
+                EnemyType = description.EnemyType2
+            };
+            enemy2.Init();
+            enemy2.MoveDelay = 20;
+        }
+        else
+        {
+            C64.Sprites.Sprite5.Visible = false;
+        }
+        var gameObjects = new GameObject[] { enemy, enemy2, knight, rope, wall };
         for (; ; )
         {
             player.Move();
@@ -53,7 +68,7 @@ class LevelPlay
             var collisions = C64.Sprites.Collisions;
             if ((collisions & 1u) > 0)
             {
-                if ((collisions & 6u) > 0)  // Player-enemy collision
+                if ((collisions & 38u) > 0)  // Player-enemy collision (Knight, Enemy, or Enemy2)
                 {
                     player.Die();
                 }
@@ -97,10 +112,35 @@ class LevelPlay
 
     private static void GetReady()
     {
+        // Save what's actually under the text (e.g. a row-of-bells rope
+        // strand) instead of just blanking to spaces afterward, which used
+        // to punch a visible gap through it.
+        var c0 = (uint)C64.GetChar(16, 6);
+        var c1 = (uint)C64.GetChar(17, 6);
+        var c2 = (uint)C64.GetChar(18, 6);
+        var c3 = (uint)C64.GetChar(19, 6);
+        var c4 = (uint)C64.GetChar(20, 6);
+        var c5 = (uint)C64.GetChar(21, 6);
+        var c6 = (uint)C64.GetChar(22, 6);
+        var c7 = (uint)C64.GetChar(23, 6);
+        var c8 = (uint)C64.GetChar(24, 6);
+
         C64.Write(16, 6, "GET READY", Colors.White);
         for (int i = 0; i < 40; i++)
             Delay.Wait(100);
-        C64.Write(16, 6, "         ", Colors.White);
+
+        // Grey2 matches the only decoration that can be here today (the
+        // row-of-bells rope); harmless elsewhere since a space's color
+        // isn't visible.
+        C64.SetChar(16, 6, c0, Colors.Grey2);
+        C64.SetChar(17, 6, c1, Colors.Grey2);
+        C64.SetChar(18, 6, c2, Colors.Grey2);
+        C64.SetChar(19, 6, c3, Colors.Grey2);
+        C64.SetChar(20, 6, c4, Colors.Grey2);
+        C64.SetChar(21, 6, c5, Colors.Grey2);
+        C64.SetChar(22, 6, c6, Colors.Grey2);
+        C64.SetChar(23, 6, c7, Colors.Grey2);
+        C64.SetChar(24, 6, c8, Colors.Grey2);
     }
 
     // Debug aid: show the (0-based) level index at the top right of the

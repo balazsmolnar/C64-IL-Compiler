@@ -11,6 +11,8 @@ class Player
     private bool left_;
     private bool jump_;
     private bool jumpFromRope_;
+    private bool onBell_;
+    private uint bellGrabCooldown_;
     public bool Dead;
     public bool OnRope;
     public Rope Rope;
@@ -65,16 +67,33 @@ class Player
 
     public void Move()
     {
+        var backgroundCollision = sprite_.IsInBackgroundCollision;
+        var onBellWall = wall_.IsRowOfBells;
 
-        if (sprite_.IsInBackgroundCollision)
+        if (backgroundCollision)
         {
+            // Reaching the exit-door decoration is detected via background
+            // collision too (BuildBasicWall draws it for every wall type,
+            // including RowOfBells), so this has to run regardless of wall
+            // type -- only the *death* half of this check is RowOfBells-
+            // specific.
             if (X > 300)
             {
                 LevelComplete();
+                return;
             }
-            else
+            // Row-of-bells levels never reach the normal "any other
+            // background collision is death" rule -- Restructure/Quasi.asm's
+            // Quasi_CheckCollision dispatches LEVEL_ROWOFBELLS straight to
+            // its own pit-fall check (further below), never falling through
+            // to the default SPRCBG-is-death path other wall types use.
+            // Ordinary levels are unaffected by this -- it only changes what
+            // background collision means specifically for RowOfBells walls.
+            if (!onBellWall)
+            {
                 Die();
-            return;
+                return;
+            }
         }
 
         if (OnRope)
@@ -92,6 +111,18 @@ class Player
                 jumpFromRope_ = true;
                 OnRope = false;
             }
+            if (onBell_)
+            {
+                // A jump that doesn't carry far enough horizontally can
+                // still be overlapping the same bell's rope once it lands
+                // (background collision is still true there), which would
+                // otherwise re-grab it immediately -- looks like "bouncing
+                // back" from the bar you just tried to leave. Block
+                // re-grabbing anything for a short window after release so
+                // there's always a real, visible gap in the grab.
+                bellGrabCooldown_ = 10;
+            }
+            onBell_ = false;
             jump_ = true;
             jumpFrameCounter_ = 0;
         }
@@ -107,23 +138,49 @@ class Player
             }
         }
 
-        if (IsLeft)
-        {
-            left_ = true;
-            if (!OnRope)
-            {
-                X -= 2;
-                frameCounter_++;
-            }
+        // Grabbing a bell overrides normal left/right walking -- the player
+        // hangs at a fixed X until they jump (handled above, via
+        // onBell_ = false). Matches Quasi_RowOfBellsCollisionCheck exactly:
+        // staying grabbed only needs continued background collision (the
+        // snap below keeps the sprite touching the bell, which keeps
+        // collision true, which keeps it grabbed -- self-sustaining); the
+        // grab *zone* is only checked to start a new grab, not to remain in
+        // one, so grazing slightly outside it mid-hang doesn't drop you.
+        if (bellGrabCooldown_ > 0)
+            bellGrabCooldown_--;
 
-        }
-        if (IsRight)
+        if (onBellWall && !jump_ && backgroundCollision)
         {
-            left_ = false;
-            if (!OnRope)
+            if (!onBell_ && bellGrabCooldown_ == 0 && wall_.IsRowOfBellsGrabZone(x_))
             {
-                X += 2;
-                frameCounter_++;
+                onBell_ = true;
+                wall_.PlayBellSound(x_);
+            }
+            if (onBell_)
+                X = wall_.GetBellSnapX(x_);
+        }
+        else
+        {
+            onBell_ = false;
+
+            if (IsLeft)
+            {
+                left_ = true;
+                if (!OnRope)
+                {
+                    X -= 2;
+                    frameCounter_++;
+                }
+
+            }
+            if (IsRight)
+            {
+                left_ = false;
+                if (!OnRope)
+                {
+                    X += 2;
+                    frameCounter_++;
+                }
             }
         }
         if (frameCounter_ == 4)
@@ -133,6 +190,18 @@ class Player
         {
             Die();
         }
+        // The original also kills the player for walking (not jumping)
+        // through the gaps between bell ropes without being grabbed onto
+        // one (Quasi_CheckCollision's .CheckBellPitFall) -- disabled again
+        // for now. The architecture matches what I can verify from the
+        // disassembly (position + onBell_ state, independent of live
+        // background collision), but the exact 11px "near enough to a rope"
+        // windows leave only a razor-thin, hard-to-verify-blind timing
+        // window to jump the ~14px approach gap, and it's made the level
+        // unplayable twice in a row now. Not worth guessing a third time --
+        // needs to be tuned against actual play. The gap is real (visible,
+        // via BuildRopePit) and the grab mechanic works; only this
+        // additional harsh fall-through-the-gap hazard is off.
         SetFrame();
 
     }
@@ -157,8 +226,11 @@ class Player
 
     private void SetFrame()
     {
-        if (OnRope)
+        if (OnRope || onBell_)
         {
+            // No dedicated "hanging from a bell" art exists -- reuse the
+            // rope-hang sprite, visually close enough (both are "gripping
+            // something overhead with both arms").
             if (left_)
             {
                 sprite_.DataBlock = C64Address.FromLabel("spt_player_rope_left");

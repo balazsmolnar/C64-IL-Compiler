@@ -39,6 +39,12 @@ class Enemy : GameObject
     }
 
     public EnemyType EnemyType;
+    // For a level's second enemy (see LevelPlay.Play's dual-enemy handling):
+    // both enemies otherwise spawn at the exact same edge X and move in
+    // lockstep, looking like a single mirrored pair rather than two
+    // independent hazards. Counted down each Move() before it starts moving,
+    // so it visibly lags behind the first.
+    public uint MoveDelay;
     public override void Init()
     {
         sprite_.MultiColor = true;
@@ -70,6 +76,11 @@ class Enemy : GameObject
     {
         if (EnemyType == EnemyType.None)
             return;
+        if (MoveDelay > 0)
+        {
+            MoveDelay--;
+            return;
+        }
         frameCounter_++;
         if (frameCounter_ == 4)
             frameCounter_ = 0;

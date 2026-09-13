@@ -27,6 +27,14 @@ public class LevelDescription
 {
     public WallType WallType;
     public EnemyType EnemyType;
+    // Second enemy for the original's 4 "Duo"/"...Both" obstacle types
+    // (None on every other level -- see Enemy.cs's dual-enemy handling in
+    // LevelPlay.Play). The original randomly re-picks height (Front/Rear)
+    // or direction (the Both variants) each time a missile respawns; this
+    // port has no RNG primitive, so both enemies get fixed, deterministic
+    // pairings instead (see the per-level comments below) -- same general
+    // shape, not frame-accurate to the original's randomization.
+    public EnemyType EnemyType2;
     public Colors Color;
 
     // Decoded from the original disassembly's tbl_LevelType/tbl_LevelObstacleType
@@ -49,11 +57,11 @@ public class LevelDescription
     //     wall layout, now has a real WallType -- see Wall.cs's
     //     BuildRowOfBells.)
     //   - The original's 4 "Duo"/"...Both" obstacle types (two simultaneous
-    //     enemies, e.g. one high + one low fireball) can't be represented by
-    //     this port's single Enemy instance (see Enemy.cs -- one sprite, one
-    //     EnemyType). Substituted with one representative enemy of the same
-    //     general kind/direction. Genuine dual-enemy support would be a
-    //     separate engine feature.
+    //     enemies, e.g. one high + one low fireball) now spawn a real second
+    //     Enemy (see EnemyType2 below and LevelPlay.Play's dual-enemy
+    //     handling), using a fixed height/direction pairing instead of the
+    //     original's per-respawn randomization (no RNG primitive in this
+    //     port -- see EnemyType2's own comment).
     public static LevelDescription[] Levels =>
         new[]
         {
@@ -97,11 +105,12 @@ public class LevelDescription
                 EnemyType = EnemyType.FireBall | EnemyType.RightLeft | EnemyType.Bottom,
                 Color = Colors.Brown
             },
-            // Obstacle byte $10 (Duo Arrow HiLo Front) -- substituted with a
-            // single high arrow.
+            // Obstacle byte $10 (Duo Arrow HiLo Front): two arrows, both
+            // moving right-to-left, one high one low.
             new LevelDescription {
                 WallType = WallType.KnightPits,
                 EnemyType = EnemyType.Arrow | EnemyType.RightLeft | EnemyType.Top,
+                EnemyType2 = EnemyType.Arrow | EnemyType.RightLeft | EnemyType.Bottom,
                 Color = Colors.Brown
             },
             new LevelDescription {
@@ -109,18 +118,20 @@ public class LevelDescription
                 EnemyType = EnemyType.FireBall | EnemyType.RightLeft | EnemyType.Bottom,
                 Color = Colors.Grey2
             },
-            // Obstacle byte $20 (Duo Arrow HiLo Rear) -- substituted with a
-            // single high arrow moving left-to-right.
+            // Obstacle byte $20 (Duo Arrow HiLo Rear): two arrows, both
+            // moving left-to-right, one high one low.
             new LevelDescription {
                 WallType = WallType.EmptyPits,
                 EnemyType = EnemyType.Arrow | EnemyType.LeftRight | EnemyType.Top,
+                EnemyType2 = EnemyType.Arrow | EnemyType.LeftRight | EnemyType.Bottom,
                 Color = Colors.Grey2
             },
-            // Obstacle byte $40 (Duo Fireball Lo Both) -- substituted with a
-            // single low fireball.
+            // Obstacle byte $40 (Duo Fireball Lo Both): two fireballs, both
+            // low, moving in opposite directions.
             new LevelDescription {
                 WallType = WallType.EmptyPits,
                 EnemyType = EnemyType.FireBall | EnemyType.RightLeft | EnemyType.Bottom,
+                EnemyType2 = EnemyType.FireBall | EnemyType.LeftRight | EnemyType.Bottom,
                 Color = Colors.LightGreen
             },
             new LevelDescription {
@@ -133,11 +144,13 @@ public class LevelDescription
                 EnemyType = EnemyType.FireBall | EnemyType.RightLeft | EnemyType.Bottom,
                 Color = Colors.LightGreen
             },
-            // Obstacle byte $80 (Duo Arrow HiLo Both) -- substituted with a
-            // single high arrow.
+            // Obstacle byte $80 (Duo Arrow HiLo Both): two arrows, mixed
+            // height and direction (one high right-to-left, one low
+            // left-to-right).
             new LevelDescription {
                 WallType = WallType.RowOfBells,
                 EnemyType = EnemyType.Arrow | EnemyType.RightLeft | EnemyType.Top,
+                EnemyType2 = EnemyType.Arrow | EnemyType.LeftRight | EnemyType.Bottom,
                 Color = Colors.Orange
             },
             // Level 15 (index 15): the original's Esmerelda's Tower finale
@@ -145,11 +158,12 @@ public class LevelDescription
             // "and #15; cmp #15" check). The finale minigame itself isn't
             // implemented; substituted with KnightPits, since the original's
             // level-type byte ($31) also has the KnightPit bit set alongside
-            // EsmereldaTower. Obstacle byte $40 (Duo Fireball Lo Both) ->
-            // single low fireball, as elsewhere.
+            // EsmereldaTower. Obstacle byte $40 (Duo Fireball Lo Both), as
+            // at index 11 above.
             new LevelDescription {
                 WallType = WallType.KnightPits,
                 EnemyType = EnemyType.FireBall | EnemyType.RightLeft | EnemyType.Bottom,
+                EnemyType2 = EnemyType.FireBall | EnemyType.LeftRight | EnemyType.Bottom,
                 Color = Colors.Orange
             },
             new LevelDescription {
@@ -207,10 +221,11 @@ public class LevelDescription
                 EnemyType = EnemyType.FireBall | EnemyType.RightLeft | EnemyType.Bottom,
                 Color = Colors.Grey2
             },
-            // Obstacle byte $80 -> single high arrow.
+            // Obstacle byte $80 (Duo Arrow HiLo Both), as at index 14 above.
             new LevelDescription {
                 WallType = WallType.RowOfBells,
                 EnemyType = EnemyType.Arrow | EnemyType.RightLeft | EnemyType.Top,
+                EnemyType2 = EnemyType.Arrow | EnemyType.LeftRight | EnemyType.Bottom,
                 Color = Colors.LightGreen
             },
             new LevelDescription {
@@ -283,10 +298,11 @@ public class LevelDescription
                 EnemyType = EnemyType.FireBall | EnemyType.RightLeft | EnemyType.Bottom,
                 Color = Colors.Brown
             },
-            // Obstacle $80 -> single high arrow.
+            // Obstacle $80 (Duo Arrow HiLo Both), as at index 14 above.
             new LevelDescription {
                 WallType = WallType.RowOfBells,
                 EnemyType = EnemyType.Arrow | EnemyType.RightLeft | EnemyType.Top,
+                EnemyType2 = EnemyType.Arrow | EnemyType.LeftRight | EnemyType.Bottom,
                 Color = Colors.Brown
             },
             new LevelDescription {
@@ -309,10 +325,11 @@ public class LevelDescription
                 EnemyType = EnemyType.None,
                 Color = Colors.LightGreen
             },
-            // Obstacle $80 -> single high arrow.
+            // Obstacle $80 (Duo Arrow HiLo Both), as at index 14 above.
             new LevelDescription {
                 WallType = WallType.RowOfBells,
                 EnemyType = EnemyType.Arrow | EnemyType.RightLeft | EnemyType.Top,
+                EnemyType2 = EnemyType.Arrow | EnemyType.LeftRight | EnemyType.Bottom,
                 Color = Colors.LightGreen
             },
             new LevelDescription {

@@ -4,7 +4,7 @@ namespace Hunchback;
 
 public class PlayerStats
 {
-    private const uint BonusX = 2;
+    private const uint BonusX = 1;
     private const uint LivesX = 24;
     private const uint LivesMarkerChar = 61;
     // A bonus marker is a 2x2 tile assembled from 4 quarter-glyphs -- there's
@@ -48,15 +48,18 @@ public class PlayerStats
 
     public void DrawBonus()
     {
+        // The original's Screen_DisplayStats writes only to screen RAM for
+        // these cells, never color RAM -- whatever color the static header
+        // blit already put there (tbl_PlayerStatsColours: Grey2 across this
+        // whole column range, both rows) just shows through underneath.
         var x = BonusX;
         for (uint i = 0; i < 4; i++)
         {
             var on = i < Bonus;
-            var topColor = on ? Colors.Violet : Colors.Grey2;
-            C64.SetChar(x, 0, on ? BellUL : BorderChar, topColor);
-            C64.SetChar(x + 1, 0, on ? BellUR : BorderChar, topColor);
-            C64.SetChar(x, 1, on ? BellLL : 32, Colors.Violet);
-            C64.SetChar(x + 1, 1, on ? BellLR : 32, Colors.Violet);
+            C64.SetChar(x, 0, on ? BellUL : BorderChar, Colors.Grey2);
+            C64.SetChar(x + 1, 0, on ? BellUR : BorderChar, Colors.Grey2);
+            C64.SetChar(x, 1, on ? BellLL : 32, Colors.Grey2);
+            C64.SetChar(x + 1, 1, on ? BellLR : 32, Colors.Grey2);
             x += 2;
         }
     }

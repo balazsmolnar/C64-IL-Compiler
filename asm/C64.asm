@@ -228,14 +228,14 @@ On_Interrupt_Ret
     jmp (zp_interrupt_saved_low)
     rti
 
-.include "./C64sprite.asm"
+.include "./c64sprite.asm"
 .if USE_JOYSTICK
-.include "./C64Joystick.asm"
+.include "./c64Joystick.asm"
 .endif
 .if USE_SOUND
-.include "./C64sound.asm"
+.include "./C64Sound.asm"
 .endif
-.include "./C64Keys.asm"
+.include "./c64Keys.asm"
 .if USE_DEBUG
 .include "./C64Debug.asm"
 .endif

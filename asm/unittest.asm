@@ -1,6 +1,6 @@
 .include "./helper/loader.asm"
 .include "./helper/stack.asm"
-.include "./helper/localsstack.asm"
+.include "./helper/localsStack.asm"
 .include "./helper/heap.asm"
 .include "./helper/arithmetic.asm"
 .include "./helper/branch.asm"

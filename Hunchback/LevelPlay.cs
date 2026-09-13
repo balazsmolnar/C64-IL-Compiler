@@ -84,8 +84,11 @@ class LevelPlay
                 go?.Move();
 
             Delay.Wait(100);
+            // Debug/testing cheat: force the level complete instead of playing
+            // it out. Sets Complete rather than returning true directly so it
+            // still goes through the normal bonus/fanfare handling above.
             if (C64.IsKeyPressed(Keys.L))
-                return true;
+                player.Complete = true;
         }
     }
 

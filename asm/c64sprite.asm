@@ -78,11 +78,7 @@ Sprite_set_Visible:
     #stack_pull_int_y
     #stack_pull_int_x
     
-    lda #1
--   asl
-    dex
-    bpl -
-    lsr
+    lda sprite_bit_table, x
     cpy #1
     bne +
     ora spriteEnabled
@@ -97,11 +93,7 @@ Sprite_get_IsInCollision:
     #stack_save_return_adress zp_tmp1_low
     #stack_pull_int_x
     
-    lda #1
--   asl
-    dex
-    bpl -
-    lsr
+    lda sprite_bit_table, x
     and spriteCollision
     #stack_push_int_a
     #stack_return_to_saved_address zp_tmp1_low
@@ -110,11 +102,7 @@ Sprite_get_IsInBackgroundCollision:
     #stack_save_return_adress zp_tmp1_low
     #stack_pull_int_x
     
-    lda #1
--   asl
-    dex
-    bpl -
-    lsr
+    lda sprite_bit_table, x
     and spriteBackgroundCollision
     #stack_push_int_a
     #stack_return_to_saved_address zp_tmp1_low
@@ -124,11 +112,7 @@ Sprite_set_MultiColor:
     #stack_pull_int_a
     #stack_pull_int_x
     
-    lda #1
--   asl
-    dex
-    bpl -
-    lsr
+    lda sprite_bit_table, x
     ora spriteMultiColor
     sta spriteMultiColor
     #stack_return_to_saved_address zp_tmp1_low
@@ -138,11 +122,7 @@ Sprite_set_HighPosition:
     #stack_pull_int_y
     #stack_pull_int_x
     
-    lda #1
--   asl
-    dex
-    bpl -
-    lsr
+    lda sprite_bit_table, x
     cpy #1
     bne +
     ora spriteExtraPosition
@@ -158,11 +138,7 @@ Sprite_set_ExpandX:
     #stack_pull_int_y
     #stack_pull_int_x
     
-    lda #1
--   asl
-    dex
-    bpl -
-    lsr
+    lda sprite_bit_table, x
     cpy #1
     bne +
     ora spriteExpandX
@@ -178,11 +154,7 @@ Sprite_set_ExpandY:
     #stack_pull_int_y
     #stack_pull_int_x
     
-    lda #1
--   asl
-    dex
-    bpl -
-    lsr
+    lda sprite_bit_table, x
     cpy #1
     bne +
     ora spriteExpandY

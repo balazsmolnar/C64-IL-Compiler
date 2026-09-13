@@ -22,6 +22,7 @@ rts
 .include "./system.asm"
 .include "./GC.asm"
 .include "./helper/object.asm"
+.include "./generated/library_flags.asm"
 .include "./C64.asm"
 
 .include "./generated/generated.asm"

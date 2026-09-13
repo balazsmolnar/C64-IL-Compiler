@@ -50,6 +50,7 @@ result = $20
 .include "./system.asm"
 .include "./GC.asm"
 .include "./helper/object.asm"
+.include "./unittest/library_flags.asm"
 .include "./C64.asm"
 
 .include "./unittest/generated.asm"

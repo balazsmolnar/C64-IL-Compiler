@@ -39,6 +39,7 @@ class Program
                     },
                     new ICompilerMethodPass[] {
                         new ILMethodCodePass(),
+                        new ILLibraryUsagePass(),
                         new ILMethodLabelPass(),
                         new ILMethodNextInstructionPass(),
                         new ILMethodBuildEvaluationStackPass(),
@@ -74,6 +75,7 @@ class Program
                         new ILMethodEmitPass(),
                         new ILMethodJumpTablePass()
                     }),
+                new ILLibraryFlagsPass(),
                 new ILStringResourcesPass() };
             passes.ForEach(p => p.Execute(context));
         }

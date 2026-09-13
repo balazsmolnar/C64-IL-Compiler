@@ -17,6 +17,13 @@ class CompilerContext
     public string OutputDirectory { get; set; }
 
     public bool Optimize { get; set; }
+
+    // Set by ILLibraryUsagePass as it scans every compiled method; read by
+    // ILLibraryFlagsPass once all methods are done, to decide which of the
+    // always-on asm/C64*.asm library files this program actually needs.
+    public bool UsesJoystick { get; set; }
+    public bool UsesSound { get; set; }
+    public bool UsesDebug { get; set; }
     public int GetFieldPosition(FieldInfo field)
     {
         var t = field.ReflectedType;

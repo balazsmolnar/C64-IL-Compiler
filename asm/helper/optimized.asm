@@ -21,10 +21,7 @@ setfld8 .macro objRelPos, objValuePos, pos
 
   ldy stackPointer
   ldx localsStack-\objRelPos,y
-  lda objTableLow,x
-  sta tmpPointer
-  lda objTableHigh,x
-  sta tmpPointer+1
+  jsr resolveObjPtr
 
   ldy stackPointer
   ldx localsStack-\objValuePos,y
@@ -37,10 +34,7 @@ setfld16 .macro objRelPos, objValuePos, pos
 
   ldy stackPointer
   ldx localsStack-\objRelPos,y
-  lda objTableLow,x
-  sta tmpPointer
-  lda objTableHigh,x
-  sta tmpPointer+1
+  jsr resolveObjPtr
 
   ldy stackPointer
   ldx localsStack-\objValuePos,y
@@ -61,10 +55,7 @@ pushfld8 .macro pos
   ldy stackPointer
   dey
   ldx localsStack,y
-  lda objTableLow,x
-  sta tmpPointer
-  lda objTableHigh,x
-  sta tmpPointer+1
+  jsr resolveObjPtr
 
   ldy #\pos
   lda (tmpPointer),y
@@ -77,10 +68,7 @@ pushfld16 .macro pos
   ldy stackPointer
   dey
   ldx localsStack,y
-  lda objTableLow,x
-  sta tmpPointer
-  lda objTableHigh,x
-  sta tmpPointer+1
+  jsr resolveObjPtr
 
   ldy #\pos+1
   lda (tmpPointer),y
@@ -96,10 +84,7 @@ incfld .macro pos
   ldy stackPointer
   ldx localsStack-1,y
 
-  lda objTableLow,x
-  sta tmpPointer
-  lda objTableHigh,x
-  sta tmpPointer+1
+  jsr resolveObjPtr
 
   ldy #\pos
   lda (tmpPointer),y

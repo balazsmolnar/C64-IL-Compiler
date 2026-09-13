@@ -1,4 +1,23 @@
 
+; Resolves an object handle (X) into a pointer at tmpPointer/tmpPointer+1.
+; Preserves X. Shared by every macro in heap.asm/optimized.asm that
+; dereferences an object handle -- factored out since the load/store pair
+; was duplicated inline nearly 800 times across those two files.
+;
+; Lives here (not in heap.asm, where those macros are defined) because this
+; file is .include'd AFTER the #start_at/*= org directive in every entry
+; point (main.asm/unittest.asm/presentation.asm), while heap.asm is
+; included before it. heap.asm's contents were previously all .macro
+; bodies -- which emit no bytes on their own -- so the org's placement
+; relative to it never mattered until this subroutine (real code, not a
+; macro) needed to live somewhere.
+resolveObjPtr
+  lda objTableLow,x
+  sta tmpPointer
+  lda objTableHigh,x
+  sta tmpPointer+1
+  rts
+
 ;
 ; Creates a new object on the heap
 ; Inputs:

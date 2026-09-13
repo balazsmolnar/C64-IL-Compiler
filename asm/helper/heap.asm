@@ -1,7 +1,10 @@
 heapPointer = $fb
 tmpPointer = heap_tmp_pointer
 
-initHeap .macro heap 
+; resolveObjPtr (used by the macros below) is defined in object.asm, not
+; here -- see the comment there for why.
+
+initHeap .macro heap
   lda #<\heap
   sta heapPointer
   lda #>\heap
@@ -116,10 +119,7 @@ stfld8 .macro  pos
   #stack_pull_int $fd
   #stack_pull_int_x
 
-  lda objTableLow,x
-  sta tmpPointer
-  lda objTableHigh,x
-  sta tmpPointer+1
+  jsr resolveObjPtr
 
   ldy #\pos
   lda $fd
@@ -131,10 +131,7 @@ stfld16 .macro  pos
   #stack_pull_int $fe
   #stack_pull_int_x
 
-  lda objTableLow,x
-  sta tmpPointer
-  lda objTableHigh,x
-  sta tmpPointer+1
+  jsr resolveObjPtr
 
   ldy #\pos
   lda $fd
@@ -159,10 +156,7 @@ stelemRef .macro
   #stack_pull_int_y     ; index
   #stack_pull_int_x     ; object refernce to array
 
-  lda objTableLow,x
-  sta tmpPointer
-  lda objTableHigh,x
-  sta tmpPointer+1
+  jsr resolveObjPtr
 
   lda $fd
   sta (tmpPointer),y 
@@ -173,10 +167,7 @@ stelem .macro
   #stack_pull_int_y     ; index
   #stack_pull_int_x     ; object refernce to array
 
-  lda objTableLow,x
-  sta tmpPointer
-  lda objTableHigh,x
-  sta tmpPointer+1
+  jsr resolveObjPtr
 
   lda $fd
   sta (tmpPointer),y 
@@ -189,10 +180,7 @@ stelem16 .macro
   tay
   #stack_pull_int_x     ; object refernce to array
 
-  lda objTableLow,x
-  sta tmpPointer
-  lda objTableHigh,x
-  sta tmpPointer+1
+  jsr resolveObjPtr
 
   lda $fd
   sta (tmpPointer),y
@@ -203,10 +191,7 @@ stelem16 .macro
 
 ldfld8 .macro pos 
   #stack_pull_int_x
-  lda objTableLow,x
-  sta tmpPointer
-  lda objTableHigh,x
-  sta tmpPointer+1
+  jsr resolveObjPtr
 
   ldy #\pos
   lda (tmpPointer),y
@@ -216,10 +201,7 @@ ldfld8 .macro pos
 
 ldfld16 .macro pos 
   #stack_pull_int_x
-  lda objTableLow,x
-  sta tmpPointer
-  lda objTableHigh,x
-  sta tmpPointer+1
+  jsr resolveObjPtr
 
   ldy #\pos+1
   lda (tmpPointer),y
@@ -234,10 +216,7 @@ ldelemRef .macro
   #stack_pull_int_y
   #stack_pull_int_x
 
-  lda objTableLow,x
-  sta tmpPointer
-  lda objTableHigh,x
-  sta tmpPointer+1
+  jsr resolveObjPtr
 
   lda (tmpPointer),y
 
@@ -248,10 +227,7 @@ ldelem .macro
   #stack_pull_int_y
   #stack_pull_int_x
 
-  lda objTableLow,x
-  sta tmpPointer
-  lda objTableHigh,x
-  sta tmpPointer+1
+  jsr resolveObjPtr
 
   lda (tmpPointer),y
 
@@ -264,10 +240,7 @@ ldelem16 .macro
   tay
   #stack_pull_int_x
 
-  lda objTableLow,x
-  sta tmpPointer
-  lda objTableHigh,x
-  sta tmpPointer+1
+  jsr resolveObjPtr
 
   iny
   lda (tmpPointer),y

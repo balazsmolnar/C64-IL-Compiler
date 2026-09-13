@@ -17,7 +17,22 @@ branch_equal_const .macro value, label
     beq \label
 .endm
 
-branch_not_equal8 .macro label 
+branch_equal16 .macro label
+
+    #stack_pull_int $32
+    #stack_pull_int $33
+    #stack_pull_int $34
+    #stack_pull_int $35
+    lda $32
+    cmp $34
+    bne +
+    lda $33
+    cmp $35
+    beq \label
++
+.endm
+
+branch_not_equal8 .macro label
     #stack_pull_int $30
     #stack_pull_int_a
     cmp $30
@@ -173,7 +188,23 @@ branch_greater_unsigned8 .macro label
     bcs \label
 .endm
 
-branch_greater_unsigned_const .macro value, label 
+branch_greater_unsigned16 .macro label
+    #stack_pull_int $32
+    #stack_pull_int $33
+    #stack_pull_int $34
+    #stack_pull_int $35
+
+    lda $33
+    cmp $35
+    bcc \label
+    bne +
+    lda $32
+    cmp $34
+    bcc \label
++
+.endm
+
+branch_greater_unsigned_const .macro value, label
     #stack_pull_int_a
     cmp #\value
     bcs \label

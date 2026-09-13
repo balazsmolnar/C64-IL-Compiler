@@ -13,6 +13,10 @@ public class PlayerStats
     private const uint BellUR = 64;
     private const uint BellLL = 65;
     private const uint BellLR = 66;
+    // The bonus markers sit on top of the header's decorative top-border
+    // glyph (used for columns 0-10 of row 0) -- restore it, in its own
+    // color, when a marker is off instead of leaving a blank gap.
+    private const uint BorderChar = 68;
 
     public uint Lives;
     public uint Bonus;
@@ -48,10 +52,11 @@ public class PlayerStats
         for (uint i = 0; i < 4; i++)
         {
             var on = i < Bonus;
-            C64.SetChar(x, 0, on ? BellUL : 32, Colors.Cyan);
-            C64.SetChar(x + 1, 0, on ? BellUR : 32, Colors.Cyan);
-            C64.SetChar(x, 1, on ? BellLL : 32, Colors.Cyan);
-            C64.SetChar(x + 1, 1, on ? BellLR : 32, Colors.Cyan);
+            var topColor = on ? Colors.Violet : Colors.Grey2;
+            C64.SetChar(x, 0, on ? BellUL : BorderChar, topColor);
+            C64.SetChar(x + 1, 0, on ? BellUR : BorderChar, topColor);
+            C64.SetChar(x, 1, on ? BellLL : 32, Colors.Violet);
+            C64.SetChar(x + 1, 1, on ? BellLR : 32, Colors.Violet);
             x += 2;
         }
     }

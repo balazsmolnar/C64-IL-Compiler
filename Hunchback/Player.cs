@@ -22,7 +22,7 @@ class Player
 
     public ulong X
     {
-        get { return x_; }
+        get => x_;
         set
         {
             x_ = value;
@@ -31,7 +31,7 @@ class Player
     }
     public uint Y
     {
-        get { return y_; }
+        get => y_;
         set
         {
             y_ = value;
@@ -42,10 +42,7 @@ class Player
 
     public Sprite Sprite
     {
-        set
-        {
-            sprite_ = value;
-        }
+        set => sprite_ = value;
     }
 
     public void Init(Wall wall)
@@ -330,27 +327,12 @@ class Player
         jumpOffsets_[7] = jumpOffsets_[8] = 20;
     }
 
-    private bool IsLeft
-    {
-        get
-        {
-            return C64.IsKeyPressed(Keys.A) || (C64.Joysticks.Joystick2.Pressed & JoystickButtons.Left) == JoystickButtons.Left;
-        }
-    }
+    private bool IsLeft =>
+        C64.IsKeyPressed(Keys.A) || (C64.Joysticks.Joystick2.Pressed & JoystickButtons.Left) == JoystickButtons.Left;
 
-    private bool IsRight
-    {
-        get
-        {
-            return C64.IsKeyPressed(Keys.D) || (C64.Joysticks.Joystick2.Pressed & JoystickButtons.Right) == JoystickButtons.Right;
-        }
-    }
+    private bool IsRight =>
+        C64.IsKeyPressed(Keys.D) || (C64.Joysticks.Joystick2.Pressed & JoystickButtons.Right) == JoystickButtons.Right;
 
-    private bool IsJump
-    {
-        get
-        {
-            return C64.IsKeyPressed(Keys.W) || (C64.Joysticks.Joystick2.Pressed & JoystickButtons.Fire) == JoystickButtons.Fire;
-        }
-    }
+    private bool IsJump =>
+        C64.IsKeyPressed(Keys.W) || (C64.Joysticks.Joystick2.Pressed & JoystickButtons.Fire) == JoystickButtons.Fire;
 }

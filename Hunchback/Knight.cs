@@ -11,7 +11,7 @@ class Knight : GameObject
     private bool climb_;
     public uint X
     {
-        get { return x_; }
+        get => x_;
         set
         {
             x_ = value;
@@ -20,7 +20,7 @@ class Knight : GameObject
     }
     public uint Y
     {
-        get { return y_; }
+        get => y_;
         set
         {
             y_ = value;
@@ -31,10 +31,7 @@ class Knight : GameObject
 
     public Sprite Sprite
     {
-        set
-        {
-            sprite_ = value;
-        }
+        set => sprite_ = value;
     }
 
     public override void Init()

@@ -131,24 +131,11 @@ class Wall : GameObject
     // decoded directly from the original's tbl_RowOfBellsXPosition/
     // tbl_QuasiBellXPosition/tbl_BellRopeXOffset/tbl_RowOfBellsFreqHi (each
     // 4 entries, one per bell).
-    public bool IsRowOfBells
-    {
-        get { return wallType_ == WallType.RowOfBells; }
-    }
+    public bool IsRowOfBells => wallType_ == WallType.RowOfBells;
 
-    public bool IsRowOfBellsGrabZone(ulong x)
-    {
-        if (x >= 88 && x < 224)
-            return true;
-        return false;
-    }
+    public bool IsRowOfBellsGrabZone(ulong x) => x >= 88 && x < 224;
 
-    public bool IsRowOfBellsFallZone(ulong x)
-    {
-        if (x >= 80 && x < 219)
-            return true;
-        return false;
-    }
+    public bool IsRowOfBellsFallZone(ulong x) => x >= 80 && x < 219;
 
     public ulong GetBellSnapX(ulong x)
     {
@@ -158,14 +145,8 @@ class Wall : GameObject
         return 194;
     }
 
-    public bool IsNearBellRope(ulong x)
-    {
-        if (x >= 94 && x < 105) return true;
-        if (x >= 126 && x < 137) return true;
-        if (x >= 158 && x < 169) return true;
-        if (x >= 190 && x < 201) return true;
-        return false;
-    }
+    public bool IsNearBellRope(ulong x) =>
+        (x >= 94 && x < 105) || (x >= 126 && x < 137) || (x >= 158 && x < 169) || (x >= 190 && x < 201);
 
     public void PlayBellSound(ulong x)
     {
@@ -182,20 +163,11 @@ class Wall : GameObject
     public bool IsHole(ulong x)
     {
         if (wallType_ == WallType.EmptyPits || wallType_ == WallType.KnightPits)
-        {
-            if (x > 92 && x < 114)
-                return true;
-            if (x > 164 && x < 186)
-                return true;
-            if (x > 236 && x < 255)
-                return true;
-        }
+            return (x > 92 && x < 114) || (x > 164 && x < 186) || (x > 236 && x < 255);
 
         if (wallType_ == WallType.Rope)
-        {
-            if (x > 106 && x < 238)
-                return true;
-        }
+            return x > 106 && x < 238;
+
         return false;
     }
 

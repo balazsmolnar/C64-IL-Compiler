@@ -14,18 +14,12 @@ class Rope : GameObject
 
     public Sprite Sprite1
     {
-        set
-        {
-            sprite1_ = value;
-        }
+        set => sprite1_ = value;
     }
 
     public Sprite Sprite2
     {
-        set
-        {
-            sprite2_ = value;
-        }
+        set => sprite2_ = value;
     }
 
     public override void Init()

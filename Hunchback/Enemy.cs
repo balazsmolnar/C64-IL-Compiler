@@ -10,7 +10,7 @@ class Enemy : GameObject
 
     public ulong X
     {
-        get { return x_; }
+        get => x_;
         set
         {
             x_ = value;
@@ -19,7 +19,7 @@ class Enemy : GameObject
     }
     public uint Y
     {
-        get { return y_; }
+        get => y_;
         set
         {
             y_ = value;
@@ -32,10 +32,7 @@ class Enemy : GameObject
 
     public Sprite Sprite
     {
-        set
-        {
-            sprite_ = value;
-        }
+        set => sprite_ = value;
     }
 
     public EnemyType EnemyType;
@@ -55,14 +52,7 @@ class Enemy : GameObject
             Y = 87u;
         leftToRight_ = (EnemyType & EnemyType.LeftRight) > 0;
         arrow_ = (EnemyType & EnemyType.Arrow) > 0;
-        if (leftToRight_)
-        {
-            X = 0UL;
-        }
-        else
-        {
-            X = 316UL;
-        }
+        X = leftToRight_ ? 0UL : 316UL;
 
         // Screen.Clear() at the top of every level wipes the whole screen
         // matrix, including the sprite data pointers living in its last 8

@@ -156,10 +156,10 @@ public class C64LibTest
         C64.SetCharBackgroundColor(0, Colors.Grey1);
         C64.SetCharSet(0x2000UL);
 
-        // Success is simply reaching here without the emulator faulting --
-        // every property above is write-only (no getter exists in the asm
-        // for any of them, see the class comment), so there's nothing to
-        // read back and assert on directly.
-        Assert.IsTrue(true);
+        // No assertion needed: the test harness (asm/unittest.asm) marks
+        // result = success as soon as this method returns normally, so
+        // simply reaching here without the emulator faulting already is
+        // the pass condition -- there's nothing to read back and compare
+        // against for a write-only property in the first place.
     }
 }

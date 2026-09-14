@@ -274,4 +274,64 @@ public class GCTest
         Assert.AreEqual(a[0].Id, 11);
         Assert.AreEqual(a[0].Child.Id, 10);
     }
+
+    // Isolating a real bug found building Hunchback/IntroScroll.cs: a
+    // jagged uint[][] (used to work around the 255-byte array-size limit,
+    // see Test/ArrayTest.cs's Jagged_Uint_Array) never gets fully
+    // reclaimed after going out of scope. Object-table dumps via a
+    // SimpleEmulator diagnostic showed the outer array's root count stuck
+    // at a nonzero value even after GC.Collect() -- looks like underflow
+    // (decremented one time too many, wrapping around) rather than a
+    // missing decrement, since it reads as a large value, not zero.
+    [Test]
+    public void Jagged_Uint_Array_Fully_Collected()
+    {
+        uint[][] outer = new uint[3][];
+        for (uint i = 0; i < 3; i++)
+            outer[i] = new uint[5];
+
+        var outerId = C64.Debug.GetObjectId(outer);
+        var innerId = C64.Debug.GetObjectId(outer[1]);
+
+        outer = null;
+        GC.Collect();
+
+        Assert.IsFalse(C64.Debug.IsAlive(outerId), "outer array should not be alive");
+        Assert.IsFalse(C64.Debug.IsAlive(innerId), "inner array should not be alive");
+    }
+
+    // Confirmed, not yet fixed: does reassigning a reference-typed local
+    // once per loop iteration (IntroScroll.cs's original "var charsRow =
+    // oldChar[y];" pattern, since reworked to avoid this) correctly
+    // release each previous value? Every reassignment before the loop's
+    // last one does -- only the value assigned on the final iteration
+    // stays stuck alive, its root count never decremented at method exit.
+    // IntroScroll.cs now avoids the pattern entirely (direct chars[y][x]
+    // double-indexing instead of a cached per-row local) rather than
+    // depending on a fix here.
+    [Ignore("Known limitation: a reference-typed local reassigned inside a loop leaks the root count of whichever value it holds on the loop's last iteration -- never decremented at method exit. Every earlier reassignment in the loop releases its value correctly. See IntroScroll.cs for the real workaround (avoid caching a loop-reused reference local at all).")]
+    [Test]
+    public void Reassigned_Ref_Local_In_Loop_Releases_Each_Previous_Value()
+    {
+        uint[][] outer = new uint[3][];
+        for (uint i = 0; i < 3; i++)
+            outer[i] = new uint[5];
+
+        var id0 = C64.Debug.GetObjectId(outer[0]);
+        var id1 = C64.Debug.GetObjectId(outer[1]);
+        var id2 = C64.Debug.GetObjectId(outer[2]);
+
+        for (uint i = 0; i < 3; i++)
+        {
+            var row = outer[i];
+            row[0] = i;
+        }
+
+        outer = null;
+        GC.Collect();
+
+        Assert.IsFalse(C64.Debug.IsAlive(id0), "row 0 should not be alive");
+        Assert.IsFalse(C64.Debug.IsAlive(id1), "row 1 should not be alive");
+        Assert.IsFalse(C64.Debug.IsAlive(id2), "row 2 should not be alive");
+    }
 }

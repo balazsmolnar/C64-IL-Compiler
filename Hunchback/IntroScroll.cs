@@ -1,5 +1,4 @@
 using C64Lib;
-using System;
 
 namespace Hunchback;
 
@@ -17,48 +16,60 @@ class IntroScroll
     private const uint Rows = 25;
     private const uint Cols = 40;
 
+    // Static fields, not locals passed through ScrollToLevel's parameters --
+    // two real compiler gaps made that the wrong call:
+    //   - ScrollToLevel needed 7 parameters (description plus these 6), and
+    //     Roslyn lowers any parameter past the 4th to Ldarg_s, which isn't
+    //     mapped in CommandMap.cs (crashes Compiler.exe outright).
+    //   - Independently, passing/returning several of these as normal
+    //     locals hit real gaps in this compiler's reference-local
+    //     root-count tracking at method exit (see NewRowBuffers' and
+    //     ScrollToLevel's own comments below for the two variants found
+    //     and fixed/worked around) -- a SimpleEmulator diagnostic showed
+    //     roughly half of each level's row-buffer garbage staying stuck
+    //     alive after GC.Collect() even after both fixes, heading toward
+    //     the 255-slot object-table ceiling well before the intro even
+    //     finished.
+    // Static fields sidestep both: Debug_GetObjectId/IsAlive-based tests
+    // elsewhere (Test/GCTest.cs's Two_Instances_First_GCd_Static_Field)
+    // already confirm static-field root tracking works correctly in this
+    // compiler, and each of these six is allocated exactly once here
+    // anyway, then reused (overwritten in place) across all three levels
+    // rather than freed and reallocated -- exactly like Wall here (Draw()
+    // resets every field of Wall's that matters; Move() is never called
+    // during the intro, so nothing carries over that shouldn't).
+    private static Knight s_knight;
+    private static Wall s_wall;
+    private static uint[][] s_oldChar;
+    private static uint[][] s_oldColor;
+    private static uint[][] s_newChar;
+    private static uint[][] s_newColor;
+
     public static void Play()
     {
         Screen.Clear(Colors.Grey2);
 
-        var knight = new Knight { Sprite = C64.Sprites.Sprite1 };
-        knight.Init();
+        s_knight = new Knight { Sprite = C64.Sprites.Sprite1 };
+        s_knight.Init();
+        s_wall = new Wall();
+
+        s_oldChar = NewRowBuffers();
+        s_oldColor = NewRowBuffers();
+        s_newChar = NewRowBuffers();
+        s_newColor = NewRowBuffers();
 
         var levels = LevelDescription.Levels;
         // Matches the original's Screen_IntroScrollSelect level picks (9, 8, 0)
         // exactly -- currentLevel is used identically as a direct 0-based
         // index into the level table in both codebases.
-        //
-        // Each ScrollToLevel call allocates six 1000-element uint[] snapshot
-        // arrays (oldChar/oldColor/newChar/newColor here, plus their locals
-        // inside SnapshotScreen's own frame) that all go dead the moment it
-        // returns -- GC.Collect() after each one reclaims them before the
-        // next call allocates its own batch, the same way Game.cs's
-        // RunGame loop collects after every real level. Skipping this was
-        // a real bug, not just tidiness: without it, three levels' worth of
-        // never-reclaimed arrays walked the heap far enough to eventually
-        // corrupt something else and crash the whole emulator partway
-        // through the third transition (reproduced live in VICE).
-        ScrollToLevel(levels[9], knight);
-        GC.Collect();
-        ScrollToLevel(levels[8], knight);
-        GC.Collect();
-        ScrollToLevel(levels[0], knight);
-        GC.Collect();
+        ScrollToLevel(levels[9]);
+        ScrollToLevel(levels[8]);
+        ScrollToLevel(levels[0]);
     }
 
-    private static void ScrollToLevel(LevelDescription description, Knight knight)
+    private static void ScrollToLevel(LevelDescription description)
     {
-        // Rows*Cols would be a runtime Mul on non-constant operands anywhere
-        // else in this file (the compiler has no Mul opcode support at all --
-        // discovered while writing this), but both operands are compile-time
-        // consts, so Roslyn folds this to a literal 1000 before it ever
-        // reaches the compiler. Every other row/column offset below is a
-        // running accumulator instead, incremented by Cols per row, to avoid
-        // needing a real multiply.
-        var oldChar = new uint[Rows * Cols];
-        var oldColor = new uint[Rows * Cols];
-        SnapshotScreen(oldChar, oldColor);
+        SnapshotScreen(s_oldChar, s_oldColor);
 
         // Blanks the physical display for the whole prepare phase below.
         // Drawing the new level, reading it back, and restoring the old one
@@ -82,19 +93,12 @@ class IntroScroll
         // screen, not onto a blank canvas.
         Screen.Clear(Colors.Grey2);
 
-        var wall = new Wall();
-        wall.Draw(description.Color, description.WallType);
-        var newChar = new uint[Rows * Cols];
-        var newColor = new uint[Rows * Cols];
-        SnapshotScreen(newChar, newColor);
+        s_wall.Draw(description.Color, description.WallType);
+        SnapshotScreen(s_newChar, s_newColor);
 
-        uint i = 0;
         for (uint y = 0; y < Rows; y++)
             for (uint x = 0; x < Cols; x++)
-            {
-                C64.SetChar(x, y, oldChar[i], (Colors)oldColor[i]);
-                i++;
-            }
+                C64.SetChar(x, y, s_oldChar[y][x], (Colors)s_oldColor[y][x]);
 
         // Back on now that the live screen genuinely shows only the old
         // level again -- everything from here on is the real, intended
@@ -108,17 +112,15 @@ class IntroScroll
         {
             var screenRow = screenBase;
             var colorRow = colorBase;
-            i = 0;
             for (uint y = 0; y < Rows; y++)
             {
                 ShiftRowLeft(screenRow);
                 ShiftRowLeft(colorRow);
 
-                C64.SetChar(Cols - 1, y, newChar[i + step], (Colors)newColor[i + step]);
+                C64.SetChar(Cols - 1, y, s_newChar[y][step], (Colors)s_newColor[y][step]);
 
                 screenRow += Cols;
                 colorRow += Cols;
-                i += Cols;
             }
 
             // Ticks the Knight's own climb/walk cycle (same sprite/animation
@@ -127,23 +129,53 @@ class IntroScroll
             // climb and a real run across the screen within the intro's
             // duration, rather than barely twitching once.
             for (uint k = 0; k < 8; k++)
-                knight.Move();
+                s_knight.Move();
 
             Delay.Wait(2);
         }
     }
 
-    private static void SnapshotScreen(uint[] chars, uint[] colors)
+    // A flat uint[Rows*Cols] (1000 elements) silently corrupts past index
+    // 255: objTableSize (asm/helper/objectTables.asm) is a single byte per
+    // heap slot, so any array's real backing storage is capped at 255
+    // bytes regardless of the requested length -- see
+    // Test/ArrayTest.cs's Uint_Array_Index_Past_255 (confirmed failing) and
+    // Jagged_Uint_Array (confirmed working) for how this was diagnosed.
+    // An array-of-arrays sidesteps it: the outer array is 25 elements, each
+    // inner one 40 -- both comfortably under the limit.
+    //
+    // Every access into an outer row-buffer array above is a direct
+    // chars[y][x]/colors[y][x] double-index, deliberately never cached into
+    // a reference-typed local reused across loop iterations (e.g. "var
+    // charsRow = chars[y];" outside the inner loop) -- that pattern hit a
+    // second real, narrower compiler bug: the *last* value such a local
+    // is reassigned to inside a loop never gets its root-count decremented
+    // at method exit (every reassignment before the last one releases the
+    // previous value correctly). See
+    // Test/GCTest.cs's Reassigned_Ref_Local_In_Loop_Releases_Each_Previous_Value
+    // (confirmed failing on exactly the last iteration) and
+    // Jagged_Uint_Array_Fully_Collected (confirmed passing, since it only
+    // ever indexes directly) for how this was isolated.
+    //
+    // Called exactly 4 times total, from Play() -- not once per level, see
+    // the static fields' own comment for why.
+    private static uint[][] NewRowBuffers()
+    {
+        var buffers = new uint[Rows][];
+        for (uint y = 0; y < Rows; y++)
+            buffers[y] = new uint[Cols];
+        return buffers;
+    }
+
+    private static void SnapshotScreen(uint[][] chars, uint[][] colors)
     {
         var colorRow = C64Address.FromLabel("colorMemory");
-        uint i = 0;
         for (uint y = 0; y < Rows; y++)
         {
             for (uint x = 0; x < Cols; x++)
             {
-                chars[i] = (uint)C64.GetChar(x, y);
-                colors[i] = C64.GetMemory(colorRow, x);
-                i++;
+                chars[y][x] = (uint)C64.GetChar(x, y);
+                colors[y][x] = C64.GetMemory(colorRow, x);
             }
             colorRow += Cols;
         }

@@ -88,7 +88,8 @@ public class PlayerStats
     public void DrawLives()
     {
         var shown = Lives > 0 ? Lives - 1 : 0;
-        for (uint i = 0; i < 4; i++)
+
+        for (uint i = 0; i < 6; i++)
             C64.SetChar(LivesX + i, 1, i < shown ? LivesMarkerChar : 32, Colors.White);
     }
 

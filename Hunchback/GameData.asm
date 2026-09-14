@@ -146,6 +146,23 @@ tbl_PlayerStatsColours
 .byte $00, $05, $05, $05, $05, $05, $05, $05
 .byte $00, $00, $00, $00, $00, $00, $00, $00
 
+; Level-marker box (rows 21-24, cols 0-6) -- decoded from the original's
+; Restructure/Memory.asm tbl_LevelMarkerChars/tbl_LevelMarkerCharCol.
+tbl_LevelMarkerChars
+.byte $5B, $5F, $5F, $5F, $5F, $5F, $5C
+.byte $62, $20, $20, $20, $20, $66, $61
+.byte $62, $64, $64, $64, $64, $65, $61
+.byte $5D, $60, $60, $60, $60, $60, $5E
+
+tbl_LevelMarkerCharCol
+.byte $0A, $0A, $0A, $0A, $0A, $0A, $0A
+.byte $0D, $0D, $0D, $0D, $0A, $0A, $0A
+.byte $0A, $0A, $0A, $0A, $0A, $0A, $0A
+.byte $0A, $0A, $0A, $0A, $0A, $0A, $0A
+
+tbl_LevelMarkerPixel
+.byte $80, $20, $08, $02
+
 ; tbl_PitKnightFrame1:
 ; .byte 
 ; $20, $20, $20, 

@@ -18,10 +18,34 @@ public class PlayerStats
     // color, when a marker is off instead of leaving a blank gap.
     private const uint BorderChar = 68;
 
+    // "Level marker" box at the bottom-left of the screen (rows 21-24,
+    // columns 0-6): a static box-drawing frame around a short staircase
+    // glyph, with a small dot that sweeps across 4 columns x 4
+    // sub-character pixel positions (16 positions total) to show progress
+    // through the current 16-level tower -- decoded from the original's
+    // Restructure/Screen.asm Screen_DisplayStats/.DisplayLevelMarker and
+    // Restructure/Memory.asm's tbl_LevelMarker*/chr_Marker. Matches
+    // levelNumber & 15 exactly (the original only ever extracts
+    // levelNumber's low 4 bits via two separate "AND 3" masks), so it
+    // wraps correctly across this port's 48 levels (3 towers) with no
+    // extra masking needed here.
+    //
+    // The three tables (tbl_LevelMarkerChars/CharCol/Pixel) live in
+    // GameData.asm and are read via C64.GetMemory, matching every other
+    // static lookup table in this port (tbl_KnightChars etc. in Wall.cs) --
+    // NOT a C# static readonly array literal. That IL shape (a
+    // RuntimeHelpers.InitializeArray-backed initializer) silently never
+    // gets populated by this compiler: the static field stays a null
+    // handle, so indexing it reads garbage out of zero page instead of
+    // throwing -- confirmed live (a previous version of this code showed
+    // random characters/colors instead of the box, the first time this
+    // project ever exercised a `= { literal, literal, ... }` array field).
+    private const uint LevelMarkerChar = 99;
+
     public uint Lives;
     public uint Bonus;
 
-    public void Draw()
+    public void Draw(uint levelNumber)
     {
         uint d = 0;
         for (uint y = 0; y < 2; y++)
@@ -37,6 +61,28 @@ public class PlayerStats
         }
         DrawLives();
         DrawBonus();
+        DrawLevelMarker(levelNumber);
+    }
+
+    private void DrawLevelMarker(uint levelNumber)
+    {
+        uint i = 0;
+        for (uint row = 0; row < 4; row++)
+        {
+            for (uint col = 0; col < 7; col++)
+            {
+                var ch = C64.GetMemory(C64Address.FromLabel("tbl_LevelMarkerChars"), i);
+                var c = C64.GetMemory(C64Address.FromLabel("tbl_LevelMarkerCharCol"), i);
+                C64.SetChar(col, 21 + row, ch, (Colors)c);
+                i++;
+            }
+        }
+
+        var coarse = (levelNumber >> 2) & 3;
+        var fine = levelNumber & 3;
+        var pixel = C64.GetMemory(C64Address.FromLabel("tbl_LevelMarkerPixel"), fine);
+        C64.FillMemory(C64Address.FromLabel("(charset+$31C)"), pixel, 2);
+        C64.SetChar(1 + coarse, 22, LevelMarkerChar, Colors.LightGreen);
     }
 
     public void DrawLives()

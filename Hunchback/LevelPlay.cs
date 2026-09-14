@@ -8,7 +8,7 @@ class LevelPlay
     {
         Wall wall = new Wall();
         wall.Draw(description.Color, description.WallType);
-        playerStats.Draw();
+        playerStats.Draw(levelNumber);
         DrawDebugLevelNumber(levelNumber);
 
         // Rope/Enemy/Enemy2 aren't set up until after GetReady() below (they

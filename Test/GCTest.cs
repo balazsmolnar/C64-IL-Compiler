@@ -300,16 +300,18 @@ public class GCTest
         Assert.IsFalse(C64.Debug.IsAlive(innerId), "inner array should not be alive");
     }
 
-    // Confirmed, not yet fixed: does reassigning a reference-typed local
-    // once per loop iteration (IntroScroll.cs's original "var charsRow =
-    // oldChar[y];" pattern, since reworked to avoid this) correctly
-    // release each previous value? Every reassignment before the loop's
-    // last one does -- only the value assigned on the final iteration
-    // stays stuck alive, its root count never decremented at method exit.
-    // IntroScroll.cs now avoids the pattern entirely (direct chars[y][x]
-    // double-indexing instead of a cached per-row local) rather than
-    // depending on a fix here.
-    [Ignore("Known limitation: a reference-typed local reassigned inside a loop leaks the root count of whichever value it holds on the loop's last iteration -- never decremented at method exit. Every earlier reassignment in the loop releases its value correctly. See IntroScroll.cs for the real workaround (avoid caching a loop-reused reference local at all).")]
+    // First version of this test called GC.Collect() from the SAME method
+    // that still held "row" (pointing at the loop's last value) in scope --
+    // this compiler has no JIT-style liveness narrowing, so a local stays a
+    // real root from its first assignment until the *method* physically
+    // returns, not until its C# lexical block ends. That's correct,
+    // conservative behavior, not a bug -- GC.Collect() running mid-method
+    // legitimately sees row still rooting the last value. Splitting the
+    // loop into its own helper method (matching IntroScroll.cs's actual
+    // shape: the loop lived in ScrollToLevel, GC.Collect() was called from
+    // Play() only after ScrollToLevel had fully returned) isolates whether
+    // #method_exit's decrement genuinely fires for every ref-typed local,
+    // including one last assigned inside a loop.
     [Test]
     public void Reassigned_Ref_Local_In_Loop_Releases_Each_Previous_Value()
     {
@@ -321,11 +323,7 @@ public class GCTest
         var id1 = C64.Debug.GetObjectId(outer[1]);
         var id2 = C64.Debug.GetObjectId(outer[2]);
 
-        for (uint i = 0; i < 3; i++)
-        {
-            var row = outer[i];
-            row[0] = i;
-        }
+        TouchEachRow(outer);
 
         outer = null;
         GC.Collect();
@@ -333,5 +331,14 @@ public class GCTest
         Assert.IsFalse(C64.Debug.IsAlive(id0), "row 0 should not be alive");
         Assert.IsFalse(C64.Debug.IsAlive(id1), "row 1 should not be alive");
         Assert.IsFalse(C64.Debug.IsAlive(id2), "row 2 should not be alive");
+    }
+
+    private static void TouchEachRow(uint[][] outer)
+    {
+        for (uint i = 0; i < 3; i++)
+        {
+            var row = outer[i];
+            row[0] = i;
+        }
     }
 }

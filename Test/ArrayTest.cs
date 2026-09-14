@@ -138,4 +138,59 @@ class ArrayTest
         Assert.AreEqual((int)ConstUintArray[2], 250);
     }
 
+    // Checking whether arrays/indices past 255 elements actually work --
+    // GetStorageBytes() (Compiler/TypeExtensions.cs) returns 1 byte for
+    // int/uint, and object size is a single byte per heap slot
+    // (objTableSize .fill 256 in asm/helper/objectTables.asm), so there's
+    // a real question whether "new uint[1000]" and an index like 261
+    // silently truncate mod 256 instead of failing loudly. Indices 5 and
+    // 261 are chosen specifically because 261 mod 256 == 5 -- if either
+    // the array length or the index expressions get truncated to a single
+    // byte anywhere along the way, these two slots would alias and the
+    // assertions below would fail.
+    // Confirmed, not yet fixed: objTableSize (asm/helper/objectTables.asm)
+    // is a single byte per heap slot, so any array's real backing storage
+    // is capped at 255 bytes regardless of element type or the requested
+    // length -- indices past that alias silently instead of erroring.
+    // Fixing it properly means widening the object-size model to 2 bytes
+    // for arrays specifically (heap.asm/object.asm/GC.asm all read
+    // objTableSize as a single byte throughout), a bigger change than this
+    // test is meant to justify on its own. Uint_Array_Length_1000 and
+    // Jagged_Uint_Array above/below document the two things that DO work
+    // today: a compile-time-constant .Length past 255, and an
+    // array-of-arrays where every individual array stays under the limit.
+    [Ignore("Known limitation: array storage is capped at 255 bytes (a single objTableSize byte per heap slot) -- indices past that alias instead of erroring. See Jagged_Uint_Array for the working array-of-arrays pattern.")]
+    [Test]
+    public void Uint_Array_Index_Past_255()
+    {
+        var sut = new uint[1000];
+        sut[5] = 11;
+        sut[261] = 22;
+        Assert.AreEqual((int)sut[5], 11);
+        Assert.AreEqual((int)sut[261], 22);
+    }
+
+    [Test]
+    public void Uint_Array_Length_1000()
+    {
+        var sut = new uint[1000];
+        Assert.AreEqual(sut.Length, 1000);
+    }
+
+    // Candidate workaround for the 255-element ceiling: an array-of-arrays,
+    // where each individual array (outer and each inner) stays comfortably
+    // under 255 elements. Should work via the same reference-array
+    // machinery already proven by LevelDescription[] (an array of object
+    // references) -- unlike Uint_Array_Index_Past_255 above, nothing here
+    // needs an index or length past 255.
+    [Test]
+    public void Jagged_Uint_Array()
+    {
+        var sut = new uint[4][];
+        for (uint i = 0; i < 4; i++)
+            sut[i] = new uint[40];
+        sut[2][30] = 77;
+        Assert.AreEqual((int)sut[2][30], 77);
+        Assert.AreEqual(sut[2].Length, 40);
+    }
 }

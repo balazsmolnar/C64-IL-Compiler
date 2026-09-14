@@ -297,4 +297,19 @@ public class ArithmeticTests
         return a >= b;
     }
 
+    // Exercises ILMethodSetVariableOptimizer's #copy_var rule: a parameter
+    // pushed straight into one local (Ldarg->Stloc), then that local
+    // pushed straight into a second (Ldloc->Stloc) -- both should fuse
+    // into a direct localsStack-to-localsStack move instead of a
+    // push/pull round trip through the hardware stack.
+    [TestCase(5, ExpectedResult = 5)]
+    [TestCase(-3, ExpectedResult = -3)]
+    [TestCase(0, ExpectedResult = 0)]
+    public int TestCopyVar(int value)
+    {
+        var a = value;
+        var b = a;
+        return b;
+    }
+
 }

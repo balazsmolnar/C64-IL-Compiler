@@ -1019,6 +1019,23 @@ class OpInitVar : OpBase
     }
 }
 
+class OpCopyVar : OpBase
+{
+    private readonly object _srcRelPos;
+    private readonly int _dstVarIndex;
+    public OpCopyVar(object srcRelPos, int dstVarIndex) : base(0, "#copy_var")
+    {
+        _srcRelPos = srcRelPos;
+        _dstVarIndex = dstVarIndex;
+    }
+
+    public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
+    {
+        var dstRelPos = context.GetLocalVariableReferencePosition(_dstVarIndex);
+        return $"{_srcRelPos}, {dstRelPos}";
+    }
+}
+
 
 class OpDeref : OpBase
 {

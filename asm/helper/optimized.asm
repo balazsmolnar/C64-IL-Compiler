@@ -11,10 +11,22 @@ dec_var .macro rel_pos
   dec localsStack-\rel_pos,x
 .endm
 
-init_var .macro  rel_pos, value  
+init_var .macro  rel_pos, value
   ldy stackPointer
   lda #\value
   sta localsStack-\rel_pos,y
+.endm
+
+; Direct local/param-to-local copy, skipping the push/pop round trip
+; through the hardware stack the unfused path (locals_push_value8 +
+; locals_pull_value8) would use. 8-bit only, and only ever emitted for a
+; non-reference-counted destination -- see ILMethodSetVariableOptimizer's
+; guard, which keeps the ref-counting-aware locals_pull_value8 path for
+; anything reference-typed instead of using this.
+copy_var .macro src_rel_pos, dst_rel_pos
+  ldy stackPointer
+  lda localsStack-\src_rel_pos,y
+  sta localsStack-\dst_rel_pos,y
 .endm
 
 setfld8 .macro objRelPos, objValuePos, pos 

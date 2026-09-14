@@ -228,6 +228,27 @@ public class GCTest
     }
 
     [Test]
+    public void Copy_Var_Preserves_Reference_Count()
+    {
+        // ILMethodSetVariableOptimizer's #copy_var rule fuses a local-to-
+        // local push/pull into a direct copy, but must never do that for a
+        // reference-typed destination: locals_pull_value8 increments the
+        // object's root count on a ref-typed store (asm/helper/localsStack.asm),
+        // and #copy_var skips that entirely. If the rule's guard ever
+        // wrongly let this fire here, b would alias a's object without
+        // ever having incremented its root count, so dropping a alone
+        // would (wrongly) bring the count to zero and collect the object
+        // out from under b.
+        var a = new TestObject() { Id = 42 };
+        var id = C64.Debug.GetObjectId(a);
+        var b = a;
+        a = null;
+        GC.Collect();
+        Assert.IsTrue(C64.Debug.IsAlive(id), "b should still be keeping the object alive");
+        Assert.AreEqual(b.Id, 42);
+    }
+
+    [Test]
     public void Array_Element_Roots_Further_Object_Graph()
     {
         var survivorChild = new TestObject() { Id = 10 };

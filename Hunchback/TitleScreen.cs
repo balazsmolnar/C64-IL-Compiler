@@ -11,6 +11,8 @@ class TitleScreen
     }
     public static void Display()
     {
+        IntroScroll.Play();
+
         Screen.Clear(Colors.White);
         C64.CopyMemory(C64Address.FromLabel("(screenMemory+$CD)"), C64Address.FromLabel("titleScreen"), 0);
         C64.CopyMemory(C64Address.FromLabel("(screenMemory+$1CD)"), C64Address.FromLabel("titleScreen+$100"), 0);

@@ -1,6 +1,15 @@
 ﻿screenMemory = $400
 colorMemory = $D800
 
+; Scratch row buffer for IntroScroll.cs's left-shift: C64.CopyMemory can't
+; shift a row in place (dest=row, source=row+1) directly -- its copy loop
+; walks its Y index from size down to 1, i.e. it always writes addresses
+; high-to-low, which clobbers not-yet-read source bytes on a left shift
+; (only safe for a right shift). Routing through this non-overlapping
+; buffer (row -> introScrollTempRow, then introScrollTempRow -> row) sidesteps
+; that regardless of the copy direction.
+introScrollTempRow: .fill 40
+
 titleScreen:
 .byte $23, $20, $20, $23, $20, $20, $20, $20
 .byte $20, $20, $20, $20, $20, $20, $20, $20

@@ -81,13 +81,19 @@ class ILCodePass : ICompilerPass
                 }
 
                 var methods = @type.GetMethods(BindingFlags.Static | BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public).OfType<MethodBase>();
-                // var staticconstructors = @type.GetConstructors(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic).OfType<MethodBase>();
+                var staticConstructors = @type.GetConstructors(BindingFlags.Static | BindingFlags.NonPublic).OfType<MethodBase>();
                 // var constructors = @type.GetConstructors(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).OfType<MethodBase>();
                 // if (constructors.Count() > 1)
                 //     throw new Exception($"Only 1 constructor supported (at the moment). Type : {@type} ");
 
-                foreach (var method in methods.Where(m => m.DeclaringType != typeof(object)))
+                foreach (var method in methods.Concat(staticConstructors).Where(m => m.DeclaringType != typeof(object)))
                 {
+                    // MethodBase.IsConstructor is deliberately false for a
+                    // static constructor (.NET's own docs: it "excludes
+                    // type initializers") -- check the name instead.
+                    if (method.IsStatic && method.Name == ".cctor")
+                        context.StaticConstructorLabels.Add(method.GetLabel());
+
                     var methodContext = new CompilerMethodContext()
                     {
                         CompilerContext = context,

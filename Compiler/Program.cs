@@ -69,6 +69,7 @@ class Program
                         new ILPropertyGettterOptimizer(),
                         new ILSetFieldOptimizer(),
                         new ILObjectInitializerOptimizer(),
+                        new ILStaticArrayInitializerPass(),
                         new ILMethodSetVariableOptimizer(),
                         new ILMethodBranchIfLessOptimizer(),
                         new ILMethodBranchIfNotEqualOptimizer(),

@@ -28,6 +28,10 @@ OBJ_TABLES_FALLBACK = $c800
 
 #locals_stack_init
 
+; Static constructors -- nothing else ever calls a type's .cctor, so any
+; static readonly field with a real initializer needs this to run once
+; before Program_Main touches it.
+{{STATIC_CTORS}}
 jsr Program_Main
 rts
 

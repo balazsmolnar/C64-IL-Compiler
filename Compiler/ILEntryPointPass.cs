@@ -1,4 +1,5 @@
 using System.IO;
+using System.Linq;
 using System.Reflection;
 
 namespace Compiler;
@@ -30,6 +31,10 @@ class ILEntryPointPass : ICompilerPass
             template = reader.ReadToEnd();
         }
 
-        File.WriteAllText(context.EntryFilePath, template.Replace("{{FOLDER}}", folder));
+        var staticCtorCalls = string.Join("\n", context.StaticConstructorLabels.Select(l => $"jsr {l}"));
+
+        File.WriteAllText(context.EntryFilePath, template
+            .Replace("{{FOLDER}}", folder)
+            .Replace("{{STATIC_CTORS}}", staticCtorCalls));
     }
 }

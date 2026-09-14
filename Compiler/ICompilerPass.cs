@@ -31,6 +31,12 @@ class CompilerContext
     public bool UsesJoystick { get; set; }
     public bool UsesSound { get; set; }
     public bool UsesDebug { get; set; }
+
+    // Set by ILCodePass as it discovers each type's static constructor (if
+    // any); read by ILEntryPointPass, which calls every one of them once at
+    // program startup, before Program_Main/the test method runs -- there is
+    // no other mechanism that runs a .cctor at all otherwise.
+    public List<string> StaticConstructorLabels { get; } = new List<string>();
     public int GetFieldPosition(FieldInfo field)
     {
         var t = field.ReflectedType;

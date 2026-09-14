@@ -202,8 +202,26 @@ compare
 HEAP_POINTER_COMPACTED_LOW = $34                ; Pointer to the compacted heap
 HEAP_POINTER_COMPACTED_HIGH = $35
 
-HEAP_POINTER_ORIG_LOW = $34                     ; Pointer to the object being copied
-HEAP_POINTER_ORIG_HIGH = $35                    
+; Must NOT alias HEAP_POINTER_COMPACTED_LOW/HIGH -- they previously both
+; pointed at $34/$35, which silently turned the whole compaction copy into
+; a self-copy (src and dst were the same pointer) and made the "compacted"
+; pointer reset to each kept object's own original address instead of
+; accumulating. Harmless (data-preserving no-op) as long as objects are
+; processed in strictly increasing, non-overlapping address order, but
+; whenever two live objects share the same starting address -- e.g. a
+; zero-size object (a static singleton with no fields, size 0 passed to
+; #newObj) sitting immediately before another live object -- quicksort's
+; tie-breaking can process them in either order, and if the zero-size one
+; is processed last, HEAP_POINTER_COMPACTED regresses backward past the
+; real object's true end. The next GC.Collect() then has fillSortTable
+; write its scratch table straight into that wrongly-reclaimed, still-live
+; object's field bytes. Confirmed via a diagnostic driver against
+; GCTest.Repeated_Collect_On_Stable_Object_Does_Not_Corrupt_State: heapPointer
+; regressed by exactly the live object's size after the first collect, and
+; the second collect's fillSortTable scratch write landed on that object's
+; Id field, changing it from 99 to 2.
+HEAP_POINTER_ORIG_LOW = $3b                     ; Pointer to the object being copied
+HEAP_POINTER_ORIG_HIGH = $3c
 TMP = $36
 
 

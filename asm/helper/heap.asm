@@ -105,12 +105,44 @@ newArr .macro
   #stack_push_int_a
 .endm
 
-newArr16 .macro  
+newArr16 .macro
 
   #stack_pull_int_a  ; size
   asl
   ldy #0              ; reference fields
   jsr newObjL
+
+  #stack_push_int_a
+.endm
+
+;
+; Creates a new array on the heap and initializes it by copying size bytes
+; from initValues -- like newObjInit, but simpler: an array of primitives
+; has no vtable/reference fields (matches newArr/newArrRef, which also
+; leave $30/$31 alone; zeroed here for cleanliness, not because anything
+; reads an array's descriptor fields -- callVirtL, the only reader, is
+; only ever reached through an object reference, never an array one).
+; Inputs:
+; size: element count (compile-time constant, unlike newArr's runtime size)
+; initValues: address of the constant byte data to copy in
+; Output:
+; Newly created array's object id on the stack
+;
+newArrInit .macro size, initValues
+
+  lda #0
+  sta $30
+  sta $31
+
+  lda #<\initValues
+  sta $32
+  lda #>\initValues
+  sta $33
+
+  lda #\size
+  ldy #0
+
+  jsr newObjLInit
 
   #stack_push_int_a
 .endm

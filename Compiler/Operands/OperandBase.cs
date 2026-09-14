@@ -489,6 +489,30 @@ class OpNewObjInit : OpBase
     public override bool Is16BitSupported => false;
 }
 
+// Synthesized by ILStaticArrayInitializerPass, replacing Newarr;Dup;
+// Ldtoken;Call(RuntimeHelpers.InitializeArray) -- allocates an array
+// (like #newArr) and copies its constant contents from a baked .byte data
+// label in one step (like #newObjInit, but simpler: arrays of primitives
+// have no vtable/reference fields). Leaves the Stsfld that follows it
+// untouched, same as ILObjectInitializerOptimizer leaves the final store
+// after #newObjInit -- it just consumes the handle this operation pushes.
+class OpNewArrInit : OpBase
+{
+    private readonly int _size;
+    private readonly string _initValuesLabel;
+
+    public OpNewArrInit(int size, string initValuesLabel) : base(0, "#newArrInit")
+    {
+        _size = size;
+        _initValuesLabel = initValuesLabel;
+    }
+
+    public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
+    {
+        return $"{_size}, {_initValuesLabel}";
+    }
+}
+
 class OpPushFld : OpBase
 {
     private readonly string thisVar;
@@ -1074,5 +1098,37 @@ class OpLoadPointerFromLabel : OpBase
     public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
     {
         operation.StackContent.Add(typeof(ulong));
+    }
+}
+
+// Ldtoken takes a real 4-byte metadata token operand -- ParameterSize
+// must be 4 so ILMethodCodePass's raw-byte decoder actually consumes it;
+// getting this wrong (e.g. reusing a ParameterSize-0 operand like
+// OpLdc_i4_const) desyncs every subsequent opcode read for the rest of
+// the method, since the decode loop is a flat byte-offset walk with no
+// per-instruction resync. Only real, verified use is via
+// ILStaticArrayInitializerPass's rewrite of the Newarr;Dup;Ldtoken;Call
+// InitializeArray;Stsfld pattern, which always marks this Optimized
+// before ILMethodEmitPass runs -- see CommandMap's registration comment.
+class OpLdtoken : OpBase
+{
+    public OpLdtoken() : base(4, "#stack_push_int")
+    {
+    }
+
+    public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
+    {
+        return 0;
+    }
+
+    // Real Ldtoken pushes a RuntimeFieldHandle -- ILMethodBuildEvaluationStackPass
+    // (a setup pass, runs before ILStaticArrayInitializerPass's rewrite)
+    // simulates the stack over the ORIGINAL, unrewritten IL, so this still
+    // needs to push *something* or the immediately-following Call
+    // (InitializeArray, 2 real args) pops the stack empty and the Stsfld
+    // after it throws indexing a now-empty simulated stack.
+    public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
+    {
+        operation.StackContent.Add(typeof(System.RuntimeFieldHandle));
     }
 }

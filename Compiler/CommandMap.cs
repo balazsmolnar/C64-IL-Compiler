@@ -9,6 +9,7 @@ internal static class CommandMap
         = new Dictionary<ILOpCode, OpBase>
         {
             { ILOpCode.Ldstr, new OpLdstr() },
+            { ILOpCode.Ldtoken, new OpLdtoken() },
             { ILOpCode.Call, new OpCall() },
             { ILOpCode.Callvirt, new OpCallVirt() },
             { ILOpCode.Ldc_i4_0, new OpLdc_i4_const(0) },
@@ -40,6 +41,13 @@ internal static class CommandMap
             { ILOpCode.Ldelem_ref, new OpLdElem() },
             { ILOpCode.Stelem_i4, new OpStElem() },
             { ILOpCode.Ldelem_i4, new OpLdElem() },
+            // Ldelem_u4 is IL's uint[]-read opcode -- stelem has no
+            // unsigned variant (a raw store doesn't care about sign), and
+            // OpLdElem itself picks the actual macro purely from the
+            // array's element Type (see its Emit), never from which
+            // Ldelem_* variant dispatched here, so reusing it is exactly
+            // as correct as the existing Ldelem_i4 mapping.
+            { ILOpCode.Ldelem_u4, new OpLdElem() },
             { ILOpCode.Stelem_i8, new OpStElem() },
             { ILOpCode.Ldelem_i8, new OpLdElem() },
             { ILOpCode.Ldlen, new OpLdLen() },

@@ -31,6 +31,8 @@ Run_Test:
     #locals_stack_init
     #initHeap heap
 
+    ; Static constructors -- see ProgramEntry.asm's fuller rationale.
+{{STATIC_CTORS}}
     lda #$FF             ; $FF to result byte (failed)
     sta result
     pha

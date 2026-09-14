@@ -1,4 +1,5 @@
 using C64Lib;
+using System;
 
 namespace Hunchback;
 
@@ -27,9 +28,23 @@ class IntroScroll
         // Matches the original's Screen_IntroScrollSelect level picks (9, 8, 0)
         // exactly -- currentLevel is used identically as a direct 0-based
         // index into the level table in both codebases.
+        //
+        // Each ScrollToLevel call allocates six 1000-element uint[] snapshot
+        // arrays (oldChar/oldColor/newChar/newColor here, plus their locals
+        // inside SnapshotScreen's own frame) that all go dead the moment it
+        // returns -- GC.Collect() after each one reclaims them before the
+        // next call allocates its own batch, the same way Game.cs's
+        // RunGame loop collects after every real level. Skipping this was
+        // a real bug, not just tidiness: without it, three levels' worth of
+        // never-reclaimed arrays walked the heap far enough to eventually
+        // corrupt something else and crash the whole emulator partway
+        // through the third transition (reproduced live in VICE).
         ScrollToLevel(levels[9], knight);
+        GC.Collect();
         ScrollToLevel(levels[8], knight);
+        GC.Collect();
         ScrollToLevel(levels[0], knight);
+        GC.Collect();
     }
 
     private static void ScrollToLevel(LevelDescription description, Knight knight)
@@ -45,6 +60,22 @@ class IntroScroll
         var oldColor = new uint[Rows * Cols];
         SnapshotScreen(oldChar, oldColor);
 
+        // Blanks the physical display (clears the VIC-II's DEN bit in
+        // $d011) for the whole prepare phase below. Drawing the new level,
+        // reading it back, and restoring the old one all take enough real
+        // 6502 cycles that the VIC-II -- which keeps scanning out whatever
+        // is actually in screen/color RAM every frame regardless of how
+        // "instant" this looks in C# -- was visibly showing the fully-drawn
+        // *next* level before the scroll even started. This is the
+        // standard C64 "turn off the display during a slow update" trick;
+        // real VIC-bank double buffering can't fully solve this anyway,
+        // since color RAM (unlike screen RAM) has only one physical bank,
+        // with nothing to flip to. $1B is this program's untouched KERNAL
+        // boot default for $d011 (confirmed nothing else in this codebase
+        // ever writes it); $0B is the same value with just DEN (bit 4)
+        // cleared.
+        C64.FillMemory(C64Address.FromLabel("$d011") - 1, 0x0B, 1);
+
         // Wall.Draw only paints its own decorated rows (they vary by
         // WallType -- e.g. KnightPits never touches rows 0-9 at all), the
         // same way every WallType's Draw does during normal gameplay,
@@ -56,11 +87,6 @@ class IntroScroll
         // screen, not onto a blank canvas.
         Screen.Clear(Colors.Grey2);
 
-        // Wall.Draw writes straight to the live screen -- this instantly
-        // replaces what's visible with the new level. Snapshot that result
-        // too, then immediately restore the old screen (below) before the
-        // player can see the flash; the animated scroll reveals newChar/
-        // newColor gradually instead.
         var wall = new Wall();
         wall.Draw(description.Color, description.WallType);
         var newChar = new uint[Rows * Cols];
@@ -74,6 +100,11 @@ class IntroScroll
                 C64.SetChar(x, y, oldChar[i], (Colors)oldColor[i]);
                 i++;
             }
+
+        // Back on now that the live screen genuinely shows only the old
+        // level again -- everything from here on is the real, intended
+        // animated scroll.
+        C64.FillMemory(C64Address.FromLabel("$d011") - 1, 0x1B, 1);
 
         var screenBase = C64Address.FromLabel("screenMemory");
         var colorBase = C64Address.FromLabel("colorMemory");

@@ -65,6 +65,7 @@ namespace C64Lib
         public static JoystickCollection Joysticks => null;
         public static Sound Sound => null;
         public static Debug Debug => null;
+        public static Screen Screen => null;
         public static bool IsKeyPressed(Keys key) => false;
         public static void SetCharSet(ulong address) { }
         public static void CopyMemory(ulong dest, ulong source, uint size) { }

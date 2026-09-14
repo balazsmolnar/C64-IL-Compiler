@@ -229,6 +229,30 @@ On_Interrupt_Ret
     jmp (zp_interrupt_saved_low)
     rti
 
+C64_get_Screen:
+    #stack_save_return_adress zp_tmp1_low
+    #stack_push_int_a
+    #stack_return_to_saved_address zp_tmp1_low
+
+; $1B is this program's untouched KERNAL boot default for $d011 (25-row
+; text mode, DEN=1, YSCROLL=3) -- confirmed nothing else in this codebase
+; ever writes it, so it's safe to hardcode as "the" resting value rather
+; than read-modify-write around just the DEN bit. $0B is the same value
+; with DEN (bit 4) cleared, blanking the whole physical display.
+Screen_BeginUpdate:
+    #stack_save_return_adress zp_tmp1_low
+    #stack_pull_int_x
+    lda #$0B
+    sta $d011
+    #stack_return_to_saved_address zp_tmp1_low
+
+Screen_EndUpdate:
+    #stack_save_return_adress zp_tmp1_low
+    #stack_pull_int_x
+    lda #$1B
+    sta $d011
+    #stack_return_to_saved_address zp_tmp1_low
+
 .include "./c64sprite.asm"
 .if USE_JOYSTICK
 .include "./c64Joystick.asm"

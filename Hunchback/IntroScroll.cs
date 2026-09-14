@@ -60,21 +60,16 @@ class IntroScroll
         var oldColor = new uint[Rows * Cols];
         SnapshotScreen(oldChar, oldColor);
 
-        // Blanks the physical display (clears the VIC-II's DEN bit in
-        // $d011) for the whole prepare phase below. Drawing the new level,
-        // reading it back, and restoring the old one all take enough real
-        // 6502 cycles that the VIC-II -- which keeps scanning out whatever
-        // is actually in screen/color RAM every frame regardless of how
-        // "instant" this looks in C# -- was visibly showing the fully-drawn
-        // *next* level before the scroll even started. This is the
-        // standard C64 "turn off the display during a slow update" trick;
-        // real VIC-bank double buffering can't fully solve this anyway,
-        // since color RAM (unlike screen RAM) has only one physical bank,
-        // with nothing to flip to. $1B is this program's untouched KERNAL
-        // boot default for $d011 (confirmed nothing else in this codebase
-        // ever writes it); $0B is the same value with just DEN (bit 4)
-        // cleared.
-        C64.FillMemory(C64Address.FromLabel("$d011") - 1, 0x0B, 1);
+        // Blanks the physical display for the whole prepare phase below.
+        // Drawing the new level, reading it back, and restoring the old one
+        // all take enough real 6502 cycles that the VIC-II -- which keeps
+        // scanning out whatever is actually in screen/color RAM every
+        // frame regardless of how "instant" this looks in C# -- was
+        // visibly showing the fully-drawn *next* level before the scroll
+        // even started. See C64Lib/Screen.cs for why this isn't real
+        // double buffering (color RAM has no second bank to flip to) and
+        // why that doesn't matter for a full-screen redraw like this one.
+        C64.Screen.BeginUpdate();
 
         // Wall.Draw only paints its own decorated rows (they vary by
         // WallType -- e.g. KnightPits never touches rows 0-9 at all), the
@@ -104,7 +99,7 @@ class IntroScroll
         // Back on now that the live screen genuinely shows only the old
         // level again -- everything from here on is the real, intended
         // animated scroll.
-        C64.FillMemory(C64Address.FromLabel("$d011") - 1, 0x1B, 1);
+        C64.Screen.EndUpdate();
 
         var screenBase = C64Address.FromLabel("screenMemory");
         var colorBase = C64Address.FromLabel("colorMemory");

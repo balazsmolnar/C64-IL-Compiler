@@ -16,6 +16,13 @@ class CompilerContext
 
     public string OutputDirectory { get; set; }
 
+    // Read by ILEntryPointPass: where to write the top-level entry .asm
+    // file (e.g. asm/hunchback.asm), and whether it should be the
+    // unittest.asm-style test harness instead of a normal Program_Main
+    // entry point.
+    public string EntryFilePath { get; set; }
+    public bool IsUnitTest { get; set; }
+
     public bool Optimize { get; set; }
 
     // Set by ILLibraryUsagePass as it scans every compiled method; read by

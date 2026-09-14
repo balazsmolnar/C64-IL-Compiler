@@ -30,8 +30,6 @@ class Rope : GameObject
 
     public override void Init()
     {
-        sprite1_.Visible = true;
-        sprite2_.Visible = true;
         sprite1_.Color = Colors.White;
         sprite2_.Color = Colors.White;
         sprite1_.ExpandX = sprite1_.ExpandY = true;
@@ -40,8 +38,15 @@ class Rope : GameObject
         sprite2_.X = 0xC0;
         sprite1_.Y = 66;
         sprite2_.Y = 108;
+        // Screen.Clear() at the top of every level wipes the sprite data
+        // pointers (they live in the last 8 bytes of screen RAM), so the
+        // DataBlock must be set before Visible -- otherwise these sprites
+        // are visible for a frame pointing at whatever blank/stale value
+        // Screen.Clear() left there (see the same fix in Enemy.Init()).
         sprite1_.DataBlock = C64Address.FromLabel("spt_rope_14");
         sprite2_.DataBlock = C64Address.FromLabel("spt_rope_15");
+        sprite1_.Visible = true;
+        sprite2_.Visible = true;
         frameCounter_ = 0;
     }
 

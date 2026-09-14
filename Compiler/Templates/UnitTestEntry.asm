@@ -6,13 +6,27 @@
 .include "./helper/branch.asm"
 .include "./helper/zp.asm"
 .include "./helper/optimized.asm"
+.include "./helper/memoryLayout.asm"
+.include "./helper/banking.asm"
 
 .include "./helper/8bit.asm"
 
 start_address = $09FE
 
+; Real RAM to $d000 (I/O) once BASIC ROM is banked out -- see
+; ProgramEntry.asm's fuller rationale. Safe here too, and even more
+; trivially: this harness has no BASIC stub at all (SimpleEmulator jumps
+; straight to $1000, never runs BASIC's own boot code), so there's no
+; "BASIC's job isn't done yet" window to worry about -- nothing in the
+; test-execution path ever reads BASIC ROM. SimpleEmulator.SetMemory is
+; bank-aware (tracks $01 writes), so this is exercised for real here,
+; not just on VICE/hardware.
+OBJ_TABLES_MAX_START = $c800
+OBJ_TABLES_FALLBACK = $c800
+
 * = $1000
 Run_Test:
+    #disable_basic_rom
 
     #locals_stack_init
     #initHeap heap
@@ -24,7 +38,7 @@ Run_Test:
     #stack_push_int_a
     ldx #0
     cpx $09e0            ; get number of function parameters
-    beq +          
+    beq +
 -   lda $09e1,x
     #stack_push_int_a    ; copy parameters to stack
     inx
@@ -50,14 +64,13 @@ result = $20
 .include "./system.asm"
 .include "./GC.asm"
 .include "./helper/object.asm"
-.include "./unittest/library_flags.asm"
+.include "./{{FOLDER}}/library_flags.asm"
 .include "./C64.asm"
 
-.include "./unittest/generated.asm"
-
+.include "./{{FOLDER}}/generated.asm"
 
 Assert_Fail:
-    #stack_save_return_adress zp_tmp2_low 
+    #stack_save_return_adress zp_tmp2_low
     #stack_pull_pointer zp_tmp4_low           ; copy message pointer
     lda #$FF
     sta result                                ; put FF to status mem (failed)
@@ -95,35 +108,4 @@ Assert_IsFalse:
     jsr Assert_Fail
 +   #stack_return_to_saved_address zp_tmp2_low
 
-; This already floated right after code (no fixed org here), which is
-; correct/desired -- but with no safety fallback if the test assembly
-; ever grew large enough to risk landing in BASIC ROM at $a000. Added the
-; same guard the other three entry points use, for consistency: fall
-; back to $c000 (real, safe RAM) if there isn't room for the full
-; 2048-byte object-table block before $a000. See main.asm/hunchback.asm/
-; presentation.asm for the fuller rationale (SimpleEmulator.SetMemory
-; hard-blocks $a000-$c000/>$e000 the same way real ROM would).
-.if * < $9800
-.else
-* = $c000
-.endif
-objTableLow
-.fill 256, 0
-objTableHigh
-.fill 256, 0
-objTableSize
-.fill 256, 0
-objTableReferences
-.fill 256, 0
-objTableRootCount
-.fill 256, 0
-.fill 256, 0
-objTableDescLow
-.fill 256, 0
-objTableDescHigh
-.fill 256, 0
-
-localsStack
-.fill 256, 0 
-heap
-
+.include "./helper/objectTables.asm"

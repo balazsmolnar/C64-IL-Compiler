@@ -7,7 +7,17 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\C64Lib\C64Lib.csproj" />  
+    <None Remove="Templates\ProgramEntry.asm" />
+    <None Remove="Templates\UnitTestEntry.asm" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Templates\ProgramEntry.asm" />
+    <EmbeddedResource Include="Templates\UnitTestEntry.asm" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\C64Lib\C64Lib.csproj" />
   </ItemGroup>
 
 </Project>

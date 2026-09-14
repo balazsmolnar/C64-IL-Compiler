@@ -19,6 +19,8 @@ class Program
 
         var asmLocation = args[0];
         var output = args[1];
+        var entryFilePath = args.Length > 2 ? args[2] : null;
+        var isUnitTest = args.Length > 3 && args[3] == "unittest";
         var asm = Assembly.LoadFrom(asmLocation);
 
         using (var outputFile = File.CreateText(Path.Combine(output, "generated.asm")))
@@ -28,6 +30,8 @@ class Program
                 Assembly = asm,
                 GlobalOutputFile = outputFile,
                 OutputDirectory = output,
+                EntryFilePath = entryFilePath,
+                IsUnitTest = isUnitTest,
                 Optimize = true
             };
             var passes = new List<ICompilerPass> {
@@ -76,7 +80,8 @@ class Program
                         new ILMethodJumpTablePass()
                     }),
                 new ILLibraryFlagsPass(),
-                new ILStringResourcesPass() };
+                new ILStringResourcesPass(),
+                new ILEntryPointPass() };
             passes.ForEach(p => p.Execute(context));
         }
     }

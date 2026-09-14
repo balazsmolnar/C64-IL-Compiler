@@ -48,7 +48,6 @@ class Enemy : GameObject
     public override void Init()
     {
         sprite_.MultiColor = true;
-        sprite_.Visible = EnemyType != EnemyType.None;
         sprite_.Color = Colors.Violet;
 
         Y = 117u;
@@ -65,10 +64,22 @@ class Enemy : GameObject
             X = 316UL;
         }
 
+        // Screen.Clear() at the top of every level wipes the whole screen
+        // matrix, including the sprite data pointers living in its last 8
+        // bytes -- so every sprite points at a stale/blank block until its
+        // owner's Init() writes a real one. Do that here, before Visible is
+        // set, the same way Player/Knight/Rope already do -- otherwise this
+        // sprite is visible for a frame pointing at whatever the blank fill
+        // value resolves to, rendering garbage.
         if (arrow_ && leftToRight_)
         {
             sprite_.DataBlock = C64Address.FromLabel("spt_arrow_right");
         }
+        else if (!arrow_)
+        {
+            SetFrame();
+        }
+        sprite_.Visible = EnemyType != EnemyType.None;
         C64.Sound.PlayEffectReg2(WaveForm.Noise, 0x2C64UL, 0UL, 128, 0, false);
     }
 

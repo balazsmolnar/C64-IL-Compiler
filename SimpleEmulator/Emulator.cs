@@ -109,9 +109,18 @@ namespace SimpleEmulator
             return memory[GetAddress(mode, byte1, byte2)];
         }
 
+        // Tracks the CPU I/O port ($01) LORAM bit: bit0=0 banks out BASIC
+        // ROM ($a000-$bfff becomes real RAM). Starts true (LORAM=1, the
+        // KERNAL-default power-on state), matching real hardware/VICE
+        // before any program writes to $01.
+        private bool basicRomMapped = true;
+
         private void SetMemory(int address, byte value)
         {
-            if ((address >= 0xa000 && address < 0xc000) || address > 0xe000)
+            if (address == 0x01)
+                basicRomMapped = (value & 0x01) != 0;
+
+            if ((basicRomMapped && address >= 0xa000 && address < 0xc000) || address > 0xe000)
                 return;
 
             memory[address] = value;

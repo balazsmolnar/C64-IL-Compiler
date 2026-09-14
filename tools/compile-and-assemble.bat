@@ -9,16 +9,20 @@ rem Having one copy means tool paths/versions and the Compiler.exe location
 rem only need to be correct in one place instead of four.
 rem
 rem Usage (called from a project directory, e.g. Demo\run.bat):
-rem   call "%%~dp0..\tools\compile-and-assemble.bat" <assembly.dll> <asmOutDir> <asmEntryFile> <prgDir> <prgName> [--run] [--quiet]
+rem   call "%%~dp0..\tools\compile-and-assemble.bat" <assembly.dll> <asmOutDir> <asmEntryFile> <prgDir> <prgName> [--run] [--quiet] [--unittest]
 rem
 rem   assembly.dll   .dll fed into Compiler.exe (relative to the caller's cwd)
 rem   asmOutDir      folder Compiler.exe writes generated .asm into
-rem   asmEntryFile   top-level .asm file 64tass assembles
+rem   asmEntryFile   top-level .asm file Compiler.exe (re)generates and
+rem                  64tass assembles -- see ILEntryPointPass.cs
 rem   prgDir         folder for the resulting .prg/.labels/dump.asm
 rem   prgName        output base name -> <prgDir>\<prgName>.prg/.labels
 rem   --run          launch the result in VICE after assembling
 rem   --quiet        redirect 64tass output to NUL (used by the test run,
 rem                  which is otherwise noisy with portable-filename warnings)
+rem   --unittest     generate the unittest.asm-style test harness entry
+rem                  point (Run_Test/Assert_*) instead of a normal
+rem                  Program_Main entry point
 rem
 rem Tool locations are machine-specific; override them per-machine via
 rem environment variables (TASS_EXE, VICE_EXE, COMPILER_EXE) instead of
@@ -44,12 +48,14 @@ if "%PRG_NAME%"=="" (
 
 set "DO_RUN=0"
 set "QUIET=0"
-for %%A in (%6 %7) do (
+set "PROJECT_TYPE=program"
+for %%A in (%6 %7 %8) do (
     if /I "%%~A"=="--run" set "DO_RUN=1"
     if /I "%%~A"=="--quiet" set "QUIET=1"
+    if /I "%%~A"=="--unittest" set "PROJECT_TYPE=unittest"
 )
 
-"%COMPILER_EXE%" "%ASSEMBLY%" "%ASM_OUT_DIR%"
+"%COMPILER_EXE%" "%ASSEMBLY%" "%ASM_OUT_DIR%" "%ASM_ENTRY%" "%PROJECT_TYPE%"
 if errorlevel 1 exit /b %errorlevel%
 
 if exist "%PRG_DIR%\%PRG_NAME%.prg" del "%PRG_DIR%\%PRG_NAME%.prg"

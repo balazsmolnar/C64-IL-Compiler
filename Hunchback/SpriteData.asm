@@ -1,4 +1,9 @@
 ﻿
+; Landed on a 64-byte boundary only by coincidence before (CharSet.asm's
+; preceding 2048-byte block happens to be a multiple of 64) -- fragile if
+; charset size or resource order ever changes. Make it explicit.
+#align_vic_safe 64
+
 ; Sprite #1
 ; Single color mode, BG color: 1, Sprite color: 0
 spt_rope_0:

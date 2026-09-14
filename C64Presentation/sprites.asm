@@ -1,5 +1,5 @@
 ﻿
-*=$2000
+#align_vic_safe 64
 
 spt_c_upper:
 .byte $00, $00, $00

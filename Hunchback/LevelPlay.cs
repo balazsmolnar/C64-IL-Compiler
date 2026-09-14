@@ -11,6 +11,19 @@ class LevelPlay
         playerStats.Draw();
         DrawDebugLevelNumber(levelNumber);
 
+        // Rope/Enemy/Enemy2 aren't set up until after GetReady() below (they
+        // shouldn't appear until gameplay actually starts) -- but Screen.Clear()
+        // only wiped the sprite POINTER bytes for the new level, not the
+        // separate hardware enable bits, so whatever was left enabled from
+        // the previous level's rope/enemies would otherwise still show,
+        // now pointing at this level's (blank) pointer value, for the whole
+        // Get Ready pause. Disable them upfront so nothing stale is visible
+        // until each one's own Init() turns it back on with real data.
+        C64.Sprites.Sprite2.Visible = false;
+        C64.Sprites.Sprite3.Visible = false;
+        C64.Sprites.Sprite4.Visible = false;
+        C64.Sprites.Sprite5.Visible = false;
+
         Player player = new Player()
         {
             Sprite = C64.Sprites.Sprite0

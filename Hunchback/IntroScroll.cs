@@ -45,6 +45,17 @@ class IntroScroll
         var oldColor = new uint[Rows * Cols];
         SnapshotScreen(oldChar, oldColor);
 
+        // Wall.Draw only paints its own decorated rows (they vary by
+        // WallType -- e.g. KnightPits never touches rows 0-9 at all), the
+        // same way every WallType's Draw does during normal gameplay,
+        // where Game.cs always clears the screen immediately before each
+        // one runs. Skipping that clear here would let whatever the
+        // *previous* intro level left on those untouched rows (e.g.
+        // RowOfBells' bell/rope glyphs) bleed into this level's
+        // "new" snapshot below -- Wall.Draw draws on top of the live
+        // screen, not onto a blank canvas.
+        Screen.Clear(Colors.Grey2);
+
         // Wall.Draw writes straight to the live screen -- this instantly
         // replaces what's visible with the new level. Snapshot that result
         // too, then immediately restore the old screen (below) before the

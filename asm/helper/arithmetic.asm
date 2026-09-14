@@ -146,15 +146,16 @@ l1
         #stack_push_int_x
 .endm
 
-compareLess_unsigned16 .macro 
+compareLess_unsigned16 .macro
 
         #stack_pull_int $32
         #stack_pull_int $33
         #stack_pull_int $34
         #stack_pull_int $35
+        ; #stack_pull_int $35 ends on "pla / sta $35" -- A already holds
+        ; that value, so no need to reload it before the compare below.
 
         ldx #0
-        lda $35
         cmp $33
         bcc +
         bne l1

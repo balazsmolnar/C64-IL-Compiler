@@ -72,13 +72,17 @@ method_exit .macro stackSize, ref_list
 
   .if len(\ref_list) > 0
     ldy stackPointer
-    .for ref in \ref_list    
+    .for ref in \ref_list
       ldx localsStack-ref,y
       dec objTableRootCount, x
     .next
+    ; Y still holds stackPointer's value (the loop above never touches
+    ; Y), so grab it from there instead of a redundant zero-page reload.
+    tya
+  .else
+    lda stackPointer
   .endif
 
-  lda stackPointer
   sec
   sbc #\stackSize
   sta stackPointer

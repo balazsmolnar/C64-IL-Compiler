@@ -29,26 +29,27 @@ copy_var .macro src_rel_pos, dst_rel_pos
   sta localsStack-\dst_rel_pos,y
 .endm
 
-setfld8 .macro objRelPos, objValuePos, pos 
+setfld8 .macro objRelPos, objValuePos, pos
 
   ldy stackPointer
   ldx localsStack-\objRelPos,y
   jsr resolveObjPtr
 
-  ldy stackPointer
+  ; resolveObjPtr only touches A, never Y, so it's still holding
+  ; stackPointer's value from the ldy above -- no need to reload it.
   ldx localsStack-\objValuePos,y
   txa
   ldy #\pos
   sta (tmpPointer),y
 .endm
 
-setfld16 .macro objRelPos, objValuePos, pos 
+setfld16 .macro objRelPos, objValuePos, pos
 
   ldy stackPointer
   ldx localsStack-\objRelPos,y
   jsr resolveObjPtr
 
-  ldy stackPointer
+  ; see setfld8 -- resolveObjPtr doesn't touch Y.
   ldx localsStack-\objValuePos,y
   txa
   ldy #\pos

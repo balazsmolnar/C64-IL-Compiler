@@ -1,74 +1,74 @@
 add16 .macro 
 
-    #stack_pull_int $32
-    #stack_pull_int $33
+    #stack_pull_int zp_param1_low
+    #stack_pull_int zp_param1_high
 
-    #stack_pull_int $34
-    #stack_pull_int $35
+    #stack_pull_int zp_param2_low
+    #stack_pull_int zp_param2_high
 
     clc
-    lda $34
-    adc $32
-    sta $34
-    lda $35
-    adc $33
+    lda zp_param2_low
+    adc zp_param1_low
+    sta zp_param2_low
+    lda zp_param2_high
+    adc zp_param1_high
     #stack_push_int_a
-    #stack_push_var $34
+    #stack_push_var zp_param2_low
 .endm
 
 add8 .macro
 
-    #stack_pull_int $32
+    #stack_pull_int zp_param1_low
     #stack_pull_int_a
 
     clc
-    adc $32
+    adc zp_param1_low
     #stack_push_int_a
 .endm
 
 sub8 .macro 
 
-    #stack_pull_int $32
+    #stack_pull_int zp_param1_low
     #stack_pull_int_a
 
     sec
-    sbc $32
+    sbc zp_param1_low
     #stack_push_int_a
 .endm
 
 sub16 .macro 
 
-    #stack_pull_int $32
-    #stack_pull_int $33
+    #stack_pull_int zp_param1_low
+    #stack_pull_int zp_param1_high
 
-    #stack_pull_int $34
-    #stack_pull_int $35
+    #stack_pull_int zp_param2_low
+    #stack_pull_int zp_param2_high
 
     sec
-    lda $34
-    sbc $32
-    sta $34
-    lda $35
-    sbc $33
+    lda zp_param2_low
+    sbc zp_param1_low
+    sta zp_param2_low
+    lda zp_param2_high
+    sbc zp_param1_high
     #stack_push_int_a
-    #stack_push_var $34
+    #stack_push_var zp_param2_low
 .endm
 
 negate16 .macro 
 
-    #stack_pull_int $34
+    #stack_pull_int zp_param2_low
 
-    lda $35
+    lda zp_param2_high
     eor #$FF
-    sta $35
-    lda $34
+    sta zp_param2_high
+    lda zp_param2_low
     eor #$FF
     clc
     adc #$1
     bcc +
-    inc $35
-+   sta $34
-    #stack_push_var $34
+    inc zp_param2_high
++   sta zp_param2_low
+    #stack_push_var zp_param2_low
 .endm
 
 negate8 .macro  
@@ -82,22 +82,22 @@ negate8 .macro
 .endm
 
 compareLess16 .macro
-; signed 16-bit a < b. $34/$35 = a (low/high), $32/$33 = b (low/high).
+; signed 16-bit a < b. zp_param2_low/zp_param2_high = a (low/high), zp_param1_low/zp_param1_high = b (low/high).
 ; Full 16-bit subtract (a - b) via chained CMP/SBC, with the standard
 ; overflow-corrected N-flag check for a signed result (a plain CMP/BCC
 ; chain, as used by the _unsigned16 variants below, is only valid for
 ; unsigned comparison). Relies on SBC's V flag being computed correctly
 ; (see SimpleEmulator/Emulator.cs ADC/SBC cases, fixed alongside this).
-        #stack_pull_int $32
-        #stack_pull_int $33
-        #stack_pull_int $34
-        #stack_pull_int $35
+        #stack_pull_int zp_param1_low
+        #stack_pull_int zp_param1_high
+        #stack_pull_int zp_param2_low
+        #stack_pull_int zp_param2_high
 
         ldx #0
-        lda $34
-        cmp $32
-        lda $35
-        sbc $33
+        lda zp_param2_low
+        cmp zp_param1_low
+        lda zp_param2_high
+        sbc zp_param1_high
         bvc +
         eor #$80
 +       bpl l1
@@ -108,16 +108,16 @@ l1
 
 compareGreater16 .macro
 ; signed 16-bit a > b, implemented as signed (b - a) < 0. See compareLess16.
-        #stack_pull_int $32
-        #stack_pull_int $33
-        #stack_pull_int $34
-        #stack_pull_int $35
+        #stack_pull_int zp_param1_low
+        #stack_pull_int zp_param1_high
+        #stack_pull_int zp_param2_low
+        #stack_pull_int zp_param2_high
 
         ldx #0
-        lda $32
-        cmp $34
-        lda $33
-        sbc $35
+        lda zp_param1_low
+        cmp zp_param2_low
+        lda zp_param1_high
+        sbc zp_param2_high
         bvc +
         eor #$80
 +       bpl l1
@@ -128,18 +128,18 @@ l1
 
 compareGreater_unsigned16 .macro
 
-        #stack_pull_int $32
-        #stack_pull_int $33
-        #stack_pull_int $34
-        #stack_pull_int $35
+        #stack_pull_int zp_param1_low
+        #stack_pull_int zp_param1_high
+        #stack_pull_int zp_param2_low
+        #stack_pull_int zp_param2_high
 
         ldx #0
-        lda $33
-        cmp $35
+        lda zp_param1_high
+        cmp zp_param2_high
         bcc +
         bne l1
-        lda $32
-        cmp $34
+        lda zp_param1_low
+        cmp zp_param2_low
         bcs l1
 +       inx
 l1      
@@ -148,19 +148,19 @@ l1
 
 compareLess_unsigned16 .macro
 
-        #stack_pull_int $32
-        #stack_pull_int $33
-        #stack_pull_int $34
-        #stack_pull_int $35
-        ; #stack_pull_int $35 ends on "pla / sta $35" -- A already holds
+        #stack_pull_int zp_param1_low
+        #stack_pull_int zp_param1_high
+        #stack_pull_int zp_param2_low
+        #stack_pull_int zp_param2_high
+        ; #stack_pull_int zp_param2_high ends on "pla / sta zp_param2_high" -- A already holds
         ; that value, so no need to reload it before the compare below.
 
         ldx #0
-        cmp $33
+        cmp zp_param1_high
         bcc +
         bne l1
-        lda $34
-        cmp $32
+        lda zp_param2_low
+        cmp zp_param1_low
         bcs l1
 +       inx
 l1      
@@ -168,33 +168,33 @@ l1
 .endm
 
 compareLess8 .macro 
-        #stack_pull_int $34
+        #stack_pull_int zp_param2_low
         #stack_pull_int_a
 
         ldx #0
-        cmp $34
+        cmp zp_param2_low
         bpl +
         inx
 +        #stack_push_int_x
 .endm
 
 compareLess_unsigned8 .macro 
-        #stack_pull_int $34
+        #stack_pull_int zp_param2_low
         #stack_pull_int_a
 
         ldx #0
-        cmp $34
+        cmp zp_param2_low
         bcs +
         inx
 +        #stack_push_int_x
 .endm
 
 compareGreater8 .macro 
-        #stack_pull_int $34
+        #stack_pull_int zp_param2_low
         #stack_pull_int_a
 
         ldx #0
-        cmp $34
+        cmp zp_param2_low
         bmi +
         beq +
         inx
@@ -213,11 +213,11 @@ compareGreater_const8 .macro value
 .endm
 
 compareGreater_unsigned8 .macro 
-        #stack_pull_int $34
+        #stack_pull_int zp_param2_low
         #stack_pull_int_a
 
         ldx #0
-        cmp $34
+        cmp zp_param2_low
         bcc +
         beq +
         inx
@@ -256,17 +256,17 @@ compareLess_unsigned_const8 .macro value
 .endm
 
 compareEqual16 .macro 
-        #stack_pull_int $32
-        #stack_pull_int $33
-        #stack_pull_int $34
-        #stack_pull_int $35
+        #stack_pull_int zp_param1_low
+        #stack_pull_int zp_param1_high
+        #stack_pull_int zp_param2_low
+        #stack_pull_int zp_param2_high
 
         ldx #0
-        lda $32
-        cmp $34
+        lda zp_param1_low
+        cmp zp_param2_low
         bne +
-        lda $33
-        cmp $35
+        lda zp_param1_high
+        cmp zp_param2_high
         bne +
         inx
 +
@@ -274,11 +274,11 @@ compareEqual16 .macro
 .endm
 
 compareEqual8 .macro
-        #stack_pull_int $34
+        #stack_pull_int zp_param2_low
         #stack_pull_int_a
 
         ldx #0
-        cmp $34
+        cmp zp_param2_low
         bne +
         inx
 +
@@ -320,10 +320,10 @@ shift_right8 .macro
 
 and8 .macro
 
-    #stack_pull_int $32
+    #stack_pull_int zp_param1_low
     #stack_pull_int_a
 
-    and $32
+    and zp_param1_low
     #stack_push_int_a
 .endm
 

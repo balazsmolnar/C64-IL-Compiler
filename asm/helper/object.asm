@@ -30,18 +30,18 @@ resolveObjPtr
 newObjL
 
   ; store input parameters
-  sta $34  ; Size
-  sty $35  ; Reference fields
+  sta zp_param2_low  ; Size
+  sty zp_param2_high  ; Reference fields
 
   ; Find an empty entry in the object table --> X
   jsr findEmptySlot
-  
+
   ; Clear memory for the object in the heap
   ldy #0
-- lda #0 
+- lda #0
   sta (heapPointer),y
   iny
-  cpy $34
+  cpy zp_param2_low
   bne -
   jmp setObjParams
 
@@ -50,8 +50,8 @@ newObjL
 ; Inputs:
 ; A: Size: Size of the object
 ; Y: ReferenceFields: Number of .fields references to other objects (always the first fields)
-; $32 Init values low byte
-; $33 Init values high byte
+; zp_param1_low Init values low byte
+; zp_param1_high Init values high byte
 ; Output:
 ; Newly created object id --> A
 ;
@@ -59,18 +59,18 @@ newObjL
 newObjLInit
 
   ; store input parameters
-  sta $34  ; Size
-  sty $35  ; Reference fields
+  sta zp_param2_low  ; Size
+  sty zp_param2_high  ; Reference fields
 
   ; Find an empty entry in the object table --> X
   jsr findEmptySlot
-  
+
   ; Copy values
   ldy #0
-- lda ($32),y
+- lda (zp_param1_low),y
   sta (heapPointer),y
   iny
-  cpy $34
+  cpy zp_param2_low
   bne -
   jmp setObjParams
 
@@ -87,14 +87,14 @@ out_of_memory
 
 setObjParams
   ; set values in the tables: Size, referenceFieldCount, pointer
-  lda $30
+  lda zp_param0_low
   sta objTableDescLow,x
-  lda $31
+  lda zp_param0_high
   sta objTableDescHigh,x
 
-  lda $34
+  lda zp_param2_low
   sta objTableSize,x
-  lda $35
+  lda zp_param2_high
   sta objTableReferences,x
   lda #0
   sta objTableRootCount, x
@@ -106,7 +106,7 @@ setObjParams
   ; Increase heap counter
   lda heapPointer
   clc
-  adc $34
+  adc zp_param2_low
   sta heapPointer
   bcc +
   inc heapPointer+1
@@ -132,14 +132,14 @@ callVirtL
   tay
 
   lda objTableDescLow,x
-  sta $30
+  sta zp_param0_low
   lda objTableDescHigh,x
-  sta $31
+  sta zp_param0_high
 
-  lda ($30),y
+  lda (zp_param0_low),y
   sta mod+1
   iny
-  lda ($30),y
+  lda (zp_param0_low),y
   sta mod+2
 
 mod:

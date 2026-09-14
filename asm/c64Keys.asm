@@ -8,9 +8,9 @@ ddrb = $dc03      ;ddr for column read
 C64_IsKeyPressed:
     
     #stack_save_return_adress zp_tmp1_low
-    #stack_pull_int $34
+    #stack_pull_int zp_param2_low
     sei
-    ldx $34
+    ldx zp_param2_low
 
     lda #$ff
     sta ddra

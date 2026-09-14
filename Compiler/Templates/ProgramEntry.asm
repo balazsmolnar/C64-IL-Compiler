@@ -1,12 +1,12 @@
 .enc "screen"
 
+.include "./helper/zeropage.asm"
 .include "./helper/loader.asm"
 .include "./helper/stack.asm"
 .include "./helper/localsStack.asm"
 .include "./helper/heap.asm"
 .include "./helper/arithmetic.asm"
 .include "./helper/branch.asm"
-.include "./helper/zp.asm"
 .include "./helper/optimized.asm"
 .include "./helper/memoryLayout.asm"
 .include "./helper/banking.asm"

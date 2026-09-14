@@ -1,10 +1,10 @@
+.include "./helper/zeropage.asm"
 .include "./helper/loader.asm"
 .include "./helper/stack.asm"
 .include "./helper/localsStack.asm"
 .include "./helper/heap.asm"
 .include "./helper/arithmetic.asm"
 .include "./helper/branch.asm"
-.include "./helper/zp.asm"
 .include "./helper/optimized.asm"
 .include "./helper/memoryLayout.asm"
 .include "./helper/banking.asm"
@@ -61,6 +61,16 @@ endtest:
 
     brk
 
+; result aliases zp_tmp1_low ($20, see asm/helper/zeropage.asm) -- every
+; C64Lib macro the test method under execution calls transiently scribbles
+; over $20 as its own return-address save slot, so this byte's value is
+; garbage for nearly the entire test run. Safe only because both exit
+; paths write their own authoritative final value into it as their very
+; last action before halting the emulator (endtest's "lda #$00 / sta
+; result" below, and Assert_Fail's "lda #$FF / sta result" right before
+; its own brk) -- RunInEmulatorAspect.CopyResultFromEmulator only ever
+; reads this byte after the emulator has already halted, so whatever
+; happened to it in between never matters.
 result = $20
 
 .include "./system.asm"

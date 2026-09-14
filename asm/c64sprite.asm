@@ -168,22 +168,22 @@ Sprite_set_ExpandY_l1:
 Sprite_set_DataBlock:
     #stack_save_return_adress zp_tmp1_low
     #stack_pull_int_y
-    #stack_pull_int $34
+    #stack_pull_int zp_param2_low
     #stack_pull_int_x
     tya
 
-    lsr $34
+    lsr zp_param2_low
     ror
-    lsr $34
+    lsr zp_param2_low
     ror
-    lsr $34
-    ror    
-    lsr $34
-    ror    
-    lsr $34
-    ror    
-    lsr $34
-    ror    
+    lsr zp_param2_low
+    ror
+    lsr zp_param2_low
+    ror
+    lsr zp_param2_low
+    ror
+    lsr zp_param2_low
+    ror
     sta spriteData,x
     
     #stack_return_to_saved_address zp_tmp1_low
@@ -201,7 +201,7 @@ sprite_bit_table: .byte $01, $02, $04, $08, $10, $20, $40, $80
 Sprite_set_X:
     #stack_save_return_adress zp_tmp1_low
     #stack_pull_int_y
-    #stack_pull_int $32
+    #stack_pull_int zp_param1_low
     #stack_pull_int_a
     asl
     tax
@@ -209,9 +209,9 @@ Sprite_set_X:
     sta spriteX,x
     txa
     lsr
-    tay    
+    tay
     lda sprite_bit_table, y
-    ldy $32
+    ldy zp_param1_low
     beq +
     ora spriteExtraPosition
     jmp Sprite_set_X_l1

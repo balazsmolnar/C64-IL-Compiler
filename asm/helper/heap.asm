@@ -1,4 +1,5 @@
-heapPointer = $fb
+; heapPointer is defined in asm/helper/zeropage.asm, alongside every other
+; zero-page claim in the codebase.
 tmpPointer = heap_tmp_pointer
 
 ; resolveObjPtr (used by the macros below) is defined in object.asm, not
@@ -30,9 +31,9 @@ initHeap .macro heap
 newObj .macro size, referenceFields, objDescriptor, ctor
 
   lda #<\objDescriptor
-  sta $30
+  sta zp_param0_low
   lda #>\objDescriptor
-  sta $31
+  sta zp_param0_high
 
   lda #\size
   ldy #\referenceFields
@@ -42,10 +43,10 @@ newObj .macro size, referenceFields, objDescriptor, ctor
   .if \ctor=0
     #stack_push_int_a
   .else
-    sta $fa
+    sta zp_ctor_result
     #stack_push_int_a
     jsr \ctor
-    lda $fa
+    lda zp_ctor_result
     #stack_push_int_a
   .endif
 .endm
@@ -62,14 +63,14 @@ newObj .macro size, referenceFields, objDescriptor, ctor
 newObjInit .macro size, referenceFields, objDescriptor, initValues, ctor
 
   lda #<\objDescriptor
-  sta $30
+  sta zp_param0_low
   lda #>\objDescriptor
-  sta $31
+  sta zp_param0_high
 
   lda #<\initValues
-  sta $32
+  sta zp_param1_low
   lda #>\initValues
-  sta $33
+  sta zp_param1_high
 
   lda #\size
   ldy #\referenceFields
@@ -79,10 +80,10 @@ newObjInit .macro size, referenceFields, objDescriptor, initValues, ctor
   .if \ctor=0
     #stack_push_int_a
   .else
-    sta $fa
+    sta zp_ctor_result
     #stack_push_int_a
     jsr \ctor
-    lda $fa
+    lda zp_ctor_result
     #stack_push_int_a
   .endif
 .endm
@@ -119,9 +120,10 @@ newArr16 .macro
 ; Creates a new array on the heap and initializes it by copying size bytes
 ; from initValues -- like newObjInit, but simpler: an array of primitives
 ; has no vtable/reference fields (matches newArr/newArrRef, which also
-; leave $30/$31 alone; zeroed here for cleanliness, not because anything
-; reads an array's descriptor fields -- callVirtL, the only reader, is
-; only ever reached through an object reference, never an array one).
+; leave zp_param0_low/high alone; zeroed here for cleanliness, not because
+; anything reads an array's descriptor fields -- callVirtL, the only
+; reader, is only ever reached through an object reference, never an array
+; one).
 ; Inputs:
 ; size: element count (compile-time constant, unlike newArr's runtime size)
 ; initValues: address of the constant byte data to copy in
@@ -131,13 +133,13 @@ newArr16 .macro
 newArrInit .macro size, initValues
 
   lda #0
-  sta $30
-  sta $31
+  sta zp_param0_low
+  sta zp_param0_high
 
   lda #<\initValues
-  sta $32
+  sta zp_param1_low
   lda #>\initValues
-  sta $33
+  sta zp_param1_high
 
   lda #\size
   ldy #0
@@ -148,27 +150,27 @@ newArrInit .macro size, initValues
 .endm
 
 stfld8 .macro  pos 
-  #stack_pull_int $fd
+  #stack_pull_int zp_field_value_low
   #stack_pull_int_x
 
   jsr resolveObjPtr
 
   ldy #\pos
-  lda $fd
+  lda zp_field_value_low
   sta (tmpPointer),y 
 .endm
 
 stfld16 .macro  pos 
-  #stack_pull_int $fd
-  #stack_pull_int $fe
+  #stack_pull_int zp_field_value_low
+  #stack_pull_int zp_field_value_high
   #stack_pull_int_x
 
   jsr resolveObjPtr
 
   ldy #\pos
-  lda $fd
+  lda zp_field_value_low
   sta (tmpPointer),y 
-  lda $fe
+  lda zp_field_value_high
   iny
   sta (tmpPointer),y 
 .endm
@@ -184,29 +186,29 @@ stsfld .macro address
 .endm
 
 stelemRef .macro  
-  #stack_pull_int $fd   ; value
+  #stack_pull_int zp_field_value_low   ; value
   #stack_pull_int_y     ; index
   #stack_pull_int_x     ; object refernce to array
 
   jsr resolveObjPtr
 
-  lda $fd
+  lda zp_field_value_low
   sta (tmpPointer),y 
 .endm
 
 stelem .macro  
-  #stack_pull_int $fd   ; value
+  #stack_pull_int zp_field_value_low   ; value
   #stack_pull_int_y     ; index
   #stack_pull_int_x     ; object refernce to array
 
   jsr resolveObjPtr
 
-  lda $fd
+  lda zp_field_value_low
   sta (tmpPointer),y 
 .endm
 
 stelem16 .macro  
-  #stack_pull_int16 $fd   ; value
+  #stack_pull_int16 zp_field_value_low   ; value
   #stack_pull_int_a     ; index
   asl
   tay
@@ -214,9 +216,9 @@ stelem16 .macro
 
   jsr resolveObjPtr
 
-  lda $fd
+  lda zp_field_value_low
   sta (tmpPointer),y
-  lda $fe
+  lda zp_field_value_high
   iny
   sta (tmpPointer),y
 .endm

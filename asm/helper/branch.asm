@@ -5,9 +5,9 @@ branch_true .macro label
 .endm
 
 branch_equal8 .macro label 
-    #stack_pull_int $30
+    #stack_pull_int zp_param0_low
     #stack_pull_int_a
-    cmp $30
+    cmp zp_param0_low
     beq \label
 .endm
 
@@ -19,37 +19,37 @@ branch_equal_const .macro value, label
 
 branch_equal16 .macro label
 
-    #stack_pull_int $32
-    #stack_pull_int $33
-    #stack_pull_int $34
-    #stack_pull_int $35
-    lda $32
-    cmp $34
+    #stack_pull_int zp_param1_low
+    #stack_pull_int zp_param1_high
+    #stack_pull_int zp_param2_low
+    #stack_pull_int zp_param2_high
+    lda zp_param1_low
+    cmp zp_param2_low
     bne +
-    lda $33
-    cmp $35
+    lda zp_param1_high
+    cmp zp_param2_high
     beq \label
 +
 .endm
 
 branch_not_equal8 .macro label
-    #stack_pull_int $30
+    #stack_pull_int zp_param0_low
     #stack_pull_int_a
-    cmp $30
+    cmp zp_param0_low
     bne \label
 .endm
 
 branch_not_equal16 .macro label 
 
-    #stack_pull_int $32
-    #stack_pull_int $33
-    #stack_pull_int $34
-    #stack_pull_int $35
-    lda $32
-    cmp $34
+    #stack_pull_int zp_param1_low
+    #stack_pull_int zp_param1_high
+    #stack_pull_int zp_param2_low
+    #stack_pull_int zp_param2_high
+    lda zp_param1_low
+    cmp zp_param2_low
     bne \label
-    lda $33
-    cmp $35
+    lda zp_param1_high
+    cmp zp_param2_high
     bne \label
 .endm
 
@@ -60,9 +60,9 @@ branch_not_equal_const .macro value, label
 .endm
 
 branch_less8 .macro label 
-    #stack_pull_int $30
+    #stack_pull_int zp_param0_low
     #stack_pull_int_a
-    cmp $30
+    cmp zp_param0_low
     bmi \label
 .endm
 
@@ -73,25 +73,25 @@ branch_less_const .macro value, label
 .endm
 
 branch_less_unsigned8 .macro label 
-    #stack_pull_int $30
+    #stack_pull_int zp_param0_low
     #stack_pull_int_a
-    cmp $30
+    cmp zp_param0_low
     bcc \label
 .endm
 
 branch_less_unsigned16 .macro label 
 
-        #stack_pull_int $32
-        #stack_pull_int $33
-        #stack_pull_int $34
-        #stack_pull_int $35
+        #stack_pull_int zp_param1_low
+        #stack_pull_int zp_param1_high
+        #stack_pull_int zp_param2_low
+        #stack_pull_int zp_param2_high
 
-        lda $35
-        cmp $33
+        lda zp_param2_high
+        cmp zp_param1_high
         bcc \label
         bne +
-        lda $34
-        cmp $32
+        lda zp_param2_low
+        cmp zp_param1_low
         bcc \label
 +       
 .endm
@@ -103,9 +103,9 @@ branch_less_unsigned_const .macro value, label
 .endm
 
 branch_less_equal8 .macro label 
-    #stack_pull_int $30
+    #stack_pull_int zp_param0_low
     #stack_pull_int_a
-    cmp $30
+    cmp zp_param0_low
     bmi \label
     beq \label
 .endm
@@ -118,24 +118,24 @@ branch_less_equal_const .macro value, label
 .endm
 
 branch_less_equal_unsigned8 .macro label 
-    #stack_pull_int $30
+    #stack_pull_int zp_param0_low
     #stack_pull_int_a
-    cmp $30
+    cmp zp_param0_low
     bcc \label
     beq \label
 .endm
 
 branch_less_equal_unsigned16 .macro label 
-    #stack_pull_int $32
-    #stack_pull_int $33
-    #stack_pull_int $34
-    #stack_pull_int $35
-    lda $35
-    cmp $33
+    #stack_pull_int zp_param1_low
+    #stack_pull_int zp_param1_high
+    #stack_pull_int zp_param2_low
+    #stack_pull_int zp_param2_high
+    lda zp_param2_high
+    cmp zp_param1_high
     bcc \label
     bne+
-    lda $34
-    cmp $32
+    lda zp_param2_low
+    cmp zp_param1_low
     bcc \label
     beq \label
 +
@@ -149,25 +149,25 @@ branch_less_equal_unsigned_const .macro value, label
 .endm
 
 branch_greater_equal_unsigned8 .macro label 
-    #stack_pull_int $30
+    #stack_pull_int zp_param0_low
     #stack_pull_int_a
-    cmp $30
+    cmp zp_param0_low
     bcs \label
     beq \label
 .endm
 
 branch_greater_equal_unsigned16 .macro label 
-    #stack_pull_int $32
-    #stack_pull_int $33
-    #stack_pull_int $34
-    #stack_pull_int $35
+    #stack_pull_int zp_param1_low
+    #stack_pull_int zp_param1_high
+    #stack_pull_int zp_param2_low
+    #stack_pull_int zp_param2_high
 
-    lda $33
-    cmp $35
+    lda zp_param1_high
+    cmp zp_param2_high
     bcc \label
     bne +
-    lda $34
-    cmp $32
+    lda zp_param2_low
+    cmp zp_param1_low
     bcs \label
     beq \label
 +
@@ -182,24 +182,24 @@ branch_greater_equal_unsigned_const .macro value, label
 .endm
 
 branch_greater_unsigned8 .macro label 
-    #stack_pull_int $30
+    #stack_pull_int zp_param0_low
     #stack_pull_int_a
-    cmp $30
+    cmp zp_param0_low
     bcs \label
 .endm
 
 branch_greater_unsigned16 .macro label
-    #stack_pull_int $32
-    #stack_pull_int $33
-    #stack_pull_int $34
-    #stack_pull_int $35
+    #stack_pull_int zp_param1_low
+    #stack_pull_int zp_param1_high
+    #stack_pull_int zp_param2_low
+    #stack_pull_int zp_param2_high
 
-    lda $33
-    cmp $35
+    lda zp_param1_high
+    cmp zp_param2_high
     bcc \label
     bne +
-    lda $32
-    cmp $34
+    lda zp_param1_low
+    cmp zp_param2_low
     bcc \label
 +
 .endm
@@ -211,9 +211,9 @@ branch_greater_unsigned_const .macro value, label
 .endm
 
 branch_greater8 .macro label 
-    #stack_pull_int $30
+    #stack_pull_int zp_param0_low
     #stack_pull_int_a
-    cmp $30
+    cmp zp_param0_low
     bpl \label
 .endm
 
@@ -224,9 +224,9 @@ branch_greater_const .macro value, label
 .endm
 
 branch_greater_equal8 .macro label 
-    #stack_pull_int $30
+    #stack_pull_int zp_param0_low
     #stack_pull_int_a
-    cmp $30
+    cmp zp_param0_low
     bpl \label
     beq \label
 .endm

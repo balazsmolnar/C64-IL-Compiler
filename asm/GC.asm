@@ -39,16 +39,16 @@ l2  pla
     beq endtrack                  ; end algorithm 
     tax
     lda objTableLow,X
-    sta $33
+    sta zp_gc_track_ptr_low
     lda objTableHigh,X
-    sta $34
+    sta zp_gc_track_ptr_high
     lda objTableReferences,X
-    sta $35
+    sta zp_gc_track_refcount
 
-    ldy #0                          
--   cpy $35
+    ldy #0
+-   cpy zp_gc_track_refcount
     beq l2                        ; no refences, end this phase
-    lda ($33), y
+    lda (zp_gc_track_ptr_low), y
     tax
     lda objTableRootCount, x      ; check if track bit already set for the reference (N flag = bit 7)
     bmi +                         ; it is already set, nothing to do --> continue
@@ -83,14 +83,10 @@ fillSortTable:
     dey                             ;  Y can't realistically wrap since there are at most 255
     rts                             ;  live slots, so this was previously unreachable)
 
-LOW_INDEX = $34                ; Low index
-HIGH_INDEX = $35               ; High index
-
-PARTITION_LOW_INDEX = $36      ; partition low
-PARTITION_HIGH_INDEX = $37     ; partition high
-PIVOT_LOW = $39
-PIVOT_HIGH = $3a
-
+; LOW_INDEX/HIGH_INDEX/PARTITION_LOW_INDEX/PARTITION_HIGH_INDEX/PIVOT_LOW/
+; PIVOT_HIGH are defined in asm/helper/zeropage.asm, alongside every other
+; zero-page claim in the codebase -- see that file for why these bytes are
+; safe to share with the scratch-parameter bank used elsewhere.
 ;
 ; Sorts the sort table based on the pointer on the heap
 ;
@@ -199,31 +195,10 @@ compare
 +
     rts
 
-HEAP_POINTER_COMPACTED_LOW = $34                ; Pointer to the compacted heap
-HEAP_POINTER_COMPACTED_HIGH = $35
-
-; Must NOT alias HEAP_POINTER_COMPACTED_LOW/HIGH -- they previously both
-; pointed at $34/$35, which silently turned the whole compaction copy into
-; a self-copy (src and dst were the same pointer) and made the "compacted"
-; pointer reset to each kept object's own original address instead of
-; accumulating. Harmless (data-preserving no-op) as long as objects are
-; processed in strictly increasing, non-overlapping address order, but
-; whenever two live objects share the same starting address -- e.g. a
-; zero-size object (a static singleton with no fields, size 0 passed to
-; #newObj) sitting immediately before another live object -- quicksort's
-; tie-breaking can process them in either order, and if the zero-size one
-; is processed last, HEAP_POINTER_COMPACTED regresses backward past the
-; real object's true end. The next GC.Collect() then has fillSortTable
-; write its scratch table straight into that wrongly-reclaimed, still-live
-; object's field bytes. Confirmed via a diagnostic driver against
-; GCTest.Repeated_Collect_On_Stable_Object_Does_Not_Corrupt_State: heapPointer
-; regressed by exactly the live object's size after the first collect, and
-; the second collect's fillSortTable scratch write landed on that object's
-; Id field, changing it from 99 to 2.
-HEAP_POINTER_ORIG_LOW = $3b                     ; Pointer to the object being copied
-HEAP_POINTER_ORIG_HIGH = $3c
-TMP = $36
-
+; HEAP_POINTER_COMPACTED_LOW/HIGH, HEAP_POINTER_ORIG_LOW/HIGH, and TMP are
+; also defined in asm/helper/zeropage.asm -- see that file for why
+; HEAP_POINTER_ORIG must never alias HEAP_POINTER_COMPACTED (the bug this
+; fixed) and for the full sharing picture across the rest of the codebase.
 
 sweepAndCompact
 

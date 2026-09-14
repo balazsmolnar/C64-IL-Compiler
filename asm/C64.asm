@@ -1,116 +1,117 @@
 VCR2            = $D016 ;VIC Control Register 2
 
-; $30 - Position low
-; $31 - Position high
-; $32 - X
-; $34 - Y
-; $36 - char
-; $38 - Color
+; zp_param0_low  - Position low
+; zp_param0_high - Position high
+; zp_param1_low  - X
+; zp_param2_low  - Y
+; zp_param3_low  - char
+; zp_param4_low  - Color
+; (see asm/helper/zeropage.asm for every other claimant of these bytes)
 
 C64_Set_Screen_Ptr
 
     ; add Y*40
-    lda $34
+    lda zp_param2_low
     asl
     asl
-    adc $34
+    adc zp_param2_low
     asl
     asl
     bcc +
-    inc $31
-    inc $31
+    inc zp_param0_high
+    inc zp_param0_high
 +   asl
     bcc +
-    inc $31
-+   sta $30
+    inc zp_param0_high
++   sta zp_param0_low
     ; +X
-    lda $32
+    lda zp_param1_low
     clc
-    adc $30
+    adc zp_param0_low
     bcc +
-    inc $31
-+   sta $30
+    inc zp_param0_high
++   sta zp_param0_low
     rts
 
 C64_SetChar_Core
 
     ; Init
     lda #$00
-    sta $30
+    sta zp_param0_low
     lda #$d8
-    sta $31
+    sta zp_param0_high
 
     jsr C64_Set_Screen_Ptr
     ldy #0
-    lda $38
-    sta ($30),y
-    lda $31
+    lda zp_param4_low
+    sta (zp_param0_low),y
+    lda zp_param0_high
     sec
     sbc #$d4
-    sta $31
-    lda $36
+    sta zp_param0_high
+    lda zp_param3_low
     cmp #$ff
     beq +
-    sta ($30),y
+    sta (zp_param0_low),y
 +   #stack_return_to_saved_address zp_tmp1_low
 
 C64_GetChar_Core
 
     ; Init
     lda #$00
-    sta $30
+    sta zp_param0_low
     lda #$04
-    sta $31
+    sta zp_param0_high
 
     jsr C64_Set_Screen_Ptr
     ldy #0
-    lda ($30),y
-    sta $36
+    lda (zp_param0_low),y
+    sta zp_param3_low
     rts
 
 C64_SetChar
     #stack_save_return_adress zp_tmp1_low
-    #stack_pull_int $38
-    #stack_pull_int $36
-    #stack_pull_int $34
-    #stack_pull_int $32
+    #stack_pull_int zp_param4_low
+    #stack_pull_int zp_param3_low
+    #stack_pull_int zp_param2_low
+    #stack_pull_int zp_param1_low
 
     jmp C64_SetChar_Core
 
 C64_GetChar
     #stack_save_return_adress zp_tmp1_low
-    #stack_pull_int $34
-    #stack_pull_int $32
+    #stack_pull_int zp_param2_low
+    #stack_pull_int zp_param1_low
     jsr C64_GetChar_Core
-    #stack_push_var $36
+    #stack_push_var zp_param3_low
     #stack_return_to_saved_address zp_tmp1_low
 
 C64_Write
     #stack_save_return_adress zp_tmp1_low
-    #stack_pull_int $38
-    #stack_pull_pointer $36
-    #stack_pull_int $34
-    #stack_pull_int $32
+    #stack_pull_int zp_param4_low
+    #stack_pull_pointer zp_param3_low
+    #stack_pull_int zp_param2_low
+    #stack_pull_int zp_param1_low
 
     lda #0
-    sta $30
+    sta zp_param0_low
     lda #4
-    sta $31
+    sta zp_param0_high
     jsr C64_Set_Screen_Ptr
 
-    lda $31
+    lda zp_param0_high
     clc
     adc #$d4
-    sta $33
-    lda $30
-    sta $32
+    sta zp_param1_high
+    lda zp_param0_low
+    sta zp_param1_low
 
     ldy #0
--   lda ($36),Y
+-   lda (zp_param3_low),Y
     beq +
-    sta ($30),Y
-    lda $38
-    sta ($32),Y
+    sta (zp_param0_low),Y
+    lda zp_param4_low
+    sta (zp_param1_low),Y
     iny
     bne -
 +
@@ -151,10 +152,10 @@ C64_SetCharSet
 C64_CopyMemory
     #stack_save_return_adress zp_tmp1_low
     #stack_pull_int_y
-    #stack_pull_pointer $36
-    #stack_pull_pointer $38
--   lda ($36),y
-    sta ($38),y
+    #stack_pull_pointer zp_param3_low
+    #stack_pull_pointer zp_param4_low
+-   lda (zp_param3_low),y
+    sta (zp_param4_low),y
     dey
     bne -
 
@@ -164,10 +165,10 @@ C64_FillMemory
     #stack_save_return_adress zp_tmp1_low
     #stack_pull_int_y
     #stack_pull_int_x
-    #stack_pull_pointer $38
+    #stack_pull_pointer zp_param4_low
     txa
--   
-    sta ($38),y
+-
+    sta (zp_param4_low),y
     dey
     bne -
 
@@ -176,8 +177,8 @@ C64_FillMemory
 C64_GetMemory
     #stack_save_return_adress zp_tmp1_low
     #stack_pull_int_y
-    #stack_pull_pointer $38
-    lda ($38),y
+    #stack_pull_pointer zp_param4_low
+    lda (zp_param4_low),y
     stack_push_int_a
     #stack_return_to_saved_address zp_tmp1_low
 

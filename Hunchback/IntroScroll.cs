@@ -5,8 +5,9 @@ namespace Hunchback;
 // Replicates the original's attract-mode title sequence (Restructure/Screen.asm's
 // Screen_IntroScrollSelect/Screen_IntroScroll + Quasi.asm's Quasi_IntroMovement
 // family, confirmed against that disassembly): three level layouts scroll into
-// view left-to-right while the Knight sprite climbs then runs across the
-// screen, before TitleScreen's static logo/tune loop takes over. The original
+// view left-to-right while the player sprite climbs, then runs, then -- for
+// the last of the three levels, matching the original's Quasi_IntroJumpLeft --
+// jumps, before TitleScreen's static logo/tune loop takes over. The original
 // never used VIC-II hardware smooth-scroll or a raster IRQ for this -- it's a
 // software character-cell scroll (shift each row's screen/color RAM left by
 // one column per step, feed the incoming level's next column in from the
@@ -38,7 +39,7 @@ class IntroScroll
     // rather than freed and reallocated -- exactly like Wall here (Draw()
     // resets every field of Wall's that matters; Move() is never called
     // during the intro, so nothing carries over that shouldn't).
-    private static Knight s_knight;
+    private static IntroPlayer s_player;
     private static Wall s_wall;
     private static uint[][] s_oldChar;
     private static uint[][] s_oldColor;
@@ -49,8 +50,8 @@ class IntroScroll
     {
         Screen.Clear(Colors.Grey2);
 
-        s_knight = new Knight { Sprite = C64.Sprites.Sprite1 };
-        s_knight.Init();
+        s_player = new IntroPlayer { Sprite = C64.Sprites.Sprite1 };
+        s_player.Init();
         s_wall = new Wall();
 
         s_oldChar = NewRowBuffers();
@@ -62,13 +63,16 @@ class IntroScroll
         // Matches the original's Screen_IntroScrollSelect level picks (9, 8, 0)
         // exactly -- currentLevel is used identically as a direct 0-based
         // index into the level table in both codebases.
-        ScrollToLevel(levels[9]);
-        ScrollToLevel(levels[8]);
-        ScrollToLevel(levels[0]);
+        ScrollToLevel(levels[9], false);
+        ScrollToLevel(levels[8], false);
+        ScrollToLevel(levels[0], true);
     }
 
-    private static void ScrollToLevel(LevelDescription description)
+    private static void ScrollToLevel(LevelDescription description, bool isFinalLevel)
     {
+        if (isFinalLevel)
+            s_player.StartJumping();
+
         SnapshotScreen(s_oldChar, s_oldColor);
 
         // Blanks the physical display for the whole prepare phase below.
@@ -123,13 +127,12 @@ class IntroScroll
                 colorRow += Cols;
             }
 
-            // Ticks the Knight's own climb/walk cycle (same sprite/animation
-            // used as gameplay's background decoration -- see Knight.cs) --
-            // several ticks per scroll step so it visibly gets through the
-            // climb and a real run across the screen within the intro's
-            // duration, rather than barely twitching once.
+            // Ticks the player's own climb/walk/jump cycle (see
+            // IntroPlayer.cs) -- several ticks per scroll step so it
+            // visibly gets through each phase across the intro's duration,
+            // rather than barely twitching once.
             for (uint k = 0; k < 8; k++)
-                s_knight.Move();
+                s_player.Move();
 
             Delay.Wait(2);
         }

@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <!--
+    Deliberately separate from Test/Compiler.Test.csproj: that project's
+    Compiler.exe passes over EVERY type in its own output assembly (see
+    Compiler/ILCodePass.cs's context.Assembly.GetTypes()), regardless of
+    whether RunInEmulatorAspect (assembly.cs) ever actually runs a given
+    test through the emulator: a plain NUnit test using real
+    NUnit.Framework.Assert/System.Linq (as opposed to C64TestFramework's
+    Assert stand-in) still gets Compiler.exe pointed at its IL and fails,
+    since Compiler.exe tries to emit 6502 call sites for NUnit/BCL methods
+    that were obviously never compiled. Host-side-only tests (no 6502, no
+    emulator) belong in THIS project instead, which Test/run.bat never
+    touches.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\Compiler\Compiler.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NUnit" Version="3.12.0" />
+    <PackageReference Include="NUnit3TestAdapter" Version="3.16.1" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.5.0" />
+  </ItemGroup>
+
+</Project>

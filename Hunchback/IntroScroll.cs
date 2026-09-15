@@ -5,13 +5,17 @@ namespace Hunchback;
 // Replicates the original's attract-mode title sequence (Restructure/Screen.asm's
 // Screen_IntroScrollSelect/Screen_IntroScroll + Quasi.asm's Quasi_IntroMovement
 // family, confirmed against that disassembly): three level layouts scroll into
-// view left-to-right while the player sprite climbs, then runs, then -- for
-// the last of the three levels, matching the original's Quasi_IntroJumpLeft --
-// jumps, before TitleScreen's static logo/tune loop takes over. The original
-// never used VIC-II hardware smooth-scroll or a raster IRQ for this -- it's a
-// software character-cell scroll (shift each row's screen/color RAM left by
-// one column per step, feed the incoming level's next column in from the
-// right), which is what's reproduced here.
+// view left-to-right while the player sprite jump-bounces along the ground the
+// entire time (not just for one of them -- Quasi_IntroMovement writes the jump
+// frame every tick throughout all three levels), then turns and jumps away
+// (Quasi_IntroJumpLeft) once the scroll finishes, before TitleScreen's static
+// logo/tune loop takes over. The original never used VIC-II hardware
+// smooth-scroll or a raster IRQ for the scroll itself -- it's a software
+// character-cell scroll (shift each row's screen/color RAM left by one column
+// per step, feed the incoming level's next column in from the right), which is
+// what's reproduced here. Music plays continuously throughout, reusing
+// TitleScreen's own tune (TitleScreen.GetTones()) instead of only starting once
+// the static logo screen appears.
 class IntroScroll
 {
     private const uint Rows = 25;
@@ -34,19 +38,41 @@ class IntroScroll
     // Static fields sidestep both: Debug_GetObjectId/IsAlive-based tests
     // elsewhere (Test/GCTest.cs's Two_Instances_First_GCd_Static_Field)
     // already confirm static-field root tracking works correctly in this
-    // compiler, and each of these six is allocated exactly once here
-    // anyway, then reused (overwritten in place) across all three levels
-    // rather than freed and reallocated -- exactly like Wall here (Draw()
-    // resets every field of Wall's that matters; Move() is never called
-    // during the intro, so nothing carries over that shouldn't).
+    // compiler, and each of these is allocated exactly once here anyway,
+    // then reused (overwritten in place) across all three levels rather
+    // than freed and reallocated -- exactly like Wall here (Draw() resets
+    // every field of Wall's that matters; Move() is never called during
+    // the intro, so nothing carries over that shouldn't).
     private static IntroPlayer s_player;
     private static Wall s_wall;
-    private static uint[][] s_oldChar;
-    private static uint[][] s_oldColor;
-    private static uint[][] s_newChar;
-    private static uint[][] s_newColor;
 
-    public static void Play()
+    // Two buffer pairs, swapped (reference-swapped, not re-snapshotted)
+    // after each level instead of both being freshly read from the live
+    // screen every time -- s_currentChar/Color always holds exactly
+    // what's actually on screen right now (the previous level's fully
+    // revealed content, or the initial blank screen for the very first
+    // level), so ScrollToLevel no longer needs its own GetChar/GetMemory
+    // readback of it. Cuts out 1000 of the roughly 2000-3000 read/write
+    // calls the blanked prepare phase was doing per transition -- that
+    // phase's own real 6502 time is what was showing up as a visible
+    // pause between levels.
+    private static uint[][] s_bufAChar, s_bufAColor, s_bufBChar, s_bufBColor;
+    private static uint[][] s_currentChar, s_currentColor, s_nextChar, s_nextColor;
+
+    private static TitleScreen.Tone[] s_tones;
+    private static uint s_toneIndex;
+    private static uint s_toneElapsed;
+
+    // tones: passed in and reused from TitleScreen.Display(), rather than
+    // fetched here via a second TitleScreen.GetTones() call -- that
+    // method allocates a fresh ~64-object array every time it runs, and
+    // two live copies at once (one held here, one for
+    // TitleScreen.Display()'s own tune loop right after this returns)
+    // pushed the object table past its 255-slot ceiling almost
+    // immediately after the intro finished, confirmed live in VICE
+    // (crashes back to BASIC's READY. prompt) even with zero player
+    // input -- see TitleScreen.Display()'s own comment on this.
+    public static void Play(TitleScreen.Tone[] tones)
     {
         Screen.Clear(Colors.Grey2);
 
@@ -54,27 +80,52 @@ class IntroScroll
         s_player.Init();
         s_wall = new Wall();
 
-        s_oldChar = NewRowBuffers();
-        s_oldColor = NewRowBuffers();
-        s_newChar = NewRowBuffers();
-        s_newColor = NewRowBuffers();
+        s_bufAChar = NewRowBuffers();
+        s_bufAColor = NewRowBuffers();
+        s_bufBChar = NewRowBuffers();
+        s_bufBColor = NewRowBuffers();
+        s_currentChar = s_bufAChar;
+        s_currentColor = s_bufAColor;
+        s_nextChar = s_bufBChar;
+        s_nextColor = s_bufBColor;
+        // One-time initial snapshot of the blank starting screen -- every
+        // later "current" is carried over from the previous level's
+        // reveal via the buffer swap at the end of ScrollToLevel instead.
+        SnapshotScreen(s_currentChar, s_currentColor);
+
+        s_tones = tones;
+        s_toneIndex = 0;
+        s_toneElapsed = 0;
+        // TickMusic only plays a note once it advances past the current
+        // one's Sustain -- play the very first note immediately instead
+        // of leaving the intro's opening silent until then.
+        C64.Sound.PlayEffectReg1(WaveForm.Saw, s_tones[0].Frequency, 0, 9, 0, false);
 
         var levels = LevelDescription.Levels;
         // Matches the original's Screen_IntroScrollSelect level picks (9, 8, 0)
         // exactly -- currentLevel is used identically as a direct 0-based
         // index into the level table in both codebases.
-        ScrollToLevel(levels[9], false);
-        ScrollToLevel(levels[8], false);
-        ScrollToLevel(levels[0], true);
+        ScrollToLevel(levels[9]);
+        ScrollToLevel(levels[8]);
+        ScrollToLevel(levels[0]);
+
+        // Matches the original's Quasi_IntroJumpLeft: once all three levels
+        // have scrolled by, the player turns to face left for one last
+        // jump-away flourish over the now-static final level, instead of
+        // just stopping -- a few more ticks here so it's actually visible,
+        // not an instant flip.
+        s_player.TurnLeft();
+        for (uint step = 0; step < 24; step++)
+        {
+            for (uint k = 0; k < 8; k++)
+                s_player.Move();
+            TickMusic();
+            Delay.Wait(2);
+        }
     }
 
-    private static void ScrollToLevel(LevelDescription description, bool isFinalLevel)
+    private static void ScrollToLevel(LevelDescription description)
     {
-        if (isFinalLevel)
-            s_player.StartJumping();
-
-        SnapshotScreen(s_oldChar, s_oldColor);
-
         // Blanks the physical display for the whole prepare phase below.
         // Drawing the new level, reading it back, and restoring the old one
         // all take enough real 6502 cycles that the VIC-II -- which keeps
@@ -98,11 +149,11 @@ class IntroScroll
         Screen.Clear(Colors.Grey2);
 
         s_wall.Draw(description.Color, description.WallType);
-        SnapshotScreen(s_newChar, s_newColor);
+        SnapshotScreen(s_nextChar, s_nextColor);
 
         for (uint y = 0; y < Rows; y++)
             for (uint x = 0; x < Cols; x++)
-                C64.SetChar(x, y, s_oldChar[y][x], (Colors)s_oldColor[y][x]);
+                C64.SetChar(x, y, s_currentChar[y][x], (Colors)s_currentColor[y][x]);
 
         // Back on now that the live screen genuinely shows only the old
         // level again -- everything from here on is the real, intended
@@ -121,21 +172,51 @@ class IntroScroll
                 ShiftRowLeft(screenRow);
                 ShiftRowLeft(colorRow);
 
-                C64.SetChar(Cols - 1, y, s_newChar[y][step], (Colors)s_newColor[y][step]);
+                C64.SetChar(Cols - 1, y, s_nextChar[y][step], (Colors)s_nextColor[y][step]);
 
                 screenRow += Cols;
                 colorRow += Cols;
             }
 
-            // Ticks the player's own climb/walk/jump cycle (see
-            // IntroPlayer.cs) -- several ticks per scroll step so it
-            // visibly gets through each phase across the intro's duration,
-            // rather than barely twitching once.
+            // Ticks the player's own jump-bounce cycle (see IntroPlayer.cs)
+            // -- several ticks per scroll step so it plays out at a
+            // reasonable pace across the intro's duration, rather than
+            // barely twitching once.
             for (uint k = 0; k < 8; k++)
                 s_player.Move();
 
+            TickMusic();
             Delay.Wait(2);
         }
+
+        // The live screen now shows exactly what s_nextChar/Color holds --
+        // swap references (cheap: just 4 pointers) so the next
+        // ScrollToLevel call's "current" is this without re-reading it.
+        var swapChar = s_currentChar;
+        s_currentChar = s_nextChar;
+        s_nextChar = swapChar;
+        var swapColor = s_currentColor;
+        s_currentColor = s_nextColor;
+        s_nextColor = swapColor;
+    }
+
+    // Plays through TitleScreen's own tune (TitleScreen.GetTones()), one
+    // scroll step at a time, holding each note for its own Sustain value
+    // (same field TitleScreen.Display()'s later loop uses) before
+    // advancing -- fixes an earlier version that advanced one note per
+    // scroll step unconditionally, which played the whole tune far faster
+    // than intended. Loops back to the start if the intro runs longer
+    // than the tune.
+    private static void TickMusic()
+    {
+        s_toneElapsed++;
+        if (s_toneElapsed < s_tones[s_toneIndex].Sustain)
+            return;
+        s_toneElapsed = 0;
+        s_toneIndex++;
+        if (s_toneIndex == s_tones.Length)
+            s_toneIndex = 0;
+        C64.Sound.PlayEffectReg1(WaveForm.Saw, s_tones[s_toneIndex].Frequency, 0, 9, 0, false);
     }
 
     // A flat uint[Rows*Cols] (1000 elements) silently corrupts past index
@@ -151,14 +232,10 @@ class IntroScroll
     // chars[y][x]/colors[y][x] double-index, deliberately never cached into
     // a reference-typed local reused across loop iterations (e.g. "var
     // charsRow = chars[y];" outside the inner loop) -- that pattern hit a
-    // second real, narrower compiler bug: the *last* value such a local
-    // is reassigned to inside a loop never gets its root-count decremented
-    // at method exit (every reassignment before the last one releases the
-    // previous value correctly). See
-    // Test/GCTest.cs's Reassigned_Ref_Local_In_Loop_Releases_Each_Previous_Value
-    // (confirmed failing on exactly the last iteration) and
-    // Jagged_Uint_Array_Fully_Collected (confirmed passing, since it only
-    // ever indexes directly) for how this was isolated.
+    // second, narrower compiler edge case (isolated, then found to be a
+    // false positive -- see Test/GCTest.cs's
+    // Reassigned_Ref_Local_In_Loop_Releases_Each_Previous_Value and its own
+    // comment), but every access here still avoids it regardless.
     //
     // Called exactly 4 times total, from Play() -- not once per level, see
     // the static fields' own comment for why.

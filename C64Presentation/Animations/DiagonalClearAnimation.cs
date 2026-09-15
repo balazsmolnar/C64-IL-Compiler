@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using C64Lib;
 using C64Presentation.Helper;
+using Screen = C64Presentation.Helper.Screen;
 
 namespace C64Presentation.Animations;
 

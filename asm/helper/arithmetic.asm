@@ -54,7 +54,95 @@ sub16 .macro
     #stack_push_var zp_param2_low
 .endm
 
-negate16 .macro 
+; The 6502 has no hardware multiply -- both of these are the standard
+; shift-and-add algorithm, unrolled into a counted loop. They only ever
+; produce the *truncated* low N bits of the product (8 bits for mul8, 16
+; for mul16), which is all this compiler's arithmetic ever keeps anyway
+; (see add8/sub8 above discarding carry the same way). Truncated
+; multiplication is bit-identical for signed and unsigned operands (it's
+; modular arithmetic mod 2^N either way), so one implementation serves
+; both int and uint -- no _unsigned variant needed, unlike the compares.
+mul8 .macro
+    #stack_pull_int zp_param1_low  ; one operand, shifted right a bit at a time
+    #stack_pull_int_a
+    sta zp_param2_low              ; other operand, doubled a bit at a time
+    lda #0                         ; running product
+    ldx #8
+-   lsr zp_param1_low
+    bcc +
+    clc
+    adc zp_param2_low
++   asl zp_param2_low
+    dex
+    bne -
+    #stack_push_int_a
+.endm
+
+; Needs a genuine third register pair for the accumulator: zp_param1 and
+; zp_param2 both stay busy all the way through the loop (one shifting
+; right for the next bit, one doubling for the next partial product), so
+; unlike mul8 the running total can't just live in A. zp_param0 isn't
+; used anywhere else in arithmetic.asm -- see zeropage.asm's ownership
+; comment for this macro's entry there.
+mul16 .macro
+    #stack_pull_int zp_param1_low
+    #stack_pull_int zp_param1_high
+    #stack_pull_int zp_param2_low
+    #stack_pull_int zp_param2_high
+
+    lda #0
+    sta zp_param0_low
+    sta zp_param0_high
+    ldx #16
+-   lsr zp_param1_high
+    ror zp_param1_low
+    bcc +
+    lda zp_param0_low
+    clc
+    adc zp_param2_low
+    sta zp_param0_low
+    lda zp_param0_high
+    adc zp_param2_high
+    sta zp_param0_high
++   asl zp_param2_low
+    rol zp_param2_high
+    dex
+    bne -
+
+    lda zp_param0_high
+    #stack_push_int_a
+    #stack_push_var zp_param0_low
+.endm
+
+; Compile-time-constant multiply by a power of two (ILMethodMulConstOptimizer
+; only ever emits shift=0/1/2, for x*1/x*2/x*4), as a fixed, unrolled shift
+; with no runtime loop at all -- unlike #shift_left, whose count is a
+; runtime stack value it has to loop on.
+mul_shift_const8 .macro shift
+    #stack_pull_int_a
+    .if \shift > 0
+    .rept \shift
+        asl
+    .next
+    .endif
+    #stack_push_int_a
+.endm
+
+mul_shift_const16 .macro shift
+    #stack_pull_int zp_param1_low
+    #stack_pull_int zp_param1_high
+    .if \shift > 0
+    .rept \shift
+        asl zp_param1_low
+        rol zp_param1_high
+    .next
+    .endif
+    lda zp_param1_high
+    #stack_push_int_a
+    #stack_push_var zp_param1_low
+.endm
+
+negate16 .macro
 
     #stack_pull_int zp_param2_low
 

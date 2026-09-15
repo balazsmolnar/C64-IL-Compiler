@@ -68,6 +68,59 @@ public class Arithmetic16Tests
         return a - b;
     }
 
+    // Kept well inside 16-bit range -- this compiler's storage is only
+    // ever 2 bytes wide (see add16/sub16), so unlike real .NET long the
+    // product truncates mod 65536 past that, same as every other 16-bit
+    // op here already does.
+    [TestCase(5, 4, ExpectedResult = 20)]
+    [TestCase(100, 0, ExpectedResult = 0)]
+    [TestCase(200, 150, ExpectedResult = 30000)]
+    [TestCase(-200, 150, ExpectedResult = -30000)]
+    [TestCase(-200, -150, ExpectedResult = 30000)]
+    public long TestMul(long a, long b)
+    {
+        return a * b;
+    }
+
+    [TestCase(5UL, 4UL, ExpectedResult = 20)]
+    [TestCase(200UL, 300UL, ExpectedResult = 60000)]
+    public ulong TestMul_ulong(ulong a, ulong b)
+    {
+        return a * b;
+    }
+
+    // Not a power of two -- exercises the general shift-and-add #mul16.
+    [TestCase(300, ExpectedResult = 900)]
+    [TestCase(-300, ExpectedResult = -900)]
+    public long TestMul_Const3(long a)
+    {
+        return a * 3L;
+    }
+
+    // 1/2/4 -- each of these should compile to
+    // ILMethodMulConstOptimizer's #mul_shift_const16 (0/1/2 asl/rol's)
+    // instead of the general #mul16 loop.
+    [TestCase(300, ExpectedResult = 300)]
+    [TestCase(-300, ExpectedResult = -300)]
+    public long TestMul_Const1(long a)
+    {
+        return a * 1L;
+    }
+
+    [TestCase(300, ExpectedResult = 600)]
+    [TestCase(-300, ExpectedResult = -600)]
+    public long TestMul_Const2(long a)
+    {
+        return a * 2L;
+    }
+
+    [TestCase(300, ExpectedResult = 1200)]
+    [TestCase(-300, ExpectedResult = -1200)]
+    public long TestMul_Const4(long a)
+    {
+        return a * 4L;
+    }
+
     [TestCase(5, 4, ExpectedResult = false)]
     [TestCase(100, 100, ExpectedResult = true)]
     [TestCase(10000, 10000, ExpectedResult = true)]

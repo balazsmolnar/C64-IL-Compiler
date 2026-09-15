@@ -75,6 +75,7 @@ class Program
                         new ILMethodBranchIfNotEqualOptimizer(),
                         new ILMethodCompareConstOptimizer(),
                         new ILMethodBranchConstOptimizer(),
+                        new ILMethodMulConstOptimizer(),
                     },
                     new ICompilerMethodPass[] {
                         new ILMethodEmitPass(),

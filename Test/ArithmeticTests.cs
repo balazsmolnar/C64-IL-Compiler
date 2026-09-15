@@ -115,6 +115,56 @@ public class ArithmeticTests
         return a - b;
     }
 
+    [TestCase(5, 4, ExpectedResult = 20)]
+    [TestCase(10, 0, ExpectedResult = 0)]
+    [TestCase(6, 6, ExpectedResult = 36)]
+    [TestCase(-5, 4, ExpectedResult = -20)]
+    [TestCase(-5, -4, ExpectedResult = 20)]
+    public int TestMul(int a, int b)
+    {
+        return a * b;
+    }
+
+    [TestCase(5u, 4u, ExpectedResult = 20)]
+    [TestCase(10u, 0u, ExpectedResult = 0)]
+    [TestCase(15u, 15u, ExpectedResult = 225)]
+    public uint TestMul_uint(uint a, uint b)
+    {
+        return a * b;
+    }
+
+    // Not a power of two -- exercises the general shift-and-add #mul8,
+    // not ILMethodMulConstOptimizer's #mul_shift_const8.
+    [TestCase(5, ExpectedResult = 15)]
+    [TestCase(-5, ExpectedResult = -15)]
+    public int TestMul_Const3(int a)
+    {
+        return a * 3;
+    }
+
+    // 1/2/4 -- each of these should compile to ILMethodMulConstOptimizer's
+    // #mul_shift_const8 (0/1/2 asl's) instead of the general #mul8 loop.
+    [TestCase(5, ExpectedResult = 5)]
+    [TestCase(-5, ExpectedResult = -5)]
+    public int TestMul_Const1(int a)
+    {
+        return a * 1;
+    }
+
+    [TestCase(5, ExpectedResult = 10)]
+    [TestCase(-5, ExpectedResult = -10)]
+    public int TestMul_Const2(int a)
+    {
+        return a * 2;
+    }
+
+    [TestCase(5, ExpectedResult = 20)]
+    [TestCase(-5, ExpectedResult = -20)]
+    public int TestMul_Const4(int a)
+    {
+        return a * 4;
+    }
+
     [TestCase(1, ExpectedResult = 8)]
     [TestCase(2, ExpectedResult = 16)]
     public int TestShiftLeft3(int a)

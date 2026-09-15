@@ -96,6 +96,13 @@ heap_tmp_pointer = $28          ; resolveObjPtr's output pointer (asm/helper/obj
 ;   - 8-bit branch compares (asm/helper/branch.asm branch_equal8 and
 ;     friends): the "other" operand -- $30 only, single byte, $31 unused
 ;     by these.
+;   - 16-bit multiply (asm/helper/arithmetic.asm mul16): running product
+;     accumulator, both bytes -- needed because mul16's other two operand
+;     registers (zp_param1/zp_param2) both stay live for the whole loop,
+;     unlike mul8 which can keep its accumulator in A alone. mul16 is a
+;     leaf macro (calls nothing that also touches $30/$31), so this is
+;     the same "sequential reuse, not concurrent" reasoning as the GC
+;     entries below, not an actual conflict with any of the above.
 zp_param0_low = $30
 zp_param0_high = $31
 

@@ -89,6 +89,7 @@ internal static class CommandMap
             { ILOpCode.Brfalse, new OpLongJump("#branch_false", JumpType.Conditional) },
             { ILOpCode.Nop, new OpBase(0, "; nop") },
             { ILOpCode.Add, new OpArithmetic2("#add") },
+            { ILOpCode.Mul, new OpArithmetic2("#mul") },
             { ILOpCode.Shl, new OpArithmetic2("#shift_left") },
             { ILOpCode.Shr, new OpArithmetic2("#shift_right") },
             { ILOpCode.Shr_un, new OpArithmetic2("#shift_right") },

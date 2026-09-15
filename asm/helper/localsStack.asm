@@ -134,3 +134,37 @@ locals_pull_value16 .macro rel_pos
   #stack_pull_int_a
   sta localsStack-\rel_pos+1,y
 .endm
+
+; float locals -- rel_pos+0 through rel_pos+4 hold MFLPT byte[4] through
+; byte[0] respectively (generalizing the 16-bit convention above, where
+; rel_pos+0 is the "low"/last-pushed byte and rel_pos+1 is "high"/
+; first-pushed, out to 5 bytes: rel_pos+4 plays "high" here). No ref
+; parameter -- float is a value type, never GC-tracked, same as
+; locals_push_value16/locals_pull_value16 above.
+locals_push_valueflt .macro rel_pos
+  ldy stackPointer
+  lda localsStack-\rel_pos+4,y
+  #stack_push_int_a
+  lda localsStack-\rel_pos+3,y
+  #stack_push_int_a
+  lda localsStack-\rel_pos+2,y
+  #stack_push_int_a
+  lda localsStack-\rel_pos+1,y
+  #stack_push_int_a
+  lda localsStack-\rel_pos,y
+  #stack_push_int_a
+.endm
+
+locals_pull_valueflt .macro rel_pos
+  ldy stackPointer
+  #stack_pull_int_a
+  sta localsStack-\rel_pos,y
+  #stack_pull_int_a
+  sta localsStack-\rel_pos+1,y
+  #stack_pull_int_a
+  sta localsStack-\rel_pos+2,y
+  #stack_pull_int_a
+  sta localsStack-\rel_pos+3,y
+  #stack_pull_int_a
+  sta localsStack-\rel_pos+4,y
+.endm

@@ -22,6 +22,11 @@ static class TypeExtension
     {
         if (type == typeof(string) || type == typeof(long) || type == typeof(ulong))
             return 2;
+        // Native C64 MFLPT format (see Compiler/Mflpt.cs), not IEEE754's 4 --
+        // storing float this way lets runtime arithmetic hand values
+        // straight to the BASIC ROM's float routines with no conversion.
+        if (type == typeof(float))
+            return 5;
         return 1;
     }
 

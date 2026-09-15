@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <!--
+    Tests SimpleEmulator's own 6502 CPU/memory-banking behavior directly,
+    with hand-assembled machine code: not compiled C# (that's what
+    Test/Compiler.Test.csproj is for) and not host-side C# logic (that's
+    Compiler.UnitTests). This is the right place for "does ROM banking
+    actually work" and "does calling this specific BASIC ROM routine
+    produce the right result" style tests, since those are questions about
+    the emulator/ROM itself, independent of anything this compiler ever
+    generates.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\SimpleEmulator\SimpleEmulator.csproj" />
+    <!-- Only for Compiler.Mflpt (IEEE754/MFLPT conversion), to build test
+         operands for the BASIC ROM float routines in real MFLPT bytes. -->
+    <ProjectReference Include="..\Compiler\Compiler.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NUnit" Version="3.12.0" />
+    <PackageReference Include="NUnit3TestAdapter" Version="3.16.1" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.5.0" />
+  </ItemGroup>
+
+</Project>

@@ -11,7 +11,22 @@ namespace SimpleEmulator
 {
     public class Emulator
     {
+        // The one true copy of RAM -- always 64K, always reflects the last
+        // write to any address regardless of what's currently banked in for
+        // reads (exactly like real C64 hardware: ROM only ever hides RAM
+        // from reads, ROM and RAM never share storage, and a write to a
+        // ROM-shadowed address always lands in the RAM underneath it).
         private byte[] memory = new byte[64 * 1024];
+        // BASIC ($a000-$bfff) and KERNAL ($e000-$ffff) ROM images, loaded
+        // once in LoadRom -- kept separate from `memory` so banking BASIC
+        // ROM out and back in can never lose or corrupt either the RAM or
+        // the ROM content underneath/behind it (the previous model wrote
+        // ROM bytes directly into `memory`, so any write to $a000-$bfff
+        // while banked out permanently clobbered the ROM image, and reads
+        // never checked banking at all -- $a000-$bfff/$e000-$ffff always
+        // read as ROM no matter what was written to $01).
+        private byte[] basicRom = new byte[0x2000];
+        private byte[] kernalRom = new byte[0x2000];
         private Registers registers = new Registers();
         private int pointer = 0;
         private byte sp = 255;
@@ -22,14 +37,14 @@ namespace SimpleEmulator
         }
         private void Push(byte value)
         {
-            memory[0x100 + sp] = value;
+            SetMemory(0x100 + sp, value);
             sp--;
         }
 
         private byte Pull()
         {
             sp++;
-            return memory[0x100 + sp];
+            return ReadByte(0x100 + sp);
         }
 
         private int GetAddress(AddressingMode mode, byte byte1, byte byte2)
@@ -38,18 +53,29 @@ namespace SimpleEmulator
             {
                 case AddressingMode.IndexedIndirectX:
                     {
-
-                        int addr = byte1 + registers.X;
-                        return memory[addr] + 256 * memory[addr + 1];
+                        // Real 6502: both the (byte1+X) pointer lookup and the
+                        // hi-byte fetch stay within the zero page -- if
+                        // byte1+X or the pointer itself is $FF, the wrap goes
+                        // to $00, never spilling into page 1. Previously
+                        // unmasked, so e.g. base=$29,X=$FD (byte1+X=$126)
+                        // read/wrote real RAM at $126 instead of wrapping to
+                        // zero page $26 -- found via BASIC ROM's FDIV, whose
+                        // internal division loop stores its computed quotient
+                        // bytes at a zero-page address computed exactly this
+                        // way (X counts down from a negative offset), so the
+                        // quotient silently landed outside the zero page and
+                        // the routine read back stale zeros in its place.
+                        int addr = (byte1 + registers.X) & 0xFF;
+                        return ReadByte(addr) + 256 * ReadByte((addr + 1) & 0xFF);
                     }
                 case AddressingMode.IndirectIndexedY:
                     {
-                        byte b1 = memory[byte1];
-                        byte b2 = memory[byte1 + 1];
+                        byte b1 = ReadByte(byte1);
+                        byte b2 = ReadByte((byte1 + 1) & 0xFF);
                         return GetAddress(AddressingMode.AbsoluteY, b1, b2);
                     }
                 case AddressingMode.Indirect:
-                    return GetAddress(AddressingMode.Absolute, memory[byte1 + byte2 * 256], memory[byte1 + byte2 * 256 + 1]);
+                    return GetAddress(AddressingMode.Absolute, ReadByte(byte1 + byte2 * 256), ReadByte(byte1 + byte2 * 256 + 1));
                 case AddressingMode.Absolute:
                     return byte1 + byte2 * 256;
                 case AddressingMode.AbsoluteX:
@@ -59,9 +85,15 @@ namespace SimpleEmulator
                 case AddressingMode.ZeroPage:
                     return byte1;
                 case AddressingMode.ZeroPageX:
-                    return byte1 + registers.X;
+                    // Real 6502 zero-page,X always wraps within page 0 (the
+                    // 8-bit addition's carry is discarded) -- previously
+                    // unmasked here, so a base+X past 255 silently addressed
+                    // real RAM/ROM at $100+ instead of wrapping back into the
+                    // zero page. See IndexedIndirectX above for how this was
+                    // actually found (BASIC ROM's FDIV).
+                    return (byte1 + registers.X) & 0xFF;
                 case AddressingMode.ZeroPageY:
-                    return byte1 + registers.Y;
+                    return (byte1 + registers.Y) & 0xFF;
                 case AddressingMode.Implied:
                 case AddressingMode.Relative:
                 case AddressingMode.Accumulator:
@@ -106,22 +138,53 @@ namespace SimpleEmulator
 
             //if (GetAddress(mode, byte1, byte2) == 0xd012)
             //    memory[0xd012] = IncByte(memory[0xd012]);
-            return memory[GetAddress(mode, byte1, byte2)];
+            return ReadByte(GetAddress(mode, byte1, byte2));
         }
 
-        // Tracks the CPU I/O port ($01) LORAM bit: bit0=0 banks out BASIC
-        // ROM ($a000-$bfff becomes real RAM). Starts true (LORAM=1, the
-        // KERNAL-default power-on state), matching real hardware/VICE
-        // before any program writes to $01.
+        // Tracks the CPU I/O port ($01) LORAM/HIRAM bits: LORAM=0 banks out
+        // BASIC ROM ($a000-$bfff reads as RAM), HIRAM=0 banks out KERNAL ROM
+        // ($e000-$ffff reads as RAM). Both start true (the KERNAL-default
+        // power-on state, $01=$37), matching real hardware/VICE before any
+        // program writes to $01. CHAREN (I/O vs character ROM at
+        // $d000-$dfff) isn't modeled -- this emulator has no memory-mapped
+        // I/O chips or character ROM to bank in the first place, and this
+        // project's own code never sets CHAREN to anything but 1 anyway.
         private bool basicRomMapped = true;
+        private bool kernalRomMapped = true;
 
+        // The only place ROM banking actually matters: reads of $a000-$bfff/
+        // $e000-$ffff return the corresponding ROM image's bytes while
+        // mapped in, and fall through to RAM otherwise -- everywhere else
+        // (zero page, the stack, ordinary RAM) is untouched by banking.
+        // Every instruction-fetch and operand read in Step()/GetAddress/
+        // GetValue goes through this (not direct `memory[...]` indexing),
+        // so this is a real, general banking model a test can exercise
+        // through arbitrary compiled code, not a special case for one call.
+        private byte ReadByte(int address)
+        {
+            if (basicRomMapped && address >= 0xa000 && address < 0xc000)
+                return basicRom[address - 0xa000];
+            if (kernalRomMapped && address >= 0xe000 && address <= 0xffff)
+                return kernalRom[address - 0xe000];
+            return memory[address];
+        }
+
+        // Writes always land in RAM, regardless of what's currently banked
+        // in for reads -- exactly real hardware's behavior (and the reason
+        // "hide data under ROM" is a real, common C64 technique). The
+        // previous version instead silently DISCARDED writes to
+        // $a000-$bfff while BASIC ROM was mapped in (and unconditionally
+        // discarded every write above $e000, with no HIRAM check at all) --
+        // plausible-looking but not what real hardware does, and unable to
+        // model "this write should still work, the caller just can't see
+        // its own ROM-shadowed write to RAM until banking it out again."
         private void SetMemory(int address, byte value)
         {
             if (address == 0x01)
+            {
                 basicRomMapped = (value & 0x01) != 0;
-
-            if ((basicRomMapped && address >= 0xa000 && address < 0xc000) || address > 0xe000)
-                return;
+                kernalRomMapped = (value & 0x02) != 0;
+            }
 
             memory[address] = value;
         }
@@ -145,10 +208,19 @@ namespace SimpleEmulator
         private void Compare(byte value, AddressingMode mode, byte byte1, byte byte2)
         {
             int uresult = value - GetValue(mode, byte1, byte2);
-            int sresult = (sbyte) value - (sbyte) GetValue(mode, byte1, byte2);
             registers.Z = uresult == 0;
             registers.C = uresult >= 0;
-            registers.N = sresult < 0;
+            // Real 6502 CMP/CPX/CPY sets N from bit 7 of the truncated 8-bit
+            // subtraction result (value - operand, mod 256), not from a
+            // signed-vs-signed comparison -- those diverge whenever the two
+            // operands' sign bits differ from the result's, e.g. $80 vs $01:
+            // real hardware computes $80-$01=$7F (N=0), but (sbyte)$80 -
+            // (sbyte)$01 = -128-1 = -129 (out of sbyte range entirely, reads
+            // as "negative" -> N=1 here previously). uresult & 0xFF gives the
+            // correct truncated result regardless of how far uresult strayed
+            // outside [-128,127] -- C#'s int is two's complement, so bitwise
+            // AND on a negative uresult already yields the right low byte.
+            registers.N = (uresult & 0x80) != 0;
         }
 
         private byte IncByte(byte value)
@@ -188,9 +260,9 @@ namespace SimpleEmulator
         private bool Step()
         {
             Interrupt();
-            var instruction = AssemblyInstructions.GetInstruction(memory[pointer]);
-            var b1 = memory[pointer + 1];
-            var b2 = memory[pointer + 2];
+            var instruction = AssemblyInstructions.GetInstruction(ReadByte(pointer));
+            var b1 = ReadByte(pointer + 1);
+            var b2 = ReadByte(pointer + 2);
 
             var intructionType = instruction.InstructionType;
             var mode = instruction.AddressingMode;
@@ -388,10 +460,17 @@ namespace SimpleEmulator
                         if (mode == AddressingMode.Accumulator)
                             registers.A = value;
                         else
-                        {
                             SetMemory(GetAddress(mode, b1, b2), value);
-                            registers.SetZN(value);
-                        }
+                        // On real 6502 hardware, ASL/LSR/ROL/ROR always update N/Z
+                        // regardless of addressing mode -- this used to only call
+                        // SetZN in the memory-operand branch, silently leaving N/Z
+                        // stale after "ASL A"/"ROL A"/etc, which breaks any BMI/BPL/
+                        // BEQ/BNE that follows one (found via a real C64 BASIC ROM
+                        // routine, FDIV, whose internal long-division loop shifts the
+                        // accumulator and branches on the result -- it was landing on
+                        // the wrong branch and silently producing a zeroed FAC1
+                        // instead of the actual quotient).
+                        registers.SetZN(value);
                         break;
                     }
                 case AssemblyInstructionType.LSR:
@@ -402,45 +481,35 @@ namespace SimpleEmulator
                         if (mode == AddressingMode.Accumulator)
                             registers.A = value;
                         else
-                        {
                             SetMemory(GetAddress(mode, b1, b2), value);
-                            registers.SetZN(value);
-                        }
+                        registers.SetZN(value);
                         break;
                     }
                 case AssemblyInstructionType.ROL:
                     {
-                        {
-                            byte value = GetValue(mode, b1, b2);
-                            bool c = (value & 0x80) > 0;
-                            value = (byte)((value << 1) + (registers.C ? 1 : 0));
-                            registers.C = c;
-                            if (mode == AddressingMode.Accumulator)
-                                registers.A = value;
-                            else
-                            {
-                                SetMemory(GetAddress(mode, b1, b2), value);
-                                registers.SetZN(value);
-                            }
-                            break;
-                        }
+                        byte value = GetValue(mode, b1, b2);
+                        bool c = (value & 0x80) > 0;
+                        value = (byte)((value << 1) + (registers.C ? 1 : 0));
+                        registers.C = c;
+                        if (mode == AddressingMode.Accumulator)
+                            registers.A = value;
+                        else
+                            SetMemory(GetAddress(mode, b1, b2), value);
+                        registers.SetZN(value);
+                        break;
                     }
                 case AssemblyInstructionType.ROR:
                     {
-                        {
-                            byte value = GetValue(mode, b1, b2);
-                            bool c = (value & 0x01) > 0;
-                            value = (byte)((value >> 1) + (registers.C ? 0x80 : 0));
-                            registers.C = c;
-                            if (mode == AddressingMode.Accumulator)
-                                registers.A = value;
-                            else
-                            {
-                                SetMemory(GetAddress(mode, b1, b2), value);
-                                registers.SetZN(value);
-                            }
-                            break;
-                        }
+                        byte value = GetValue(mode, b1, b2);
+                        bool c = (value & 0x01) > 0;
+                        value = (byte)((value >> 1) + (registers.C ? 0x80 : 0));
+                        registers.C = c;
+                        if (mode == AddressingMode.Accumulator)
+                            registers.A = value;
+                        else
+                            SetMemory(GetAddress(mode, b1, b2), value);
+                        registers.SetZN(value);
+                        break;
                     }
                 case AssemblyInstructionType.BIT:
                     {
@@ -493,35 +562,61 @@ namespace SimpleEmulator
                 }
             }
 
-            var basic_address = 0xA000;
-            var kernal_address = 0xE000;
-
             for (int i = 0; i < 0x2000; i++)
             {
-                memory[basic_address + i] = content[i];
-                memory[kernal_address + i] = content[i + 0x2000];
+                basicRom[i] = content[i];
+                kernalRom[i] = content[i + 0x2000];
             }
-            // Start(memory[basic_address] + memory[basic_address + 1] * 256);
+            // Start(basicRom[0] + basicRom[1] * 256);
             // Start(0xFCE2);
         }
 
+        // Routed through the same banking-aware SetMemory(int, byte) used
+        // internally -- lets a test poke $01 directly and have it actually
+        // take effect, e.g. to set up a specific banking state before
+        // checking GetMemory's result.
         public void SetMemory(int address, params byte[] code)
         {
             for (int i = 0; i < code.Length; i++)
             {
-                memory[address + i] = code[i];
+                SetMemory(address + i, code[i]);
             }
         }
 
+        // Banking-aware: reads $a000-$bfff/$e000-$ffff as ROM or RAM
+        // depending on the last write to $01, exactly like a real read at
+        // that address would see. Use this (not some other means) to
+        // confirm banking is actually working -- e.g. GetMemory(0xa000)
+        // should differ before and after toggling LORAM.
         public byte GetMemory(int address)
         {
-            return memory[address];
+            return ReadByte(address);
         }
 
         public void Start(int address)
         {
             pointer = address;
             while (Step()) ;
+        }
+
+        // Same as Start, but calls back before every instruction with the
+        // current PC and step count (and stops after maxSteps if the
+        // program never halts on its own) -- for diagnosing a specific
+        // failing run (tracing where execution goes, catching an exception
+        // with the PC it happened at) without needing a debugger attached.
+        public void Start(int address, long maxSteps, Action<int, long> onStep)
+        {
+            pointer = address;
+            long steps = 0;
+            while (true)
+            {
+                onStep(pointer, steps);
+                if (!Step())
+                    break;
+                steps++;
+                if (steps >= maxSteps)
+                    break;
+            }
         }
     }
 }

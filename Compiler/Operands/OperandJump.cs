@@ -39,6 +39,17 @@ class OpJump : OpBase
         return operation.PreviousInstructions[0].StackContent.Last().GetStorageBytes() == 2;
     }
 
+    // Roslyn can fuse a simple "if (a < b)" straight into Blt/Beq/etc.
+    // (skipping a separate Clt/Ceq + Brtrue) for float exactly like it
+    // already does for int -- these macros need their own float-aware
+    // compare-and-branch (asm/helper/float.asm), not the 8/16-bit family.
+    protected override string SizeSuffix(CompilerMethodContext context, ILOperation operation)
+    {
+        if (_jumpType == JumpType.Compare && operation.PreviousInstructions[0].StackContent.Last() == typeof(float))
+            return "flt";
+        return base.SizeSuffix(context, operation);
+    }
+
     public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
     {
         switch (_jumpType)

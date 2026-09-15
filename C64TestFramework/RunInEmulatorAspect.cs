@@ -42,6 +42,25 @@ public class RunInEmulatorAspect : MethodInterceptionAspect
             if (type == typeof(ulong))
                 args.ReturnValue = (ulong)BitConverter.ToUInt16(new[]
                     { emulator.GetMemory(RETURN_VALUE_ADDRESS), emulator.GetMemory(RETURN_VALUE_ADDRESS+1) });
+            if (type == typeof(float))
+            {
+                // The 5 bytes were PULLED off the emulated stack (top/last-
+                // pushed byte first, see asm/helper/stack.asm's
+                // stack_pull_mflpt and Compiler/Templates/UnitTestEntry.asm's
+                // endtest), so they land here in REVERSE of Mflpt's own
+                // byte[0..4] order -- same reversal long/ulong's
+                // low-then-high capture above already relies on, just for
+                // 5 bytes instead of 2.
+                var mflpt = new[]
+                {
+                    emulator.GetMemory(RETURN_VALUE_ADDRESS + 4),
+                    emulator.GetMemory(RETURN_VALUE_ADDRESS + 3),
+                    emulator.GetMemory(RETURN_VALUE_ADDRESS + 2),
+                    emulator.GetMemory(RETURN_VALUE_ADDRESS + 1),
+                    emulator.GetMemory(RETURN_VALUE_ADDRESS),
+                };
+                args.ReturnValue = Compiler.Mflpt.FromBytes(mflpt);
+            }
         }
     }
 
@@ -76,6 +95,18 @@ public class RunInEmulatorAspect : MethodInterceptionAspect
                 var bytes = BitConverter.GetBytes((ushort)(ulong)args.Arguments[i]);
                 emulator.SetMemory(pointer++, bytes[1]);
                 emulator.SetMemory(pointer++, bytes[0]);
+            }
+
+            if (args.Arguments[i] is float)
+            {
+                // Natural Mflpt byte[0..4] order -- matches how
+                // #locals_push_valueflt/stack_push_var_mflpt push a float
+                // (byte[0] first ... byte[4] last), the same "wide type
+                // pushed high/first-byte-first" convention long/ulong's
+                // bytes[1]-then-bytes[0] write above already follows.
+                var mflpt = Compiler.Mflpt.ToBytes((float)args.Arguments[i]);
+                foreach (var b in mflpt)
+                    emulator.SetMemory(pointer++, b);
             }
         }
 

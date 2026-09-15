@@ -20,6 +20,12 @@ public class TestObjectWithLong
     public int Extra;
 }
 
+public class TestObjectWithFloat
+{
+    public int Id;
+    public float Value;
+}
+
 [TestFixture]
 public class GCTest
 {
@@ -340,5 +346,66 @@ public class GCTest
             var row = outer[i];
             row[0] = i;
         }
+    }
+
+    // float[] is still a reference-counted heap object (only the float
+    // elements themselves are value types) -- this is the same
+    // allocate/root/drop/collect shape as Array_Root_in_Local_Var above,
+    // just with a 5-byte-per-element array instead of the usual 1-byte
+    // uint[]/object[] arrays every other GC test here uses.
+    [Test]
+    public void Float_Array_Collected_When_Dropped()
+    {
+        var arr = new float[3];
+        arr[0] = 1.5f;
+        var id = C64.Debug.GetObjectId(arr);
+        Assert.IsTrue(C64.Debug.IsAlive(id), "array should be alive while rooted");
+        arr = null;
+        GC.Collect();
+        Assert.IsFalse(C64.Debug.IsAlive(id), "array should not be alive after drop");
+    }
+
+    [Test]
+    public void Float_Array_Element_Survives_Collect_Of_Unrelated_Object()
+    {
+        var arr = new float[2];
+        arr[0] = -3.5f;
+        arr[1] = 4.25f;
+        var arrId = C64.Debug.GetObjectId(arr);
+
+        var unrelated = new TestObject() { Id = 1 };
+        unrelated = null;
+        GC.Collect();
+
+        Assert.IsTrue(C64.Debug.IsAlive(arrId), "array should still be alive");
+        Assert.IsTrue(arr[0] == -3.5f, "arr[0] == -3.5f");
+        Assert.IsTrue(arr[1] == 4.25f, "arr[1] == 4.25f");
+    }
+
+    // Same shape as Mixed_Size_Objects_Survive_Compaction above, but with a
+    // 5-byte float field mixed in among the surviving objects -- makes sure
+    // sweepAndCompact's copy loop (driven by each object's own Size byte)
+    // handles a float field's width correctly, not just int/long ones.
+    [Test]
+    public void Object_With_Float_Field_Survives_Compaction()
+    {
+        var a = new TestObject() { Id = 1 };
+        var b = new TestObjectWithFloat() { Id = 2, Value = 3.5f };
+        var c = new TestObject() { Id = 3 };
+        var d = new TestObjectWithFloat() { Id = 4, Value = -2.25f };
+
+        var bId = C64.Debug.GetObjectId(b);
+        var dId = C64.Debug.GetObjectId(d);
+
+        a = null;
+        c = null;
+        GC.Collect();
+
+        Assert.IsTrue(C64.Debug.IsAlive(bId), "b should be alive");
+        Assert.IsTrue(C64.Debug.IsAlive(dId), "d should be alive");
+        Assert.AreEqual(b.Id, 2);
+        Assert.IsTrue(b.Value == 3.5f, "b.Value == 3.5f");
+        Assert.AreEqual(d.Id, 4);
+        Assert.IsTrue(d.Value == -2.25f, "d.Value == -2.25f");
     }
 }

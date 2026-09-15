@@ -8,6 +8,7 @@
 .include "./helper/optimized.asm"
 .include "./helper/memoryLayout.asm"
 .include "./helper/banking.asm"
+.include "./helper/floatBanking.asm"
 
 .include "./helper/8bit.asm"
 
@@ -38,6 +39,21 @@ Run_Test:
     pha
     lda #0               ; push this
     #stack_push_int_a
+    ; 4 bytes of padding, unrelated to and never touched by the called
+    ; method's own parameter/local addressing (that's entirely relative to
+    ; where its own declared parameters start, not to anything pushed
+    ; before "this") -- exists purely so endtest's return-value capture
+    ; below can always safely pull 5 bytes (float's width) regardless of
+    ; the actual test method's return type, without ever underflowing the
+    ; stack on a narrow-return, few/no-parameter test. Narrower return
+    ; types just end up with real data in the first 1-2 pulled bytes and
+    ; harmless padding in the rest, exactly like the pre-existing "always
+    ; pull 2 bytes even for a 1-byte return" behavior already relied on
+    ; below.
+    #stack_push_int_a
+    #stack_push_int_a
+    #stack_push_int_a
+    #stack_push_int_a
     ldx #0
     cpx $09e0            ; get number of function parameters
     beq +
@@ -54,10 +70,20 @@ Run_Test:
 endtest:
     lda #$00             ; 0 to status mem (succeeded)
     sta result
+    ; Always pulls 5 bytes (float's width) regardless of the actual return
+    ; type -- see the padding comment above for why this never underflows.
+    ; RunInEmulatorAspect.CopyResultFromEmulator only ever reads however
+    ; many of these 5 bytes its own reflected return type actually needs.
     #stack_pull_int_a
     sta zp_tmp5          ; copy method return value
     #stack_pull_int_a
     sta zp_tmp5+1        ; copy method return value
+    #stack_pull_int_a
+    sta zp_tmp5+2
+    #stack_pull_int_a
+    sta zp_tmp5+3
+    #stack_pull_int_a
+    sta zp_tmp5+4
 
     brk
 
@@ -72,6 +98,11 @@ endtest:
 ; reads this byte after the emulator has already halted, so whatever
 ; happened to it in between never matters.
 result = $20
+
+; Real subroutines (not macros), so must come after "* = $1000" above --
+; see ProgramEntry.asm's identical include for the full reasoning
+; (asm/helper/floatBanking.asm has the underlying "why").
+.include "./helper/float.asm"
 
 .include "./system.asm"
 .include "./GC.asm"

@@ -25,17 +25,20 @@ internal class OpBase
 
     public virtual string Emit(CompilerMethodContext context, ILOperation operation)
     {
-        var command = Command;
-        if (Is16BitSupported)
-        {
-            if (Is16Bit(context, operation))
-                command += "16";
-            else
-                command += "8";
-        }
+        var command = Command + SizeSuffix(context, operation);
         if (operation.RawParameter == null)
             return command;
         return $"{command} {operation.RawParameter}";
+    }
+
+    // Pulled out of Emit so a subclass (see OpArithmetic1/OpArithmetic2/
+    // OpCompare) can insert a float branch ahead of the existing binary
+    // 8-vs-16 one, without touching every other OpBase subclass's behavior.
+    protected virtual string SizeSuffix(CompilerMethodContext context, ILOperation operation)
+    {
+        if (!Is16BitSupported)
+            return "";
+        return Is16Bit(context, operation) ? "16" : "8";
     }
 
     public virtual object ConvertParameter(CompilerMethodContext context, ILOperation operation) => null;
@@ -247,6 +250,8 @@ class OpNewArr : OpBase
             command = "#newArr16";
         else if (!arrayType.IsValueType)
             command = "#newArrRef";
+        else if (arrayType == typeof(float))
+            command = "#newArrflt";
         else if (arrayType.GetStorageBytes() == 2)
             command = "#newArr16";
         else
@@ -281,6 +286,12 @@ class OpStfld : OpBase
         return operation.PreviousInstructions[0].StackContent.Last().GetStorageBytes() == 2;
     }
 
+    protected override string SizeSuffix(CompilerMethodContext context, ILOperation operation)
+    {
+        if (operation.PreviousInstructions[0].StackContent.Last() == typeof(float))
+            return "flt";
+        return base.SizeSuffix(context, operation);
+    }
 }
 
 class OpStElem : OpBase
@@ -304,6 +315,8 @@ class OpStElem : OpBase
             command = "#stelem16";
         else if (!arrayType.IsValueType)
             command = "#stelemRef";
+        else if (arrayType == typeof(float))
+            command = "#stelemflt";
         else if (arrayType.GetStorageBytes() == 2)
             command = "#stelem16";
         else
@@ -337,6 +350,8 @@ class OpLdElem : OpBase
             command = "#ldelem16";
         else if (!arrayType.IsValueType)
             command = "#ldelemRef";
+        else if (arrayType == typeof(float))
+            command = "#ldelemflt";
         else if (arrayType.GetStorageBytes() == 2)
             command = "#ldelem16";
         else
@@ -366,7 +381,9 @@ class OpLdLen : OpBase
         var arrayType = (Type)operation.RawParameter;
 
         string command;
-        if (arrayType.GetStorageBytes() == 2)
+        if (arrayType == typeof(float))
+            command = "#ldlenflt";
+        else if (arrayType.GetStorageBytes() == 2)
             command = "#ldlen16";
         else
             command = "#ldlen";
@@ -396,6 +413,13 @@ class OpLdfld : OpBase
     }
 
     public override bool Is16BitSupported => true;
+
+    protected override string SizeSuffix(CompilerMethodContext context, ILOperation operation)
+    {
+        if (operation.StackContent.Last() == typeof(float))
+            return "flt";
+        return base.SizeSuffix(context, operation);
+    }
 }
 
 class OpIncfld : OpBase
@@ -639,6 +663,37 @@ class OpLdc_i4_s : OpLdConst
     }
 }
 
+// Ldc_r4 (a float literal). Deliberately not an OpLdConst subclass -- that
+// base's SetStackContent always adds int/long, never float, and its
+// Is16BitSupported/Is16Bit machinery (8-vs-16 suffix) doesn't apply here at
+// all: the command name itself ("#stack_push_mflpt_const", a fixed macro
+// with no width variants) already fully encodes what this pushes.
+//
+// The IL payload for Ldc_r4 is 4 raw bytes, read generically by
+// ILMethodCodePass as a little-endian int (unchecked overflow reconstructs
+// the exact 32-bit pattern regardless of sign) -- reinterpreting those bits
+// as a float and converting to the C64's 5-byte MFLPT format (Mflpt.ToBytes)
+// happens once, here, at compile time, not in any hand-written 6502.
+class OpLdc_r4 : OpPushBase
+{
+    public OpLdc_r4() : base(4, "#stack_push_mflpt_const")
+    {
+    }
+
+    public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
+    {
+        operation.StackContent.Add(typeof(float));
+    }
+
+    public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
+    {
+        int bits = (int)operation.RawParameter;
+        float value = BitConverter.Int32BitsToSingle(bits);
+        var mflpt = Mflpt.ToBytes(value);
+        return string.Join(",", mflpt);
+    }
+}
+
 class OpLdloc : OpPushBase
 {
     public int VarIndex;
@@ -666,6 +721,12 @@ class OpLdloc : OpPushBase
         return context.GetLocalVariableType(VarIndex).GetStorageBytes() == 2;
     }
 
+    protected override string SizeSuffix(CompilerMethodContext context, ILOperation operation)
+    {
+        if (context.GetLocalVariableType(VarIndex) == typeof(float))
+            return "flt";
+        return base.SizeSuffix(context, operation);
+    }
 }
 
 class OpLdloc_s : OpPushBase
@@ -693,6 +754,12 @@ class OpLdloc_s : OpPushBase
         return context.GetLocalVariableType((int)operation.OriginalParameter).GetStorageBytes() == 2;
     }
 
+    protected override string SizeSuffix(CompilerMethodContext context, ILOperation operation)
+    {
+        if (context.GetLocalVariableType((int)operation.OriginalParameter) == typeof(float))
+            return "flt";
+        return base.SizeSuffix(context, operation);
+    }
 }
 
 class OpLdarg : OpPushBase
@@ -722,6 +789,12 @@ class OpLdarg : OpPushBase
         return context.GetParameterSize(_argIndex) == 2;
     }
 
+    protected override string SizeSuffix(CompilerMethodContext context, ILOperation operation)
+    {
+        if (context.GetParameterType(_argIndex) == typeof(float))
+            return "flt";
+        return base.SizeSuffix(context, operation);
+    }
 }
 
 class OpLdsld : OpPushBase
@@ -797,6 +870,13 @@ class OpStloc : OpBase
     {
         return context.GetLocalVariableType(VarIndex).GetStorageBytes() == 2;
     }
+
+    protected override string SizeSuffix(CompilerMethodContext context, ILOperation operation)
+    {
+        if (context.GetLocalVariableType(VarIndex) == typeof(float))
+            return "flt";
+        return base.SizeSuffix(context, operation);
+    }
 }
 
 class OpStsfld : OpBase
@@ -849,6 +929,12 @@ class OpStloc_s : OpBase
         return context.GetLocalVariableType((int)operation.OriginalParameter).GetStorageBytes() == 2;
     }
 
+    protected override string SizeSuffix(CompilerMethodContext context, ILOperation operation)
+    {
+        if (context.GetLocalVariableType((int)operation.OriginalParameter) == typeof(float))
+            return "flt";
+        return base.SizeSuffix(context, operation);
+    }
 }
 
 

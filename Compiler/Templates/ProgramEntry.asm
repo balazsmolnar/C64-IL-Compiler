@@ -10,6 +10,7 @@
 .include "./helper/optimized.asm"
 .include "./helper/memoryLayout.asm"
 .include "./helper/banking.asm"
+.include "./helper/floatBanking.asm"
 
 .include "./helper/8bit.asm"
 
@@ -34,6 +35,16 @@ OBJ_TABLES_FALLBACK = $c800
 {{STATIC_CTORS}}
 jsr Program_Main
 rts
+
+; Real subroutines (not macros), so unlike everything included above they
+; DO emit actual code at this exact point in the file -- must come after
+; #start_at $1000 (this compiler's own generated code isn't confined below
+; $a000, so these need a real, low, stable address here, not wherever the
+; default pre-#start_at location counter happens to be -- see
+; asm/helper/floatBanking.asm's comment for the full reasoning). Same
+; requirement as object.asm's resolveObjPtr just below, which is why this
+; sits in the same spot.
+.include "./helper/float.asm"
 
 .include "./system.asm"
 .include "./GC.asm"

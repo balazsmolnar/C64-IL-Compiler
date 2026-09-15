@@ -243,7 +243,130 @@ branch_false .macro label
     beq \label
 .endm
 
-switch .macro jump_table 
+; Float compare-and-branch, for Roslyn's fused "if (a < b)"-style IL (Beq/
+; Blt/etc. instead of a separate Ceq/Clt + Brtrue) -- see
+; asm/helper/float.asm for Float_Compare (a real subroutine, not inlined
+; here, for the same reason every other ROM-calling float op is a
+; subroutine: the bank-in/call-ROM/bank-out sequence must live at one fixed
+; address below $a000). Reuses the exact same A=0/1/$FF convention the
+; compareXflt macros in float.asm already test.
+branch_equalflt .macro label
+    sei
+    #stack_pull_mflpt zp_flt_b
+    #stack_pull_mflpt zp_flt_a
+    jsr Float_Compare
+    cli
+    cmp #0
+    beq \label
+.endm
+
+branch_not_equalflt .macro label
+    sei
+    #stack_pull_mflpt zp_flt_b
+    #stack_pull_mflpt zp_flt_a
+    jsr Float_Compare
+    cli
+    cmp #0
+    bne \label
+.endm
+
+branch_lessflt .macro label
+    sei
+    #stack_pull_mflpt zp_flt_b
+    #stack_pull_mflpt zp_flt_a
+    jsr Float_Compare
+    cli
+    cmp #0
+    bmi \label
+.endm
+
+branch_less_equalflt .macro label
+    sei
+    #stack_pull_mflpt zp_flt_b
+    #stack_pull_mflpt zp_flt_a
+    jsr Float_Compare
+    cli
+    cmp #0
+    bmi \label
+    beq \label
+.endm
+
+branch_greater_equalflt .macro label
+    sei
+    #stack_pull_mflpt zp_flt_b
+    #stack_pull_mflpt zp_flt_a
+    jsr Float_Compare
+    cli
+    cmp #0
+    bpl \label
+.endm
+
+branch_greterflt .macro label
+    sei
+    #stack_pull_mflpt zp_flt_b
+    #stack_pull_mflpt zp_flt_a
+    jsr Float_Compare
+    cli
+    cmp #0
+    bmi +
+    beq +
+    jmp \label
++
+.endm
+
+; Float has no real unsigned concept -- these exist because IL's Bge_un/
+; Blt_un/etc. double as "unordered-or-..." for floating-point operands
+; (Roslyn uses the _un family for a negated float branch, e.g. compiling
+; "if (a < b) ... else ..." with Bge_un_s testing the inverse), which only
+; differs from the plain signed version when a NaN is involved -- Mflpt.cs
+; already refuses to convert NaN/Infinity at compile time, so that case
+; can never actually arise here. Identical logic to the non-_un macros
+; above, just under the name IL asks for.
+branch_less_unsignedflt .macro label
+    sei
+    #stack_pull_mflpt zp_flt_b
+    #stack_pull_mflpt zp_flt_a
+    jsr Float_Compare
+    cli
+    cmp #0
+    bmi \label
+.endm
+
+branch_less_equal_unsignedflt .macro label
+    sei
+    #stack_pull_mflpt zp_flt_b
+    #stack_pull_mflpt zp_flt_a
+    jsr Float_Compare
+    cli
+    cmp #0
+    bmi \label
+    beq \label
+.endm
+
+branch_greater_equal_unsignedflt .macro label
+    sei
+    #stack_pull_mflpt zp_flt_b
+    #stack_pull_mflpt zp_flt_a
+    jsr Float_Compare
+    cli
+    cmp #0
+    bpl \label
+.endm
+
+branch_greater_unsignedflt .macro label
+    sei
+    #stack_pull_mflpt zp_flt_b
+    #stack_pull_mflpt zp_flt_a
+    jsr Float_Compare
+    cli
+    cmp #0
+    bmi +
+    beq +
+    jmp \label
++
+.endm
+
+switch .macro jump_table
     #stack_pull_int_a
     asl
     tax

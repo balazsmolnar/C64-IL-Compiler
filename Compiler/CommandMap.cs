@@ -50,6 +50,11 @@ internal static class CommandMap
             { ILOpCode.Ldelem_u4, new OpLdElem() },
             { ILOpCode.Stelem_i8, new OpStElem() },
             { ILOpCode.Ldelem_i8, new OpLdElem() },
+            // Same reasoning as Ldelem_u4 above -- OpStElem/OpLdElem pick
+            // their macro purely from the array's actual element Type, so
+            // reusing them for the float-array-specific opcodes is exact.
+            { ILOpCode.Stelem_r4, new OpStElem() },
+            { ILOpCode.Ldelem_r4, new OpLdElem() },
             { ILOpCode.Ldlen, new OpLdLen() },
             { ILOpCode.Ldfld, new OpLdfld() },
             { ILOpCode.Ldloc_0, new OpLdloc(0) },
@@ -94,6 +99,12 @@ internal static class CommandMap
             { ILOpCode.Shr, new OpArithmetic2("#shift_right") },
             { ILOpCode.Shr_un, new OpArithmetic2("#shift_right") },
             { ILOpCode.Sub, new OpArithmetic2("#sub") },
+            // Only float actually has a macro behind this (#divflt) --
+            // integer division was never implemented before this (there was
+            // no Div mapping at all), and still isn't; #div8/#div16 don't
+            // exist, so integer '/' still crashes Compiler.exe, same as
+            // before this entry existed. Needed for float '/' regardless.
+            { ILOpCode.Div, new OpArithmetic2("#div") },
             { ILOpCode.Neg, new OpArithmetic1("#negate") },
             { ILOpCode.And, new OpArithmetic2("#and") },
             { ILOpCode.Ret, new OpRet()  },
@@ -107,6 +118,13 @@ internal static class CommandMap
             { ILOpCode.Conv_u8, new OpConv_8_16() },
             { ILOpCode.Conv_u4, new OpConv_16_8() },
             { ILOpCode.Conv_i4, new OpConv_16_8()  },
+            { ILOpCode.Conv_r4, new OpConvIntToFloat() },
+            // Roslyn emits Conv_r_un (not Conv_r4) for an implicit uint ->
+            // float conversion (e.g. "float f = someUint;" or a uint
+            // return coerced to a float-returning method) -- same handler,
+            // it already branches on the source being uint vs int.
+            { ILOpCode.Conv_r_un, new OpConvIntToFloat() },
+            { ILOpCode.Ldc_r4, new OpLdc_r4() },
         };
 
     public static bool Supported(ILOpCode code)

@@ -65,8 +65,30 @@ zp_tmp4_low = $2e
 zp_tmp4_high = $2f
 zp_tmp5 = $2c
 
-stackPointer = $24              ; index into the RAM evaluation stack (not the 6502 hardware stack)
+; Not $24 (its home before this comment) -- the BASIC ROM's FCOMP routine
+; overwrites $24 as its own internal scratch (confirmed empirically, not
+; from any documentation), which corrupted this exact byte on every float
+; comparison. Relocated instead of defensively saved/restored around every
+; ROM call, unlike zp_interrupt_address below: nothing else in this
+; project's zero page map, or in any C64Lib routine, refers to $24 by
+; number, so moving the symbol's value here was a clean, self-contained
+; fix with no wider blast radius. $4b was chosen from a full zero-page
+; diff survey across every ROM float routine this project calls (see
+; SimpleEmulator.Test's DEBUG_ZeroPageFootprintOfEveryRoutine, or just
+; git log for this line) -- confirmed outside the touched set
+; ($22/$23/$24/$26/$61/$62/$65/$66/$69/$6a/$6e/$6f).
+stackPointer = $4b              ; index into the RAM evaluation stack (not the 6502 hardware stack)
 
+; zp_interrupt_address is ALSO in that same touched set ($26, clobbered by
+; FMULT specifically) -- unlike stackPointer, relocating this one isn't a
+; self-contained fix (C64.Interrupt/C64_add_Interrupt's whole mechanism
+; uses it, spanning asm/C64.asm and any C64Lib code that subscribes), so
+; it's defensively saved/restored around the ROM-banked window instead --
+; see zp_flt_saved_interrupt_low/high below and floatBanking.asm. Left
+; uncorrected here, this would have been a real, currently-latent bug: not
+; visible yet (SEI blocks the actual interrupt dispatch that reads this
+; from ever running mid-float-op), but permanently wrong the moment any
+; program uses both C64.Interrupt and a float multiply.
 zp_interrupt_address_low = $26  ; C64.Interrupt subscriber's address, set by C64_add_Interrupt
 zp_interrupt_address_high = $27
 zp_interrupt_saved_low = $52    ; whatever was at $0314/$0315 before C64_add_Interrupt installed OnInterrupt
@@ -223,3 +245,41 @@ heapPointer = $fb                ; low byte / high byte: next free heap address 
 zp_ctor_result = $fa             ; newObj/newObjInit: preserves the new object's id across "jsr \ctor"
 zp_field_value_low = $fd         ; stfld8/16, stelem/stelemRef/stelem16: value being stored, low byte
 zp_field_value_high = $fe        ; stfld16, stelem16: value being stored, high byte
+
+; ---------------------------------------------------------------------------
+; Float scratch (asm/helper/float.asm) -- two 5-byte MFLPT buffers.
+; ---------------------------------------------------------------------------
+; Every float op needs both its operands sitting in addressable memory at
+; once (the BASIC ROM's FADD/FSUB/FMULT/FDIV/FCOMP all take one operand as
+; FAC1, already loaded, and the other as a raw memory pointer) -- unlike the
+; param bank above, these two names are claimed by float.asm alone, nothing
+; else touches them, so there's no cross-subsystem reasoning needed here.
+; Not aliased onto the param bank ($30-$39) despite the byte count matching
+; (5+5=10) -- that bank IS shared across GC's mark/quicksort/sweep phases,
+; and a float op happening to run while any of those has a value live there
+; (e.g. during an allocation that triggers GC.Collect as a side effect of
+; evaluating a float expression) would silently corrupt one or the other,
+; the exact class of bug the param bank's own doc comment above warns about.
+; zp_flt_a: arithmetic/compare/conv's earlier-pushed ("a") operand; also
+;   reused by heap.asm's stfldflt/ldfldflt/stelemflt/ldelemflt as the
+;   value-in-transit buffer (nothing arithmetic-related is live across a
+;   field/element access, so this is sequential reuse, not concurrent).
+; zp_flt_b: arithmetic/compare's later-pushed ("b") operand; also reused
+;   (its first byte only) by heap.asm's stelemflt/ldelemflt/newArrflt as
+;   one-off scratch while computing index*5 -- same reasoning.
+zp_flt_a = $3d                   ; 5 bytes, $3d-$41
+zp_flt_b = $42                   ; 5 bytes, $42-$46
+
+; #bank_in_basic_rom/#bank_out_basic_rom's stash for zp_interrupt_address
+; across a ROM call -- see that name's own comment above for why this one
+; is saved/restored rather than relocated like stackPointer was.
+zp_flt_saved_interrupt_low = $47
+zp_flt_saved_interrupt_high = $48
+
+; conv_int_to_float/conv_uint_to_float (float.asm) stash the 16-bit
+; sign/zero-extended source value across the two zp_flt_a bytes before
+; Float_FromInt overwrites them with the actual 5-byte MFLPT result --
+; nothing needs the int value anymore once that conversion starts, so this
+; is sequential reuse of zp_flt_a's own bytes, not a second concurrent role.
+zp_flt_int_lo = zp_flt_a
+zp_flt_int_hi = zp_flt_a + 1

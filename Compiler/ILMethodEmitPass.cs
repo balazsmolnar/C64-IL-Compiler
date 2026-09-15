@@ -38,13 +38,19 @@ class ILMethodEmitPass : ICompilerMethodPass
         var ref_params = new List<string>();
         foreach (var param in context.Method.GetParameters().Reverse())
         {
-            if (param.ParameterType.GetStorageBytes() == 2)
+            if (param.ParameterType.IsReferenceCounted())
             {
-                ref_params.Add(param.ParameterType.IsReferenceCounted() ? "1" : "0, 0");
+                // A reference is always a single 1-byte object-table handle,
+                // regardless of the referenced object's own size.
+                ref_params.Add("1");
             }
             else
             {
-                ref_params.Add(param.ParameterType.IsReferenceCounted() ? "1" : "0");
+                // One "not a ref" marker per storage byte -- generalizes the
+                // old 1-byte/2-byte-only "0" / "0, 0" split to any width
+                // (needed for float's 5-byte MFLPT storage; every byte of a
+                // value type is equally never GC-tracked).
+                ref_params.Add(string.Join(", ", Enumerable.Repeat("0", param.ParameterType.GetStorageBytes())));
             }
         }
         if (!context.Method.IsStatic)

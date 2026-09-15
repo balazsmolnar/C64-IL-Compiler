@@ -6,7 +6,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\SimpleEmulator\SimpleEmulator.csproj" />  
+    <ProjectReference Include="..\SimpleEmulator\SimpleEmulator.csproj" />
+    <!-- Only for Compiler.Mflpt (IEEE754/MFLPT conversion), needed to
+         copy a float test argument/return value to/from the emulator:
+         see RunInEmulatorAspect.cs. -->
+    <ProjectReference Include="..\Compiler\Compiler.csproj" />
   </ItemGroup>
 
   <ItemGroup>

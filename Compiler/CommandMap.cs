@@ -66,6 +66,7 @@ internal static class CommandMap
             { ILOpCode.Ldarg_1, new OpLdarg(1) },
             { ILOpCode.Ldarg_2, new OpLdarg(2) },
             { ILOpCode.Ldarg_3, new OpLdarg(3) },
+            { ILOpCode.Ldarg_s, new OpLdarg_s() },
             { ILOpCode.Ldsfld, new OpLdsld() },
             { ILOpCode.Br_s, new OpShortJump("jmp", JumpType.UnConditional) },
             { ILOpCode.Beq, new OpLongJump("#branch_equal", JumpType.Compare) },

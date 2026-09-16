@@ -197,6 +197,19 @@ class OpNewObj : OpBase
     {
         var method = context.CompilerContext.Assembly.ManifestModule.ResolveMethod((int)operation.RawParameter);
         var t = method.ReflectedType;
+
+        // Delegates OTHER than Func<T> (which already has its own working
+        // heap-allocated ctor/Invoke pair, Func_1_x_ctor/Func_1_Invoke in
+        // asm/system.asm -- see the Name.StartsWith("Func") check this
+        // matches, e.g. OpCallVirt above) are special-cased entirely in
+        // Emit below: no #newObj heap allocation at all. This return value
+        // is unused for them, and skipping the computation below avoids
+        // reflecting a real BCL delegate's CLR-internal fields (_target/
+        // _methodPtr/_methodPtrAux/...), which was never meaningful input
+        // for this compiler anyway.
+        if (typeof(Delegate).IsAssignableFrom(t) && !t.Name.StartsWith("Func"))
+            return null;
+
         var size = 0;
         var referenceFields = 0;
         foreach (var f in t.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
@@ -208,13 +221,35 @@ class OpNewObj : OpBase
         //var label = context.CompilerContext.Assembly.ManifestModule.ResolveMethod(operation.RawParameter).GetLabel();
 
 
-        var vtable = t.IsGenericType ? "0" : $"{t.Name.ToValidName()}_VTable";
+        var vtable = t.IsGenericType ? "0" : $"{t.FullName.ToValidName()}_VTable";
         // var ctor = $"{t.Name}_x_ctor";
         var ctor = "0";
 
         if (t.Assembly == typeof(Func<object>).Assembly)
             ctor = $"{t.Name}_x_ctor".ToValidName();
         return $"{size}, {referenceFields}, {vtable}, {ctor}";
+    }
+
+    // Static-method delegate construction (`ldnull; ldftn M; newobj
+    // SomeDelegate::.ctor(object, native int)`) needs no heap object at all:
+    // this compiler's only consumer (C64.Interrupt's single subscriber, see
+    // C64Lib/C64.cs and asm/C64.asm's C64_add_Interrupt/OnInterrupt) just
+    // wants the raw method pointer Ldftn already pushed. #newObj would have
+    // sized the allocation from reflecting the delegate's real CLR-internal
+    // fields -- meaningless here, and the "_x_ctor" label a plain #newObj
+    // would reference is never defined for any delegate type other than the
+    // hand-written Func_1_x_ctor (Func<T> itself is excluded below and
+    // keeps going through the ordinary #newObj/Func_1_x_ctor/Func_1_Invoke
+    // path already proven by Test/FuncTest.cs). Instance-bound delegates (a
+    // non-null target) aren't supported -- #stack_construct_static_delegate
+    // discards whatever's under the method pointer unconditionally.
+    public override string Emit(CompilerMethodContext context, ILOperation operation)
+    {
+        var method = context.CompilerContext.Assembly.ManifestModule.ResolveMethod((int)operation.OriginalParameter) as MethodBase;
+        var t = method.ReflectedType;
+        if (typeof(Delegate).IsAssignableFrom(t) && !t.Name.StartsWith("Func"))
+            return "#stack_construct_static_delegate";
+        return base.Emit(context, operation);
     }
 
     public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
@@ -797,6 +832,48 @@ class OpLdarg : OpPushBase
     }
 }
 
+// Ldarg_s -- same as OpLdarg above, but for a method's 5th+ parameter
+// (Ldarg_0..Ldarg_3 bake the index into the opcode itself; beyond that,
+// Roslyn emits Ldarg_s with the index as a real 1-byte IL operand
+// instead). Reads the index from operation.OriginalParameter, not
+// RawParameter -- by the time SetStackContent/Is16Bit/SizeSuffix run,
+// RawParameter has already been overwritten with ConvertParameter's own
+// return value (see ILMethodCodePass.cs), same reason OpNewObj's Emit/
+// SetStackContent use OriginalParameter for the same kind of lookup.
+class OpLdarg_s : OpPushBase
+{
+    public OpLdarg_s() : base(1, "#locals_push_value")
+    {
+    }
+
+    private static int ArgIndex(ILOperation operation) => (int)operation.OriginalParameter;
+
+    public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
+    {
+        int relPos = context.GetParameterReferencePosition(ArgIndex(operation));
+        return $"{relPos}";
+    }
+
+    public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
+    {
+        operation.StackContent.Add(context.GetParameterType(ArgIndex(operation)));
+    }
+
+    public override bool Is16BitSupported => true;
+
+    public override bool Is16Bit(CompilerMethodContext context, ILOperation operation)
+    {
+        return context.GetParameterSize(ArgIndex(operation)) == 2;
+    }
+
+    protected override string SizeSuffix(CompilerMethodContext context, ILOperation operation)
+    {
+        if (context.GetParameterType(ArgIndex(operation)) == typeof(float))
+            return "flt";
+        return base.SizeSuffix(context, operation);
+    }
+}
+
 class OpLdsld : OpPushBase
 {
     public OpLdsld() : base(4, "#stack_push_var")
@@ -806,7 +883,7 @@ class OpLdsld : OpPushBase
     public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
     {
         var field = context.Method.ReflectedType.Module.ResolveField((int)operation.RawParameter);
-        return $"{field.DeclaringType.Name.ToValidName()}_field_{field.Name.ToValidName()}";
+        return $"{field.DeclaringType.FullName.ToValidName()}_field_{field.Name.ToValidName()}";
     }
 
     public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
@@ -815,6 +892,28 @@ class OpLdsld : OpPushBase
         operation.StackContent.Add(field.FieldType);
     }
 
+    // #stack_push_var (unsuffixed) is stack_push_var8 -- correct only for
+    // int/uint/bool/reference-typed fields (all 1 byte in this compiler's
+    // storage model). A wider field (ulong/long: 2 bytes, float: 5) was
+    // silently pushing only its first byte regardless -- invisible for a
+    // self-contained "read the field, do something, write it back"
+    // sequence (nothing else disagrees about the width), but corrupts the
+    // evaluation stack's actual byte count the moment that value is
+    // consumed by something that expects the real width (found via a
+    // `ulong` field passed to Sprite.X from inside a compiled interrupt
+    // handler: the callee pulled one byte more than this pushed, eating
+    // into OnInterrupt's own saved state and permanently wedging future
+    // interrupt delivery -- see asm/C64.asm).
+    public override string Emit(CompilerMethodContext context, ILOperation operation)
+    {
+        var field = context.Method.ReflectedType.Module.ResolveField((int)operation.OriginalParameter);
+        var address = $"{field.DeclaringType.FullName.ToValidName()}_field_{field.Name.ToValidName()}";
+        if (field.FieldType == typeof(float))
+            return $"#stack_push_var_mflpt {address}";
+        if (field.FieldType.GetStorageBytes() == 2)
+            return $"#stack_push_var16 {address}";
+        return base.Emit(context, operation);
+    }
 }
 
 class OpLdnull : OpPushBase
@@ -887,9 +986,27 @@ class OpStsfld : OpBase
     public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
     {
         var field = context.Method.ReflectedType.Module.ResolveField((int)operation.RawParameter);
-        var address = $"{field.ReflectedType.Name.ToValidName()}_field_{field.Name.ToValidName()}";
+        var address = $"{field.ReflectedType.FullName.ToValidName()}_field_{field.Name.ToValidName()}";
         string isRef = field.FieldType.IsReferenceCounted() ? "1" : "0";
         return $"{address}, {isRef}";
+    }
+
+    // #stack_pull_int_ref is 1-byte-wide (plus the reference-counting
+    // dance, which only ever applies to 1-byte object handles in this
+    // compiler's object model) -- see OpLdsld's identical issue for the
+    // full story. A wider field (ulong/long, float) never needs the ref
+    // half at all (IsReferenceCounted() is false for both), so it's not
+    // just a width suffix here: it's a genuinely different macro, with no
+    // ref parameter.
+    public override string Emit(CompilerMethodContext context, ILOperation operation)
+    {
+        var field = context.Method.ReflectedType.Module.ResolveField((int)operation.OriginalParameter);
+        var address = $"{field.ReflectedType.FullName.ToValidName()}_field_{field.Name.ToValidName()}";
+        if (field.FieldType == typeof(float))
+            return $"#stack_pull_mflpt {address}";
+        if (field.FieldType.GetStorageBytes() == 2)
+            return $"#stack_pull_int16 {address}";
+        return base.Emit(context, operation);
     }
 
     public override void SetStackContent(CompilerMethodContext context, ILOperation operation)

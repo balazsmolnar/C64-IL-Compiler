@@ -20,18 +20,41 @@
 ; -- guaranteed below $a000 by include order (this file loads immediately
 ; after banking.asm, long before generated.asm's bulk).
 ;
-; SEI/CLI: NOT done here -- asm/helper/float.asm's own macros (addflt,
-; branch_lessflt, etc., the actual call sites) own SEI/CLI instead, each
-; wrapping its ENTIRE body (pulling operands off this compiler's own
-; evaluation stack, through the ROM call, to pushing/branching on the
-; result), not just the bank_in_basic_rom/bank_out_basic_rom pair. (A
-; suspected live-VICE crash briefly motivated widening this from "just the
-; ROM call" to "the whole operation" -- turned out to be a test-harness
-; mistake, not a real bug: the program had simply finished and returned to
-; BASIC normally, which looks identical to a crash in a single screenshot
-; unless the test also proves the program is still running, e.g. via an
-; infinite loop. Kept anyway since it's harmless and one less thing to
-; reconsider later.)
+; SEI/PLP: scoped to exactly this ROM-banked window (SEI here, PLP at the
+; end of bank_out_basic_rom below) -- NOT the float macros' whole body
+; (addflt, branch_lessflt, etc.), which used to wrap SEI/CLI around
+; everything from pulling operands off this compiler's own evaluation
+; stack through pushing/branching on the result. That was both broader
+; than necessary and, once C64.Interrupt actually worked, actively wrong:
+; a macro's own `cli` would prematurely re-enable interrupts if that macro
+; were ever called from inside a compiled interrupt handler, permitting a
+; nested/reentrant IRQ into a dispatch mechanism not designed for it (see
+; asm/C64.asm's OnInterrupt, which now centralizes interrupt-time
+; zero-page safety in the ONE place actually positioned to do it
+; correctly, instead of every macro defending itself individually).
+;
+; A blind CLI here would have the exact same problem one level down,
+; though, just for a narrower window: if Float_Add/etc. (and so this
+; macro pair) is ever called from code running inside a compiled
+; interrupt handler, an unconditional `cli` would still prematurely
+; re-enable interrupts before that handler -- and OnInterrupt -- has
+; returned. PHP/PLP instead of SEI/CLI is what actually nests correctly:
+; PLP restores whatever the interrupt-enable flag was *before* this pair
+; ran, so it only re-enables interrupts here if they were already enabled
+; (ordinary mainline code); called from inside a handler, where hardware
+; auto-set the flag on IRQ entry and nothing since has cleared it, PLP
+; leaves it exactly as set as it already was.
+;
+; This window still needs its OWN protection, though, for two reasons SEI
+; per macro used to cover for free: (1) the original reason -- an IRQ
+; firing while BASIC ROM is banked in, if a handler expects KERNAL/IO in a
+; different state, is exactly the kind of intermittent bug worth a few
+; cycles of SEI to avoid categorically; (2) OnInterrupt reads
+; zp_interrupt_address_low/high (see below) to know where to dispatch --
+; if an interrupt landed between the save below and the restore in
+; bank_out_basic_rom, while this byte legitimately holds FMULT's clobbered
+; value rather than the real subscriber address, OnInterrupt would jump to
+; garbage.
 ;
 ; zp_interrupt_address save/restore: confirmed empirically (a full
 ; zero-page diff survey across every ROM routine this project calls -- see
@@ -46,6 +69,8 @@
 ; other code (asm/C64.asm, any C64Lib interrupt subscriber) to safely
 ; relocate the same way.
 bank_in_basic_rom .macro
+  php
+  sei
   lda zp_interrupt_address_low
   sta zp_flt_saved_interrupt_low
   lda zp_interrupt_address_high
@@ -56,7 +81,10 @@ bank_in_basic_rom .macro
 
 ; Preserves A across the whole sequence (pha/pla) -- Float_Compare's
 ; caller needs FCOMP's result, still sitting in A, to survive this call
-; unchanged.
+; unchanged. PLP must be the very last thing (after A is restored) since
+; it's what actually re-enables interrupts (or doesn't -- see above); the
+; pha/pla pair nests fine underneath it, same as any other balanced
+; push/pop between bank_in_basic_rom's php and this plp.
 bank_out_basic_rom .macro
   pha
   lda #$06
@@ -66,4 +94,5 @@ bank_out_basic_rom .macro
   lda zp_flt_saved_interrupt_high
   sta zp_interrupt_address_high
   pla
+  plp
 .endm

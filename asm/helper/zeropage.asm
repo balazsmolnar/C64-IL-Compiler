@@ -29,9 +29,14 @@
 ;
 ; $00/$01 is the 6510 CPU port (hardware register, not scratch): $01 is
 ; written once by #disable_basic_rom (asm/helper/banking.asm) for bank
-; switching and is never reused as scratch. $00 (the port's data-direction
-; register) is never touched at all -- KERNAL's own reset already leaves it
-; correctly configured.
+; switching, then again on every ROM-banked float call (asm/helper/
+; floatBanking.asm's bank_in_basic_rom/bank_out_basic_rom), and is also
+; saved/restored around every interrupt dispatch (asm/C64.asm's
+; OnInterrupt -- see zp_interrupt_save_start below) since a subscriber's
+; own float op could otherwise bank ROM back out from under mainline code
+; that was itself mid-float-op when interrupted. $00 (the port's
+; data-direction register) is never touched at all -- KERNAL's own reset
+; already leaves it correctly configured.
 ; ===========================================================================
 
 ; ---------------------------------------------------------------------------
@@ -84,15 +89,46 @@ stackPointer = $4b              ; index into the RAM evaluation stack (not the 6
 ; self-contained fix (C64.Interrupt/C64_add_Interrupt's whole mechanism
 ; uses it, spanning asm/C64.asm and any C64Lib code that subscribes), so
 ; it's defensively saved/restored around the ROM-banked window instead --
-; see zp_flt_saved_interrupt_low/high below and floatBanking.asm. Left
-; uncorrected here, this would have been a real, currently-latent bug: not
-; visible yet (SEI blocks the actual interrupt dispatch that reads this
-; from ever running mid-float-op), but permanently wrong the moment any
-; program uses both C64.Interrupt and a float multiply.
+; see zp_flt_saved_interrupt_low/high below and floatBanking.asm. This
+; also means bank_in_basic_rom/bank_out_basic_rom (floatBanking.asm) SEI/
+; CLI their own critical section: OnInterrupt (asm/C64.asm) reads
+; zp_interrupt_address_low/high to know where to dispatch, so an
+; interrupt landing between bank_in_basic_rom's save and
+; bank_out_basic_rom's restore -- while this byte legitimately holds
+; FMULT's clobbered value, not the real subscriber address -- would
+; otherwise jump to garbage.
 zp_interrupt_address_low = $26  ; C64.Interrupt subscriber's address, set by C64_add_Interrupt
 zp_interrupt_address_high = $27
 zp_interrupt_saved_low = $52    ; whatever was at $0314/$0315 before C64_add_Interrupt installed OnInterrupt
 zp_interrupt_saved_high = $53
+
+; Interrupt safety -- the contiguous transient-scratch range OnInterrupt
+; (asm/C64.asm) saves to the hardware stack and restores around every
+; dispatch into a subscriber's compiled code, so the subscriber can freely
+; call into arithmetic/heap/GC/C64Lib/float code without corrupting
+; whatever the interrupted mainline code had in-flight in that same
+; scratch (nearly every C64Lib macro relies on zp_tmp1/2 surviving intact
+; across its own body, for instance -- see that name's own comment above;
+; if a handler clobbers it mid-macro, the interrupted macro's eventual
+; `rts` jumps to garbage). Covers zp_tmp1/2, zp_tmp3/4/5, heap_tmp_pointer,
+; the zp_param0-4 bank and every GC alias onto it, HEAP_POINTER_ORIG_LOW/
+; HIGH, and zp_flt_a/b/zp_flt_saved_interrupt_low/high below -- saved as
+; one contiguous block (deliberately including the few currently-unclaimed
+; bytes within it) rather than an exact enumerated list, so a *future*
+; claim inside this range is automatically protected without anyone
+; having to remember to update OnInterrupt. zp_ctor_result ($fa) and
+; zp_field_value_low/high ($fd/$fe) are saved separately (not contiguous
+; with this range, and must skip over heapPointer at $fb/$fc).
+;
+; Deliberately NOT covered: stackPointer ($4b) and heapPointer ($fb/$fc,
+; see below) -- both are safe under interrupt nesting by construction (a
+; handler's own balanced method calls/allocations just nest on top of
+; whatever mainline had in progress, the same as any ordinary nested call
+; would), and saving/restoring heapPointer specifically would actively
+; break allocation made from inside a handler (its bump would silently
+; get undone the moment the handler returns).
+zp_interrupt_save_start = $20
+zp_interrupt_save_len = $29     ; $20-$48 inclusive
 
 heap_tmp_pointer = $28          ; resolveObjPtr's output pointer (asm/helper/object.asm) -- aka tmpPointer
 

@@ -175,42 +175,46 @@ Float_ToInt
     tya
     rts
 
-; SEI/CLI wrap the whole macro (operand pulls through result push), not
-; just the ROM call inside Float_Add -- see floatBanking.asm's comment.
+; No SEI/CLI here (or in any macro below) -- interrupt-time safety for
+; zp_flt_a/b (and everything else these macros touch: the evaluation
+; stack, whatever's in A/X/Y) is handled centrally by asm/C64.asm's
+; OnInterrupt, which saves/restores the whole transient zero-page scratch
+; range (see zeropage.asm's zp_interrupt_save_start) around every
+; dispatch into a subscriber's code, instead of every macro defending
+; itself. A macro-level SEI/CLI would also be actively wrong now that
+; C64.Interrupt actually works: if this macro were ever expanded inside a
+; compiled interrupt handler's own body, its `cli` would prematurely
+; re-enable interrupts before that handler -- and OnInterrupt -- has
+; returned. Float_Add/Sub/Mul/Div/Compare/FromInt/ToInt's own ROM-banked
+; window still has its own protection (SEI/PLP, not SEI/CLI, precisely so
+; it nests correctly if ever called from inside a handler) -- see
+; floatBanking.asm's bank_in_basic_rom/bank_out_basic_rom.
 addflt .macro
-    sei
     #stack_pull_mflpt zp_flt_b
     #stack_pull_mflpt zp_flt_a
     jsr Float_Add
     #stack_push_var_mflpt zp_flt_a
-    cli
 .endm
 
 subflt .macro
-    sei
     #stack_pull_mflpt zp_flt_b
     #stack_pull_mflpt zp_flt_a
     jsr Float_Sub
     #stack_push_var_mflpt zp_flt_a
-    cli
 .endm
 
 mulflt .macro
-    sei
     #stack_pull_mflpt zp_flt_b
     #stack_pull_mflpt zp_flt_a
     jsr Float_Mul
     #stack_push_var_mflpt zp_flt_a
-    cli
 .endm
 
 divflt .macro
-    sei
     #stack_pull_mflpt zp_flt_b
     #stack_pull_mflpt zp_flt_a
     jsr Float_Div
     #stack_push_var_mflpt zp_flt_a
-    cli
 .endm
 
 ; No ROM call needed -- MFLPT's sign lives in bit 7 of the first mantissa
@@ -219,13 +223,7 @@ divflt .macro
 ; negating zero doesn't produce a non-canonical "negative zero" bit pattern
 ; (MFLPT's own zero is exponent-byte-only; a stray sign bit on an
 ; all-zero-exponent value isn't a value FCOMP/the ROM ever produces itself).
-; No ROM call, so no banking risk -- SEI/CLI added anyway for the same
-; "no interrupt in the middle of a float operation" reasoning as every
-; other macro here, in case an interrupt handler that reads zp_flt_a
-; mid-flip (not something the default KERNAL handler does, but this is
-; cheap insurance either way) is ever a factor.
 negateflt .macro
-    sei
     #stack_pull_mflpt zp_flt_a
     lda zp_flt_a
     beq +
@@ -233,11 +231,9 @@ negateflt .macro
     eor #$80
     sta zp_flt_a+1
 +   #stack_push_var_mflpt zp_flt_a
-    cli
 .endm
 
 compareEqualflt .macro
-    sei
     #stack_pull_mflpt zp_flt_b
     #stack_pull_mflpt zp_flt_a
     jsr Float_Compare
@@ -246,11 +242,9 @@ compareEqualflt .macro
     bne +
     inx
 +   #stack_push_int_x
-    cli
 .endm
 
 compareLessflt .macro
-    sei
     #stack_pull_mflpt zp_flt_b
     #stack_pull_mflpt zp_flt_a
     jsr Float_Compare
@@ -259,11 +253,9 @@ compareLessflt .macro
     bpl +
     inx
 +   #stack_push_int_x
-    cli
 .endm
 
 compareGreaterflt .macro
-    sei
     #stack_pull_mflpt zp_flt_b
     #stack_pull_mflpt zp_flt_a
     jsr Float_Compare
@@ -273,7 +265,6 @@ compareGreaterflt .macro
     beq +
     inx
 +   #stack_push_int_x
-    cli
 .endm
 
 ; Float has no real unsigned concept -- see branch.asm's identical comment
@@ -282,7 +273,6 @@ compareGreaterflt .macro
 ; compile time) and why they're identical to compareLessflt/
 ; compareGreaterflt above.
 compareLess_unsignedflt .macro
-    sei
     #stack_pull_mflpt zp_flt_b
     #stack_pull_mflpt zp_flt_a
     jsr Float_Compare
@@ -291,11 +281,9 @@ compareLess_unsignedflt .macro
     bpl +
     inx
 +   #stack_push_int_x
-    cli
 .endm
 
 compareGreater_unsignedflt .macro
-    sei
     #stack_pull_mflpt zp_flt_b
     #stack_pull_mflpt zp_flt_a
     jsr Float_Compare
@@ -305,12 +293,10 @@ compareGreater_unsignedflt .macro
     beq +
     inx
 +   #stack_push_int_x
-    cli
 .endm
 
 ; Sign-extends the 1-byte int to 16 bits before handing it to Float_FromInt.
 conv_int_to_float .macro
-    sei
     #stack_pull_int_a
     sta zp_flt_int_lo
     ldy #0
@@ -320,26 +306,21 @@ conv_int_to_float .macro
 +   sty zp_flt_int_hi
     jsr Float_FromInt
     #stack_push_var_mflpt zp_flt_a
-    cli
 .endm
 
 ; Zero-extends instead of sign-extending -- the only difference from
 ; conv_int_to_float above.
 conv_uint_to_float .macro
-    sei
     #stack_pull_int_a
     sta zp_flt_int_lo
     lda #0
     sta zp_flt_int_hi
     jsr Float_FromInt
     #stack_push_var_mflpt zp_flt_a
-    cli
 .endm
 
 conv_float_to_int .macro
-    sei
     #stack_pull_mflpt zp_flt_a
     jsr Float_ToInt
     #stack_push_int_a
-    cli
 .endm

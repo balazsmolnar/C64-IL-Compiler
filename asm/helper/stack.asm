@@ -168,6 +168,28 @@ stack_pull_mflpt .macro address
   sta \address
 .endm
 
+; Newobj for a static-method delegate (`ldnull; ldftn M; newobj
+; SomeDelegate::.ctor(object, native int)`) -- see OpNewObj's delegate
+; special case in Compiler/Operands/OperandBase.cs for why this replaces
+; #newObj entirely rather than allocating a real heap object. Ldftn pushes
+; the method's address as a real 2-byte pointer (#stack_push_pointer,
+; on top since it's pushed last); Ldnull pushes a 1-byte 0 underneath it
+; (#stack_push_int8's convention -- object references are 1-byte
+; object-table handles in this compiler, see objectTables.asm, and null is
+; handle 0). Pulls the pointer aside, discards the 1-byte null target
+; underneath it, then pushes the pointer back as the delegate's own value
+; -- net effect: unwrap `ldnull; ldftn M` down to just `ldftn M`. Uses
+; zp_tmp1_low/high as scratch -- safe here despite that pair's usual "save
+; my own return address" role (see stack_save_return_adress/
+; stack_return_to_saved_address above): this macro expands inline with
+; nothing else running between these three steps, unlike the jsr'd
+; subroutines that pair actually protects.
+stack_construct_static_delegate .macro
+  #stack_pull_pointer zp_tmp1_low
+  #stack_pull_int_a
+  #stack_push_var16 zp_tmp1_low
+.endm
+
 ; Immediate 5-byte push, for Ldc_r4 (OpLdc_r4 in Compiler/Operands/
 ; OperandBase.cs already converts the float literal to MFLPT bytes at
 ; compile time -- this just pushes those literal values). Same forward

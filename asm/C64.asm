@@ -198,12 +198,18 @@ C64_SetCharBackgroundColor
     sta $D022, y
     #stack_return_to_saved_address zp_tmp1_low
 
+; C64.Interrupt (C64Lib/C64.cs) is a parameterless delegate (InterruptHandler,
+; not EventHandler -- see that file's comment), and single-subscriber only:
+; a second `+=` just overwrites zp_interrupt_address_low/high, same as a
+; second call here would. The value arriving here is a bare 2-byte method
+; pointer (Compiler/Operands/OperandBase.cs's OpNewObj delegate special
+; case + #stack_construct_static_delegate in asm/helper/stack.asm already
+; unwrapped `ldnull; ldftn M; newobj ...` down to just that pointer -- no
+; heap object, no sender/EventArgs to receive).
 C64_add_Interrupt
     sei
     #stack_save_return_adress zp_tmp1_low
-    #stack_pull_int_a
     #stack_pull_pointer zp_interrupt_address_low
-    #stack_pull_int_a
     lda $0314
     sta zp_interrupt_saved_low
     lda $0315
@@ -216,16 +222,65 @@ C64_add_Interrupt
     cli
     #stack_return_to_saved_address zp_tmp1_low
 
+; Dispatches into the subscriber's compiled method -- a single, fixed
+; subroutine (never a macro expanded per callsite), so this is the one
+; place interrupt-time zero-page safety needs solving, instead of every
+; macro in the codebase defending itself individually (the previous
+; approach, still visible in git history as SEI/CLI wrapping every
+; asm/helper/float.asm and branch.asm macro body -- removed once this
+; existed, since it was both narrower than the real problem and actively
+; wrong: a macro's own `cli` would have prematurely re-enabled interrupts
+; while still inside this handler if that macro were ever called from a
+; subscriber's own code).
+;
+; Saves $01 (the ROM banking register) and the whole transient zero-page
+; scratch range before running the subscriber's code, restores it after,
+; so the subscriber can safely call into arithmetic/heap/GC/C64Lib/float
+; code without corrupting whatever the interrupted mainline code had
+; in-flight in that same scratch. See zeropage.asm's
+; zp_interrupt_save_start/zp_interrupt_save_len for exactly what's
+; covered and why stackPointer/heapPointer are deliberately excluded.
+; $01 specifically: if mainline was mid-float-op with BASIC ROM banked in
+; (asm/helper/floatBanking.asm's bank_in_basic_rom, $01=$07) when
+; interrupted, and the subscriber's own code also does a float op, its
+; bank_out_basic_rom would otherwise bank ROM back OUT ($01=$06) while
+; the interrupted code is still mid-Float_Add, expecting $01 to still be
+; $07 for its own subsequent MOVMF read.
 OnInterrupt
-    #stack_push_int 0
-    #stack_push_int 0
-    #stack_push_int 0
+    lda $01
+    pha
+    ldx #0
+-   lda zp_interrupt_save_start,x
+    pha
+    inx
+    cpx #zp_interrupt_save_len
+    bne -
+    lda zp_ctor_result
+    pha
+    lda zp_field_value_low
+    pha
+    lda zp_field_value_high
+    pha
+
     lda #> On_Interrupt_Ret-1
     pha
     lda #< On_Interrupt_Ret-1
     pha
     jmp (zp_interrupt_address_low)
 On_Interrupt_Ret
+    pla
+    sta zp_field_value_high
+    pla
+    sta zp_field_value_low
+    pla
+    sta zp_ctor_result
+    ldx #zp_interrupt_save_len-1
+-   pla
+    sta zp_interrupt_save_start,x
+    dex
+    bpl -
+    pla
+    sta $01
     jmp (zp_interrupt_saved_low)
     rti
 

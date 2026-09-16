@@ -250,63 +250,56 @@ branch_false .macro label
 ; subroutine: the bank-in/call-ROM/bank-out sequence must live at one fixed
 ; address below $a000). Reuses the exact same A=0/1/$FF convention the
 ; compareXflt macros in float.asm already test.
+;
+; No SEI/CLI here -- see float.asm's identical note above its own macros:
+; interrupt-time safety is centralized in asm/C64.asm's OnInterrupt now,
+; and a macro-level CLI would be actively wrong if this macro were ever
+; expanded inside a compiled interrupt handler's own body.
 branch_equalflt .macro label
-    sei
     #stack_pull_mflpt zp_flt_b
     #stack_pull_mflpt zp_flt_a
     jsr Float_Compare
-    cli
     cmp #0
     beq \label
 .endm
 
 branch_not_equalflt .macro label
-    sei
     #stack_pull_mflpt zp_flt_b
     #stack_pull_mflpt zp_flt_a
     jsr Float_Compare
-    cli
     cmp #0
     bne \label
 .endm
 
 branch_lessflt .macro label
-    sei
     #stack_pull_mflpt zp_flt_b
     #stack_pull_mflpt zp_flt_a
     jsr Float_Compare
-    cli
     cmp #0
     bmi \label
 .endm
 
 branch_less_equalflt .macro label
-    sei
     #stack_pull_mflpt zp_flt_b
     #stack_pull_mflpt zp_flt_a
     jsr Float_Compare
-    cli
     cmp #0
     bmi \label
     beq \label
 .endm
 
 branch_greater_equalflt .macro label
-    sei
     #stack_pull_mflpt zp_flt_b
     #stack_pull_mflpt zp_flt_a
     jsr Float_Compare
-    cli
     cmp #0
     bpl \label
 .endm
 
 branch_greterflt .macro label
-    sei
     #stack_pull_mflpt zp_flt_b
     #stack_pull_mflpt zp_flt_a
     jsr Float_Compare
-    cli
     cmp #0
     bmi +
     beq +
@@ -323,42 +316,34 @@ branch_greterflt .macro label
 ; can never actually arise here. Identical logic to the non-_un macros
 ; above, just under the name IL asks for.
 branch_less_unsignedflt .macro label
-    sei
     #stack_pull_mflpt zp_flt_b
     #stack_pull_mflpt zp_flt_a
     jsr Float_Compare
-    cli
     cmp #0
     bmi \label
 .endm
 
 branch_less_equal_unsignedflt .macro label
-    sei
     #stack_pull_mflpt zp_flt_b
     #stack_pull_mflpt zp_flt_a
     jsr Float_Compare
-    cli
     cmp #0
     bmi \label
     beq \label
 .endm
 
 branch_greater_equal_unsignedflt .macro label
-    sei
     #stack_pull_mflpt zp_flt_b
     #stack_pull_mflpt zp_flt_a
     jsr Float_Compare
-    cli
     cmp #0
     bpl \label
 .endm
 
 branch_greater_unsignedflt .macro label
-    sei
     #stack_pull_mflpt zp_flt_b
     #stack_pull_mflpt zp_flt_a
     jsr Float_Compare
-    cli
     cmp #0
     bmi +
     beq +

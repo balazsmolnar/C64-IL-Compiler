@@ -1,10 +1,23 @@
 
 
+; SEI/PLP (not SEI/CLI) around the whole collection -- zero-page save/
+; restore (asm/C64.asm's OnInterrupt) protects scratch *values*, not the
+; *consistency of heap contents mid-mutation*: sweepAndCompact physically
+; moves objects, and an interrupt landing mid-move whose handler triggers
+; another allocation or another GC.Collect() would walk/move objects
+; through a half-moved heap regardless of zero-page protection. PLP (not
+; a blind CLI) so this nests correctly if GC.Collect() is ever called from
+; inside a compiled interrupt handler -- see floatBanking.asm's
+; bank_in_basic_rom/bank_out_basic_rom for the identical reasoning.
 GC_Collect
+    php
+    sei
     jsr trackObjects
     jsr fillSortTable
     jsr quicksort
-    jmp sweepAndCompact  ; tail call: its rts returns to GC_Collect's caller
+    jsr sweepAndCompact
+    plp
+    rts
 
 ; finds all objects which can be reached from roots
 ; Input: None

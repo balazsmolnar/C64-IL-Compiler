@@ -14,6 +14,7 @@ class Asm
     public Asm Cli() { bytes.Add(0x58); return this; }
     public Asm Brk() { bytes.Add(0x00); return this; }
     public Asm Tya() { bytes.Add(0x98); return this; }
+    public Asm Pha() { bytes.Add(0x48); return this; }
     public Asm LdaImm(byte v) { bytes.Add(0xA9); bytes.Add(v); return this; }
     public Asm LdxImm(byte v) { bytes.Add(0xA2); bytes.Add(v); return this; }
     public Asm LdyImm(byte v) { bytes.Add(0xA0); bytes.Add(v); return this; }
@@ -41,6 +42,13 @@ class Asm
 
     // "X=lo,Y=hi of address" -- MOVMF's destination-pointer convention.
     public Asm PointerInXY(int address) => LdxImm((byte)(address & 0xFF)).LdyImm((byte)(address >> 8));
+
+    // Pushes a compile-time-constant address onto the hardware stack, high
+    // byte first (low byte ends up on top) -- matches asm/helper/
+    // stack.asm's stack_push_pointer macro exactly, for driving code that
+    // expects an argument already sitting on the (stack-machine-as-
+    // hardware-stack) evaluation stack, e.g. C64_add_Interrupt.
+    public Asm PushPointer(int address) => LdaImm((byte)(address >> 8)).Pha().LdaImm((byte)(address & 0xFF)).Pha();
 
     public byte[] ToArray() => bytes.ToArray();
 }

@@ -27,6 +27,13 @@ class ILObjectInitializerOptimizer : ICompilerMethodPass
         {
             if (!lines[i].Optimized &&
                 lines[i].Operation is OpNewObj &&
+                // OpNewObj's delegate special case (see OperandBase.cs)
+                // returns a null RawParameter -- a delegate newobj is
+                // never followed by Dup+field-stores (no object-initializer
+                // syntax for delegates), so it can never match this
+                // pattern anyway; skip it explicitly rather than crashing
+                // GetIntParam on a null ToString().
+                lines[i].RawParameter != null &&
                 this.GetIntParam(lines[i].RawParameter, 1) == 0 &&
                 lines[i + 1].Operation is OpDup)
             {

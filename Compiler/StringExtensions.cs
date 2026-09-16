@@ -9,6 +9,7 @@ static class StringExtensions
     {
         var result = s
             ?.Replace('.', '_')
+            ?.Replace('+', '_')  // Type.FullName's nested-type separator
             ?.Replace('<', '_')
             ?.Replace('>', '_')
             ?.Replace('`', '_');

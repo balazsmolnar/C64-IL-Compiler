@@ -21,7 +21,10 @@ class ILTypeVTablePass : ICompilerTypePass
             labels.Add(m.GetLabel());
         }
 
-        string outputLine = $"{context.Type.Name.ToValidName()}_VTable: ";
+        // FullName, not Name -- must match OpNewObj's own vtable reference
+        // (Operands/OperandBase.cs) exactly; see ILCodePass.cs's comment
+        // for why short names alone collide (Roslyn's synthesized "<>O").
+        string outputLine = $"{context.Type.FullName.ToValidName()}_VTable: ";
         if (labels.Count > 0)
             outputLine += $" .word {string.Join(',', labels)}";
         else

@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace C64Lib
+﻿namespace C64Lib
 {
     public enum Colors : uint
     {
@@ -53,6 +51,17 @@ namespace C64Lib
         Space
     };
 
+    // No parameters -- deliberately not System.EventHandler. There's only ever
+    // one interrupt source here, so a sender/EventArgs pair would just be
+    // ceremony: a fabricated sender object and a heap-allocated EventArgs on
+    // every IRQ, for no payoff. Also sidesteps needing to compile
+    // Delegate.Combine/real multicast semantics -- see OpNewObj's delegate
+    // special case (Compiler/Operands/OperandBase.cs) and C64.asm's
+    // C64_add_Interrupt/OnInterrupt, both written only for a single,
+    // static-method subscriber (a second `+=` still just replaces the first,
+    // same as before this was made to compile at all).
+    public delegate void InterruptHandler();
+
     public static class C64
     {
         public static void SetChar(uint x, uint y, uint ch, Colors colors = Colors.LightBlue) { }
@@ -60,7 +69,7 @@ namespace C64Lib
         public static void SetBorderColor(Colors color) { }
         public static void SetBackgroundColor(Colors color) { }
         public static Colors GetBorderColor() => Colors.Black;
-        public static event EventHandler Interrupt;
+        public static event InterruptHandler Interrupt;
         public static SpriteCollection Sprites => null;
         public static JoystickCollection Joysticks => null;
         public static Sound Sound => null;

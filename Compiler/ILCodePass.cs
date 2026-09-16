@@ -63,7 +63,17 @@ class ILCodePass : ICompilerPass
                 continue;
             // context.GlobalOutputFile.WriteLine($".include \".\\\\{type.Name}.asm\"");
 
-            var normalizedName = type.Name.ToValidName();
+            // FullName, not Name -- two different types can share a short
+            // name (most commonly Roslyn's own compiler-generated "<>O"
+            // cached-static-delegate holder class, synthesized once per
+            // declaring type for any `SomeEvent += StaticMethod;`-shaped
+            // conversion: Test/FuncTest.cs and Test/InterruptTests.cs each
+            // get their own "<>O", and Name-only labeling silently wrote
+            // both to the same asm/unittest/x__O.asm, truncating whichever
+            // was compiled first and then double-.include-ing what
+            // remained). FullName's own separators ('.' for namespaces,
+            // '+' for nesting) are already handled by ToValidName.
+            var normalizedName = type.FullName.ToValidName();
             var import = $"\"./{normalizedName}.asm\"";
             context.GlobalOutputFile.WriteLine($".include {import}");
             using (var outputFile = File.CreateText(Path.Combine(context.OutputDirectory, $"{normalizedName}.asm")))

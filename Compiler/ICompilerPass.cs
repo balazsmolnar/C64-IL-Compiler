@@ -25,12 +25,15 @@ class CompilerContext
 
     public bool Optimize { get; set; }
 
-    // Set by ILLibraryUsagePass as it scans every compiled method; read by
-    // ILLibraryFlagsPass once all methods are done, to decide which of the
-    // always-on asm/C64*.asm library files this program actually needs.
-    public bool UsesJoystick { get; set; }
-    public bool UsesSound { get; set; }
-    public bool UsesDebug { get; set; }
+    // Set by ILLibraryUsagePass as it scans every compiled method's Call/
+    // Callvirt targets for C64Lib methods; read by ILLibraryFlagsPass once
+    // all methods are done, to decide which individual hand-written asm
+    // subroutines (each wrapped in its own `.weak Flag_X = 0 .endweak .if
+    // Flag_X ... .endif` in asm/C64*.asm) this program actually needs.
+    // Labels, not method names -- matches MethodBaseExtensions.GetLabel()
+    // exactly, since that's what the asm side's Flag_<label> names are
+    // keyed on.
+    public HashSet<string> UsedLibraryLabels { get; } = new HashSet<string>();
 
     // Set by ILCodePass as it discovers each type's static constructor (if
     // any); read by ILEntryPointPass, which calls every one of them once at

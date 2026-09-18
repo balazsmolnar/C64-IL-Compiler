@@ -1,14 +1,31 @@
 
+.weak
+Flag_C64_get_Sound = 0
+.endweak
+.if Flag_C64_get_Sound
+
 C64_get_Sound:
     #stack_save_return_adress zp_tmp1_low
     stack_push_int_a
     #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+.weak
+Flag_Sound_set_Volume = 0
+.endweak
+.if Flag_Sound_set_Volume
 
 Sound_set_Volume:
     #stack_save_return_adress zp_tmp1_low
     #stack_pull_int $D418
     #stack_pull_int_a
     #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+.weak
+Flag_Sound_PlayEffectReg1 = 0
+.endweak
+.if Flag_Sound_PlayEffectReg1
 
 Sound_PlayEffectReg1:
     #stack_save_return_adress zp_tmp1_low
@@ -30,6 +47,12 @@ Sound_PlayEffectReg1:
     sta $D404
 +   stack_pull_int_a
     #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+.weak
+Flag_Sound_PlayEffectReg2 = 0
+.endweak
+.if Flag_Sound_PlayEffectReg2
 
 Sound_PlayEffectReg2:
     #stack_save_return_adress zp_tmp1_low
@@ -51,3 +74,4 @@ Sound_PlayEffectReg2:
     sta $D40B
 +   stack_pull_int_a
     #stack_return_to_saved_address zp_tmp1_low
+.endif

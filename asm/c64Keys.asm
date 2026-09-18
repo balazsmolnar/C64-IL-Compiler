@@ -4,9 +4,13 @@ pb = $dc01        ;column read
 ddra = $dc02      ;ddr for row select
 ddrb = $dc03      ;ddr for column read
 
+.weak
+Flag_C64_IsKeyPressed = 0
+.endweak
+.if Flag_C64_IsKeyPressed
 
 C64_IsKeyPressed:
-    
+
     #stack_save_return_adress zp_tmp1_low
     #stack_pull_int zp_param2_low
     sei
@@ -32,4 +36,6 @@ keyRow:
 ;     A    B    C    D    E    F    G    H    I    J    K    L    M    N    O    P    Q    R    S    T    U    V    W    X    Y    Z   SPACE
 .byte $fd, $f7, $fb, $fb, $fd, $fb, $f7, $f7, $ef, $ef, $ef, $df, $ef, $ef, $ef, $df, $7f, $fb, $fd, $fb, $f7, $f7, $fd, $fb, $f7, $fd, $7F
 mask:
-.byte $04, $10, $10, $04, $40, $20, $04, $20, $02, $04, $20, $04, $10, $80, $40, $02, $40, $02, $20, $40, $40, $80, $02, $80, $02, $10, $10  
+.byte $04, $10, $10, $04, $40, $20, $04, $20, $02, $04, $20, $04, $10, $80, $40, $02, $40, $02, $20, $40, $40, $80, $02, $80, $02, $10, $10
+
+.endif

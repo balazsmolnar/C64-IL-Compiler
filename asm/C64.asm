@@ -8,6 +8,16 @@ VCR2            = $D016 ;VIC Control Register 2
 ; zp_param4_low  - Color
 ; (see asm/helper/zeropage.asm for every other claimant of these bytes)
 
+; C64_Set_Screen_Ptr/C64_SetChar_Core/C64_GetChar_Core are asm-internal-only
+; helpers -- never a direct C# call target, only reached via jsr/jmp from
+; C64_SetChar/C64_GetChar/C64_Write below, so ILLibraryUsagePass's Call/
+; Callvirt scan can never see them directly. Compiler/ILLibraryFlagsPass.cs's
+; ImpliedLabels table sets their flags whenever their caller's flag is set.
+.weak
+Flag_C64_Set_Screen_Ptr = 0
+.endweak
+.if Flag_C64_Set_Screen_Ptr
+
 C64_Set_Screen_Ptr
 
     ; add Y*40
@@ -32,6 +42,12 @@ C64_Set_Screen_Ptr
     inc zp_param0_high
 +   sta zp_param0_low
     rts
+.endif
+
+.weak
+Flag_C64_SetChar_Core = 0
+.endweak
+.if Flag_C64_SetChar_Core
 
 C64_SetChar_Core
 
@@ -54,6 +70,12 @@ C64_SetChar_Core
     beq +
     sta (zp_param0_low),y
 +   #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+.weak
+Flag_C64_GetChar_Core = 0
+.endweak
+.if Flag_C64_GetChar_Core
 
 C64_GetChar_Core
 
@@ -68,6 +90,12 @@ C64_GetChar_Core
     lda (zp_param0_low),y
     sta zp_param3_low
     rts
+.endif
+
+.weak
+Flag_C64_SetChar = 0
+.endweak
+.if Flag_C64_SetChar
 
 C64_SetChar
     #stack_save_return_adress zp_tmp1_low
@@ -77,6 +105,12 @@ C64_SetChar
     #stack_pull_int zp_param1_low
 
     jmp C64_SetChar_Core
+.endif
+
+.weak
+Flag_C64_GetChar = 0
+.endweak
+.if Flag_C64_GetChar
 
 C64_GetChar
     #stack_save_return_adress zp_tmp1_low
@@ -85,6 +119,12 @@ C64_GetChar
     jsr C64_GetChar_Core
     #stack_push_var zp_param3_low
     #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+.weak
+Flag_C64_Write = 0
+.endweak
+.if Flag_C64_Write
 
 C64_Write
     #stack_save_return_adress zp_tmp1_low
@@ -116,24 +156,48 @@ C64_Write
     bne -
 +
     #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+.weak
+Flag_C64_SetBorderColor = 0
+.endweak
+.if Flag_C64_SetBorderColor
 
 C64_SetBorderColor
     #stack_save_return_adress zp_tmp1_low
     #stack_pull_int_a
     sta $D020
     #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+.weak
+Flag_C64_SetBackgroundColor = 0
+.endweak
+.if Flag_C64_SetBackgroundColor
 
 C64_SetBackgroundColor
     #stack_save_return_adress zp_tmp1_low
     #stack_pull_int_a
     sta $D021
     #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+.weak
+Flag_C64_GetBorderColor = 0
+.endweak
+.if Flag_C64_GetBorderColor
 
 C64_GetBorderColor
     #stack_save_return_adress zp_tmp1_low
     #stack_push_var $D020
 
     #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+.weak
+Flag_C64_SetCharSet = 0
+.endweak
+.if Flag_C64_SetCharSet
 
 C64_SetCharSet
     #stack_save_return_adress zp_tmp1_low
@@ -148,6 +212,12 @@ C64_SetCharSet
     ora $D018
     sta $D018
     #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+.weak
+Flag_C64_CopyMemory = 0
+.endweak
+.if Flag_C64_CopyMemory
 
 C64_CopyMemory
     #stack_save_return_adress zp_tmp1_low
@@ -160,6 +230,12 @@ C64_CopyMemory
     bne -
 
     #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+.weak
+Flag_C64_FillMemory = 0
+.endweak
+.if Flag_C64_FillMemory
 
 C64_FillMemory
     #stack_save_return_adress zp_tmp1_low
@@ -173,6 +249,12 @@ C64_FillMemory
     bne -
 
     #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+.weak
+Flag_C64_GetMemory = 0
+.endweak
+.if Flag_C64_GetMemory
 
 C64_GetMemory
     #stack_save_return_adress zp_tmp1_low
@@ -181,14 +263,26 @@ C64_GetMemory
     lda (zp_param4_low),y
     stack_push_int_a
     #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+.weak
+Flag_C64_SetMultiColor = 0
+.endweak
+.if Flag_C64_SetMultiColor
 
 C64_SetMultiColor
     #stack_save_return_adress zp_tmp1_low
 
     lda VCR2
     ora #%00010000          ; multi-colour mode on
-    sta VCR2   
+    sta VCR2
     #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+.weak
+Flag_C64_SetCharBackgroundColor = 0
+.endweak
+.if Flag_C64_SetCharBackgroundColor
 
 C64_SetCharBackgroundColor
     #stack_save_return_adress zp_tmp1_low
@@ -197,6 +291,7 @@ C64_SetCharBackgroundColor
     txa
     sta $D022, y
     #stack_return_to_saved_address zp_tmp1_low
+.endif
 
 ; C64.Interrupt (C64Lib/C64.cs) is a parameterless delegate (InterruptHandler,
 ; not EventHandler -- see that file's comment), and single-subscriber only:
@@ -206,6 +301,11 @@ C64_SetCharBackgroundColor
 ; case + #stack_construct_static_delegate in asm/helper/stack.asm already
 ; unwrapped `ldnull; ldftn M; newobj ...` down to just that pointer -- no
 ; heap object, no sender/EventArgs to receive).
+.weak
+Flag_C64_add_Interrupt = 0
+.endweak
+.if Flag_C64_add_Interrupt
+
 C64_add_Interrupt
     sei
     #stack_save_return_adress zp_tmp1_low
@@ -221,6 +321,7 @@ C64_add_Interrupt
     sta $0315
     cli
     #stack_return_to_saved_address zp_tmp1_low
+.endif
 
 ; Dispatches into the subscriber's compiled method -- a single, fixed
 ; subroutine (never a macro expanded per callsite), so this is the one
@@ -246,6 +347,16 @@ C64_add_Interrupt
 ; bank_out_basic_rom would otherwise bank ROM back OUT ($01=$06) while
 ; the interrupted code is still mid-Float_Add, expecting $01 to still be
 ; $07 for its own subsequent MOVMF read.
+;
+; Asm-internal-only (see the note above C64_Set_Screen_Ptr) -- only ever
+; reached by C64_add_Interrupt poking its address into the IRQ vector, so
+; Compiler/ILLibraryFlagsPass.cs's ImpliedLabels table ties its flag to
+; Flag_C64_add_Interrupt.
+.weak
+Flag_OnInterrupt = 0
+.endweak
+.if Flag_OnInterrupt
+
 OnInterrupt
     lda $01
     pha
@@ -283,23 +394,41 @@ On_Interrupt_Ret
     sta $01
     jmp (zp_interrupt_saved_low)
     rti
+.endif
+
+.weak
+Flag_C64_get_Screen = 0
+.endweak
+.if Flag_C64_get_Screen
 
 C64_get_Screen:
     #stack_save_return_adress zp_tmp1_low
     #stack_push_int_a
     #stack_return_to_saved_address zp_tmp1_low
+.endif
 
 ; $1B is this program's untouched KERNAL boot default for $d011 (25-row
 ; text mode, DEN=1, YSCROLL=3) -- confirmed nothing else in this codebase
 ; ever writes it, so it's safe to hardcode as "the" resting value rather
 ; than read-modify-write around just the DEN bit. $0B is the same value
 ; with DEN (bit 4) cleared, blanking the whole physical display.
+.weak
+Flag_Screen_BeginUpdate = 0
+.endweak
+.if Flag_Screen_BeginUpdate
+
 Screen_BeginUpdate:
     #stack_save_return_adress zp_tmp1_low
     #stack_pull_int_x
     lda #$0B
     sta $d011
     #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+.weak
+Flag_Screen_EndUpdate = 0
+.endweak
+.if Flag_Screen_EndUpdate
 
 Screen_EndUpdate:
     #stack_save_return_adress zp_tmp1_low
@@ -307,15 +436,10 @@ Screen_EndUpdate:
     lda #$1B
     sta $d011
     #stack_return_to_saved_address zp_tmp1_low
+.endif
 
 .include "./c64sprite.asm"
-.if USE_JOYSTICK
 .include "./c64Joystick.asm"
-.endif
-.if USE_SOUND
 .include "./C64Sound.asm"
-.endif
 .include "./c64Keys.asm"
-.if USE_DEBUG
 .include "./C64Debug.asm"
-.endif

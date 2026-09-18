@@ -28,9 +28,9 @@ class Program
         ball.X = 24;
         ball.Visible = true;
 
-        C64.SetBackgroundColor(Colors.Blue);
-        C64.SetBorderColor(Colors.LightBlue);
-        C64.Write(1, 1, "FLOAT ARITHMETIC DEMO", Colors.White);
+        C64.Screen.SetBackgroundColor(Colors.Blue);
+        C64.Screen.SetBorderColor(Colors.LightBlue);
+        C64.Screen.Write(1, 1, "FLOAT ARITHMETIC DEMO", Colors.White);
 
         ShowResult(1, 3, "3.5 + 2.25 = 5.75", 3.5f + 2.25f, 5.75f);
         ShowResult(1, 5, "10.0 - 3.5 = 6.5", 10.0f - 3.5f, 6.5f);
@@ -45,7 +45,7 @@ class Program
 
     static void ShowResult(uint x, uint y, string label, float actual, float expected)
     {
-        C64.Write(x, y, label, actual == expected ? Colors.Green : Colors.Red);
+        C64.Screen.Write(x, y, label, actual == expected ? Colors.Green : Colors.Red);
     }
 
     // Sprite.X has no getter implementation in asm/c64sprite.asm (only

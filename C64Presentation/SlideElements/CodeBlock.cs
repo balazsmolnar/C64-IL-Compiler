@@ -20,14 +20,14 @@ class CodeBlock : SlideElement
         {
             for (uint y = b; y < Y+Height; y++)
             {
-                C64.SetChar(x,y,SPACE);
+                C64.Screen.SetChar(x,y,SPACE);
             }
         }
 
         var yy = Y;
         foreach (var line in Lines)
         {
-            C64.Write(X, yy++, line, Colors.White);
+            C64.Screen.Write(X, yy++, line, Colors.White);
         }
     }
 }

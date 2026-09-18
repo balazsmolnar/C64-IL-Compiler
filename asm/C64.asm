@@ -10,13 +10,14 @@ VCR2            = $D016 ;VIC Control Register 2
 
 ; C64_Set_Screen_Ptr/C64_SetChar_Core/C64_GetChar_Core are asm-internal-only
 ; helpers -- never a direct C# call target, only reached via jsr/jmp from
-; C64_SetChar/C64_GetChar/C64_Write below, so ILLibraryUsagePass's Call/
-; Callvirt scan can never see them directly. Compiler/ILLibraryFlagsPass.cs's
-; ImpliedLabels table sets their flags whenever their caller's flag is set.
-.weak
-Flag_C64_Set_Screen_Ptr = 0
-.endweak
-.if Flag_C64_Set_Screen_Ptr
+; Screen_SetChar/Screen_GetChar/Screen_Write below, so ILLibraryUsagePass's
+; Call/Callvirt scan can never see them directly. Rather than giving each of
+; these its own Flag_ and wiring it up from a lookup table on the C# side
+; (which a future asm-only edit could silently forget to update), each one's
+; .if condition just directly references its caller(s)' own flag(s) --
+; the dependency lives here, next to the code that has it, and needs no
+; separate bookkeeping to stay correct.
+.if Flag_Screen_SetChar | Flag_Screen_GetChar | Flag_Screen_Write
 
 C64_Set_Screen_Ptr
 
@@ -44,10 +45,7 @@ C64_Set_Screen_Ptr
     rts
 .endif
 
-.weak
-Flag_C64_SetChar_Core = 0
-.endweak
-.if Flag_C64_SetChar_Core
+.if Flag_Screen_SetChar
 
 C64_SetChar_Core
 
@@ -72,10 +70,7 @@ C64_SetChar_Core
 +   #stack_return_to_saved_address zp_tmp1_low
 .endif
 
-.weak
-Flag_C64_GetChar_Core = 0
-.endweak
-.if Flag_C64_GetChar_Core
+.if Flag_Screen_GetChar
 
 C64_GetChar_Core
 
@@ -93,11 +88,11 @@ C64_GetChar_Core
 .endif
 
 .weak
-Flag_C64_SetChar = 0
+Flag_Screen_SetChar = 0
 .endweak
-.if Flag_C64_SetChar
+.if Flag_Screen_SetChar
 
-C64_SetChar
+Screen_SetChar
     #stack_save_return_adress zp_tmp1_low
     #stack_pull_int zp_param4_low
     #stack_pull_int zp_param3_low
@@ -108,11 +103,11 @@ C64_SetChar
 .endif
 
 .weak
-Flag_C64_GetChar = 0
+Flag_Screen_GetChar = 0
 .endweak
-.if Flag_C64_GetChar
+.if Flag_Screen_GetChar
 
-C64_GetChar
+Screen_GetChar
     #stack_save_return_adress zp_tmp1_low
     #stack_pull_int zp_param2_low
     #stack_pull_int zp_param1_low
@@ -122,11 +117,11 @@ C64_GetChar
 .endif
 
 .weak
-Flag_C64_Write = 0
+Flag_Screen_Write = 0
 .endweak
-.if Flag_C64_Write
+.if Flag_Screen_Write
 
-C64_Write
+Screen_Write
     #stack_save_return_adress zp_tmp1_low
     #stack_pull_int zp_param4_low
     #stack_pull_pointer zp_param3_low
@@ -159,11 +154,11 @@ C64_Write
 .endif
 
 .weak
-Flag_C64_SetBorderColor = 0
+Flag_Screen_SetBorderColor = 0
 .endweak
-.if Flag_C64_SetBorderColor
+.if Flag_Screen_SetBorderColor
 
-C64_SetBorderColor
+Screen_SetBorderColor
     #stack_save_return_adress zp_tmp1_low
     #stack_pull_int_a
     sta $D020
@@ -171,11 +166,11 @@ C64_SetBorderColor
 .endif
 
 .weak
-Flag_C64_SetBackgroundColor = 0
+Flag_Screen_SetBackgroundColor = 0
 .endweak
-.if Flag_C64_SetBackgroundColor
+.if Flag_Screen_SetBackgroundColor
 
-C64_SetBackgroundColor
+Screen_SetBackgroundColor
     #stack_save_return_adress zp_tmp1_low
     #stack_pull_int_a
     sta $D021
@@ -183,11 +178,11 @@ C64_SetBackgroundColor
 .endif
 
 .weak
-Flag_C64_GetBorderColor = 0
+Flag_Screen_GetBorderColor = 0
 .endweak
-.if Flag_C64_GetBorderColor
+.if Flag_Screen_GetBorderColor
 
-C64_GetBorderColor
+Screen_GetBorderColor
     #stack_save_return_adress zp_tmp1_low
     #stack_push_var $D020
 
@@ -195,11 +190,11 @@ C64_GetBorderColor
 .endif
 
 .weak
-Flag_C64_SetCharSet = 0
+Flag_Screen_SetCharSet = 0
 .endweak
-.if Flag_C64_SetCharSet
+.if Flag_Screen_SetCharSet
 
-C64_SetCharSet
+Screen_SetCharSet
     #stack_save_return_adress zp_tmp1_low
     lda $D018
     and #%11110001
@@ -266,11 +261,11 @@ C64_GetMemory
 .endif
 
 .weak
-Flag_C64_SetMultiColor = 0
+Flag_Screen_SetMultiColor = 0
 .endweak
-.if Flag_C64_SetMultiColor
+.if Flag_Screen_SetMultiColor
 
-C64_SetMultiColor
+Screen_SetMultiColor
     #stack_save_return_adress zp_tmp1_low
 
     lda VCR2
@@ -280,11 +275,11 @@ C64_SetMultiColor
 .endif
 
 .weak
-Flag_C64_SetCharBackgroundColor = 0
+Flag_Screen_SetCharBackgroundColor = 0
 .endweak
-.if Flag_C64_SetCharBackgroundColor
+.if Flag_Screen_SetCharBackgroundColor
 
-C64_SetCharBackgroundColor
+Screen_SetCharBackgroundColor
     #stack_save_return_adress zp_tmp1_low
     #stack_pull_int_x
     #stack_pull_int_y
@@ -350,12 +345,9 @@ C64_add_Interrupt
 ;
 ; Asm-internal-only (see the note above C64_Set_Screen_Ptr) -- only ever
 ; reached by C64_add_Interrupt poking its address into the IRQ vector, so
-; Compiler/ILLibraryFlagsPass.cs's ImpliedLabels table ties its flag to
-; Flag_C64_add_Interrupt.
-.weak
-Flag_OnInterrupt = 0
-.endweak
-.if Flag_OnInterrupt
+; it just reuses that single caller's own flag directly instead of getting
+; one of its own.
+.if Flag_C64_add_Interrupt
 
 OnInterrupt
     lda $01
@@ -396,17 +388,6 @@ On_Interrupt_Ret
     rti
 .endif
 
-.weak
-Flag_C64_get_Screen = 0
-.endweak
-.if Flag_C64_get_Screen
-
-C64_get_Screen:
-    #stack_save_return_adress zp_tmp1_low
-    #stack_push_int_a
-    #stack_return_to_saved_address zp_tmp1_low
-.endif
-
 ; $1B is this program's untouched KERNAL boot default for $d011 (25-row
 ; text mode, DEN=1, YSCROLL=3) -- confirmed nothing else in this codebase
 ; ever writes it, so it's safe to hardcode as "the" resting value rather
@@ -419,7 +400,6 @@ Flag_Screen_BeginUpdate = 0
 
 Screen_BeginUpdate:
     #stack_save_return_adress zp_tmp1_low
-    #stack_pull_int_x
     lda #$0B
     sta $d011
     #stack_return_to_saved_address zp_tmp1_low
@@ -432,7 +412,6 @@ Flag_Screen_EndUpdate = 0
 
 Screen_EndUpdate:
     #stack_save_return_adress zp_tmp1_low
-    #stack_pull_int_x
     lda #$1B
     sta $d011
     #stack_return_to_saved_address zp_tmp1_low

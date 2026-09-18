@@ -21,8 +21,8 @@ class BulletList : SlideElement
 
         foreach (var item in Items)
         {
-            C64.SetChar(Left, y, Symbol, Color);
-            C64.Write(Left + 2, y, item, Color);
+            C64.Screen.SetChar(Left, y, Symbol, Color);
+            C64.Screen.Write(Left + 2, y, item, Color);
             y += 2;
 
             if (Wait)

@@ -41,19 +41,19 @@ class Game
 
     private static void GameOver()
     {
-        C64.Write(15, 12, "GAME OVER", Colors.Red);
+        C64.Screen.Write(15, 12, "GAME OVER", Colors.Red);
         for (int i = 0; i < 60; i++)
             Delay.Wait(100);
     }
 
     private void Init()
     {
-        C64.SetCharSet(C64Address.FromLabel("charset"));
-        C64.SetMultiColor();
-        C64.SetBackgroundColor(Colors.Black);
-        C64.SetBorderColor(Colors.Black);
-        C64.SetCharBackgroundColor(0, Colors.Grey1);
-        C64.SetCharBackgroundColor(1, Colors.White);
+        C64.Screen.SetCharSet(C64Address.FromLabel("charset"));
+        C64.Screen.SetMultiColor();
+        C64.Screen.SetBackgroundColor(Colors.Black);
+        C64.Screen.SetBorderColor(Colors.Black);
+        C64.Screen.SetCharBackgroundColor(0, Colors.Grey1);
+        C64.Screen.SetCharBackgroundColor(1, Colors.White);
         C64.Sprites.CommonColor1 = Colors.Brown;
         C64.Sprites.CommonColor2 = Colors.Grey3;
 

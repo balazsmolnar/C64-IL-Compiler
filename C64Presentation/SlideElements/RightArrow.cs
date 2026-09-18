@@ -19,17 +19,17 @@ class RightArrow : SlideElement
         uint a = X;
         for (uint x = a; x <= X + Width - 1; x++)
         {
-            C64.SetChar(x, Y, H_LINE);
+            C64.Screen.SetChar(x, Y, H_LINE);
             Delay.Wait(100);
         }
-        C64.SetChar(X + Width - 1, Y, ARROW_HEAD);
+        C64.Screen.SetChar(X + Width - 1, Y, ARROW_HEAD);
 
         if (Text1 != null)
         {
             int length = Text1.Length;
             uint startX = ((Width - (uint)length) >> 1) + (uint)X;
 
-            C64.Write(startX, Y - 1, Text1);
+            C64.Screen.Write(startX, Y - 1, Text1);
         }
 
         if (Text2 != null)
@@ -37,7 +37,7 @@ class RightArrow : SlideElement
             int length = Text2.Length;
             uint startX = ((Width - (uint)length) >> 1) + (uint)X;
 
-            C64.Write(startX, Y + 1, Text2);
+            C64.Screen.Write(startX, Y + 1, Text2);
         }
     }
 }

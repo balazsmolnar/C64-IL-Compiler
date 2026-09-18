@@ -39,6 +39,6 @@ public class InterruptTests
     // whatever the interrupted mainline code had there.
     public static void Handler()
     {
-        C64.SetBorderColor(Colors.Green);
+        C64.Screen.SetBorderColor(Colors.Green);
     }
 }

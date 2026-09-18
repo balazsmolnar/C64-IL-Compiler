@@ -51,7 +51,7 @@ class Stack : SlideElement
 
         for (int p = 0; p <= pointer; p++)
         {
-            C64.Write(X+2, Y-(uint)pointer + (uint)(p+1), elements[pointer-p].Id, Colors.Yellow);
+            C64.Screen.Write(X+2, Y-(uint)pointer + (uint)(p+1), elements[pointer-p].Id, Colors.Yellow);
         }
     }
 }

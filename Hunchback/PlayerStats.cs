@@ -55,7 +55,7 @@ public class PlayerStats
                 var b = C64.GetMemory(C64Address.FromLabel("txt_PlayerStats"), d);
                 var c = C64.GetMemory(C64Address.FromLabel("tbl_PlayerStatsColours"), d);
 
-                C64.SetChar(x, y, b, (Colors)c);
+                C64.Screen.SetChar(x, y, b, (Colors)c);
                 d++;
             }
         }
@@ -73,7 +73,7 @@ public class PlayerStats
             {
                 var ch = C64.GetMemory(C64Address.FromLabel("tbl_LevelMarkerChars"), i);
                 var c = C64.GetMemory(C64Address.FromLabel("tbl_LevelMarkerCharCol"), i);
-                C64.SetChar(col, 21 + row, ch, (Colors)c);
+                C64.Screen.SetChar(col, 21 + row, ch, (Colors)c);
                 i++;
             }
         }
@@ -82,7 +82,7 @@ public class PlayerStats
         var fine = levelNumber & 3;
         var pixel = C64.GetMemory(C64Address.FromLabel("tbl_LevelMarkerPixel"), fine);
         C64.FillMemory(C64Address.FromLabel("(charset+$31C)"), pixel, 2);
-        C64.SetChar(1 + coarse, 22, LevelMarkerChar, Colors.LightGreen);
+        C64.Screen.SetChar(1 + coarse, 22, LevelMarkerChar, Colors.LightGreen);
     }
 
     public void DrawLives()
@@ -90,7 +90,7 @@ public class PlayerStats
         var shown = Lives > 0 ? Lives - 1 : 0;
 
         for (uint i = 0; i < 6; i++)
-            C64.SetChar(LivesX + i, 1, i < shown ? LivesMarkerChar : 32, Colors.White);
+            C64.Screen.SetChar(LivesX + i, 1, i < shown ? LivesMarkerChar : 32, Colors.White);
     }
 
     public void DrawBonus()
@@ -103,10 +103,10 @@ public class PlayerStats
         for (uint i = 0; i < 4; i++)
         {
             var on = i < Bonus;
-            C64.SetChar(x, 0, on ? BellUL : BorderChar, Colors.Grey2);
-            C64.SetChar(x + 1, 0, on ? BellUR : BorderChar, Colors.Grey2);
-            C64.SetChar(x, 1, on ? BellLL : 32, Colors.Grey2);
-            C64.SetChar(x + 1, 1, on ? BellLR : 32, Colors.Grey2);
+            C64.Screen.SetChar(x, 0, on ? BellUL : BorderChar, Colors.Grey2);
+            C64.Screen.SetChar(x + 1, 0, on ? BellUR : BorderChar, Colors.Grey2);
+            C64.Screen.SetChar(x, 1, on ? BellLL : 32, Colors.Grey2);
+            C64.Screen.SetChar(x + 1, 1, on ? BellLR : 32, Colors.Grey2);
             x += 2;
         }
     }

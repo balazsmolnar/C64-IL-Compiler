@@ -19,7 +19,7 @@ class DiagonalClearAnimation : Animation
             {
                 if (xx > Screen.Width || (x - xx) > Screen.Height)
                     continue;
-                C64.SetChar((uint)xx, (uint)(x-xx), 0x20);
+                C64.Screen.SetChar((uint)xx, (uint)(x-xx), 0x20);
             }
             Delay.Wait(50);
         }

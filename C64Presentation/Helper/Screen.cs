@@ -26,7 +26,7 @@ class Screen
         {
             for (uint x = x1; x <= x2; x++)
             {
-                C64.SetChar(x,y,0x20);
+                C64.Screen.SetChar(x,y,0x20);
             }
         }
     }

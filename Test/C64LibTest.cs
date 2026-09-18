@@ -18,17 +18,17 @@ public class C64LibTest
     [Test]
     public void SetChar_GetChar_RoundTrip()
     {
-        C64.SetChar(5, 10, 65, Colors.White);
-        Assert.AreEqual(C64.GetChar(5, 10), 65);
+        C64.Screen.SetChar(5, 10, 65, Colors.White);
+        Assert.AreEqual(C64.Screen.GetChar(5, 10), 65);
     }
 
     [Test]
     public void SetChar_Different_Positions_Are_Independent()
     {
-        C64.SetChar(0, 0, 1, Colors.White);
-        C64.SetChar(1, 0, 2, Colors.White);
-        Assert.AreEqual(C64.GetChar(0, 0), 1);
-        Assert.AreEqual(C64.GetChar(1, 0), 2);
+        C64.Screen.SetChar(0, 0, 1, Colors.White);
+        C64.Screen.SetChar(1, 0, 2, Colors.White);
+        Assert.AreEqual(C64.Screen.GetChar(0, 0), 1);
+        Assert.AreEqual(C64.Screen.GetChar(1, 0), 2);
     }
 
     // C64_SetChar_Core (asm/C64.asm) treats a character code of $FF as
@@ -39,9 +39,9 @@ public class C64LibTest
     [Test]
     public void SetChar_0xFF_Leaves_Character_Unchanged()
     {
-        C64.SetChar(3, 3, 42, Colors.White);
-        C64.SetChar(3, 3, 0xFF, Colors.Red);
-        Assert.AreEqual(C64.GetChar(3, 3), 42);
+        C64.Screen.SetChar(3, 3, 42, Colors.White);
+        C64.Screen.SetChar(3, 3, 0xFF, Colors.Red);
+        Assert.AreEqual(C64.Screen.GetChar(3, 3), 42);
     }
 
     [Test]
@@ -51,17 +51,17 @@ public class C64LibTest
         // charset -- confirmed by assembling ".enc \"screen\" / .text
         // \"A\",0" standalone and inspecting the emitted byte, not assumed
         // from the classic PETSCII screen-code layout (which would be 1).
-        C64.Write(2, 2, "A", Colors.White);
-        Assert.AreEqual(C64.GetChar(2, 2), 65);
+        C64.Screen.Write(2, 2, "A", Colors.White);
+        Assert.AreEqual(C64.Screen.GetChar(2, 2), 65);
     }
 
     [Test]
     public void Write_Stops_At_Terminator()
     {
-        C64.SetChar(6, 6, 99, Colors.White);
-        C64.Write(5, 6, "A", Colors.White); // one real char, then a $00 terminator
-        Assert.AreEqual(C64.GetChar(5, 6), 65);
-        Assert.AreEqual(C64.GetChar(6, 6), 99); // untouched by the terminated write
+        C64.Screen.SetChar(6, 6, 99, Colors.White);
+        C64.Screen.Write(5, 6, "A", Colors.White); // one real char, then a $00 terminator
+        Assert.AreEqual(C64.Screen.GetChar(5, 6), 65);
+        Assert.AreEqual(C64.Screen.GetChar(6, 6), 99); // untouched by the terminated write
     }
 
     // C64_FillMemory's loop (asm/C64.asm) counts Y down from the size
@@ -108,10 +108,10 @@ public class C64LibTest
     [Test]
     public void SetBorderColor_GetBorderColor_RoundTrip()
     {
-        C64.SetBorderColor(Colors.Red);
-        Assert.AreEqual((uint)C64.GetBorderColor(), (uint)Colors.Red);
-        C64.SetBorderColor(Colors.Cyan);
-        Assert.AreEqual((uint)C64.GetBorderColor(), (uint)Colors.Cyan);
+        C64.Screen.SetBorderColor(Colors.Red);
+        Assert.AreEqual((uint)C64.Screen.GetBorderColor(), (uint)Colors.Red);
+        C64.Screen.SetBorderColor(Colors.Cyan);
+        Assert.AreEqual((uint)C64.Screen.GetBorderColor(), (uint)Colors.Cyan);
     }
 
     // SpriteCollection.Collisions reads the real VIC-II sprite-collision
@@ -152,9 +152,9 @@ public class C64LibTest
         C64.Sound.PlayEffectReg1(WaveForm.Triangle, 1000UL, 0UL, 9, 0, false);
         C64.Sound.PlayEffectReg2(WaveForm.Noise, 2000UL, 0UL, 9, 0, false);
 
-        C64.SetMultiColor();
-        C64.SetCharBackgroundColor(0, Colors.Grey1);
-        C64.SetCharSet(0x2000UL);
+        C64.Screen.SetMultiColor();
+        C64.Screen.SetCharBackgroundColor(0, Colors.Grey1);
+        C64.Screen.SetCharSet(0x2000UL);
 
         // No assertion needed: the test harness (asm/unittest.asm) marks
         // result = success as soon as this method returns normally, so

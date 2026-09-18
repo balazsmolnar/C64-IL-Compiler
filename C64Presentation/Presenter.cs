@@ -16,8 +16,8 @@ class Presenter
             Screen.Clear();
             GC.Collect();
 
-            C64.SetBackgroundColor(Colors.Black);
-            C64.SetBorderColor(Colors.Black);
+            C64.Screen.SetBackgroundColor(Colors.Black);
+            C64.Screen.SetBorderColor(Colors.Black);
 
             var slide = slides[currentSlide]();
             slide.Present();

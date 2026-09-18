@@ -11,6 +11,6 @@ class TextElement : SlideElement
     public Colors Color;
     public override void Draw()
     {
-        C64.Write(X, Y, Text, Color);
+        C64.Screen.Write(X, Y, Text, Color);
     }
 }

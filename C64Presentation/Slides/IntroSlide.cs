@@ -11,7 +11,7 @@ class IntroSlide : Slide
     {
 
         Screen.Clear(Colors.Green);
-        C64.Write(17, 12, "F  O  R", Colors.Green);
+        C64.Screen.Write(17, 12, "F  O  R", Colors.Green);
 
         var c64Logo = new MovingLogo
         {

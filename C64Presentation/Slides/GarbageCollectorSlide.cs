@@ -121,7 +121,7 @@ class GarbageCollectorSlide : Slide
             box.X = x;
             box.Draw();
 
-            C64.SetChar(x + 3, 8, objectElem.Processing ? 0u : 0x20u);
+            C64.Screen.SetChar(x + 3, 8, objectElem.Processing ? 0u : 0x20u);
             x += width - 1;
 
             if (!objectElem.Alive)
@@ -139,7 +139,7 @@ class GarbageCollectorSlide : Slide
             {
                 foreach (var reference in objectElem.References)
                 {
-                    C64.Write(refx, 22, reference.Id);
+                    C64.Screen.Write(refx, 22, reference.Id);
                     refx += 2;
                 }
             }

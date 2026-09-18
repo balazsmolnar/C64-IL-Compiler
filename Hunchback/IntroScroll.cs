@@ -153,7 +153,7 @@ class IntroScroll
 
         for (uint y = 0; y < Rows; y++)
             for (uint x = 0; x < Cols; x++)
-                C64.SetChar(x, y, s_currentChar[y][x], (Colors)s_currentColor[y][x]);
+                C64.Screen.SetChar(x, y, s_currentChar[y][x], (Colors)s_currentColor[y][x]);
 
         // Back on now that the live screen genuinely shows only the old
         // level again -- everything from here on is the real, intended
@@ -172,7 +172,7 @@ class IntroScroll
                 ShiftRowLeft(screenRow);
                 ShiftRowLeft(colorRow);
 
-                C64.SetChar(Cols - 1, y, s_nextChar[y][step], (Colors)s_nextColor[y][step]);
+                C64.Screen.SetChar(Cols - 1, y, s_nextChar[y][step], (Colors)s_nextColor[y][step]);
 
                 screenRow += Cols;
                 colorRow += Cols;
@@ -254,7 +254,7 @@ class IntroScroll
         {
             for (uint x = 0; x < Cols; x++)
             {
-                chars[y][x] = (uint)C64.GetChar(x, y);
+                chars[y][x] = (uint)C64.Screen.GetChar(x, y);
                 colors[y][x] = C64.GetMemory(colorRow, x);
             }
             colorRow += Cols;

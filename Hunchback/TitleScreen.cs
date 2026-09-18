@@ -29,11 +29,11 @@ class TitleScreen
         C64.CopyMemory(C64Address.FromLabel("(screenMemory+$1CD)"), C64Address.FromLabel("titleScreen+$100"), 0);
         C64.CopyMemory(C64Address.FromLabel("(screenMemory+$21B)"), C64Address.FromLabel("titleScreen+$14E"), 0);
 
-        C64.Write(13, 1, "OCEAN SOFTWARE", Colors.Green);
-        C64.Write(13, 3, "   PRESENTS   ", Colors.White);
-        C64.Write(25, 21, "   BY J.STEELE", Colors.Green);
-        C64.Write(7, 23, "PRESS F1 FOR INSTRUCTIONS", Colors.White);
-        C64.Write(7, 24, "    OR SPACE TO START    ", Colors.White);
+        C64.Screen.Write(13, 1, "OCEAN SOFTWARE", Colors.Green);
+        C64.Screen.Write(13, 3, "   PRESENTS   ", Colors.White);
+        C64.Screen.Write(25, 21, "   BY J.STEELE", Colors.Green);
+        C64.Screen.Write(7, 23, "PRESS F1 FOR INSTRUCTIONS", Colors.White);
+        C64.Screen.Write(7, 24, "    OR SPACE TO START    ", Colors.White);
 
         // Indexed for, not foreach -- foreach over an array of reference-
         // typed elements (Tone here) is untested territory in this

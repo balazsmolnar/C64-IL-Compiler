@@ -128,32 +128,32 @@ class LevelPlay
         // Save what's actually under the text (e.g. a row-of-bells rope
         // strand) instead of just blanking to spaces afterward, which used
         // to punch a visible gap through it.
-        var c0 = (uint)C64.GetChar(16, 6);
-        var c1 = (uint)C64.GetChar(17, 6);
-        var c2 = (uint)C64.GetChar(18, 6);
-        var c3 = (uint)C64.GetChar(19, 6);
-        var c4 = (uint)C64.GetChar(20, 6);
-        var c5 = (uint)C64.GetChar(21, 6);
-        var c6 = (uint)C64.GetChar(22, 6);
-        var c7 = (uint)C64.GetChar(23, 6);
-        var c8 = (uint)C64.GetChar(24, 6);
+        var c0 = (uint)C64.Screen.GetChar(16, 6);
+        var c1 = (uint)C64.Screen.GetChar(17, 6);
+        var c2 = (uint)C64.Screen.GetChar(18, 6);
+        var c3 = (uint)C64.Screen.GetChar(19, 6);
+        var c4 = (uint)C64.Screen.GetChar(20, 6);
+        var c5 = (uint)C64.Screen.GetChar(21, 6);
+        var c6 = (uint)C64.Screen.GetChar(22, 6);
+        var c7 = (uint)C64.Screen.GetChar(23, 6);
+        var c8 = (uint)C64.Screen.GetChar(24, 6);
 
-        C64.Write(16, 6, "GET READY", Colors.White);
+        C64.Screen.Write(16, 6, "GET READY", Colors.White);
         for (int i = 0; i < 40; i++)
             Delay.Wait(100);
 
         // Grey2 matches the only decoration that can be here today (the
         // row-of-bells rope); harmless elsewhere since a space's color
         // isn't visible.
-        C64.SetChar(16, 6, c0, Colors.Grey2);
-        C64.SetChar(17, 6, c1, Colors.Grey2);
-        C64.SetChar(18, 6, c2, Colors.Grey2);
-        C64.SetChar(19, 6, c3, Colors.Grey2);
-        C64.SetChar(20, 6, c4, Colors.Grey2);
-        C64.SetChar(21, 6, c5, Colors.Grey2);
-        C64.SetChar(22, 6, c6, Colors.Grey2);
-        C64.SetChar(23, 6, c7, Colors.Grey2);
-        C64.SetChar(24, 6, c8, Colors.Grey2);
+        C64.Screen.SetChar(16, 6, c0, Colors.Grey2);
+        C64.Screen.SetChar(17, 6, c1, Colors.Grey2);
+        C64.Screen.SetChar(18, 6, c2, Colors.Grey2);
+        C64.Screen.SetChar(19, 6, c3, Colors.Grey2);
+        C64.Screen.SetChar(20, 6, c4, Colors.Grey2);
+        C64.Screen.SetChar(21, 6, c5, Colors.Grey2);
+        C64.Screen.SetChar(22, 6, c6, Colors.Grey2);
+        C64.Screen.SetChar(23, 6, c7, Colors.Grey2);
+        C64.Screen.SetChar(24, 6, c8, Colors.Grey2);
     }
 
     // Debug aid: show the (0-based) level index at the top right of the
@@ -169,9 +169,9 @@ class LevelPlay
             ones -= 10;
             tens++;
         }
-        C64.SetChar(36, 1, 76, Colors.Yellow); // 'L'
-        C64.SetChar(37, 1, 48 + tens, Colors.Yellow);
-        C64.SetChar(38, 1, 48 + ones, Colors.Yellow);
+        C64.Screen.SetChar(36, 1, 76, Colors.Yellow); // 'L'
+        C64.Screen.SetChar(37, 1, 48 + tens, Colors.Yellow);
+        C64.Screen.SetChar(38, 1, 48 + ones, Colors.Yellow);
     }
 
     private static void BonusFanfare()

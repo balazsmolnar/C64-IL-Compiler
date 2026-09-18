@@ -62,26 +62,16 @@
     // same as before this was made to compile at all).
     public delegate void InterruptHandler();
 
-    public static class C64
+    public static partial class C64
     {
-        public static void SetChar(uint x, uint y, uint ch, Colors colors = Colors.LightBlue) { }
-        public static int GetChar(uint x, uint y) => 0;
-        public static void SetBorderColor(Colors color) { }
-        public static void SetBackgroundColor(Colors color) { }
-        public static Colors GetBorderColor() => Colors.Black;
         public static event InterruptHandler Interrupt;
         public static SpriteCollection Sprites => null;
         public static JoystickCollection Joysticks => null;
         public static Sound Sound => null;
         public static Debug Debug => null;
-        public static Screen Screen => null;
         public static bool IsKeyPressed(Keys key) => false;
-        public static void SetCharSet(ulong address) { }
         public static void CopyMemory(ulong dest, ulong source, uint size) { }
         public static void FillMemory(ulong dest, uint value, uint size) { }
         public static uint GetMemory(ulong address, uint x) => 0;
-        public static void Write(uint x, uint y, string s, Colors colors = Colors.LightBlue) { }
-        public static void SetMultiColor() { }
-        public static void SetCharBackgroundColor(uint colorIndex, Colors color) { }
     }
 }

@@ -82,7 +82,7 @@ class Wall : GameObject
             {
                 var b = C64.GetMemory(C64Address.FromLabel("tbl_LevelEndBellChars"), d);
 
-                C64.SetChar(x, y, b, Colors.Grey3);
+                C64.Screen.SetChar(x, y, b, Colors.Grey3);
                 d++;
             }
         }
@@ -97,7 +97,7 @@ class Wall : GameObject
                 var b = C64.GetMemory(C64Address.FromLabel("tbl_KnightChars"), d);
                 var c = C64.GetMemory(C64Address.FromLabel("tbl_KnightCharsColours"), d);
 
-                C64.SetChar(x, y, b, (Colors)c);
+                C64.Screen.SetChar(x, y, b, (Colors)c);
                 d++;
             }
         }
@@ -113,7 +113,7 @@ class Wall : GameObject
                 var b = C64.GetMemory(C64Address.FromLabel("tbl_EmptyPitChars"), d);
                 var c = C64.GetMemory(C64Address.FromLabel("tbl_EmptyPitCharColours"), d);
 
-                C64.SetChar(x, y, b, (Colors)c);
+                C64.Screen.SetChar(x, y, b, (Colors)c);
                 d++;
             }
         }
@@ -243,20 +243,20 @@ class Wall : GameObject
         BuildBellColumn(21);
         BuildBellColumn(25);
 
-        C64.SetChar(15, 3, BellLedge, Colors.Grey2);
-        C64.SetChar(16, 3, BellLedge, Colors.Grey2);
-        C64.SetChar(19, 3, BellLedge, Colors.Grey2);
-        C64.SetChar(20, 3, BellLedge, Colors.Grey2);
-        C64.SetChar(23, 3, BellLedge, Colors.Grey2);
-        C64.SetChar(24, 3, BellLedge, Colors.Grey2);
+        C64.Screen.SetChar(15, 3, BellLedge, Colors.Grey2);
+        C64.Screen.SetChar(16, 3, BellLedge, Colors.Grey2);
+        C64.Screen.SetChar(19, 3, BellLedge, Colors.Grey2);
+        C64.Screen.SetChar(20, 3, BellLedge, Colors.Grey2);
+        C64.Screen.SetChar(23, 3, BellLedge, Colors.Grey2);
+        C64.Screen.SetChar(24, 3, BellLedge, Colors.Grey2);
     }
 
     private static void BuildBellColumn(uint x)
     {
-        C64.SetChar(x, 3, BellUL, Colors.Grey2);
-        C64.SetChar(x + 1, 3, BellUR, Colors.Grey2);
-        C64.SetChar(x, 4, BellLL, Colors.Grey2);
-        C64.SetChar(x + 1, 4, BellLR, Colors.Grey2);
+        C64.Screen.SetChar(x, 3, BellUL, Colors.Grey2);
+        C64.Screen.SetChar(x + 1, 3, BellUR, Colors.Grey2);
+        C64.Screen.SetChar(x, 4, BellLL, Colors.Grey2);
+        C64.Screen.SetChar(x + 1, 4, BellLR, Colors.Grey2);
         // BellRope's only lit pixel uses multicolor bit-pair "10"
         // (background color 2) -- real VIC-II sprite-background collision
         // only fires for the "11" (individual/foreground) plane in
@@ -271,7 +271,7 @@ class Wall : GameObject
         // hires color here regardless of the bell icons above, which are
         // fine as Grey2 since their bitmaps are mostly "11" pixels already.
         for (uint y = 5; y < 11; y++)
-            C64.SetChar(x, y, BellRope, Colors.White);
+            C64.Screen.SetChar(x, y, BellRope, Colors.White);
     }
 
     private static void BuildRopePit()
@@ -280,48 +280,48 @@ class Wall : GameObject
         {
             for (uint y = 11; y < 21; y++)
             {
-                C64.SetChar(x, y, Space, Colors.Black);
+                C64.Screen.SetChar(x, y, Space, Colors.Black);
             }
-            C64.SetChar(x, 21, FireChar, Colors.Red);
+            C64.Screen.SetChar(x, 21, FireChar, Colors.Red);
         }
 
         for (uint y = 12; y < 22; y++)
         {
-            C64.SetChar(11, y, Wall3DChar, Colors.Red);
+            C64.Screen.SetChar(11, y, Wall3DChar, Colors.Red);
         }
-        C64.SetChar(11, 11, Wall3DTopChar, Colors.Red);
+        C64.Screen.SetChar(11, 11, Wall3DTopChar, Colors.Red);
     }
 
     private static void KnightPitFrame1(uint x)
     {
-        C64.SetChar(x, 8, 0x20, Colors.LightRed);
-        C64.SetChar(x, 9, 0x20, Colors.LightRed);
-        C64.SetChar(x, 10, 0x45, Colors.LightRed);
-        C64.SetChar(x, 11, 0x47, Colors.LightRed);
-        C64.SetChar(x, 12, 0x4f, Colors.LightRed);
-        C64.SetChar(x, 13, 0x50, Colors.LightRed);
-        C64.SetChar(x, 14, 0x51, Colors.LightRed);
+        C64.Screen.SetChar(x, 8, 0x20, Colors.LightRed);
+        C64.Screen.SetChar(x, 9, 0x20, Colors.LightRed);
+        C64.Screen.SetChar(x, 10, 0x45, Colors.LightRed);
+        C64.Screen.SetChar(x, 11, 0x47, Colors.LightRed);
+        C64.Screen.SetChar(x, 12, 0x4f, Colors.LightRed);
+        C64.Screen.SetChar(x, 13, 0x50, Colors.LightRed);
+        C64.Screen.SetChar(x, 14, 0x51, Colors.LightRed);
     }
 
     private static void KnightPitFrame2(uint x)
     {
-        C64.SetChar(x, 8, 0x20, Colors.LightRed);
-        C64.SetChar(x, 9, 0x45, Colors.LightRed);
-        C64.SetChar(x, 10, 0x46, Colors.LightRed);
-        C64.SetChar(x, 11, 0x47, Colors.LightRed);
-        C64.SetChar(x, 12, 0x52, Colors.LightRed);
-        C64.SetChar(x, 13, 0x53, Colors.LightRed);
-        C64.SetChar(x, 14, 0x54, Colors.LightRed);
+        C64.Screen.SetChar(x, 8, 0x20, Colors.LightRed);
+        C64.Screen.SetChar(x, 9, 0x45, Colors.LightRed);
+        C64.Screen.SetChar(x, 10, 0x46, Colors.LightRed);
+        C64.Screen.SetChar(x, 11, 0x47, Colors.LightRed);
+        C64.Screen.SetChar(x, 12, 0x52, Colors.LightRed);
+        C64.Screen.SetChar(x, 13, 0x53, Colors.LightRed);
+        C64.Screen.SetChar(x, 14, 0x54, Colors.LightRed);
     }
 
     private static void KnightPitFrame3(uint x)
     {
-        C64.SetChar(x, 8, 0x45, Colors.LightRed);
-        C64.SetChar(x, 9, 0x46, Colors.LightRed);
-        C64.SetChar(x, 10, 0x46, Colors.LightRed);
-        C64.SetChar(x, 11, 0x56, Colors.LightRed);
-        C64.SetChar(x, 12, 0x55, Colors.LightRed);
-        C64.SetChar(x, 13, 0x57, Colors.LightRed);
-        C64.SetChar(x, 14, 0x58, Colors.LightRed);
+        C64.Screen.SetChar(x, 8, 0x45, Colors.LightRed);
+        C64.Screen.SetChar(x, 9, 0x46, Colors.LightRed);
+        C64.Screen.SetChar(x, 10, 0x46, Colors.LightRed);
+        C64.Screen.SetChar(x, 11, 0x56, Colors.LightRed);
+        C64.Screen.SetChar(x, 12, 0x55, Colors.LightRed);
+        C64.Screen.SetChar(x, 13, 0x57, Colors.LightRed);
+        C64.Screen.SetChar(x, 14, 0x58, Colors.LightRed);
     }
 }

@@ -46,28 +46,28 @@ class Box : SlideElement
         else if (ConnectToTop)
             tlCorner = TL_CORNER_CONNECT_TOP;
 
-        C64.SetChar(X, Y, tlCorner, BorderColor);
-        C64.SetChar(X + Width - 1, Y,  ConnectToTop ? TR_CORNER_TOP : TR_CORNER, BorderColor);
-        C64.SetChar(X, Y + Height - 1,  ConnectToLeft ? BL_CORNER_CONNECT : BL_CORNER, BorderColor);
-        C64.SetChar(X + Width - 1, Y + Height - 1, BR_CORNER, BorderColor);
+        C64.Screen.SetChar(X, Y, tlCorner, BorderColor);
+        C64.Screen.SetChar(X + Width - 1, Y,  ConnectToTop ? TR_CORNER_TOP : TR_CORNER, BorderColor);
+        C64.Screen.SetChar(X, Y + Height - 1,  ConnectToLeft ? BL_CORNER_CONNECT : BL_CORNER, BorderColor);
+        C64.Screen.SetChar(X + Width - 1, Y + Height - 1, BR_CORNER, BorderColor);
 
         for (uint x = X + 1; x < Width - 1 + X; x++)
         {
-            C64.SetChar(x, Y, H_LINE, BorderColor);
-            C64.SetChar(x, Y + Height - 1, H_LINE, BorderColor);
+            C64.Screen.SetChar(x, Y, H_LINE, BorderColor);
+            C64.Screen.SetChar(x, Y + Height - 1, H_LINE, BorderColor);
         }
 
         for (uint y = Y + 1; y < Height - 1 + Y; y++)
         {
-            C64.SetChar(X, y, V_LINE, BorderColor);
-            C64.SetChar(X + Width - 1, y, V_LINE, BorderColor);
+            C64.Screen.SetChar(X, y, V_LINE, BorderColor);
+            C64.Screen.SetChar(X + Width - 1, y, V_LINE, BorderColor);
         }
 
         int length = Text.Length;
         uint startX = ((Width - (uint)length) >> 1) + (uint)X;
         uint startY = Y + ((Height - 1) >> 1);
 
-        C64.Write(startX, startY, Text, TextColor);
+        C64.Screen.Write(startX, startY, Text, TextColor);
 
         if (WaitAfter)
         {

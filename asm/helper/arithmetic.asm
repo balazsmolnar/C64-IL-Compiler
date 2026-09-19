@@ -415,6 +415,79 @@ and8 .macro
     #stack_push_int_a
 .endm
 
+; and8 had no 16-bit counterpart before Or/Xor were added alongside it here --
+; `long & long`/`ulong & ulong` would have hit the exact same undefined-
+; symbol assembler error the missing or16/xor16 would have, so this closes
+; that gap too while giving And the same 8/16 coverage Or/Xor get below.
+and16 .macro
+
+    #stack_pull_int zp_param1_low
+    #stack_pull_int zp_param1_high
+
+    #stack_pull_int zp_param2_low
+    #stack_pull_int zp_param2_high
+
+    lda zp_param2_low
+    and zp_param1_low
+    sta zp_param2_low
+    lda zp_param2_high
+    and zp_param1_high
+    #stack_push_int_a
+    #stack_push_var zp_param2_low
+.endm
+
+or8 .macro
+
+    #stack_pull_int zp_param1_low
+    #stack_pull_int_a
+
+    ora zp_param1_low
+    #stack_push_int_a
+.endm
+
+or16 .macro
+
+    #stack_pull_int zp_param1_low
+    #stack_pull_int zp_param1_high
+
+    #stack_pull_int zp_param2_low
+    #stack_pull_int zp_param2_high
+
+    lda zp_param2_low
+    ora zp_param1_low
+    sta zp_param2_low
+    lda zp_param2_high
+    ora zp_param1_high
+    #stack_push_int_a
+    #stack_push_var zp_param2_low
+.endm
+
+xor8 .macro
+
+    #stack_pull_int zp_param1_low
+    #stack_pull_int_a
+
+    eor zp_param1_low
+    #stack_push_int_a
+.endm
+
+xor16 .macro
+
+    #stack_pull_int zp_param1_low
+    #stack_pull_int zp_param1_high
+
+    #stack_pull_int zp_param2_low
+    #stack_pull_int zp_param2_high
+
+    lda zp_param2_low
+    eor zp_param1_low
+    sta zp_param2_low
+    lda zp_param2_high
+    eor zp_param1_high
+    #stack_push_int_a
+    #stack_push_var zp_param2_low
+.endm
+
 conv_8_16 .macro
 
     #stack_pull_int_x

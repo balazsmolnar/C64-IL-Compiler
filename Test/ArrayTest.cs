@@ -121,6 +121,18 @@ class ArrayTest
     // doesn't exercise this bug).
     private static readonly int[] ConstIntArray = { 91, 95, 92, 98, 100 };
     private static readonly uint[] ConstUintArray = { 10, 13, 250 };
+    // 2-byte element type (TypeExtensions.GetStorageBytes), unlike the two
+    // above -- specifically exercises ILStaticArrayInitializerPass's
+    // per-element-width blob encoding (each element needs 2 bytes in the
+    // baked init-values blob and in the byte count passed to #newArrInit,
+    // not 1 the way int/uint's elements do). A value that doesn't fit in a
+    // single byte (70000) makes a width mismatch here fail loudly instead
+    // of silently returning a plausible-looking but wrong result the way
+    // the original bug did (found via Hunchback's ScoreMultipliers table:
+    // every value there happened to fit in a byte, so the corrupted
+    // element ended up looking like an inflated-but-plausible score rather
+    // than an obviously-wrong one).
+    private static readonly ulong[] ConstULongArray = { 70000, 5, 65535 };
 
     [Test]
     public void Static_Readonly_Int_Array_Literal()
@@ -136,6 +148,74 @@ class ArrayTest
         Assert.AreEqual(ConstUintArray.Length, 3);
         Assert.AreEqual((int)ConstUintArray[1], 13);
         Assert.AreEqual((int)ConstUintArray[2], 250);
+    }
+
+    [Test]
+    public void Static_Readonly_ULong_Array_Literal()
+    {
+        if (ConstULongArray.Length != 3)
+            Assert.Fail();
+        // 70000 doesn't fit in this compiler's 2-byte ulong (max 65535) --
+        // truncates the same way any other 2-byte ulong overflow does,
+        // consistent rather than a special case.
+        if (ConstULongArray[0] != (70000 & 0xFFFF))
+            Assert.Fail();
+        if (ConstULongArray[1] != 5)
+            Assert.Fail();
+        if (ConstULongArray[2] != 65535)
+            Assert.Fail();
+    }
+
+    private class ArrayFieldHolder
+    {
+        public uint[] Values;
+
+        // Assigns the array literal from an ordinary METHOD, not a field
+        // initializer/constructor -- this compiler never compiles instance
+        // constructor bodies at all (Compiler/ILCodePass.cs only enumerates
+        // GetMethods() + static constructors; object construction is a
+        // generic #newObj allocate-and-zero runtime macro, with no
+        // mechanism to run user constructor code), so a field initializer
+        // here would silently never run regardless of this pass -- a
+        // separate, out-of-scope gap. This mirrors the actual motivating
+        // Hunchback shape instead: Player.cs's InitJumpOffsets is exactly
+        // this pattern, a regular method assigning an array literal to an
+        // instance field (Newarr;Dup;Ldtoken;Call InitializeArray;Stfld).
+        // ILStaticArrayInitializerPass originally only matched the Stsfld
+        // ending (its data-extraction trick needed a static field to read
+        // back after triggering the type's .cctor, which doesn't exist for
+        // an instance field at compile time) -- before this, the exact same
+        // literal written to an instance field instead of a static one
+        // silently left it null, which is why InitJumpOffsets hand-unrolled
+        // the assignments element-by-element instead.
+        public void Init()
+        {
+            Values = new uint[] { 91, 95, 92, 98, 100 };
+        }
+    }
+
+    [Test]
+    public void Instance_Field_Array_Literal()
+    {
+        var holder = new ArrayFieldHolder();
+        holder.Init();
+        Assert.AreEqual(holder.Values.Length, 5);
+        Assert.AreEqual((int)holder.Values[0], 91);
+        Assert.AreEqual((int)holder.Values[4], 100);
+    }
+
+    // Same shape once more, but as a LOCAL variable -- Stloc/Stloc_s
+    // instead of Stsfld/Stfld. A local was never even a live code path Roslyn
+    // takes differently from the instance-field case above (both non-static
+    // targets share the same underlying gap), included for direct coverage
+    // of the third target kind ILStaticArrayInitializerPass now handles.
+    [Test]
+    public void Local_Array_Literal()
+    {
+        uint[] values = { 91, 95, 92, 98, 100 };
+        Assert.AreEqual(values.Length, 5);
+        Assert.AreEqual((int)values[0], 91);
+        Assert.AreEqual((int)values[4], 100);
     }
 
     // Checking whether arrays/indices past 255 elements actually work --

@@ -119,6 +119,95 @@ class OpCall : OpBase
                 operation.StackContent.Add(((MethodInfo)method).ReturnType);
         }
     }
+
+    // Call/Callvirt are opcode-supported unconditionally (CommandMap.cs), so
+    // a call this compiler actually has no way to link -- a BCL method with
+    // no special handling, an unsupported overload of one that IS specially
+    // handled (String.Concat/PadLeft with the wrong argument types,
+    // .ToString() on an unsupported type via the plain `call` shape rather
+    // than constrained.+callvirt, ...), LINQ, Console.WriteLine, etc. --
+    // previously wasn't caught here at all: ConvertParameter above just
+    // resolves whatever label GetLabel() computes and hands it to 64tass,
+    // which fails only much later with a confusing "not defined symbol"
+    // assembler error, far from the actual cause. This runs at final-emit
+    // time (after every pattern-match/rewrite pass -- ILNumericToStringPass,
+    // ILStringOpsPass, ILAddressFromLabelPass, ILStaticArrayInitializerPass's
+    // InitializeArray consumption -- has already had its chance to mark a
+    // matched Call/Callvirt line Optimized), so it only ever sees calls that
+    // NONE of those passes claimed.
+    //
+    // Deliberately a narrow allowlist, not a denylist naming every known-bad
+    // BCL surface: (1) anything actually defined in the compiled assembly
+    // (this game's own code, or a Test/*.cs method) always gets its own
+    // generated label via the exact same ILCodePass loop that's running
+    // this check, so it's always resolvable; (2) C64Lib.* methods are
+    // trusted the same way ILLibraryUsagePass's dead-code-elimination scan
+    // already trusts them (hand-written asm/*.asm routines, gated by name);
+    // (3) System.Func<T>.Invoke() is the one BCL method with real,
+    // hand-written, always-included support (asm/system.asm's
+    // Func_1_Invoke, the trampoline OpNewObj's delegate-construction special
+    // case relies on) -- matches OpCallVirt's own existing
+    // "ReflectedType.Name.StartsWith(Func)" check for the same case, kept
+    // consistent with it rather than reinventing a separate rule. Anything
+    // else throws here, cleanly, instead of downstream in 64tass.
+    public override string Emit(CompilerMethodContext context, ILOperation operation)
+    {
+        if (!operation.Optimized)
+            EnsureCallIsResolvable(context, operation);
+        return base.Emit(context, operation);
+    }
+
+    private static void EnsureCallIsResolvable(CompilerMethodContext context, ILOperation operation)
+    {
+        var method = context.CompilerContext.Assembly.ManifestModule.ResolveMethod((int)operation.OriginalParameter) as MethodBase;
+        if (method == null)
+            return;
+
+        var declaringType = method.DeclaringType;
+        if (declaringType == null)
+            return;
+
+        if (declaringType.Assembly == context.CompilerContext.Assembly)
+            return;
+        if (declaringType.FullName != null && declaringType.FullName.StartsWith("C64Lib."))
+            return;
+        if (declaringType.Name.StartsWith("Func"))
+            return;
+        // C64TestFramework.Assert's AreEqual/AreEqualString/Fail/IsTrue/
+        // IsFalse are hand-written directly into the test-harness entry
+        // templates (Compiler/Templates/UnitTestEntry.asm), not into a
+        // per-namespace asm/*.asm file the way C64Lib.* is -- same
+        // GetLabel()-based name matching ("Assert_AreEqual" etc.), just a
+        // different physical location for the hand-written asm, so it needs
+        // its own allowlist entry rather than falling under the C64Lib.*
+        // check above.
+        if (declaringType.FullName == "C64TestFramework.Assert")
+            return;
+        // System.GC.Collect() is a real BCL method this compiler links
+        // directly against a hand-written asm/GC.asm routine (label
+        // "GC_Collect", matching GetLabel()'s own Type_Method naming) --
+        // same "exploit the naming convention to link a specific BCL
+        // method to hand-written asm with zero compiler-side special-
+        // casing" technique the Func<T> and Assert cases above use, just a
+        // third, independent instance of it (discovered via Test/GCTest.cs
+        // failing this check). This narrow, name-based allowlist keeps
+        // growing exactly this way, one confirmed real case at a time,
+        // rather than trying to detect the pattern generically (e.g. by
+        // scanning every asm/**/*.asm file's labels at compile time) --
+        // deliberately, since this is a DX/diagnostics improvement, not a
+        // core capability, and false positives here would be strictly
+        // worse than the confusing-but-rare assembler error this replaces.
+        if (declaringType.FullName == "System.GC")
+            return;
+
+        throw new NotSupportedException(
+            $"Unsupported method call: {declaringType.FullName}.{method.Name}(...). This compiler has no way to " +
+            "compile or link this call -- it isn't defined in the assembly being compiled, isn't a C64Lib.* " +
+            "method, and doesn't match any of the specially-handled BCL patterns (numeric .ToString(), " +
+            "string.Concat(string,string)/.Length/.PadLeft(int,char), a static readonly array literal, " +
+            "System.Func<T>.Invoke()). Without this check the same problem would instead surface much later, " +
+            "as a confusing 64tass \"not defined symbol\" error at assembly time.");
+    }
 }
 
 class OpCallVirt : OpCall
@@ -696,12 +785,28 @@ class OpLdConst : OpPushBase
 
 class OpLdc_i4_const : OpLdConst
 {
-    private int _value;
+    private readonly int _value;
     public OpLdc_i4_const(int value) : base(0)
     {
-        _value = value.ToByte();
+        _value = value;
     }
 
+    // Previously pre-truncated \value.ToByte() in the constructor above --
+    // fine for the 8-bit-width case (Ldc_i4_m1's -1 becomes 255, and
+    // #stack_push_int8's own "# < \value" byte-extraction still resolves
+    // that correctly), but WRONG whenever Conv_i8/Conv_u8 follows (Is16Bit
+    // above already detects that, appending "16" to #stack_push_int's
+    // command): #stack_push_int16 then computed the high/low byte of the
+    // literal integer 255, i.e. 0x00FF, instead of -1's actual 16-bit
+    // two's-complement pattern 0xFFFF -- `long x = -1;` silently became
+    // 65535u reinterpreted, not -1. Returning the raw (untruncated) value
+    // instead, matching OpLdc_i4/OpLdc_i4_s below (neither of which
+    // pre-truncates), lets 64tass's own "<"/">" byte-extraction operators
+    // do the actual truncation/sign-extension at the width #stack_push_int8
+    // or #stack_push_int16 actually needs -- found via
+    // Test/SignedLongBranchTests.cs's `long a = -1;` cases failing despite
+    // the new branch_less16/branch_greater16 macros being individually
+    // correct (confirmed by feeding them the right bytes directly).
     public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
     {
         return _value;
@@ -727,9 +832,24 @@ class OpLdc_i4_s : OpLdConst
     {
     }
 
+    // ldc.i4.s's IL operand is a SIGNED byte (ECMA-335) -- but
+    // ILMethodCodePass.cs's decoder reads every 1-byte parameter as a
+    // plain unsigned `input[index++]` (0..255), with no opcode-specific
+    // sign handling, so operation.RawParameter arrives here as e.g. 251
+    // for a source-level -5, not -5 itself. Harmless for this op's
+    // original 8-bit-only usage (#stack_push_int8's own "< \value" byte
+    // extraction resolves 251 and -5 to the identical 0xFB either way),
+    // but WRONG once Conv_i8/Conv_u8 follows and Is16Bit (below) appends
+    // "16": #stack_push_int16 251 computes the 16-bit pair for the
+    // literal integer 251 (0x00FB), not -5's actual two's-complement
+    // pattern (0xFFFB) -- same bug class as OpLdc_i4_const's fix above,
+    // just arriving via the IL decoder's byte-reading instead of this
+    // class's own conversion. Sign-extending here (rather than teaching
+    // the shared decoder about per-opcode signedness) keeps the fix local
+    // to the one opcode that actually needs it.
     public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
     {
-        return operation.RawParameter;
+        return (int)(sbyte)(int)operation.RawParameter;
     }
 }
 

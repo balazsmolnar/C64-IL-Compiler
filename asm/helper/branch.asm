@@ -79,7 +79,93 @@ branch_less_unsigned8 .macro label
     bcc \label
 .endm
 
-branch_less_unsigned16 .macro label 
+; Signed 16-bit relational branches -- previously missing entirely (only
+; 8-bit signed and 16-bit UNSIGNED existed below), meaning Blt/Ble/Bgt/Bge
+; on a long/ulong-width signed operand (this compiler's long/ulong are 2
+; bytes -- TypeExtensions.GetStorageBytes) emitted a reference to a macro
+; that simply didn't exist, failing only as a confusing 64tass "not
+; defined symbol" error at assembly time (Compiler/CommandMap.cs's
+; Blt/Ble/Bgt/Bge entries already pick the "16" suffix purely from operand
+; width, same as every other branch family here -- no C#-level
+; NotSupportedException guards this the way most other unsupported
+; constructs are guarded).
+;
+; Same overflow-corrected-subtraction technique arithmetic.asm's
+; compareLess16/compareGreater16 already use for Clt/Cgt (see those for the
+; fuller derivation): CMP the low bytes (sets the borrow SBC needs), SBC
+; the high bytes, then XOR the result's sign with V whenever V is set --
+; the standard 6502 signed-16-bit-compare idiom, where V catches a raw
+; two's-complement overflow and the XOR corrects N back to the
+; subtraction's TRUE mathematical sign in that case. Once corrected, N
+; precisely reflects "negative" for the full signed difference, for every
+; input including the a==b case (a zero difference is never negative) --
+; so unlike the _unsigned16 macros below (which need a separate low/high
+; double-check for their "or equal" variants), less-or-equal/
+; greater-or-equal here just reuse the OTHER macro's (operand-swapped)
+; subtraction with the opposite branch: "a <= b" is "NOT (b < a)", i.e.
+; "(b - a) is not negative" -- the exact same subtraction
+; branch_greater16 does, just testing bpl instead of bmi.
+branch_less16 .macro label
+    #stack_pull_int zp_param1_low
+    #stack_pull_int zp_param1_high
+    #stack_pull_int zp_param2_low
+    #stack_pull_int zp_param2_high
+
+    lda zp_param2_low
+    cmp zp_param1_low
+    lda zp_param2_high
+    sbc zp_param1_high
+    bvc +
+    eor #$80
++   bmi \label
+.endm
+
+branch_greater_equal16 .macro label
+    #stack_pull_int zp_param1_low
+    #stack_pull_int zp_param1_high
+    #stack_pull_int zp_param2_low
+    #stack_pull_int zp_param2_high
+
+    lda zp_param2_low
+    cmp zp_param1_low
+    lda zp_param2_high
+    sbc zp_param1_high
+    bvc +
+    eor #$80
++   bpl \label
+.endm
+
+branch_greater16 .macro label
+    #stack_pull_int zp_param1_low
+    #stack_pull_int zp_param1_high
+    #stack_pull_int zp_param2_low
+    #stack_pull_int zp_param2_high
+
+    lda zp_param1_low
+    cmp zp_param2_low
+    lda zp_param1_high
+    sbc zp_param2_high
+    bvc +
+    eor #$80
++   bmi \label
+.endm
+
+branch_less_equal16 .macro label
+    #stack_pull_int zp_param1_low
+    #stack_pull_int zp_param1_high
+    #stack_pull_int zp_param2_low
+    #stack_pull_int zp_param2_high
+
+    lda zp_param1_low
+    cmp zp_param2_low
+    lda zp_param1_high
+    sbc zp_param2_high
+    bvc +
+    eor #$80
++   bpl \label
+.endm
+
+branch_less_unsigned16 .macro label
 
         #stack_pull_int zp_param1_low
         #stack_pull_int zp_param1_high

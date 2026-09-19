@@ -103,6 +103,7 @@ result = $20
 ; see ProgramEntry.asm's identical include for the full reasoning
 ; (asm/helper/floatBanking.asm has the underlying "why").
 .include "./helper/float.asm"
+.include "./helper/division.asm"
 
 .include "./system.asm"
 .include "./GC.asm"
@@ -110,6 +111,7 @@ result = $20
 .include "./{{FOLDER}}/library_flags.asm"
 .include "./C64.asm"
 .include "./helper/tostring.asm"
+.include "./helper/stringops.asm"
 
 .include "./{{FOLDER}}/generated.asm"
 

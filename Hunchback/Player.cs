@@ -313,18 +313,10 @@ class Player
     {
         if (jumpOffsets_ != null)
             return;
-        // byte 0x00, 0x06, 0x0B, 0x0E, 0x10, 0x12, 0x13, 0x14
-        // byte 0x14, 0x13, 0x12, 0x10, 0x0E, 0x0B, 0x06, 0x00
-
-        jumpOffsets_ = new int[16];
-        jumpOffsets_[0] = jumpOffsets_[15] = 0;
-        jumpOffsets_[1] = jumpOffsets_[14] = 6;
-        jumpOffsets_[2] = jumpOffsets_[13] = 11;
-        jumpOffsets_[3] = jumpOffsets_[12] = 14;
-        jumpOffsets_[4] = jumpOffsets_[11] = 16;
-        jumpOffsets_[5] = jumpOffsets_[10] = 18;
-        jumpOffsets_[6] = jumpOffsets_[9] = 19;
-        jumpOffsets_[7] = jumpOffsets_[8] = 20;
+        // Same data as IntroPlayer.cs's JumpOffsets (a static field there,
+        // which is why it could already be a plain array literal before
+        // this compiler supported array literals on instance fields).
+        jumpOffsets_ = new int[] { 0, 6, 11, 14, 16, 18, 19, 20, 20, 19, 18, 16, 14, 11, 6, 0 };
     }
 
     private bool IsLeft =>

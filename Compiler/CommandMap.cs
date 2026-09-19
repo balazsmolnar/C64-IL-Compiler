@@ -108,8 +108,23 @@ internal static class CommandMap
             { ILOpCode.Bge_un, new OpLongJump("#branch_greater_equal_unsigned", JumpType.Compare) },
             { ILOpCode.Bge_s, new OpShortJump("#branch_greater_equal", JumpType.Compare) },
             { ILOpCode.Bge, new OpLongJump("#branch_greater_equal", JumpType.Compare) },
-            { ILOpCode.Bgt, new OpLongJump("#branch_greter", JumpType.Compare) },
+            // Bgt previously read "#branch_greter" here (a typo -- no asm/
+            // helper/branch.asm macro of that name has ever existed, unlike
+            // Bgt_s's correctly-spelled "#branch_greater" right below it),
+            // so the long-jump (far-branch) form of `>` silently crashed
+            // with an undefined-symbol assembler error if ever actually
+            // hit. Fixed to match Bgt_s's spelling -- found and fixed
+            // incidentally while adding 16-bit signed branch support below,
+            // which needed branch_greater16 to exist under one consistent
+            // name rather than duplicating the typo.
+            { ILOpCode.Bgt, new OpLongJump("#branch_greater", JumpType.Compare) },
             { ILOpCode.Bgt_s, new OpShortJump("#branch_greater", JumpType.Compare) },
+            // Bgt_un (long-jump unsigned `>`) was missing entirely -- only
+            // its short-jump sibling Bgt_un_s was registered, so a far
+            // unsigned-greater-than branch would have hit
+            // ILMethodCodePass's NotSupportedException. Found alongside the
+            // Bgt fix above.
+            { ILOpCode.Bgt_un, new OpLongJump("#branch_greater_unsigned", JumpType.Compare) },
             { ILOpCode.Bgt_un_s, new OpShortJump("#branch_greater_unsigned", JumpType.Compare) },
             { ILOpCode.Br, new OpLongJump("jmp", JumpType.UnConditional) },
             { ILOpCode.Brtrue_s, new OpShortJump("#branch_true", JumpType.Conditional) },
@@ -123,14 +138,24 @@ internal static class CommandMap
             { ILOpCode.Shr, new OpArithmetic2("#shift_right") },
             { ILOpCode.Shr_un, new OpArithmetic2("#shift_right") },
             { ILOpCode.Sub, new OpArithmetic2("#sub") },
-            // Only float actually has a macro behind this (#divflt) --
-            // integer division was never implemented before this (there was
-            // no Div mapping at all), and still isn't; #div8/#div16 don't
-            // exist, so integer '/' still crashes Compiler.exe, same as
-            // before this entry existed. Needed for float '/' regardless.
+            // #div8/#div16 (signed) and #div_unsigned8/#div_unsigned16 are
+            // asm/helper/division.asm's shift-subtract routines; #divflt
+            // (float) is asm/helper/float.asm's BASIC-ROM-backed one --
+            // OpArithmetic2's SizeSuffix already picks "8"/"16"/"flt" purely
+            // from operand width/type, so Div/Div_un only need the right
+            // Command prefix here, no special-casing.
             { ILOpCode.Div, new OpArithmetic2("#div") },
+            { ILOpCode.Div_un, new OpArithmetic2("#div_unsigned") },
+            { ILOpCode.Rem, new OpArithmetic2("#rem") },
+            { ILOpCode.Rem_un, new OpArithmetic2("#rem_unsigned") },
             { ILOpCode.Neg, new OpArithmetic1("#negate") },
             { ILOpCode.And, new OpArithmetic2("#and") },
+            // Same reasoning as Div/Div_un above -- Or/Xor reuse OpArithmetic2
+            // verbatim, just like And; C# has no `|`/`^` operator on float, so
+            // Roslyn can never emit these with a float operand and #orflt/
+            // #xorflt are never needed (unlike #divflt above).
+            { ILOpCode.Or, new OpArithmetic2("#or") },
+            { ILOpCode.Xor, new OpArithmetic2("#xor") },
             { ILOpCode.Ret, new OpRet()  },
             { ILOpCode.Clt, new OpCompare("#compareLess") },
             { ILOpCode.Clt_un, new OpCompare("#compareLess_unsigned") },

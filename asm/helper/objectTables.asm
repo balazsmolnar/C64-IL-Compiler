@@ -59,5 +59,17 @@ localsStack         .fill 256
 ; zero page, and OnInterrupt never saves/restores it).
 tostring_buffer     .fill 16
 
+; Shared scratch buffer for String_Concat/String_PadLeft (asm/helper/
+; stringops.asm) -- deliberately separate from tostring_buffer above: a
+; concat's input is often a ToString() result still sitting in
+; tostring_buffer (e.g. "L" + levelNumber.ToString()), so writing the
+; concat's OUTPUT into that same buffer would corrupt the very input still
+; being read mid-copy. 40 bytes covers a full C64 screen row (the practical
+; upper bound for anything this buffer feeds into a Write() call), same
+; single-shared-buffer/no-interrupt-protection tradeoffs as tostring_buffer
+; above -- see that comment for the full reasoning (applies identically
+; here: consume the result immediately, don't hold two live at once).
+stringops_buffer    .fill 40
+
 heap
 .endv

@@ -45,6 +45,7 @@ rts
 ; requirement as object.asm's resolveObjPtr just below, which is why this
 ; sits in the same spot.
 .include "./helper/float.asm"
+.include "./helper/division.asm"
 
 .include "./system.asm"
 .include "./GC.asm"
@@ -52,6 +53,7 @@ rts
 .include "./{{FOLDER}}/library_flags.asm"
 .include "./C64.asm"
 .include "./helper/tostring.asm"
+.include "./helper/stringops.asm"
 
 .include "./{{FOLDER}}/generated.asm"
 

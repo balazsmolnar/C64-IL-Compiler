@@ -31,9 +31,15 @@ public class LevelDescription
     // (None on every other level -- see Enemy.cs's dual-enemy handling in
     // LevelPlay.Play). The original randomly re-picks height (Front/Rear)
     // or direction (the Both variants) each time a missile respawns; this
-    // port has no RNG primitive, so both enemies get fixed, deterministic
-    // pairings instead (see the per-level comments below) -- same general
-    // shape, not frame-accurate to the original's randomization.
+    // port gives both enemies fixed, deterministic pairings instead (see
+    // the per-level comments below) -- same general shape, not
+    // frame-accurate to the original's randomization. A C64.Random()
+    // primitive exists now, but re-randomizing per respawn is a change to
+    // Enemy.cs's Init()/Move() (which re-derives height/direction from the
+    // same fixed EnemyType on every respawn today), not to this static
+    // table -- left as a possible future enhancement rather than guessed
+    // at here without the original's exact per-obstacle-type
+    // randomization rules to match against.
     public EnemyType EnemyType2;
     public Colors Color;
 

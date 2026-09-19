@@ -73,5 +73,13 @@
         public static void CopyMemory(ulong dest, ulong source, uint size) { }
         public static void FillMemory(ulong dest, uint value, uint size) { }
         public static uint GetMemory(ulong address, uint x) => 0;
+        // A pseudo-random byte (0..255) from a software LFSR (asm/C64.asm's
+        // C64_Random) -- not a hardware RNG (e.g. the SID's voice-3 noise
+        // oscillator), deliberately: that would need SID voice 3 reserved
+        // for noise generation, which could collide with a game's own
+        // music/sound effects using all three voices. Combine with the
+        // now-existing % operator for a bounded range, e.g.
+        // `C64.Random() % 5` for 0..4.
+        public static uint Random() => 0;
     }
 }

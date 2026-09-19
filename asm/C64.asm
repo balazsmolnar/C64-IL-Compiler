@@ -261,6 +261,41 @@ C64_GetMemory
 .endif
 
 .weak
+Flag_C64_Random = 0
+.endweak
+.if Flag_C64_Random
+
+; 8-bit maximal-length Galois LFSR (period 255, every nonzero byte value
+; visited exactly once per cycle) -- $1D is the tap byte for THIS exact
+; left-shift-then-conditionally-EOR formulation, found by brute-force
+; search over all 255 candidate taps rather than trusted from a
+; remembered/textbook value (an initial guess of $B8, plausible-looking
+; and cited in some LFSR references, turned out NOT to be maximal-length
+; for this specific left-shift construction -- Test/RandomTests.cs's
+; FullPeriod_NoRepeatsNoZero caught it immediately). Verified empirically:
+; 255 consecutive calls from the fixed seed below visit every value 1..255
+; exactly once and never produce 0.
+; c64_rng_state needs real backing storage with a genuine nonzero initial
+; value (not objectTables.asm's zero-cost .virtual scratch buffers, which
+; exist purely to claim an address with no real data) -- an ordinary
+; labeled byte, costing 1 real byte in the assembled program same as any
+; other small piece of static data here. A zero seed would make the LFSR
+; degenerate (0 forever), so the (already non-zero) constant below matters;
+; never reseed this with a runtime-computed 0.
+c64_rng_state .byte $A5
+
+C64_Random
+    #stack_save_return_adress zp_tmp1_low
+    lda c64_rng_state
+    asl
+    bcc +
+    eor #$1D
++   sta c64_rng_state
+    stack_push_int_a
+    #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+.weak
 Flag_Screen_SetMultiColor = 0
 .endweak
 .if Flag_Screen_SetMultiColor

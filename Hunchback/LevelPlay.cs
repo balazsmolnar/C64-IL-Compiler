@@ -191,18 +191,11 @@ class LevelPlay
     }
 
     // Debug aid: show the (0-based) level index at the top right of the
-    // header, in the free columns after the lives markers. No division/
-    // modulo support in the compiler, so tens/ones are split by repeated
-    // subtraction instead.
+    // header, in the free columns after the lives markers.
     private static void DrawDebugLevelNumber(uint levelNumber)
     {
-        uint tens = 0;
-        uint ones = levelNumber;
-        while (ones >= 10)
-        {
-            ones -= 10;
-            tens++;
-        }
+        uint tens = levelNumber / 10;
+        uint ones = levelNumber % 10;
         C64.Screen.SetChar(36, 1, 76, Colors.Yellow); // 'L'
         C64.Screen.SetChar(37, 1, 48 + tens, Colors.Yellow);
         C64.Screen.SetChar(38, 1, 48 + ones, Colors.Yellow);
@@ -238,20 +231,22 @@ class LevelPlay
     // limit, but only reachable by winning every level at the single
     // fastest speed tier back to back; ordinary play (or even repeated
     // taps of the L debug-complete cheat, which still takes a few ticks
-    // per press) stays comfortably under it. No array literal (see
-    // PlayerStats.cs's own note on why: this compiler never actually
-    // populates a `= { a, b, c }` field initializer), same repeated-if
-    // style as Wall.GetBellSnapX.
+    // per press) stays comfortably under it. Two parallel static readonly
+    // arrays, not one array of (threshold, multiplier) pairs -- this
+    // compiler's array-literal support only bakes primitive-element arrays
+    // (Compiler/ILStaticArrayInitializerPass.cs), not arrays of structs/
+    // tuples.
+    private static readonly uint[] TickThresholds = { 15, 25, 35, 50, 70, 100, 150 };
+    private static readonly ulong[] ScoreMultipliers = { 80, 70, 60, 50, 40, 30, 20, 10 };
+
     private static ulong LevelScoreMultiplier(uint ticks)
     {
-        if (ticks < 15) return 80;
-        if (ticks < 25) return 70;
-        if (ticks < 35) return 60;
-        if (ticks < 50) return 50;
-        if (ticks < 70) return 40;
-        if (ticks < 100) return 30;
-        if (ticks < 150) return 20;
-        return 10;
+        for (uint i = 0; i < TickThresholds.Length; i++)
+        {
+            if (ticks < TickThresholds[i])
+                return ScoreMultipliers[i];
+        }
+        return ScoreMultipliers[TickThresholds.Length];
     }
 
     // On-screen "SCORE" box shown right where the knight ended up, matching
@@ -274,9 +269,10 @@ class LevelPlay
         const uint LeftSideWall = 0x62, RightSideWall = 0x61;
         const uint BottomLeft = 93, BottomFill = 96, BottomRight = 94;
 
-        // >> 3, not / 8 -- this compiler has no integer division at all
-        // (confirmed: Compiler/CommandMap.cs has no Div/Div_un entry), only
-        // shift, which is exactly equivalent here since 8 is a power of 2.
+        // >> 3, not / 8 -- functionally identical (8 is a power of 2) and
+        // kept as a shift rather than switched to / now that division
+        // exists, since it's a fine, idiomatic optimization on its own
+        // merits.
         uint col = 0;
         uint row = knightY > 53 ? (knightY - 53) >> 3 : 0;
         if (row > 20) row = 20;
@@ -301,22 +297,10 @@ class LevelPlay
     }
 
     // Fills the box's 5-character digit field, leading-zero-padded (e.g.
-    // "01800") to match the original's fixed-width BCD display -- ulong's
-    // own ToString() (see Compiler/ILNumericToStringPass.cs) never pads, so
-    // the padding zeros are written separately first. Digit count found by
-    // plain comparison, not string length -- consistent with how this
-    // codebase already splits digits everywhere else (e.g.
-    // DrawDebugLevelNumber above).
+    // "01800") to match the original's fixed-width BCD display.
     private static void DrawZeroPaddedScore(uint x, uint y, ulong points)
     {
-        uint digits = 1;
-        if (points >= 10) digits = 2;
-        if (points >= 100) digits = 3;
-        if (points >= 1000) digits = 4;
-        if (points >= 10000) digits = 5;
-        for (uint i = 0; i < 5 - digits; i++)
-            C64.Screen.SetChar(x + i, y, 48, Colors.White); // '0'
-        C64.Screen.Write(x + (5 - digits), y, points.ToString(), Colors.White);
+        C64.Screen.Write(x, y, points.ToString().PadLeft(5, '0'), Colors.White);
     }
 
     private static void BonusFanfare()

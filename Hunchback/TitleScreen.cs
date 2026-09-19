@@ -45,11 +45,18 @@ class TitleScreen
         // prompt) once this loop actually started running -- switching to
         // direct tones[i] indexing avoids needing a per-iteration
         // reference-typed loop variable at all.
-        // tones.Length cached once as a uint: comparing "i < tones.Length"
-        // directly (uint against Array.Length's real int) compiles to a
-        // signed 16-bit branch (Blt) that isn't mapped in this compiler's
-        // branch.asm (only the unsigned variant is) -- crashes
-        // Compiler.exe outright. uint-vs-uint sidesteps it.
+        // "(uint)tones.Length" cast inline in the loop condition, not
+        // cached into a separate variable first -- a previous version of
+        // this comment claimed that crashed Compiler.exe outright (a
+        // signed-16-bit-branch gap), but re-verified empirically this
+        // session: Array.Length (Ldlen) is 1 byte in this compiler
+        // (Compiler/Operands/OperandBase.cs's OpLdLen types it as `int`,
+        // and TypeExtensions.GetStorageBytes makes every `int` 1 byte
+        // here), so the cast is a same-width uint/int reinterpretation and
+        // the comparison is an 8-bit unsigned branch -- a macro family that
+        // always existed, unrelated to this session's new 16-bit signed
+        // branch support. The claim was simply wrong; left this comment in
+        // place (rather than deleting it silently) as a record of that.
         // GC.Collect() once per full pass through the tune, not because a
         // specific leak in this loop was ever pinned down -- SimpleEmulator
         // can't usefully test this loop at all (its IsKeyPressed reads
@@ -61,12 +68,11 @@ class TitleScreen
         // title screen for a while, confirmed with zero player input), and
         // this loop runs forever, so a periodic collect here is cheap
         // insurance regardless of what turns out to be causing it.
-        uint toneCount = (uint)tones.Length;
         for (; ; )
         {
             GC.Collect();
             var color = (uint)1;
-            for (uint i = 0; i < toneCount; i++)
+            for (uint i = 0; i < (uint)tones.Length; i++)
             {
                 var t = tones[i];
                 color++;

@@ -138,4 +138,42 @@ public class InterruptDispatchTests
         Assert.That(e.GetMemory(RomBankingRegister), Is.EqualTo(Zp01Sentinel),
             "$01 (ROM banking register) should be restored");
     }
+
+    // Diagnostic for a live-VICE Demo regression: mainline "mid a
+    // NumberFormat_*ToString call" (zp_param0/1/2_low holding a
+    // partially-converted value, per asm/helper/tostring.asm) when an
+    // interrupt fires and dispatches to a handler that does NOT itself
+    // call ToString() -- exactly Demo/Program.cs's shape (MoveBall never
+    // calls ToString, but Main does, elsewhere, between ticks). If
+    // zp_interrupt_save_start's range genuinely covers zp_param0-2 (it's
+    // documented to -- $20-$48 inclusive, zp_param0-4 are $30-$39), these
+    // should come back exactly as poked.
+    private const int ZpParam0Low = 0x30;
+    private const int ZpParam1Low = 0x32;
+    private const int ZpParam2Low = 0x34;
+
+    [Test]
+    public void OnInterrupt_SavesAndRestoresToStringScratch()
+    {
+        var e = LoadUnitTestProgram();
+        int handlerAddress = Label("InterruptTests_Handler");
+        int addInterrupt = Label("C64_add_Interrupt");
+        int onInterrupt = Label("OnInterrupt");
+
+        e.SetMemory(DriverStart, new Asm()
+            .PushPointer(handlerAddress)
+            .Jsr(addInterrupt)
+            .LdaImm(0x42).StaZp(ZpParam0Low)
+            .LdaImm(0x99).StaZp(ZpParam1Low)
+            .LdaImm(0x01).StaZp(ZpParam2Low)
+            .Jsr(onInterrupt)
+            .ToArray());
+
+        e.Start(DriverStart, 5000, (pc, step) => { });
+
+        Assert.That(e.GetMemory(ZpParam0Low), Is.EqualTo(0x42), "zp_param0_low");
+        Assert.That(e.GetMemory(ZpParam1Low), Is.EqualTo(0x99), "zp_param1_low");
+        Assert.That(e.GetMemory(ZpParam2Low), Is.EqualTo(0x01), "zp_param2_low");
+    }
+
 }

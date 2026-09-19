@@ -19,6 +19,7 @@ class Asm
     public Asm LdxImm(byte v) { bytes.Add(0xA2); bytes.Add(v); return this; }
     public Asm LdyImm(byte v) { bytes.Add(0xA0); bytes.Add(v); return this; }
     public Asm StaZp(int zp) { bytes.Add(0x85); bytes.Add((byte)zp); return this; }
+    public Asm StyZp(int zp) { bytes.Add(0x84); bytes.Add((byte)zp); return this; }
 
     public Asm StaAbs(int addr)
     {

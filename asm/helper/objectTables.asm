@@ -45,5 +45,19 @@ objTableDescLow     .fill 256
 objTableDescHigh    .fill 256
 
 localsStack         .fill 256
+
+; Shared scratch buffer for every NumberFormat_*ToString routine (asm/
+; helper/tostring.asm, asm/helper/float.asm's Float_ToString) -- 16 bytes
+; is enough for the widest case seen (a 2-byte signed int's "-32768", or a
+; float's text -- 11 chars observed empirically, see float.asm's FOUT
+; comment). One buffer shared by all of them, not one each: simple, and
+; correct for the dominant use case of consuming a ToString() result
+; immediately (e.g. Write(x, y, val.ToString())). Two live results held at
+; once, or a ToString() call from inside a C64.Interrupt handler racing one
+; from mainline code, will corrupt each other -- neither is protected
+; (unlike zp_interrupt_save_start's range, this buffer is ordinary RAM, not
+; zero page, and OnInterrupt never saves/restores it).
+tostring_buffer     .fill 16
+
 heap
 .endv

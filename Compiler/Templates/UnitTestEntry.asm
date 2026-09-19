@@ -109,6 +109,7 @@ result = $20
 .include "./helper/object.asm"
 .include "./{{FOLDER}}/library_flags.asm"
 .include "./C64.asm"
+.include "./helper/tostring.asm"
 
 .include "./{{FOLDER}}/generated.asm"
 
@@ -150,5 +151,31 @@ Assert_IsFalse:
     #stack_push_var16 zp_tmp4_low
     jsr Assert_Fail
 +   #stack_return_to_saved_address zp_tmp2_low
+
+; Byte-by-byte content comparison, unlike Assert_AreEqual's flat 1-byte
+; cmp -- comparing the two pointers themselves would fail for almost any
+; equal-content pair (a ToString() result and a string literal are
+; virtually never the same address). zp_param0_low/zp_param1_low: the two
+; string pointers -- safe to reuse here despite their broader claims
+; elsewhere (asm/helper/zeropage.asm) since nothing else runs mid-assertion.
+Assert_AreEqualString:
+    #stack_save_return_adress zp_tmp2_low
+    #stack_pull_pointer zp_tmp4_low           ; message pointer
+    #stack_pull_pointer zp_param1_low         ; expected string pointer
+    #stack_pull_pointer zp_param0_low         ; actual string pointer
+    ldy #0
+Assert_AreEqualString_Loop:
+    lda (zp_param0_low),y
+    cmp (zp_param1_low),y
+    bne Assert_AreEqualString_Fail
+    cmp #0
+    beq Assert_AreEqualString_Pass
+    iny
+    jmp Assert_AreEqualString_Loop
+Assert_AreEqualString_Fail:
+    #stack_push_var16 zp_tmp4_low
+    jsr Assert_Fail
+Assert_AreEqualString_Pass:
+    #stack_return_to_saved_address zp_tmp2_low
 
 .include "./helper/objectTables.asm"

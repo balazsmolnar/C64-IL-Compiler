@@ -48,6 +48,7 @@ class Program
                         new ILMethodNextInstructionPass(),
                         new ILMethodBuildEvaluationStackPass(),
                         new ILAddressFromLabelPass(),
+                        new ILNumericToStringPass(),
                     },
                     new ICompilerMethodPass[] {
                         new ILMethodIncOptimizer(),

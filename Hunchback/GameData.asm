@@ -165,7 +165,7 @@ tbl_LevelMarkerChars
 
 tbl_LevelMarkerCharCol
 .byte $0A, $0A, $0A, $0A, $0A, $0A, $0A
-.byte $0D, $0D, $0D, $0D, $0A, $0A, $0A
+.byte $0A, $0D, $0D, $0D, $0A, $0A, $0A
 .byte $0A, $0A, $0A, $0A, $0A, $0A, $0A
 .byte $0A, $0A, $0A, $0A, $0A, $0A, $0A
 

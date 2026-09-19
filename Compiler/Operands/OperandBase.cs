@@ -187,6 +187,41 @@ class OpCallVirt : OpCall
     }
 }
 
+// The "constrained." prefix that precedes a callvirt when a value type's
+// own ToString() (or any other inherited-from-Object virtual method) is
+// called without boxing -- see CommandMap.cs's registration comment.
+// ConvertParameter resolves and stores the concrete type being dispatched
+// against (same "overwrite RawParameter with the resolved thing"
+// convention OpCall/OpLdstr already use); ILNumericToStringPass reads it
+// back off this line to pick a conversion routine for the Callvirt that
+// immediately follows. A prefix has no stack effect of its own.
+//
+// Emit only runs at all if ILNumericToStringPass didn't consume this line
+// (e.g. constrained. used for something other than a supported numeric
+// ToString()) -- throws instead of silently emitting nothing, since
+// letting the following Callvirt fall through to a normal (wrong) virtual
+// dispatch would be a much more confusing failure than a clear error here.
+class OpConstrained : OpBase
+{
+    public OpConstrained() : base(4)
+    {
+    }
+
+    public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
+    {
+        return context.CompilerContext.Assembly.ManifestModule.ResolveType((int)operation.RawParameter);
+    }
+
+    public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
+    {
+    }
+
+    public override string Emit(CompilerMethodContext context, ILOperation operation)
+    {
+        throw new NotSupportedException($"constrained. call on {((Type)operation.RawParameter).Name} is not supported -- only .ToString() on uint/int/ulong/long/float (and byte/sbyte) is.");
+    }
+}
+
 class OpNewObj : OpBase
 {
     public OpNewObj() : base(4, "#newObj")

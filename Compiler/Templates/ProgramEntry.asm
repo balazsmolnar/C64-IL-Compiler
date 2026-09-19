@@ -51,6 +51,7 @@ rts
 .include "./helper/object.asm"
 .include "./{{FOLDER}}/library_flags.asm"
 .include "./C64.asm"
+.include "./helper/tostring.asm"
 
 .include "./{{FOLDER}}/generated.asm"
 

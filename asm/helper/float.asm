@@ -53,6 +53,16 @@ MOVEF  = $BBFC
 FCOMP  = $BC5B
 GIVAYF = $B391
 FAC1YA = $B1AA
+; FOUT: FAC1 -> null-terminated decimal text, returned as A=lo/Y=hi of the
+; ROM's OWN buffer. Confirmed empirically (not from documentation, same
+; discipline as FDIV's note above) via a throwaway SimpleEmulator diagnostic
+; against the real embedded ROM image: that buffer is $0100 (the low end of
+; the 6502 hardware stack page) for every value tried, and FOUT prepends a
+; single leading space for non-negative numbers only (classic BASIC PRINT's
+; reserved sign column -- e.g. "5" comes back as " 5", "-5" comes back as
+; "-5" with no extra space). Float_ToString below strips that space and
+; copies the result out before returning.
+FOUT   = $BDDD
 
 ; Both operands already sit in zp_flt_a/zp_flt_b (the calling macro pulls
 ; them off this compiler's own evaluation stack first -- that doesn't touch
@@ -174,6 +184,83 @@ Float_ToInt
     #bank_out_basic_rom
     tya
     rts
+
+; Input: 5-byte MFLPT value in zp_flt_a. Output: decimal text copied into
+; tostring_buffer (asm/helper/objectTables.asm), null-terminated, FOUT's
+; leading sign-column space stripped (see FOUT's comment above). Copies out
+; of FOUT's own $0100 buffer before bank_out_basic_rom re-enables
+; interrupts -- not otherwise protected against a pathologically deep call
+; stack legitimately reaching down into page 1 by the time this runs (same
+; class of accepted, undefended-against edge case as this codebase's other
+; "not guarded against here" ROM notes, e.g. FAC1YA's range check above).
+; Callable directly by NumberFormat_FloatToString below; also usable on its
+; own by anything that already has FAC1 loaded and just wants the text.
+;
+; KNOWN ISSUE, unresolved: reliably crashes to BASIC when called live on
+; VICE from a program with an ACTIVE C64.Interrupt subscriber registered
+; (via C64_add_Interrupt) -- confirmed reproducible even with a completely
+; empty handler, and even when the interrupt has no chance to fire during
+; THIS call specifically (masking CIA1's own timer-A interrupt source,
+; $DC0D, around the bank_in/FOUT/bank_out window here did NOT fix it --
+; only "the interrupt is registered but never dispatches before this call
+; runs" avoids the crash, e.g. reordering C64.Interrupt += ... to AFTER a
+; ToString() call). Every other Float_* routine here (Add/Sub/Mul/Div/
+; Compare/FromInt/ToInt) coexists with an active interrupt correctly, live,
+; extensively verified (Demo's own sprite-moved-from-MoveBall + concurrent
+; float-arithmetic demo). SimpleEmulator can't reproduce this at all (no
+; interrupt-timer model), and an exhaustive zero-page survey of FOUT itself
+; (SimpleEmulator.Test's RomFloatRoutineTests.FOUT_NeverTouches) found no
+; clobbering of any zero page byte this codebase's interrupt machinery
+; cares about (zp_param0-2, stackPointer, heapPointer, zp_ctor_result,
+; zp_field_value_low/high, zp_interrupt_address_low/high). Root cause not
+; found -- something specific to FOUT (a much longer, more complex ROM
+; routine than any other Float_* dependency) interacting badly with
+; OnInterrupt/the compiled-method calling convention (asm/helper/
+; localsStack.asm's init_locals/method_exit, which relocates a method's
+; real return address into localsStack, itself indexed by stackPointer)
+; once an interrupt has dispatched at least once, ANYWHERE, before this
+; runs -- not simply during this call's own execution window. Demo/
+; Program.cs deliberately does NOT call float.ToString() for this reason
+; (uint/int/ulong/long ToString() are unaffected and fully verified
+; working alongside the active interrupt). Safe to use in a program with NO
+; C64.Interrupt subscriber.
+Float_ToString
+    #bank_in_basic_rom
+    lda #<zp_flt_a
+    ldy #>zp_flt_a
+    jsr MOVFM
+    jsr FOUT
+    sta zp_param0_low
+    sty zp_param0_high
+    ldy #0
+    ldx #0
+    lda (zp_param0_low),y
+    cmp #$20
+    bne Float_ToString_CopyLoop
+    iny
+Float_ToString_CopyLoop:
+    lda (zp_param0_low),y
+    sta tostring_buffer,x
+    beq Float_ToString_Done
+    iny
+    inx
+    jmp Float_ToString_CopyLoop
+Float_ToString_Done:
+    #bank_out_basic_rom
+    rts
+
+; Real library entry point (the calling-convention wrapper: pull the
+; argument off this compiler's own evaluation stack, push the result back)
+; -- Float_ToString above is the reusable core, following the same split as
+; Float_Add/mulflt etc. Not gated by the per-method dead-code-elimination
+; mechanism (Compiler/ILLibraryFlagsPass.cs): asm/helper/*.asm is always
+; included regardless of use, same as every other Float_* routine here.
+NumberFormat_FloatToString
+    #stack_save_return_adress zp_tmp1_low
+    #stack_pull_mflpt zp_flt_a
+    jsr Float_ToString
+    #stack_push_pointer tostring_buffer
+    #stack_return_to_saved_address zp_tmp1_low
 
 ; No SEI/CLI here (or in any macro below) -- interrupt-time safety for
 ; zp_flt_a/b (and everything else these macros touch: the evaluation

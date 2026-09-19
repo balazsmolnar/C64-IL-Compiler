@@ -171,6 +171,36 @@ public class RomFloatRoutineTests
         Check("FAC1YA", new Asm().PointerInAY(OperandA).Jsr(MOVFM).Jsr(FAC1YA));
     }
 
+    // Diagnostic for a live-VICE Demo crash traced to float.ToString():
+    // FOUT was never part of the zero-page survey above (added long after
+    // it, for asm/helper/float.asm's Float_ToString) -- checks whether it
+    // clobbers stackPointer ($4b, this compiler's own locals-stack index,
+    // relocated here specifically because FCOMP clobbers ITS old home) or
+    // heapPointer/zp_ctor_result/zp_field_value (none of bank_in_basic_rom's
+    // save/restore covers these -- only zp_interrupt_address_low/high and
+    // $01 are protected there).
+    private const int FOUT = 0xBDDD;
+
+    [TestCase(0x4b, TestName = "stackPointer")]
+    [TestCase(0xfb, TestName = "heapPointer_low")]
+    [TestCase(0xfc, TestName = "heapPointer_high")]
+    [TestCase(0xfa, TestName = "zp_ctor_result")]
+    [TestCase(0xfd, TestName = "zp_field_value_low")]
+    [TestCase(0xfe, TestName = "zp_field_value_high")]
+    [TestCase(0x26, TestName = "zp_interrupt_address_low")]
+    [TestCase(0x27, TestName = "zp_interrupt_address_high")]
+    public void FOUT_NeverTouches(int address)
+    {
+        var e = NewEmulator(3.5f, 0f);
+        e.SetMemory(address, 0xAB);
+        Run(e, new Asm()
+            .Sei()
+            .PointerInAY(OperandA).Jsr(MOVFM)
+            .Jsr(FOUT)
+            .Cli());
+        Assert.That(e.GetMemory(address), Is.EqualTo(0xAB), $"FOUT touched ${address:X2}");
+    }
+
     [Test]
     public void FMULT_ClobbersInterruptAddress_ButBankInOutRestoresIt()
     {

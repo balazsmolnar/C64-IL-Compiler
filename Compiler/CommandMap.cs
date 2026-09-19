@@ -67,6 +67,29 @@ internal static class CommandMap
             { ILOpCode.Ldarg_2, new OpLdarg(2) },
             { ILOpCode.Ldarg_3, new OpLdarg(3) },
             { ILOpCode.Ldarg_s, new OpLdarg_s() },
+            // "x.ToString()" on a value type compiles to ldloca.s/ldarga.s
+            // (address of the value) + constrained. + callvirt
+            // Object::ToString() -- see ILNumericToStringPass, which
+            // collapses the constrained./callvirt pair into a single
+            // conversion-routine call. Ldloca_s/Ldarga_s themselves just
+            // reuse OpLdloc_s/OpLdarg_s verbatim (no separate "address of"
+            // Op class): this compiler has no ref/out/pointer support at
+            // all, so "address of a local" and "value of a local" are
+            // interchangeable for every case that can otherwise compile
+            // here -- OpLdloc_s/OpLdarg_s already push exactly the value
+            // (including the float SizeSuffix handling), purely from the
+            // local/arg index in operation.OriginalParameter, never
+            // inspecting operation.OpCode.
+            { ILOpCode.Ldloca_s, new OpLdloc_s() },
+            { ILOpCode.Ldarga_s, new OpLdarg_s() },
+            // "instanceField.ToString()"/"staticField.ToString()" use
+            // Ldflda/Ldsflda (address of the field) instead of Ldloca_s/
+            // Ldarga_s -- same reasoning, same reuse trick: OpLdfld/OpLdsld
+            // already push exactly the field's value with the right
+            // pop-this/push-value stack behavior.
+            { ILOpCode.Ldflda, new OpLdfld() },
+            { ILOpCode.Ldsflda, new OpLdsld() },
+            { ILOpCode.Constrained, new OpConstrained() },
             { ILOpCode.Ldsfld, new OpLdsld() },
             { ILOpCode.Br_s, new OpShortJump("jmp", JumpType.UnConditional) },
             { ILOpCode.Beq, new OpLongJump("#branch_equal", JumpType.Compare) },

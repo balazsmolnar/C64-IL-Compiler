@@ -42,8 +42,17 @@ public class PlayerStats
     // project ever exercised a `= { literal, literal, ... }` array field).
     private const uint LevelMarkerChar = 99;
 
+    // GameData.asm's txt_PlayerStats already bakes in a "SCORE" label and a
+    // single placeholder '0' digit at this exact column (row 0) -- decoded
+    // from the static header text/color tables (' SUPER  SCORE        0   '
+    // + tbl_PlayerStatsColours' byte 32 = $03/Cyan) the same way every other
+    // header element here already is. DrawScore below overwrites that
+    // placeholder with the real, growing score text.
+    private const uint ScoreX = 32;
+
     public uint Lives;
     public uint Bonus;
+    public ulong Score;
 
     public void Draw(uint levelNumber)
     {
@@ -61,7 +70,18 @@ public class PlayerStats
         }
         DrawLives();
         DrawBonus();
+        DrawScore();
         DrawLevelMarker(levelNumber);
+    }
+
+    // Score only ever grows within one game (PlayerStats is recreated fresh,
+    // Score defaulting back to 0, at the start of each new game -- see
+    // Game.RunGame), so each new value has at least as many digits as the
+    // last and this never needs to clear leftover digits from a longer
+    // previous value first.
+    public void DrawScore()
+    {
+        C64.Screen.Write(ScoreX, 0, Score.ToString(), Colors.Cyan);
     }
 
     private void DrawLevelMarker(uint levelNumber)

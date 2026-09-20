@@ -18,7 +18,7 @@ class Game
     private void RunGame()
     {
         var levelPlay = new LevelPlay();
-        var currentLevel = 15; 
+        var currentLevel = 0; 
         var levels = LevelDescription.Levels;
         var playerStats = new PlayerStats { Lives = 5 };
         while (currentLevel < levels.Length)

@@ -10,7 +10,6 @@ class LevelPlay
         Wall wall = new Wall();
         wall.Draw(description.Color, description.WallType);
         playerStats.Draw(levelNumber);
-        DrawDebugLevelNumber(levelNumber);
 
         // Esmeralda's Tower finale -- the original's once-per-16-levels
         // rescue-the-princess sequence (Restructure/Quasi.asm's
@@ -380,17 +379,6 @@ class LevelPlay
         sprite.X = x;
         sprite.Y = y;
         sprite.Visible = true;
-    }
-
-    // Debug aid: show the (0-based) level index at the top right of the
-    // header, in the free columns after the lives markers.
-    private static void DrawDebugLevelNumber(uint levelNumber)
-    {
-        uint tens = levelNumber / 10;
-        uint ones = levelNumber % 10;
-        C64.Screen.SetChar(36, 1, 76, Colors.Yellow); // 'L'
-        C64.Screen.SetChar(37, 1, 48 + tens, Colors.Yellow);
-        C64.Screen.SetChar(38, 1, 48 + ones, Colors.Yellow);
     }
 
     // Speed bonus lookup -- modeled on the original's tbl_ScoreMultiplier

@@ -4,12 +4,14 @@
     <None Remove="CharSet.asm" />
     <None Remove="GameData.asm" />
     <None Remove="SpriteData.asm" />
+    <None Remove="sprHunchback.spt" />
   </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="CharSet.asm" />
     <EmbeddedResource Include="GameData.asm" />
     <EmbeddedResource Include="SpriteData.asm" />
+    <EmbeddedResource Include="sprHunchback.spt" />
   </ItemGroup>
 
   <ItemGroup>

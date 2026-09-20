@@ -192,12 +192,8 @@ class IntroScroll
         // The live screen now shows exactly what s_nextChar/Color holds --
         // swap references (cheap: just 4 pointers) so the next
         // ScrollToLevel call's "current" is this without re-reading it.
-        var swapChar = s_currentChar;
-        s_currentChar = s_nextChar;
-        s_nextChar = swapChar;
-        var swapColor = s_currentColor;
-        s_currentColor = s_nextColor;
-        s_nextColor = swapColor;
+        (s_currentChar, s_nextChar) = (s_nextChar, s_currentChar);
+        (s_currentColor, s_nextColor) = (s_nextColor, s_currentColor);
     }
 
     // Plays through TitleScreen's own tune (TitleScreen.GetTones()), one

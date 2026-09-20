@@ -199,14 +199,26 @@ class OpCall : OpBase
         // worse than the confusing-but-rare assembler error this replaces.
         if (declaringType.FullName == "System.GC")
             return;
+        // System.MathF.Sin/Cos/Sqrt -- same technique as System.GC.Collect()
+        // above, just for the three MathF methods asm/helper/float.asm
+        // actually implements (MathF_Sin/Cos/Sqrt). Explicit per-method
+        // (MathFSupport.SupportedMethods), not a MathF.*-wide allowlist the
+        // way C64Lib.'s namespace prefix is above: MathF has a much larger
+        // surface than this compiler backs (Tan/Atan/Log/Pow/...), and a
+        // namespace-wide pass-through would let an unsupported member reach
+        // 64tass as the exact confusing "not defined symbol" error this
+        // whole check exists to avoid. Shared with ILLibraryUsagePass's own
+        // identical check (see MathFSupport's own comment on why one list).
+        if (declaringType.FullName == "System.MathF" && MathFSupport.SupportedMethods.Contains(method.Name))
+            return;
 
         throw new NotSupportedException(
             $"Unsupported method call: {declaringType.FullName}.{method.Name}(...). This compiler has no way to " +
             "compile or link this call -- it isn't defined in the assembly being compiled, isn't a C64Lib.* " +
             "method, and doesn't match any of the specially-handled BCL patterns (numeric .ToString(), " +
             "string.Concat(string,string)/.Length/.PadLeft(int,char), a static readonly array literal, " +
-            "System.Func<T>.Invoke()). Without this check the same problem would instead surface much later, " +
-            "as a confusing 64tass \"not defined symbol\" error at assembly time.");
+            "System.Func<T>.Invoke(), System.MathF.Sin/Cos/Sqrt). Without this check the same problem would " +
+            "instead surface much later, as a confusing 64tass \"not defined symbol\" error at assembly time.");
     }
 }
 

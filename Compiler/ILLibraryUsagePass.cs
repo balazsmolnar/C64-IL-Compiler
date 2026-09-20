@@ -22,6 +22,17 @@ namespace Compiler;
 // silently never match. The rest of this codebase already works around the
 // same hazard by name (see OperandBase.cs's ReflectedType.Name.StartsWith
 // ("Func") check for Func<> delegates).
+//
+// System.MathF.Sin/Cos/Sqrt get the exact same tracking as C64Lib.* --
+// they're real BCL methods, not C64Lib stand-ins (see asm/helper/float.asm's
+// MathF_Sin/Cos/Sqrt), but they're still ordinary hand-written-asm-backed
+// library calls this program either uses or doesn't. Named explicitly
+// (method-by-method, not by namespace prefix like C64Lib.'s whole surface)
+// to match OperandBase.cs's EnsureCallIsResolvable's own equally narrow
+// allowlist for these three -- keeping both checks in sync is what makes an
+// unsupported call like MathF.Tan a clear compiler error there instead of
+// silently getting a dead-code flag here that nothing ever defines a
+// routine for.
 class ILLibraryUsagePass : ICompilerMethodPass
 {
     public void Execute(CompilerMethodContext context)
@@ -36,7 +47,9 @@ class ILLibraryUsagePass : ICompilerMethodPass
 
             var method = context.CompilerContext.Assembly.ManifestModule.ResolveMethod((int)line.OriginalParameter) as MethodBase;
             var declaringType = method?.DeclaringType?.FullName;
-            if (declaringType == null || !declaringType.StartsWith("C64Lib."))
+            bool isLibraryCall = declaringType != null && declaringType.StartsWith("C64Lib.");
+            bool isMathF = declaringType == "System.MathF" && MathFSupport.SupportedMethods.Contains(method.Name);
+            if (!isLibraryCall && !isMathF)
                 continue;
 
             context.CompilerContext.UsedLibraryLabels.Add(method.GetLabel());

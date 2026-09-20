@@ -1,3 +1,4 @@
+using System;
 using NUnit.Framework;
 using Assert = C64TestFramework.Assert;
 
@@ -203,5 +204,56 @@ public class FloatTests
     private class FloatHolder
     {
         public float Value;
+    }
+
+    // Sin(0f)/Cos(0f) below are exact (bit-for-bit) equality checks, not
+    // tolerance-based like TestSqrt -- confirmed safe for these two
+    // specific cases only, not as a general property of MathF.Sin/Cos. See
+    // TestSqrt's own comment for why exact equality against a C# float
+    // literal usually CAN'T hold for one of these ROM routines' results,
+    // and why 0f/perfect-square inputs are the exception, not the rule.
+    [TestCase(ExpectedResult = 0f)]
+    public float TestSin()
+    {
+        return MathF.Sin(0f);
+    }
+
+    // Not exactly 1f, confirmed live against the real embedded ROM: COS is
+    // implemented as "add a quarter-turn constant to FAC1, fall into SIN"
+    // (see float.asm's own comment on the $E264/$E26B entry points), and
+    // that constant isn't infinitely precise, so even this exact input is
+    // off by one ULP from the mathematically ideal result -- still exactly
+    // this one value every time, though (confirmed deterministic), which
+    // is what makes it safe to assert on exactly.
+    [TestCase(ExpectedResult = 0.99999994f)]
+    public float TestCos()
+    {
+        return MathF.Cos(0f);
+    }
+
+    // Tolerance-based, not exact equality -- confirmed live on real VICE
+    // (not just SimpleEmulator, which can silently disagree with real ROM
+    // behavior here, the same class of gap float.asm's own FDIV comment
+    // documents) that SQR's result generally can't bit-match a C# float
+    // literal at all: SQR computes natively in MFLPT's full 31-bit
+    // mantissa, but every C# float literal becomes MFLPT with its low 8
+    // mantissa bits zero-padded (Compiler/Mflpt.cs) -- so an exact match
+    // only happens on the rare input where the true result needs zero low
+    // bits (confirmed: Sqrt(4f)==2f exactly), not in general (confirmed:
+    // Sqrt(9f) is close to but not bit-equal to 3f, nor to either of 3f's
+    // immediate IEEE754 neighbors -- checked by direct bisection on real
+    // VICE). Written by hand rather than via MathF.Abs (not a supported
+    // call target -- see Operands/OperandBase.cs's EnsureCallIsResolvable
+    // allowlist, which only covers Sin/Cos/Sqrt).
+    [TestCase(9f, 3f, ExpectedResult = true)]
+    [TestCase(4f, 2f, ExpectedResult = true)]
+    [TestCase(0f, 0f, ExpectedResult = true)]
+    public bool TestSqrt(float a, float expected)
+    {
+        float actual = MathF.Sqrt(a);
+        float diff = actual - expected;
+        if (diff < 0f)
+            diff = -diff;
+        return diff < 0.001f;
     }
 }

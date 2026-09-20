@@ -411,3 +411,144 @@ conv_float_to_int .macro
     jsr Float_ToInt
     #stack_push_int_a
 .endm
+
+; ============================================================================
+; System.MathF.Sin/Cos/Sqrt -- the REAL BCL type (not a C64Lib stand-in):
+; ILLibraryUsagePass has a narrow, explicit allowlist for exactly these
+; three MathF methods (same technique as its existing System.GC.Collect()
+; and Func<T>.Invoke() special cases -- see Operands/OperandBase.cs's
+; EnsureCallIsResolvable), so calling e.g. MathF.Tan (unimplemented) is a
+; clear compiler error, not a confusing 64tass "not defined symbol" one.
+;
+; Unlike every Float_* routine above (always included: float's +/-/*/</>
+; are raw IL opcodes the dead-code-elimination scan can't see a method call
+; for, so it has no way to know a program doesn't need them), a MathF.Sin/
+; Cos/Sqrt call IS an ordinary Call the usage scan can see -- exactly what
+; ILLibraryUsagePass/ILLibraryFlagsPass already track for every C64Lib
+; method (Screen_BeginUpdate etc. in asm/C64.asm). So these three get the
+; same per-method .weak Flag_X / .if guard those use, even though they live
+; here in float.asm rather than one of the files ILLibraryFlagsPass's own
+; comment lists -- that list isn't a hard restriction, just where the
+; pattern happened to be used before now; the mechanism itself is a plain
+; 64tass .weak symbol, readable from anywhere. Result: a program that calls
+; MathF.Sqrt but never MathF.Sin pays for SQR's ROM call and not SIN's.
+;
+; Each is fully self-contained inside its own .if block (no shared
+; "core" routine split the way Float_Add/Float_ToString have,
+; deliberately: unlike those, nothing else ever calls into MathF.Sin's
+; implementation, so splitting it out would only move code outside the
+; .weak guard and defeat the point). #bank_in_basic_rom/#bank_out_basic_rom
+; used directly here is safe for the same reason floatBanking.asm's own
+; comment restricts them to "Float_* subroutines" in the first place: each
+; is a real, once-defined subroutine at a fixed, stable, guaranteed-below-
+; $a000 address (this file's own include position), not a macro expanded
+; at scattered call sites -- the label prefix isn't what that restriction
+; is actually about.
+;
+; ROM entry points (verified against c64-wiki.com's SIN and BASIC-ROM
+; overview pages, cross-checked, September 2026):
+;   SQR = $BF71 -- FAC1 = sqrt(FAC1), in place. Lives in BASIC ROM's own
+;                  $A000-$BFFF range, alongside SGN/ABS/INT/LOG/EXP, all
+;                  documented with the same "evaluate the argument into
+;                  FAC1, JSR, result left in FAC1" convention MOVFM/MOVMF
+;                  below implement explicitly.
+;   SIN = $E26B -- FAC1 = sin(FAC1), in place. This address falls in what's
+;                  normally called the KERNAL range ($E000-$FFFF), but
+;                  #bank_in_basic_rom's $07 write to $01 maps BOTH BASIC
+;                  ($A000-$BFFF) AND KERNAL ($E000-$FFFF) ROM at once (the
+;                  C64's default/normal banking state) -- the exact same
+;                  banking call already used for FOUT (confirmed at $BDDD,
+;                  BASIC ROM's own range) works unchanged for SIN.
+;   COS = $E264 -- FAC1 = cos(FAC1), in place. Documented as simply adding
+;                  a quarter-turn constant to FAC1 and falling straight
+;                  into SIN's own code -- consistent with the two entry
+;                  points sitting only 7 bytes apart.
+;
+; KNOWN ISSUE, unresolved, same unexplained class as Float_ToString/FOUT's
+; own "KNOWN ISSUE" comment above: confirmed reproducible live on VICE that
+; calling any of MathF.Sin/Cos/Sqrt from a program with an ACTIVE
+; C64.Interrupt subscriber registered crashes to BASIC (Demo/Program.cs,
+; which has exactly one such subscriber for its sprite-moving MoveBall --
+; adding a single MathF.Sqrt call to its existing float-arithmetic demo
+; reproduced this every time; removing the C64.Interrupt += MoveBall line,
+; with the MathF.Sqrt call otherwise unchanged, made it run correctly, which
+; is what isolates the interrupt subscriber specifically rather than
+; something about the call site). Same suspected cause as FOUT's own
+; unresolved case: SIN/SQR/COS are, like FOUT, much longer and more complex
+; ROM routines than the simple Float_Add/Sub/Mul/Div/Compare/FromInt/ToInt
+; family, which all coexist correctly with an active interrupt. Not
+; independently root-caused here -- filed as the same open class of
+; problem rather than reinvestigated from scratch. Safe to use in a program
+; with NO C64.Interrupt subscriber (this is how Test/FloatTests.cs's
+; TestSin/TestCos/TestSqrt exercise it -- via SimpleEmulator, which, per
+; Float_ToString's own comment, can't reproduce this at all anyway, so
+; those tests only ever verified correctness, never this interrupt
+; interaction).
+; ============================================================================
+
+SIN = $E26B
+COS = $E264
+SQR = $BF71
+
+.weak
+Flag_MathF_Sin = 0
+.endweak
+.if Flag_MathF_Sin
+
+MathF_Sin
+    #stack_save_return_adress zp_tmp1_low
+    #stack_pull_mflpt zp_flt_a
+    #bank_in_basic_rom
+    lda #<zp_flt_a
+    ldy #>zp_flt_a
+    jsr MOVFM
+    jsr SIN
+    ldx #<zp_flt_a
+    ldy #>zp_flt_a
+    jsr MOVMF
+    #bank_out_basic_rom
+    #stack_push_var_mflpt zp_flt_a
+    #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+.weak
+Flag_MathF_Cos = 0
+.endweak
+.if Flag_MathF_Cos
+
+MathF_Cos
+    #stack_save_return_adress zp_tmp1_low
+    #stack_pull_mflpt zp_flt_a
+    #bank_in_basic_rom
+    lda #<zp_flt_a
+    ldy #>zp_flt_a
+    jsr MOVFM
+    jsr COS
+    ldx #<zp_flt_a
+    ldy #>zp_flt_a
+    jsr MOVMF
+    #bank_out_basic_rom
+    #stack_push_var_mflpt zp_flt_a
+    #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+.weak
+Flag_MathF_Sqrt = 0
+.endweak
+.if Flag_MathF_Sqrt
+
+MathF_Sqrt
+    #stack_save_return_adress zp_tmp1_low
+    #stack_pull_mflpt zp_flt_a
+    #bank_in_basic_rom
+    lda #<zp_flt_a
+    ldy #>zp_flt_a
+    jsr MOVFM
+    jsr SQR
+    ldx #<zp_flt_a
+    ldy #>zp_flt_a
+    jsr MOVMF
+    #bank_out_basic_rom
+    #stack_push_var_mflpt zp_flt_a
+    #stack_return_to_saved_address zp_tmp1_low
+.endif

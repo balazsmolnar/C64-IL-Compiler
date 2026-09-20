@@ -57,10 +57,13 @@ public class LevelDescription
     // below where they occur:
     //   - "Esmerelda's Tower" (1 of the original's 6 tbl_LevelType bits) has
     //     no equivalent WallType -- it's the original's rescue-the-princess
-    //     finale (every 16th level), substituted with KnightPits.
-    //     Implementing the finale itself is a separate, much bigger feature,
-    //     out of scope here. ("Row of bells", the other originally-missing
-    //     wall layout, now has a real WallType -- see Wall.cs's
+    //     finale (every 16th level), still substituted with plain
+    //     KnightPits for two of its three slots (levels 15/31). The real
+    //     finale (tower decoration + rescue sequence) now plays at level
+    //     47, this port's actual last level -- see LevelPlay.cs's
+    //     DrawEsmereldaTower/RescueEsmeralda and that level's own comment
+    //     below. ("Row of bells", the other originally-missing wall
+    //     layout, now has a real WallType -- see Wall.cs's
     //     BuildRowOfBells.)
     //   - The original's 4 "Duo"/"...Both" obstacle types (two simultaneous
     //     enemies, e.g. one high + one low fireball) now spawn a real second
@@ -104,12 +107,12 @@ public class LevelDescription
             new LevelDescription {
                 WallType = WallType.Rope,
                 EnemyType = EnemyType.None,
-                Color = Colors.Brown
+                Color = Colors.White
             },
             new LevelDescription {
                 WallType = WallType.KnightPits,
                 EnemyType = EnemyType.FireBall | EnemyType.RightLeft | EnemyType.Bottom,
-                Color = Colors.Brown
+                Color = Colors.White
             },
             // Obstacle byte $10 (Duo Arrow HiLo Front): two arrows, both
             // moving right-to-left, one high one low.
@@ -117,23 +120,19 @@ public class LevelDescription
                 WallType = WallType.KnightPits,
                 EnemyType = EnemyType.Arrow | EnemyType.RightLeft | EnemyType.Top,
                 EnemyType2 = EnemyType.Arrow | EnemyType.RightLeft | EnemyType.Bottom,
-                Color = Colors.Brown
+                Color = Colors.White
             },
             new LevelDescription {
                 WallType = WallType.RowOfBells,
                 EnemyType = EnemyType.FireBall | EnemyType.RightLeft | EnemyType.Bottom,
                 Color = Colors.Grey2
             },
-            // Obstacle byte $20 (Duo Arrow HiLo Rear): two arrows, both
-            // moving left-to-right, one high one low.
             new LevelDescription {
                 WallType = WallType.EmptyPits,
                 EnemyType = EnemyType.Arrow | EnemyType.LeftRight | EnemyType.Top,
                 EnemyType2 = EnemyType.Arrow | EnemyType.LeftRight | EnemyType.Bottom,
                 Color = Colors.Grey2
             },
-            // Obstacle byte $40 (Duo Fireball Lo Both): two fireballs, both
-            // low, moving in opposite directions.
             new LevelDescription {
                 WallType = WallType.EmptyPits,
                 EnemyType = EnemyType.FireBall | EnemyType.RightLeft | EnemyType.Bottom,
@@ -142,212 +141,26 @@ public class LevelDescription
             },
             new LevelDescription {
                 WallType = WallType.KnightPits,
-                EnemyType = EnemyType.Arrow | EnemyType.LeftRight | EnemyType.Top,
+                EnemyType = EnemyType.Arrow | EnemyType.LeftRight | EnemyType.Bottom,
+                EnemyType2 = EnemyType.Arrow | EnemyType.LeftRight | EnemyType.Top,
                 Color = Colors.LightGreen
             },
             new LevelDescription {
                 WallType = WallType.KnightPits,
                 EnemyType = EnemyType.FireBall | EnemyType.RightLeft | EnemyType.Bottom,
+                EnemyType2 = EnemyType.FireBall | EnemyType.RightLeft | EnemyType.Bottom,
                 Color = Colors.LightGreen
             },
-            // Obstacle byte $80 (Duo Arrow HiLo Both): two arrows, mixed
-            // height and direction (one high right-to-left, one low
-            // left-to-right).
             new LevelDescription {
                 WallType = WallType.RowOfBells,
                 EnemyType = EnemyType.Arrow | EnemyType.RightLeft | EnemyType.Top,
                 EnemyType2 = EnemyType.Arrow | EnemyType.LeftRight | EnemyType.Bottom,
                 Color = Colors.Orange
             },
-            // Level 15 (index 15): the original's Esmerelda's Tower finale
-            // (every 16th level -- see Restructure/Level.asm's
-            // "and #15; cmp #15" check). The finale minigame itself isn't
-            // implemented; substituted with KnightPits, since the original's
-            // level-type byte ($31) also has the KnightPit bit set alongside
-            // EsmereldaTower. Obstacle byte $40 (Duo Fireball Lo Both), as
-            // at index 11 above.
             new LevelDescription {
                 WallType = WallType.KnightPits,
                 EnemyType = EnemyType.FireBall | EnemyType.RightLeft | EnemyType.Bottom,
-                EnemyType2 = EnemyType.FireBall | EnemyType.LeftRight | EnemyType.Bottom,
-                Color = Colors.Orange
-            },
-            new LevelDescription {
-                WallType = WallType.KnightPits,
-                EnemyType = EnemyType.Arrow | EnemyType.LeftRight | EnemyType.Top,
-                Color = Colors.Grey1
-            },
-            new LevelDescription {
-                WallType = WallType.KnightPits,
-                EnemyType = EnemyType.Arrow | EnemyType.RightLeft | EnemyType.Top,
-                Color = Colors.Grey1
-            },
-            new LevelDescription {
-                WallType = WallType.Wall,
-                EnemyType = EnemyType.FireBall | EnemyType.RightLeft | EnemyType.Bottom,
-                Color = Colors.Grey1
-            },
-            new LevelDescription {
-                WallType = WallType.Rope,
-                EnemyType = EnemyType.None,
-                Color = Colors.Grey3
-            },
-            new LevelDescription {
-                WallType = WallType.EmptyPits,
-                EnemyType = EnemyType.Arrow | EnemyType.LeftRight | EnemyType.Top,
-                Color = Colors.Grey3
-            },
-            new LevelDescription {
-                WallType = WallType.KnightPits,
-                EnemyType = EnemyType.Arrow | EnemyType.LeftRight | EnemyType.Top,
-                Color = Colors.Grey3
-            },
-            new LevelDescription {
-                WallType = WallType.KnightPits,
-                EnemyType = EnemyType.FireBall | EnemyType.RightLeft | EnemyType.Bottom,
-                Color = Colors.Brown
-            },
-            new LevelDescription {
-                WallType = WallType.EmptyPits,
-                EnemyType = EnemyType.FireBall | EnemyType.RightLeft | EnemyType.Bottom,
-                Color = Colors.Brown
-            },
-            new LevelDescription {
-                WallType = WallType.KnightPits,
-                EnemyType = EnemyType.Arrow | EnemyType.LeftRight | EnemyType.Top,
-                Color = Colors.Brown
-            },
-            new LevelDescription {
-                WallType = WallType.EmptyPits,
-                EnemyType = EnemyType.Arrow | EnemyType.LeftRight | EnemyType.Top,
-                Color = Colors.Grey2
-            },
-            new LevelDescription {
-                WallType = WallType.KnightPits,
-                EnemyType = EnemyType.FireBall | EnemyType.RightLeft | EnemyType.Bottom,
-                Color = Colors.Grey2
-            },
-            // Obstacle byte $80 (Duo Arrow HiLo Both), as at index 14 above.
-            new LevelDescription {
-                WallType = WallType.RowOfBells,
-                EnemyType = EnemyType.Arrow | EnemyType.RightLeft | EnemyType.Top,
-                EnemyType2 = EnemyType.Arrow | EnemyType.LeftRight | EnemyType.Bottom,
-                Color = Colors.LightGreen
-            },
-            new LevelDescription {
-                WallType = WallType.EmptyPits,
-                EnemyType = EnemyType.FireBall | EnemyType.RightLeft | EnemyType.Bottom,
-                Color = Colors.LightGreen
-            },
-            new LevelDescription {
-                WallType = WallType.Rope,
-                EnemyType = EnemyType.None,
-                Color = Colors.LightGreen
-            },
-            new LevelDescription {
-                WallType = WallType.KnightPits,
-                EnemyType = EnemyType.FireBall | EnemyType.RightLeft | EnemyType.Bottom,
-                Color = Colors.Orange
-            },
-            // Level 31 (index 31): second Esmerelda's Tower finale slot --
-            // same KnightPits substitute as level 15 above.
-            new LevelDescription {
-                WallType = WallType.KnightPits,
-                EnemyType = EnemyType.FireBall | EnemyType.RightLeft | EnemyType.Bottom,
-                Color = Colors.Orange
-            },
-            new LevelDescription {
-                WallType = WallType.KnightPits,
-                EnemyType = EnemyType.Arrow | EnemyType.LeftRight | EnemyType.Top,
-                Color = Colors.Grey1
-            },
-            new LevelDescription {
-                WallType = WallType.EmptyPits,
-                EnemyType = EnemyType.FireBall | EnemyType.RightLeft | EnemyType.Bottom,
-                Color = Colors.Grey1
-            },
-            // Level 34 (index 34): the original's level-type byte here is
-            // corrupted/anomalous in the disassembly (208 = $D0, breaking
-            // the "Wall bit always set" pattern every other entry follows --
-            // almost certainly a transcription error in the fan
-            // disassembly). Its obstacle byte is a clean $01 (Rope) though,
-            // which is what actually drives WallType.Rope in this port (see
-            // levels 1/6/19/29/44), so that's used regardless of the garbled
-            // type byte.
-            new LevelDescription {
-                WallType = WallType.Rope,
-                EnemyType = EnemyType.None,
-                Color = Colors.Grey1
-            },
-            new LevelDescription {
-                WallType = WallType.KnightPits,
-                EnemyType = EnemyType.Arrow | EnemyType.RightLeft | EnemyType.Top,
-                Color = Colors.Grey3
-            },
-            new LevelDescription {
-                WallType = WallType.KnightPits,
-                EnemyType = EnemyType.Arrow | EnemyType.LeftRight | EnemyType.Top,
-                Color = Colors.Grey3
-            },
-            new LevelDescription {
-                WallType = WallType.KnightPits,
-                EnemyType = EnemyType.FireBall | EnemyType.RightLeft | EnemyType.Bottom,
-                Color = Colors.Grey3
-            },
-            new LevelDescription {
-                WallType = WallType.KnightPits,
-                EnemyType = EnemyType.Arrow | EnemyType.RightLeft | EnemyType.Top,
-                Color = Colors.Brown
-            },
-            new LevelDescription {
-                WallType = WallType.RowOfBells,
-                EnemyType = EnemyType.FireBall | EnemyType.RightLeft | EnemyType.Bottom,
-                Color = Colors.Brown
-            },
-            // Obstacle $80 (Duo Arrow HiLo Both), as at index 14 above.
-            new LevelDescription {
-                WallType = WallType.RowOfBells,
-                EnemyType = EnemyType.Arrow | EnemyType.RightLeft | EnemyType.Top,
-                EnemyType2 = EnemyType.Arrow | EnemyType.LeftRight | EnemyType.Bottom,
-                Color = Colors.Brown
-            },
-            new LevelDescription {
-                WallType = WallType.EmptyPits,
-                EnemyType = EnemyType.Arrow | EnemyType.LeftRight | EnemyType.Top,
-                Color = Colors.Grey2
-            },
-            new LevelDescription {
-                WallType = WallType.KnightPits,
-                EnemyType = EnemyType.Arrow | EnemyType.RightLeft | EnemyType.Top,
-                Color = Colors.Grey2
-            },
-            new LevelDescription {
-                WallType = WallType.EmptyPits,
-                EnemyType = EnemyType.FireBall | EnemyType.RightLeft | EnemyType.Bottom,
-                Color = Colors.LightGreen
-            },
-            new LevelDescription {
-                WallType = WallType.Rope,
-                EnemyType = EnemyType.None,
-                Color = Colors.LightGreen
-            },
-            // Obstacle $80 (Duo Arrow HiLo Both), as at index 14 above.
-            new LevelDescription {
-                WallType = WallType.RowOfBells,
-                EnemyType = EnemyType.Arrow | EnemyType.RightLeft | EnemyType.Top,
-                EnemyType2 = EnemyType.Arrow | EnemyType.LeftRight | EnemyType.Bottom,
-                Color = Colors.LightGreen
-            },
-            new LevelDescription {
-                WallType = WallType.KnightPits,
-                EnemyType = EnemyType.FireBall | EnemyType.RightLeft | EnemyType.Bottom,
-                Color = Colors.Orange
-            },
-            // Level 47 (index 47): third Esmerelda's Tower finale slot --
-            // same KnightPits substitute as levels 15/31 above.
-            new LevelDescription {
-                WallType = WallType.KnightPits,
-                EnemyType = EnemyType.FireBall | EnemyType.RightLeft | EnemyType.Bottom,
+                EnemyType2 = EnemyType.FireBall | EnemyType.RightLeft | EnemyType.Bottom,
                 Color = Colors.Orange
             },
         };

@@ -1622,3 +1622,35 @@ spt_player_rope_left:
 .byte $00, $00, $00
 .byte $00
 
+; New sprite -- hand-authored for LevelPlay.cs's Esmeralda's-Tower finale
+; (the original's own heart sprite lives in a SpritePad binary, not
+; extractable as plain bytes -- see LevelPlay.cs's own comment on
+; RescueEsmeralda/DrawEsmereldaTower for the full story). Single color
+; mode (not multicolor, unlike the original) -- simpler byte encoding (1
+; bit = 1 pixel, no bit-pair decoding) for a hand-drawn shape, and this
+; port already has single-color sprite precedent (spt_rope_0 above).
+; Classic symmetric heart: two rounded lobes narrowing to a point.
+spt_heart:
+.byte $1E, $1E, $00
+.byte $3F, $3F, $00
+.byte $7F, $FF, $80
+.byte $7F, $FF, $80
+.byte $7F, $FF, $80
+.byte $7F, $FF, $80
+.byte $3F, $FF, $00
+.byte $3F, $FF, $00
+.byte $1F, $FE, $00
+.byte $1F, $FE, $00
+.byte $0F, $FC, $00
+.byte $0F, $FC, $00
+.byte $07, $F8, $00
+.byte $07, $F8, $00
+.byte $03, $F0, $00
+.byte $03, $F0, $00
+.byte $01, $E0, $00
+.byte $01, $E0, $00
+.byte $00, $C0, $00
+.byte $00, $C0, $00
+.byte $00, $00, $00
+.byte $00
+

@@ -20,6 +20,28 @@ class Player
     private Wall wall_;
     private int[] jumpOffsets_;
 
+    // Set once by LevelPlay.Play() when levelNumber == 47 -- Esmeralda's
+    // Tower's decorative tile block (LevelPlay.cs's DrawEsmereldaTower)
+    // sits at columns 32-39 (screen chars), rows 2-10 -- squarely inside
+    // the player's own jump-arc height (Y ranges ~97 at a jump's peak to
+    // 117 standing, both within that span) near the level's right side.
+    // Without this exception, brushing the tower's own (very real,
+    // hardware-collidable) character graphics triggered the same "touched
+    // a wall" death as any other background collision.
+    //
+    // X range recheck: the first cut of this fix used X>=276 as the
+    // tower's left edge, guessed from the column count rather than derived
+    // -- still died walking into the tower from the left, confirmed live.
+    // The correct column-to-X conversion is already established elsewhere
+    // in this file's own sibling (Wall.cs's "quasiX = bellColumn*8 - 10",
+    // verified there against all 4 tbl_BellRopeXOffset entries with zero
+    // rounding error). Applying it to the tower's own leftmost column (32):
+    // 32*8-10 = 246, not 280 -- the earlier guess was 30px too far right,
+    // leaving a real gap (X 246-276) where touching the tower still killed
+    // the player. 240 below gives a few pixels of margin for the sprite's
+    // own hitbox extending slightly left of its X coordinate.
+    public bool IsEsmereldaLevel;
+
     public ulong X
     {
         get => x_;
@@ -86,7 +108,13 @@ class Player
             // to the default SPRCBG-is-death path other wall types use.
             // Ordinary levels are unaffected by this -- it only changes what
             // background collision means specifically for RowOfBells walls.
-            if (!onBellWall)
+            // Same kind of exception onBellWall already is, scoped to
+            // exactly the tower's own column span so it doesn't weaken
+            // normal wall-collision death anywhere else on the level (see
+            // IsEsmereldaLevel's own comment above -- X>=240 is the
+            // corrected, column-formula-derived threshold).
+            bool nearTower = IsEsmereldaLevel && X >= 240UL;
+            if (!onBellWall && !nearTower)
             {
                 Die();
                 return;

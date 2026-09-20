@@ -12,6 +12,38 @@ class LevelPlay
         playerStats.Draw(levelNumber);
         DrawDebugLevelNumber(levelNumber);
 
+        // Esmeralda's Tower finale -- the original's once-per-16-levels
+        // rescue-the-princess sequence (Restructure/Quasi.asm's
+        // Quasi_RescueEsmerelda), added only for level 47 (this port's
+        // actual last level), not the original's every-16th-level pattern
+        // (levels 15/31 keep their existing plain KnightPits substitution
+        // -- see LevelDescription.cs). See DrawEsmereldaTower/
+        // RescueEsmeralda below for the two halves of it.
+        bool isEsmereldaLevel = levelNumber == 15;
+        if (isEsmereldaLevel)
+        {
+            DrawEsmereldaTower();
+            // Sprite6 -- confirmed free during normal play (0=Player,
+            // 1=Knight, 2=Enemy, 3/4=Rope, 5=Enemy2; 6/7 unused). A
+            // slow-blinking heart accent near the tower art, ticked in the
+            // main loop below. Single-color (spt_heart is hi-res, not
+            // multicolor -- see SpriteData.asm's comment on it).
+            C64.Sprites.Sprite6.DataBlock = C64Address.FromLabel("spt_heart");
+            C64.Sprites.Sprite6.Color = Colors.Red;
+            C64.Sprites.Sprite6.MultiColor = false;
+            // X=322 (the original value here) sat past the tower's own
+            // right edge -- the tower's rightmost column (39) is X=39*8-10
+            // = 302 by the same column-to-X formula Player.cs's
+            // IsEsmereldaLevel comment now cites (from Wall.cs), so 322 put
+            // the heart 20px beyond the tower entirely, off toward the
+            // screen's right border -- reported as the heart appearing
+            // detached from the tower during live play. 296 sits just
+            // inside the tower's own column span, near its top-right
+            // corner, above the window.
+            C64.Sprites.Sprite6.X = 220;
+            C64.Sprites.Sprite6.Y = 78;
+        }
+
         // Rope/Enemy/Enemy2 aren't set up until after GetReady() below (they
         // shouldn't appear until gameplay actually starts) -- but Screen.Clear()
         // only wiped the sprite POINTER bytes for the new level, not the
@@ -30,6 +62,7 @@ class LevelPlay
             Sprite = C64.Sprites.Sprite0
         };
         player.Init(wall);
+        player.IsEsmereldaLevel = isEsmereldaLevel;
         Knight knight = new Knight()
         {
             Sprite = C64.Sprites.Sprite1
@@ -89,6 +122,8 @@ class LevelPlay
             player.Move();
             if (ticks < 255)
                 ticks++;
+            if (isEsmereldaLevel)
+                C64.Sprites.Sprite6.Visible = (ticks % 64) < 32;
 
             var collisions = C64.Sprites.Collisions;
             if ((collisions & 1u) > 0)
@@ -141,8 +176,18 @@ class LevelPlay
                 }
                 playerStats.DrawBonus();
                 playerStats.DrawScore();
-                for (int i=0; i<30; i++)
-                    Delay.Wait(255);
+                if (isEsmereldaLevel)
+                {
+                    // Replaces the generic post-level pause below --
+                    // RescueEsmeralda paces itself with its own animation
+                    // delays.
+                    RescueEsmeralda(playerStats);
+                }
+                else
+                {
+                    for (int i = 0; i < 30; i++)
+                        Delay.Wait(255);
+                }
                 return true;
             }
             foreach (var go in gameObjects)
@@ -188,6 +233,153 @@ class LevelPlay
         C64.Screen.SetChar(22, 6, c6, Colors.Grey2);
         C64.Screen.SetChar(23, 6, c7, Colors.Grey2);
         C64.Screen.SetChar(24, 6, c8, Colors.Grey2);
+    }
+
+    // Drawn once, over the top-right of the normal level layout -- same
+    // screen position the original uses (its own
+    // scn_TemporaryScreen+$0070 offset is row 2, column 32 in a
+    // 40-column screen). Purely decorative -- the level underneath plays
+    // exactly like any other; see Play()'s isEsmereldaLevel gate.
+    //
+    // Both arrays are LOCAL, not static readonly fields -- deliberately.
+    // A static array here would need to survive every GC.Collect() call
+    // Game.RunGame makes (one per level attempt, including deaths/
+    // restarts) for as long as the program runs; this compiler's GC has a
+    // real, previously-documented limitation with exactly that (see
+    // IntroScroll.cs's own comment on reference-local root-count tracking
+    // -- "roughly half of each level's row-buffer garbage staying stuck
+    // alive after GC.Collect()"), and it showed up here too: after dying
+    // and restarting level 47 a few times, the tower rendered as garbage
+    // -- the static array's heap slot wasn't surviving reliably. A local
+    // array sidesteps the question entirely: it's allocated fresh and
+    // fully consumed within this one call, never needing to survive past
+    // it, so no GC cycle ever runs while it still needs to be alive.
+    //
+    // Data transcribed directly from the original's
+    // tbl_EsmereldaTowerChars/tbl_EsmeTowerCharColour
+    // (Restructure/Memory.asm:326-344). Character codes are a straight
+    // reuse: all 14 distinct codes this layout needs already exist,
+    // byte-for-byte, in this port's own CharSet.asm (confirmed by direct
+    // comparison against the original's charset extraction) -- no new
+    // pixel art needed for this half of the finale, unlike the heart
+    // sprite (see SpriteData.asm's spt_heart). Color bytes are already
+    // standard C64 palette indices, matching this port's Colors enum
+    // values exactly ($08=Orange, $0C=Grey2, $0F=Grey3, $0A=LightRed).
+    private static void DrawEsmereldaTower()
+    {
+        uint[] chars = {
+            0x20, 0x20, 0x6F, 0x6E, 0x20, 0x20, 0x20, 0x20,
+            0x20, 0x6F, 0x6C, 0x6C, 0x6E, 0x3F, 0x40, 0x43,
+            0x6F, 0x6C, 0xA0, 0xA1, 0x6C, 0x41, 0x42, 0x43,
+            0x6C, 0x6C, 0xA2, 0xA3, 0x6C, 0x6D, 0x20, 0x43,
+            0x6C, 0x6C, 0xA4, 0xA5, 0x6C, 0x6D, 0x20, 0x43,
+            0x6C, 0x6C, 0xA6, 0xA7, 0x6C, 0x6D, 0x20, 0x43,
+            0x6C, 0x6C, 0x6C, 0x6C, 0x6C, 0x6D, 0x20, 0x43,
+            0x6C, 0x6C, 0x6C, 0x6C, 0x6C, 0x6D, 0x20, 0x43,
+            0x6C, 0x6C, 0x6C, 0x6C, 0x6C, 0x6C, 0x20, 0x43,
+        };
+
+        uint[] colors = {
+            0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08,
+            0x08, 0x08, 0x08, 0x08, 0x08, 0x0C, 0x0C, 0x0C,
+            0x08, 0x08, 0x0F, 0x0F, 0x08, 0x0C, 0x0C, 0x0C,
+            0x08, 0x08, 0x0A, 0x0F, 0x08, 0x0C, 0x0C, 0x0C,
+            0x08, 0x08, 0x0A, 0x0A, 0x08, 0x0C, 0x0C, 0x0C,
+            0x08, 0x08, 0x0A, 0x0A, 0x08, 0x0C, 0x0C, 0x0C,
+            0x08, 0x08, 0x08, 0x08, 0x08, 0x0C, 0x0C, 0x0C,
+            0x08, 0x08, 0x08, 0x08, 0x08, 0x0C, 0x0C, 0x0C,
+            0x08, 0x08, 0x08, 0x08, 0x08, 0x0C, 0x0C, 0x0C,
+        };
+
+        for (uint y = 0; y < 9; y++)
+            for (uint x = 0; x < 8; x++)
+                C64.Screen.SetChar(32 + x, 2 + y, chars[y * 8 + x], (Colors)colors[y * 8 + x]);
+    }
+
+    // Original's rescue-the-princess finale (Restructure/Quasi.asm's
+    // Quasi_RescueEsmerelda) -- plays once, right after completing level
+    // 47 (this port's last level), instead of the plain post-level pause
+    // every other level gets (see Play()'s isEsmereldaLevel branch).
+    // Re-authored rather than a byte-for-byte port: reuses Sprite0
+    // (Player, done with its own job by this point) for Quasimodo's pose
+    // and Sprite1-7 (Knight/Enemy/Rope x2/Enemy2's slots, all finished
+    // too) for 7 pulsing hearts, instead of the original's own fixed X/Y
+    // table and 4-frame sprite-swap animation -- same "MY HERO" + hearts
+    // + bonus shape, simpler asset/animation needs (one hand-drawn heart
+    // sprite, ExpandX/ExpandY toggling for the pulse instead of 4 distinct
+    // frames -- see SpriteData.asm's spt_heart comment).
+    private static void RescueEsmeralda(PlayerStats playerStats)
+    {
+        Screen.Clear(Colors.Black);
+        C64.Screen.Write(15, 5, "MY HERO", Colors.Cyan);
+
+        C64.Sprites.Sprite0.DataBlock = C64Address.FromLabel("spt_player_right_0");
+        C64.Sprites.Sprite0.Color = Colors.Brown;
+        C64.Sprites.Sprite0.MultiColor = true;
+        C64.Sprites.Sprite0.ExpandX = false;
+        C64.Sprites.Sprite0.ExpandY = false;
+        C64.Sprites.Sprite0.X = 160;
+        C64.Sprites.Sprite0.Y = 140;
+        C64.Sprites.Sprite0.Visible = true;
+
+        // 7 hearts spread across a single row above Quasimodo -- not the
+        // original's own fixed X/Y table (a re-authored layout doesn't
+        // need to match it byte-for-byte).
+        SetHeartSprite(C64.Sprites.Sprite1, 60, 70);
+        SetHeartSprite(C64.Sprites.Sprite2, 96, 60);
+        SetHeartSprite(C64.Sprites.Sprite3, 132, 52);
+        SetHeartSprite(C64.Sprites.Sprite4, 168, 48);
+        SetHeartSprite(C64.Sprites.Sprite5, 204, 52);
+        SetHeartSprite(C64.Sprites.Sprite6, 240, 60);
+        SetHeartSprite(C64.Sprites.Sprite7, 276, 70);
+
+        // Pulse: toggle Expand on/off a handful of times instead of
+        // hand-drawing 4 near-identical animation frames.
+        for (uint step = 0; step < 16; step++)
+        {
+            bool expanded = (step % 2) == 0;
+            C64.Sprites.Sprite1.ExpandX = expanded; C64.Sprites.Sprite1.ExpandY = expanded;
+            C64.Sprites.Sprite2.ExpandX = expanded; C64.Sprites.Sprite2.ExpandY = expanded;
+            C64.Sprites.Sprite3.ExpandX = expanded; C64.Sprites.Sprite3.ExpandY = expanded;
+            C64.Sprites.Sprite4.ExpandX = expanded; C64.Sprites.Sprite4.ExpandY = expanded;
+            C64.Sprites.Sprite5.ExpandX = expanded; C64.Sprites.Sprite5.ExpandY = expanded;
+            C64.Sprites.Sprite6.ExpandX = expanded; C64.Sprites.Sprite6.ExpandY = expanded;
+            C64.Sprites.Sprite7.ExpandX = expanded; C64.Sprites.Sprite7.ExpandY = expanded;
+            Delay.Wait(150);
+        }
+
+        // Matches the original's own rescue-bonus award exactly
+        // (Restructure/Quasi.asm's Quasi_RescueEsmerelda calls
+        // Player_UpdateScore(digit 2) twice, i.e. +1 twice to the
+        // hundreds place of the BCD score array -- +200), same shape as
+        // the 5-bonus award above.
+        playerStats.Score += 200;
+        playerStats.DrawScore();
+        for (int i = 0; i < 10; i++)
+            Delay.Wait(255);
+
+        // Leave every sprite in a clean state -- the next level's
+        // Screen.Clear() (Game.RunGame) doesn't touch sprite hardware
+        // flags, only screen/color RAM.
+        C64.Sprites.Sprite0.Visible = false;
+        C64.Sprites.Sprite0.MultiColor = false;
+        C64.Sprites.Sprite1.Visible = false; C64.Sprites.Sprite1.ExpandX = false; C64.Sprites.Sprite1.ExpandY = false;
+        C64.Sprites.Sprite2.Visible = false; C64.Sprites.Sprite2.ExpandX = false; C64.Sprites.Sprite2.ExpandY = false;
+        C64.Sprites.Sprite3.Visible = false; C64.Sprites.Sprite3.ExpandX = false; C64.Sprites.Sprite3.ExpandY = false;
+        C64.Sprites.Sprite4.Visible = false; C64.Sprites.Sprite4.ExpandX = false; C64.Sprites.Sprite4.ExpandY = false;
+        C64.Sprites.Sprite5.Visible = false; C64.Sprites.Sprite5.ExpandX = false; C64.Sprites.Sprite5.ExpandY = false;
+        C64.Sprites.Sprite6.Visible = false; C64.Sprites.Sprite6.ExpandX = false; C64.Sprites.Sprite6.ExpandY = false;
+        C64.Sprites.Sprite7.Visible = false; C64.Sprites.Sprite7.ExpandX = false; C64.Sprites.Sprite7.ExpandY = false;
+    }
+
+    private static void SetHeartSprite(Sprite sprite, ulong x, uint y)
+    {
+        sprite.DataBlock = C64Address.FromLabel("spt_heart");
+        sprite.Color = Colors.Red;
+        sprite.MultiColor = false;
+        sprite.X = x;
+        sprite.Y = y;
+        sprite.Visible = true;
     }
 
     // Debug aid: show the (0-based) level index at the top right of the

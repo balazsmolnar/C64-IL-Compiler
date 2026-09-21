@@ -50,6 +50,7 @@ class Program
                         new ILAddressFromLabelPass(),
                         new ILNumericToStringPass(),
                         new ILStringOpsPass(),
+                        new ILStringInterpolationPass(),
                     },
                     new ICompilerMethodPass[] {
                         new ILMethodIncOptimizer(),

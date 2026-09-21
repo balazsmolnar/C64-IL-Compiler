@@ -22,8 +22,27 @@ start_address = $09FE
 ; test-execution path ever reads BASIC ROM. SimpleEmulator.SetMemory is
 ; bank-aware (tracks $01 writes), so this is exercised for real here,
 ; not just on VICE/hardware.
-OBJ_TABLES_MAX_START = $c800
-OBJ_TABLES_FALLBACK = $c800
+; OBJ_TABLES_MAX_START/FALLBACK are the SAME value -- not two distinct
+; thresholds (there's no real "float, else fall back to a different safe
+; place" happening; see objectTables.asm's own comment on this, including
+; what actually went wrong when Test/*.cs grew past the old $c800 value:
+; silent runtime corruption of Assert_AreEqualString's own code, not a
+; build failure -- objectTables.asm's .cerror check now converts any
+; future recurrence into a loud assembly-time error instead).
+;
+; $d000, not $c800: tostring_buffer/stringops_buffer/heap all live in the
+; SAME floating .virtual block as the tables themselves (objectTables.asm),
+; not at any independently-fixed address -- so the real ceiling isn't
+; "don't collide with tostring_buffer," it's "leave the runtime heap (the
+; unbounded `heap` label at the very end of that block) enough room before
+; $e000, KERNAL ROM, which stays mapped even with BASIC banked out (see
+; asm/helper/floatBanking.asm's bank_out_basic_rom using $06, not a value
+; that also clears HIRAM). At $d000: tables(2048)+tostring_buffer(16)+
+; stringops_buffer(40) = 2104 bytes, leaving heap ~$d838-$e000 (~1992
+; bytes) -- comfortably more than any single test's own allocations need,
+; and 2048 bytes more code headroom than the old $c800 had.
+OBJ_TABLES_MAX_START = $d000
+OBJ_TABLES_FALLBACK = $d000
 
 * = $1000
 Run_Test:

@@ -19,21 +19,36 @@
 ; rewinds * back to where .virtual started, and anything emitted after
 ; would alias these same addresses.
 ;
-; Table placement itself: floats right after code, but falls back if
-; there isn't room for the full 2048-byte block before whatever comes
-; next that isn't safe RAM. The entry template defines
-; OBJ_TABLES_MAX_START/OBJ_TABLES_FALLBACK before including this file --
-; a program that banked out BASIC ROM (asm/helper/banking.asm) has real
-; RAM all the way to $d000 (I/O), so it gets a much higher ceiling than a
-; target that didn't (unittest.asm never banks -- see asm/helper/banking.asm
-; and ILEntryPointPass -- so it keeps the original conservative $9800/
-; $c000 pair: BASIC ROM is mapped read-only there, and SimpleEmulator's
-; SetMemory hard-blocks $a000-$c000 the same way unless it sees LORAM
-; actually cleared).
-.if * < OBJ_TABLES_MAX_START
-.else
-* = OBJ_TABLES_FALLBACK
-.endif
+; Table placement: floats right after code, as long as that's still below
+; OBJ_TABLES_MAX_START (the entry template defines this, and the identical
+; OBJ_TABLES_FALLBACK, before including this file). Those two names used to
+; suggest a real "try floating, else fall back to a different safe place"
+; scheme, but both templates set them to the SAME value -- there never was
+; a second, safe address to fall back to, just "if code reached here,
+; forcibly pin the tables here regardless." Since the tables themselves are
+; .virtual (assigns addresses, emits zero real bytes -- see above), pinning
+; * BACKWARD into a region that already has real, assembled code sitting in
+; it doesn't error or even look wrong at assembly time: it just makes
+; objTableLow/etc alias whatever code is physically already there. The
+; failure shows up only at RUNTIME, when the startup object-table-clearing
+; loop overwrites that aliased code with zeros before anything gets a
+; chance to run it -- confirmed to happen for real once already (Test/*.cs
+; grew past OBJ_TABLES_MAX_START, silently zeroing out
+; Assert_AreEqualString's own machine code before any test could call it;
+; every test using it failed with no useful error, since the corruption
+; happened during otherwise-unrelated startup code, long before whichever
+; test method was actually being dispatched).
+;
+; Turned into a hard compile-time failure instead: if code is still at or
+; past OBJ_TABLES_MAX_START here, there is no safe address left to use, so
+; fail loudly now rather than silently corrupt memory at runtime. Raising
+; OBJ_TABLES_MAX_START/FALLBACK is possible in the entry template (check
+; headroom against the next fixed boundary first -- for unittest builds,
+; that's $e000, KERNAL ROM, still mapped even with BASIC banked out; see
+; asm/helper/floatBanking.asm's bank_out_basic_rom using $06, not a value
+; that also clears HIRAM), but the real fix, once available headroom is
+; gone, is to shrink the compiled program.
+.cerror * >= OBJ_TABLES_MAX_START, "Compiled program is too large: the object/GC tables (2048 bytes) plus tostring_buffer/stringops_buffer/heap can no longer fit before OBJ_TABLES_MAX_START without silently aliasing already-assembled code. Raise OBJ_TABLES_MAX_START/OBJ_TABLES_FALLBACK in the entry template (checking headroom against the next fixed boundary), or shrink the program."
 
 .virtual *
 objTableLow         .fill 256

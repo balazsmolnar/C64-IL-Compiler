@@ -29,6 +29,29 @@ namespace Compiler;
 // error is a separate, later change (see the "unresolvable Call" item in
 // this session's own compiler-feature-support survey).
 //
+// A 3/4-arg Concat widening (chaining N-1 String_Concat jsr's back to
+// back) was tried and reverted: asm/helper/stringops.asm's String_Concat
+// always writes its result into stringops_buffer, and every call after the
+// first in such a chain has one operand aliased with that same buffer (the
+// previous call's own result). String_Concat writes its first operand's
+// characters before reading its second's; when the SECOND operand is the
+// aliased buffer, the write (which starts filling the buffer from offset 0
+// while the read walks the buffer from offset 0 too, permanently `len(op1)`
+// bytes behind) corrupts the read a few bytes in -- including, in the case
+// that surfaced this live (an interpolated string with an all-string,
+// 3-piece shape hitting this path instead of
+// ILStringInterpolationPass.cs's handler-pattern rewrite), overwriting the
+// null terminator entirely, which spins the copy loop forever instead of
+// terminating. Confirmed live (hung, had to be killed) before reverting.
+// Fixing this for real needs either new scratch-buffer infrastructure or
+// an explicit safe re-sequencing (pop every argument into separate
+// storage first, then re-fold left-to-right so the growing accumulator is
+// always the FIRST operand of each call -- CopyA writing into the same
+// buffer it reads, at matching offsets, is a harmless self-copy, unlike
+// CopyB) -- out of scope here; Roslyn's direct multi-arg Concat lowering
+// (distinct from the interpolation-handler pattern) now just falls through
+// to the ordinary "Unsupported method call" NotSupportedException instead.
+//
 // Runs in the setup group, alongside ILNumericToStringPass -- both are
 // simple forward pattern-matches over the as-decoded instruction stream,
 // before any optimizer pass gets a chance to touch these opcodes.

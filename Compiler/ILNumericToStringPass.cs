@@ -57,7 +57,7 @@ class ILNumericToStringPass : ICompilerMethodPass
             if (lines[i].OpCode == ILOpCode.Call)
             {
                 var callee = context.CompilerContext.Assembly.ManifestModule.ResolveMethod((int)lines[i].OriginalParameter) as MethodBase;
-                if (callee == null || callee.Name != nameof(ToString) || callee.GetParameters().Length != 0 || !IsSupportedNumericType(callee.DeclaringType))
+                if (callee == null || callee.Name != nameof(ToString) || callee.GetParameters().Length != 0 || !NumericToStringSupport.IsSupportedNumericType(callee.DeclaringType))
                     continue;
 
                 Replace(context, lines, i, i, callee.DeclaringType);
@@ -69,7 +69,7 @@ class ILNumericToStringPass : ICompilerMethodPass
                     continue;
 
                 var constrainedType = (Type)lines[i].RawParameter;
-                if (!IsSupportedNumericType(constrainedType))
+                if (!NumericToStringSupport.IsSupportedNumericType(constrainedType))
                     throw new NotSupportedException($"ToString() is not supported for type {constrainedType.Name} -- only uint/int/ulong/long/float (and byte/sbyte) are.");
 
                 Replace(context, lines, i, i + 1, constrainedType);
@@ -77,18 +77,12 @@ class ILNumericToStringPass : ICompilerMethodPass
         }
     }
 
-    private static bool IsSupportedNumericType(Type type) =>
-        type == typeof(uint) || type == typeof(byte) ||
-        type == typeof(int) || type == typeof(sbyte) ||
-        type == typeof(ulong) || type == typeof(long) ||
-        type == typeof(float);
-
     // Marks lines[firstConsumed..lastConsumed] Optimized and inserts the
     // conversion-routine call right after lastConsumed, reusing its
     // StackContent.
     private static void Replace(CompilerMethodContext context, System.Collections.Generic.List<ILOperation> lines, int firstConsumed, int lastConsumed, Type numericType)
     {
-        var label = ConversionLabel(numericType);
+        var label = NumericToStringSupport.ConversionLabel(numericType);
 
         // The float routine (asm/helper/float.asm) is always included,
         // like every other Float_* routine -- asm/helper/*.asm was out of
@@ -108,18 +102,5 @@ class ILNumericToStringPass : ICompilerMethodPass
         lines.Insert(lastConsumed + 1, newOperation);
         for (int j = firstConsumed; j <= lastConsumed; j++)
             lines[j].Optimized = true;
-    }
-
-    private static string ConversionLabel(Type numericType)
-    {
-        if (numericType == typeof(uint) || numericType == typeof(byte))
-            return "NumberFormat_UInt8ToString";
-        if (numericType == typeof(int) || numericType == typeof(sbyte))
-            return "NumberFormat_Int8ToString";
-        if (numericType == typeof(ulong))
-            return "NumberFormat_UInt16ToString";
-        if (numericType == typeof(long))
-            return "NumberFormat_Int16ToString";
-        return "NumberFormat_FloatToString";
     }
 }

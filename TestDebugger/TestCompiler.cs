@@ -21,6 +21,7 @@ class TestCompiler
     public string DebugMapPath => Path.Combine(AsmOutDir, "debugmap.txt");
     public string LabelsPath => Path.Combine(PrgDir, PrgName + ".labels");
     public string PrgPath => Path.Combine(PrgDir, PrgName + ".prg");
+    public string DumpListingPath => Path.Combine(PrgDir, "dump_debug.asm");
 
     public TestCompiler(string repoRoot)
     {
@@ -62,7 +63,7 @@ class TestCompiler
 
         Console.Error.WriteLine("Assembling...");
         RunProcess(tassExe,
-            $"-o \"{PrgPath}\" --long-branch --vice-labels -l \"{LabelsPath}\" --list \"{Path.Combine(PrgDir, "dump_debug.asm")}\" --no-monitor \"{AsmEntryFile}\"");
+            $"-o \"{PrgPath}\" --long-branch --vice-labels -l \"{LabelsPath}\" --list \"{DumpListingPath}\" --no-monitor \"{AsmEntryFile}\"");
     }
 
     // Redirects the child's stdout/stderr to OUR stderr, never our stdout --

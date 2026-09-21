@@ -56,10 +56,11 @@ class Program
         }
 
         var model = DebugMapModel.Load(compiler.DebugMapPath, compiler.LabelsPath);
+        var listing = DisassemblyListing.Load(compiler.DumpListingPath);
         var testAssembly = Assembly.LoadFrom(compiler.TestDllPath);
         var session = new TestSession(testAssembly, model, compiler.PrgPath);
         var resolver = new BreakpointResolver(model);
-        var repl = new ReplLoop(session, model, resolver);
+        var repl = new ReplLoop(session, model, resolver, listing);
 
         foreach (var spec in breakSpecs)
             repl.AddBreakpoint(spec);

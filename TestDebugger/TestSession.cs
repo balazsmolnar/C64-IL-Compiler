@@ -138,6 +138,27 @@ class TestSession
         return Advance(_model.AllSequencePointAddresses().ToHashSet());
     }
 
+    // Raw single-instruction step (instruction-granularity debugging) --
+    // bypasses RunUntil entirely (there's no "run until" happening, just
+    // one instruction), unlike Step()/Continue() above.
+    public SessionStop StepInstruction()
+    {
+        RequireActiveSession();
+        if (!_emulator.StepOne())
+        {
+            _halted = true;
+            return BuildHaltStop();
+        }
+
+        var entry = _model.FindByAddress(_emulator.ProgramCounter);
+        return new SessionStop
+        {
+            Kind = SessionStopKind.Step,
+            SourceFile = entry?.SourceFile ?? "?",
+            Line = entry?.Line ?? -1, // -1 is expected/common: most raw instructions aren't at a source-line boundary
+        };
+    }
+
     private void RequireActiveSession()
     {
         if (_emulator == null)

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text.Json;
 
 namespace TestDebugger;
 
@@ -22,16 +23,24 @@ class DapServer
 {
     private const int ThreadId = 1;
     private const int LocalsVariablesReference = 1;
+    private const int RegistersVariablesReference = 2;
 
     private readonly string _repoRoot;
     private readonly DapIo _io;
     private DebugMapModel _model;
+    private DisassemblyListing _listing;
     private BreakpointResolver _resolver;
     private TestSession _session;
     private string _testSelector;
     private readonly Dictionary<string, HashSet<int>> _breakpointsByFile = new();
-    private string _lastStopFile;
-    private int _lastStopLine;
+
+    // Maps a minted DAP variablesReference -> the InspectedValue it expands
+    // (an object or non-null array). Reset on every new stop, since DAP
+    // convention is that a variablesReference is only valid for the current
+    // stopped state -- VS Code never reuses one across two different stops.
+    // 1/2 stay reserved for the fixed Locals/Registers scopes themselves.
+    private readonly Dictionary<int, InspectedValue> _variableRefs = new();
+    private int _nextVariablesReference = 3;
 
     // Non-null when launched with testSelector omitted (or "*"/"all"):
     // every test in the assembly runs in turn (fresh emulator per test,
@@ -84,7 +93,11 @@ class DapServer
         switch (msg.Command)
         {
             case "initialize":
-                _io.WriteResponse(msg.Seq, msg.Command, true, new { supportsConfigurationDoneRequest = true });
+                _io.WriteResponse(msg.Seq, msg.Command, true, new
+                {
+                    supportsConfigurationDoneRequest = true,
+                    supportsDisassembleRequest = true,
+                });
                 return true;
 
             case "launch":
@@ -117,7 +130,8 @@ class DapServer
                 {
                     scopes = new[]
                     {
-                        new { name = "Locals", variablesReference = LocalsVariablesReference, expensive = false }
+                        new { name = "Locals", variablesReference = LocalsVariablesReference, expensive = false },
+                        new { name = "Registers", variablesReference = RegistersVariablesReference, expensive = false },
                     }
                 });
                 return true;
@@ -130,12 +144,16 @@ class DapServer
             case "stepIn":
             case "stepOut":
                 _io.WriteResponse(msg.Seq, msg.Command, true, null);
-                ReportStop(_session.Step());
+                ReportStop(IsInstructionGranularity(msg) ? _session.StepInstruction() : _session.Step());
                 return true;
 
             case "continue":
                 _io.WriteResponse(msg.Seq, msg.Command, true, new { allThreadsContinued = true });
                 ReportStop(_session.Continue());
+                return true;
+
+            case "disassemble":
+                HandleDisassemble(msg);
                 return true;
 
             case "disconnect":
@@ -159,6 +177,7 @@ class DapServer
         var compiler = new TestCompiler(_repoRoot);
         compiler.EnsureCompiled(forceRecompile: false);
         _model = DebugMapModel.Load(compiler.DebugMapPath, compiler.LabelsPath);
+        _listing = DisassemblyListing.Load(compiler.DumpListingPath);
         _resolver = new BreakpointResolver(_model);
         var testAssembly = Assembly.LoadFrom(compiler.TestDllPath);
         _session = new TestSession(testAssembly, _model, compiler.PrgPath);
@@ -218,36 +237,105 @@ class DapServer
         _session.ReplaceBreakpoints(union);
     }
 
+    // Computed fresh from the LIVE emulator state every call (not a cached
+    // "last stop" snapshot) -- necessary now that instruction-granularity
+    // stepping can land somewhere with no source line at all; the
+    // instructionPointerReference field is what VS Code actually uses to
+    // sync the Disassembly View's highlighted row, independent of
+    // source/line (which are simply omitted when there's no source here --
+    // a normal, well-defined DAP state, not an error).
     private void HandleStackTrace(DapIncomingMessage msg)
     {
         var frames = new List<object>();
-        if (_lastStopFile != null)
+        if (_session?.Emulator != null)
         {
-            frames.Add(new
+            var pc = _session.Emulator.ProgramCounter;
+            var entry = _model.FindByAddress(pc);
+            var frame = new Dictionary<string, object>
             {
-                id = 1,
-                name = _session.CurrentMethod?.Name,
-                source = new { name = _lastStopFile, path = Path.Combine(_repoRoot, "Test", _lastStopFile) },
-                line = _lastStopLine,
-                column = 1,
-            });
+                ["id"] = 1,
+                ["name"] = _session.CurrentMethod?.Name,
+                ["instructionPointerReference"] = $"0x{pc:X4}",
+                ["line"] = entry?.Line ?? 0,
+                ["column"] = 1,
+            };
+            if (entry != null)
+                frame["source"] = new { name = entry.SourceFile, path = Path.Combine(_repoRoot, "Test", entry.SourceFile) };
+            frames.Add(frame);
         }
         _io.WriteResponse(msg.Seq, msg.Command, true, new { stackFrames = frames, totalFrames = frames.Count });
     }
 
     private void HandleVariables(DapIncomingMessage msg)
     {
-        var locals = _session.Locals;
+        var variablesReference = msg.Arguments.GetProperty("variablesReference").GetInt32();
         var variables = new List<object>();
-        if (locals != null)
+
+        if (variablesReference == RegistersVariablesReference)
         {
-            foreach (var name in locals.LocalNames())
+            if (_session?.Emulator != null)
             {
-                if (locals.TryGetLocal(name, out var value, out _))
-                    variables.Add(new { name, value = value?.ToString() ?? "null", variablesReference = 0 });
+                var r = _session.Emulator.Registers;
+                var pc = _session.Emulator.ProgramCounter;
+                var sp = _session.Emulator.HardwareStackPointer;
+                variables.Add(RegVar("A", r.A));
+                variables.Add(RegVar("X", r.X));
+                variables.Add(RegVar("Y", r.Y));
+                variables.Add(new { name = "PC", value = $"0x{pc:X4}", type = "register", variablesReference = 0 });
+                variables.Add(new { name = "SP", value = $"0x{sp:X2}", type = "register", variablesReference = 0 });
+                variables.Add(RegVar("P", r.P));
+                variables.Add(new
+                {
+                    name = "Flags",
+                    value = $"{(r.N ? 'N' : '-')}{(r.V ? 'V' : '-')}--{(r.I ? 'I' : '-')}-{(r.Z ? 'Z' : '-')}{(r.C ? 'C' : '-')}",
+                    type = "register",
+                    variablesReference = 0,
+                });
+            }
+            _io.WriteResponse(msg.Seq, msg.Command, true, new { variables });
+            return;
+        }
+
+        var locals = _session.Locals;
+        if (variablesReference == LocalsVariablesReference)
+        {
+            if (locals != null)
+            {
+                foreach (var name in locals.LocalNames())
+                    if (locals.TryGetLocalValue(name, out var value, out _))
+                        variables.Add(ToDapVariable(name, value));
             }
         }
+        else if (locals != null && _variableRefs.TryGetValue(variablesReference, out var parent))
+        {
+            foreach (var (name, value) in locals.Inspector.Expand(parent))
+                variables.Add(ToDapVariable(name, value));
+        }
+
         _io.WriteResponse(msg.Seq, msg.Command, true, new { variables });
+    }
+
+    private static object RegVar(string name, byte value) =>
+        new { name, value = $"0x{value:X2} ({value})", type = "register", variablesReference = 0 };
+
+    // Mints a fresh variablesReference (and registers it for a later
+    // `variables` request to expand) only for a non-null object/array --
+    // everything else is a leaf (variablesReference: 0).
+    private object ToDapVariable(string name, InspectedValue value)
+    {
+        var reference = 0;
+        if (value.IsReference && !value.IsNull)
+        {
+            reference = _nextVariablesReference++;
+            _variableRefs[reference] = value;
+        }
+        return new
+        {
+            name,
+            value = value.Summary,
+            type = ObjectInspector.FriendlyTypeName(value.StaticType),
+            variablesReference = reference,
+        };
     }
 
     // Handles one SessionStop from Run/Step/Continue. In run-all mode, a
@@ -257,19 +345,22 @@ class DapServer
     // breakpoint fires (in whichever test hits it) or the queue empties.
     private void ReportStop(SessionStop stop)
     {
+        _variableRefs.Clear();
+        _nextVariablesReference = 3; // 1 = Locals, 2 = Registers, both fixed
+
         while (true)
         {
-            if (stop.Kind == SessionStopKind.Breakpoint)
+            if (stop.Kind == SessionStopKind.Breakpoint || stop.Kind == SessionStopKind.Step)
             {
-                _lastStopFile = stop.SourceFile;
-                _lastStopLine = stop.Line;
                 var testLabel = _runAllQueue != null ? $" (in {_session.CurrentMethod?.Name})" : "";
+                var reason = stop.Kind == SessionStopKind.Step ? "step" : "breakpoint";
+                var description = (stop.Kind == SessionStopKind.Step ? "Paused after instruction step" : "Paused on breakpoint") + testLabel;
                 _io.WriteEvent("stopped", new
                 {
-                    reason = "breakpoint",
+                    reason,
                     threadId = ThreadId,
                     allThreadsStopped = true,
-                    description = "Paused on breakpoint" + testLabel,
+                    description,
                 });
                 return;
             }
@@ -296,6 +387,58 @@ class DapServer
             stop = SafeRun(_runAllQueue[_runAllIndex]);
         }
     }
+
+    // VS Code sends "granularity": "instruction" on next/stepIn/stepOut
+    // automatically when the Disassembly View has focus (vs. omitted, or
+    // "line"/"statement", when the source editor has focus) -- Arguments
+    // defaults to an uninitialized JsonElement when a request carries no
+    // "arguments" at all, so guard ValueKind before TryGetProperty.
+    private static bool IsInstructionGranularity(DapIncomingMessage msg) =>
+        msg.Arguments.ValueKind != JsonValueKind.Undefined
+        && msg.Arguments.TryGetProperty("granularity", out var g)
+        && g.GetString() == "instruction";
+
+    private void HandleDisassemble(DapIncomingMessage msg)
+    {
+        var memRef = msg.Arguments.GetProperty("memoryReference").GetString();
+        var baseAddress = ParseAddress(memRef);
+        var offset = msg.Arguments.TryGetProperty("instructionOffset", out var o) ? o.GetInt32() : 0;
+        var count = msg.Arguments.GetProperty("instructionCount").GetInt32();
+
+        var startIndex = _listing.IndexOfRowAtOrBefore(baseAddress) + offset;
+
+        var instructions = new List<object>();
+        for (int i = 0; i < count; i++)
+        {
+            var rowIndex = startIndex + i;
+            if (rowIndex < 0 || rowIndex >= _listing.RowCount)
+            {
+                // VS Code commonly over-fetches a bit before/after the
+                // visible window -- pad with an explicit invalid entry
+                // rather than returning fewer than `count` items.
+                instructions.Add(new { address = "0x0", instruction = "??", presentationHint = "invalid" });
+                continue;
+            }
+
+            var row = _listing.RowAt(rowIndex);
+            var labels = _listing.LabelsAt(row.Address);
+            var entry = _model.FindByAddress(row.Address);
+            instructions.Add(new
+            {
+                address = $"0x{row.Address:X4}",
+                instructionBytes = string.Join(" ", row.Bytes.Select(b => b.ToString("x2"))),
+                instruction = row.SourceText,
+                symbol = labels.Count > 0 ? labels[0] : null,
+                location = entry != null ? new { name = entry.SourceFile, path = Path.Combine(_repoRoot, "Test", entry.SourceFile) } : null,
+                line = entry?.Line,
+            });
+        }
+
+        _io.WriteResponse(msg.Seq, msg.Command, true, new { instructions });
+    }
+
+    private static int ParseAddress(string s) =>
+        s.StartsWith("0x", StringComparison.OrdinalIgnoreCase) ? Convert.ToInt32(s, 16) : int.Parse(s);
 
     // A single test's setup/execution can throw for reasons unrelated to
     // the debugger itself (e.g. an argument type WriteArgument doesn't

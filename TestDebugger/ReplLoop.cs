@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace TestDebugger;
 
@@ -8,6 +9,7 @@ class ReplLoop
     private readonly TestSession _session;
     private readonly DebugMapModel _model;
     private readonly BreakpointResolver _resolver;
+    private readonly DisassemblyListing _listing;
 
     // Non-null while a `run all` is in progress: every test in the assembly
     // runs in turn, auto-advancing past each PASSED/FAILED until either a
@@ -17,11 +19,12 @@ class ReplLoop
     private List<string> _runAllQueue;
     private int _runAllIndex;
 
-    public ReplLoop(TestSession session, DebugMapModel model, BreakpointResolver resolver)
+    public ReplLoop(TestSession session, DebugMapModel model, BreakpointResolver resolver, DisassemblyListing listing)
     {
         _session = session;
         _model = model;
         _resolver = resolver;
+        _listing = listing;
     }
 
     // Usable both before the first `run` (queues onto the session's
@@ -100,11 +103,21 @@ class ReplLoop
                     case "locals":
                         PrintAllLocals();
                         break;
+                    case "regs":
+                        PrintRegisters();
+                        break;
+                    case "stepi":
+                        Report(_session.StepInstruction());
+                        break;
+                    case "disasm":
+                        PrintDisassembly(rest);
+                        break;
                     case "quit":
                     case "exit":
                         return;
                     default:
-                        Console.WriteLine($"Unknown command: {command} (break/run [TestClass.TestMethod|all]/step/continue/print/locals/quit)");
+                        Console.WriteLine("Unknown command: " + command +
+                            " (break/run [TestClass.TestMethod|all]/step/stepi/continue/print [name|name.field|name[i]]/locals/regs/disasm [count]/quit)");
                         break;
                 }
             }
@@ -115,7 +128,12 @@ class ReplLoop
         }
     }
 
-    private void PrintLocal(string name)
+    // Supports drilling into fields/array elements via a dotted/bracketed
+    // path ("print obj.Child.Id", "print arr[3]", "print arr[1].F") -- a
+    // bare name is just the zero-segment case of the same walk. Each
+    // segment is resolved via ObjectInspector.Expand, one level at a time,
+    // so this only ever recurses exactly as deep as the user typed.
+    private void PrintLocal(string path)
     {
         var locals = _session.Locals;
         if (locals == null)
@@ -123,10 +141,46 @@ class ReplLoop
             Console.WriteLine("No active session.");
             return;
         }
-        if (locals.TryGetLocal(name, out var value, out var error))
-            Console.WriteLine($"{name} = {value}");
-        else
+
+        (string root, List<string> segments) parsed;
+        try
+        {
+            parsed = VariablePath.Parse(path);
+        }
+        catch (ArgumentException ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+            return;
+        }
+
+        if (!locals.TryGetLocalValue(parsed.root, out var value, out var error))
+        {
             Console.WriteLine(error);
+            return;
+        }
+
+        foreach (var segment in parsed.segments)
+        {
+            if (!value.IsReference)
+            {
+                Console.WriteLine($"{path}: \"{value.Summary}\" has no members.");
+                return;
+            }
+            if (value.IsNull)
+            {
+                Console.WriteLine($"{path}: null reference.");
+                return;
+            }
+            var match = locals.Inspector.Expand(value).FirstOrDefault(c => c.Name == segment);
+            if (match.Value == null)
+            {
+                Console.WriteLine($"{path}: no member \"{segment}\".");
+                return;
+            }
+            value = match.Value;
+        }
+
+        Console.WriteLine($"{path} = {value.Summary}");
     }
 
     private void PrintAllLocals()
@@ -139,8 +193,43 @@ class ReplLoop
         }
         foreach (var name in locals.LocalNames())
         {
-            if (locals.TryGetLocal(name, out var value, out _))
-                Console.WriteLine($"{name} = {value}");
+            if (locals.TryGetLocalValue(name, out var value, out _))
+                Console.WriteLine($"{name} = {value.Summary}");
+        }
+    }
+
+    private void PrintRegisters()
+    {
+        var emu = _session.Emulator;
+        if (emu == null)
+        {
+            Console.WriteLine("No active session.");
+            return;
+        }
+        var r = emu.Registers;
+        Console.WriteLine($"A=${r.A:X2} X=${r.X:X2} Y=${r.Y:X2} PC=${emu.ProgramCounter:X4} SP=${emu.HardwareStackPointer:X2} P=${r.P:X2} " +
+            $"[{(r.N ? 'N' : '-')}{(r.V ? 'V' : '-')}--{(r.I ? 'I' : '-')}-{(r.Z ? 'Z' : '-')}{(r.C ? 'C' : '-')}]");
+    }
+
+    // "disasm" (defaults to 10 rows at the current PC) or "disasm N".
+    private void PrintDisassembly(string arg)
+    {
+        var emu = _session.Emulator;
+        if (emu == null)
+        {
+            Console.WriteLine("No active session.");
+            return;
+        }
+        var count = string.IsNullOrEmpty(arg) ? 10 : int.Parse(arg);
+        var startIndex = _listing.IndexOfRowAtOrBefore(emu.ProgramCounter);
+        for (int i = 0; i < count && startIndex + i < _listing.RowCount; i++)
+        {
+            var row = _listing.RowAt(startIndex + i);
+            foreach (var label in _listing.LabelsAt(row.Address))
+                Console.WriteLine($"{label}:");
+            var marker = row.Address == emu.ProgramCounter ? "=> " : "   ";
+            var hex = string.Join(" ", row.Bytes.Select(b => b.ToString("x2")));
+            Console.WriteLine($"{marker}${row.Address:X4}  {hex,-9}  {row.SourceText}");
         }
     }
 
@@ -153,9 +242,12 @@ class ReplLoop
     {
         while (true)
         {
-            if (stop.Kind == SessionStopKind.Breakpoint)
+            if (stop.Kind == SessionStopKind.Breakpoint || stop.Kind == SessionStopKind.Step)
             {
-                Console.WriteLine($"Stopped at {stop.SourceFile}:{stop.Line} (in {_session.CurrentMethod?.Name})");
+                if (stop.Line >= 0)
+                    Console.WriteLine($"Stopped at {stop.SourceFile}:{stop.Line} (in {_session.CurrentMethod?.Name})");
+                else
+                    Console.WriteLine($"Stepped to ${_session.Emulator.ProgramCounter:X4} (in {_session.CurrentMethod?.Name}, no source line here)");
                 return;
             }
 

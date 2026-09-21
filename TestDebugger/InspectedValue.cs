@@ -1,0 +1,14 @@
+using System;
+
+namespace TestDebugger;
+
+// One decoded value at any depth -- a local's own value, or (recursively,
+// via ObjectInspector.Expand) a field's or array element's.
+class InspectedValue
+{
+    public string Summary;   // one-line display text, e.g. "5", "TestObject#6", "uint[5]", "null"
+    public Type StaticType;  // reflected type this was read as -- needed to expand children
+    public bool IsReference; // true for object/array, even when IsNull
+    public bool IsNull;      // handle == 0, or objTableHigh[handle] == 0 (never allocated)
+    public int Handle;       // valid only when IsReference && !IsNull
+}

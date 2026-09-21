@@ -1,7 +1,6 @@
 using System;
 using System.Linq;
 using System.Reflection;
-using C64TestFramework;
 using Compiler;
 using SimpleEmulator;
 
@@ -16,6 +15,7 @@ class LocalVariableInspector
     private readonly DebugMapModel _model;
     private readonly MethodBase _testMethod;
     private readonly int _localsStackBase;
+    private readonly ObjectInspector _objectInspector;
 
     public LocalVariableInspector(Emulator emulator, DebugMapModel model, MethodBase testMethod)
     {
@@ -23,9 +23,12 @@ class LocalVariableInspector
         _model = model;
         _testMethod = testMethod;
         _localsStackBase = model.ResolveLabelAddress("localsStack");
+        _objectInspector = new ObjectInspector(emulator, model);
     }
 
-    public bool TryGetLocal(string name, out object value, out string error)
+    public ObjectInspector Inspector => _objectInspector;
+
+    public bool TryGetLocalValue(string name, out InspectedValue value, out string error)
     {
         var methodLabel = _testMethod.GetLabel();
         var local = _model.LocalsForMethod(methodLabel).FirstOrDefault(l => l.Name == name);
@@ -42,7 +45,7 @@ class LocalVariableInspector
         var stackPointerZp = _emulator.GetMemory(0x4b);
         var address = _localsStackBase + stackPointerZp - relPos;
 
-        value = EmulatorArgumentMarshaling.ReadLocal(_emulator, type, address);
+        value = _objectInspector.Read(type, address);
         error = null;
         return true;
     }

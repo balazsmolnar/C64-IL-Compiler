@@ -46,7 +46,10 @@ Extension Development Host step.
   same as the CLI).
 - Step (F10), Continue (F5 once stopped).
 - Variables panel shows the current method's locals (same "innermost frame
-  only" limitation as the CLI -- see the `debug-test` skill's notes).
+  only" limitation as the CLI -- see the `debug-test` skill's notes), and
+  object/array locals are expandable (click the arrow) to drill into
+  fields/elements, recursively -- backed by the same handle/object-table
+  resolution the CLI's `print obj.field`/`print arr[i]` syntax uses.
 - Debug Console shows `PASSED`/`FAILED: <message>` when the test finishes.
 - **Debug all tests**: run the "C64 Test Debugger: Debug All Tests" command
   (or the "Debug All C64 Tests" launch config), and it runs every test in
@@ -55,6 +58,18 @@ Extension Development Host step.
   *whichever* test happens to hit a breakpoint you've set -- useful when you
   don't know in advance which test exercises the code path you're watching.
   Continuing past that test resumes running the rest of the suite.
+- **Registers and disassembly**: a "Registers" scope sits alongside
+  "Locals" in the Variables panel (A/X/Y/PC/SP/P + a compact flags
+  string). Right-click a stack frame (or the source editor) → "Open
+  Disassembly View" for real 6502 mnemonics with symbolic operands and the
+  *original* macro-call source comments preserved (this is 64tass's own
+  `--list` output for the debug build, not a from-scratch decoder). Step
+  (F10)/Continue (F5) switch to single-instruction granularity automatically
+  while the Disassembly View has focus, and back to source-line granularity
+  when the source editor has focus -- no separate toggle, just whichever
+  tab you're on. Setting a breakpoint directly in the Disassembly View
+  (gutter click on an instruction row) isn't supported yet -- only source-line
+  breakpoints.
 
 ## Launch config
 

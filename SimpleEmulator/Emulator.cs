@@ -676,6 +676,41 @@ namespace SimpleEmulator
                 }
             }
         }
+
+        // Exposes the existing private Step() for raw single-instruction
+        // stepping (instruction-granularity debugging) -- same false-on-BRK/
+        // halt contract RunUntil already relies on. Step()/Start/RunUntil
+        // are otherwise untouched.
+        public bool StepOne() => Step();
+
+        // Fallback decode for an address the compiler's own 64tass listing
+        // file has no row for (TestDebugger.DisassemblyListing) -- should
+        // not happen for any address real compiled test code ever executes,
+        // since that listing covers every emitted byte, but a disassembler
+        // must not crash if it ever does (e.g. a synthetic/off-listing
+        // address). Deliberately crude: no symbolic operand resolution
+        // (AssemblyInstructionType/AssemblyInstruction are internal to this
+        // assembly, so nothing beyond a plain string crosses out of it), and
+        // branch/relative addressing length is clamped to a safe minimum
+        // rather than fully modeled -- this path is not expected to actually
+        // fire for real code.
+        public (string Text, int Length) DecodeFallback(int address)
+        {
+            var opcode = ReadByte(address);
+            var instruction = AssemblyInstructions.GetInstruction(opcode);
+            if (instruction.InstructionType == AssemblyInstructionType.UNDEF)
+                return ($"??? (${opcode:x2})", 1);
+            var length = Math.Max(1, GetInstructionLength(instruction.AddressingMode));
+            var b1 = length > 1 ? ReadByte(address + 1) : (byte)0;
+            var b2 = length > 2 ? ReadByte(address + 2) : (byte)0;
+            var operandText = length switch
+            {
+                3 => $" ${b2:x2}{b1:x2}",
+                2 => $" #${b1:x2}",
+                _ => "",
+            };
+            return ($"{instruction.InstructionType}{operandText}", length);
+        }
     }
 
     public readonly struct EmulatorRegisters

@@ -75,8 +75,23 @@ run.bat` yourself for this.
      of the queue automatically.
    - `step` -- run to the next source line (any line, not just breakpoints).
    - `continue` -- run until the next breakpoint hit, or the test finishes.
-   - `print <name>` -- print one local variable's current value.
-   - `locals` -- print every local currently in scope.
+   - `print <name>` -- print one local variable's current value. For an
+     object or array local, this also accepts a dotted/bracketed drill-down
+     path: `print obj.Field`, `print arr[3]`, `print obj.Child.Id`,
+     `print arr[1].F` -- each segment resolves one field/element at a time.
+   - `locals` -- print every local currently in scope. Objects/arrays show
+     a one-line summary only (`TestObject#6`, `uint[5]`, `null`) -- use
+     `print` with a path to drill into one.
+   - `regs` -- print the real 6502 registers (A/X/Y/PC/SP/P + a compact
+     N/V/I/Z/C flags string) at the current pause point.
+   - `stepi` -- execute exactly one raw 6502 instruction (not the next
+     source line -- most instructions land mid-statement, reported as
+     `Stepped to $XXXX (... no source line here)` rather than a file:line).
+   - `disasm [count]` -- show `count` (default 10) real 6502 instructions
+     starting at the current PC, with symbolic operands and original
+     comments (this is literally 64tass's own `--list` output for the
+     debug build, `prg/dump_debug.asm`, indexed by address -- not a custom
+     decoder), matching what VS Code's Disassembly View shows.
    - `quit` -- exit.
 
 4. **Reading the output:** a stop prints `Stopped at <file>:<line> (in

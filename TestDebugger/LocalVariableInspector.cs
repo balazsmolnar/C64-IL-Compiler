@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Compiler;
@@ -50,6 +51,54 @@ class LocalVariableInspector
         return true;
     }
 
-    public System.Collections.Generic.IEnumerable<string> LocalNames() =>
+    public IEnumerable<string> LocalNames() =>
         _model.LocalsForMethod(_testMethod.GetLabel()).Select(l => l.Name);
+
+    // Resolves a full "root.field[i].field" path (VariablePath.Parse's
+    // shape) against this frame's locals -- shared by ReplLoop's `print`
+    // and DapServer's `evaluate` (Debug Console / Watch panel), so both
+    // walk exactly the same way instead of duplicating the segment loop.
+    public bool TryResolvePath(string path, out InspectedValue value, out string error)
+    {
+        List<string> segments;
+        string root;
+        try
+        {
+            (root, segments) = VariablePath.Parse(path);
+        }
+        catch (ArgumentException ex)
+        {
+            value = null;
+            error = ex.Message;
+            return false;
+        }
+
+        if (!TryGetLocalValue(root, out value, out error))
+            return false;
+
+        foreach (var segment in segments)
+        {
+            if (!value.IsReference)
+            {
+                error = $"\"{value.Summary}\" has no members.";
+                value = null;
+                return false;
+            }
+            if (value.IsNull)
+            {
+                error = "null reference.";
+                value = null;
+                return false;
+            }
+            var match = _objectInspector.Expand(value).FirstOrDefault(c => c.Name == segment);
+            if (match.Value == null)
+            {
+                error = $"no member \"{segment}\".";
+                value = null;
+                return false;
+            }
+            value = match.Value;
+        }
+        return true;
+    }
 }

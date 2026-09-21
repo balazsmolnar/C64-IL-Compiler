@@ -94,6 +94,10 @@ run.bat` yourself for this.
      decoder), matching what VS Code's Disassembly View shows.
    - `quit` -- exit.
 
+   `print`'s path resolution (and VS Code's Watch panel/Debug Console/hover)
+   all share the same code (`LocalVariableInspector.TryResolvePath`), so
+   they behave identically.
+
 4. **Reading the output:** a stop prints `Stopped at <file>:<line> (in
    <Method>)` -- this means execution is paused *before* that line runs (so
    a variable that line is about to assign still holds its old value; `step`
@@ -116,7 +120,17 @@ run.bat` yourself for this.
 - **No call-stack walking.** `print`/`locals` only see the one method you
   started with `run` -- if a breakpoint somehow lands inside a different
   method (unusual given this project's flat `Test/*.cs` layout), locals
-  won't resolve there.
+  won't resolve there. Assessed as feasible but non-trivial to add: each
+  call frame in `localsStack` is exactly `CompilerMethodContext
+  .GetLocalStackSize()` bytes (2-byte return address + this/params/locals,
+  confirmed via `asm/helper/localsStack.asm`'s `init_locals`), chained by
+  reading that 2-byte return address at each frame's base and resolving it
+  back to a calling method via the `.labels` file -- geometrically
+  well-defined, but needs a method-entry-label index (address -> MethodBase)
+  and refactoring `LocalVariableInspector`/`ObjectInspector` to address an
+  arbitrary reconstructed frame instead of always the live zero-page
+  `stackPointer`. Comparable in size to the registers/disassembly work, not
+  attempted yet -- worth a dedicated planning pass if wanted.
 - If you change `Test/*.cs` source, rebuild `Test/Compiler.Test.csproj`
   first so `TestDebugger` picks up the new IL (it auto-recompiles its own
   debug build once the DLL's timestamp is newer than the cached

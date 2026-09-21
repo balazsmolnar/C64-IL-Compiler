@@ -130,9 +130,10 @@ class ReplLoop
 
     // Supports drilling into fields/array elements via a dotted/bracketed
     // path ("print obj.Child.Id", "print arr[3]", "print arr[1].F") -- a
-    // bare name is just the zero-segment case of the same walk. Each
-    // segment is resolved via ObjectInspector.Expand, one level at a time,
-    // so this only ever recurses exactly as deep as the user typed.
+    // bare name is just the zero-segment case of the same walk. Shared with
+    // DapServer's `evaluate` handler via LocalVariableInspector
+    // .TryResolvePath, so the CLI and the VS Code Watch panel/Debug Console
+    // resolve expressions identically.
     private void PrintLocal(string path)
     {
         var locals = _session.Locals;
@@ -142,42 +143,10 @@ class ReplLoop
             return;
         }
 
-        (string root, List<string> segments) parsed;
-        try
+        if (!locals.TryResolvePath(path, out var value, out var error))
         {
-            parsed = VariablePath.Parse(path);
-        }
-        catch (ArgumentException ex)
-        {
-            Console.WriteLine($"Error: {ex.Message}");
+            Console.WriteLine($"{path}: {error}");
             return;
-        }
-
-        if (!locals.TryGetLocalValue(parsed.root, out var value, out var error))
-        {
-            Console.WriteLine(error);
-            return;
-        }
-
-        foreach (var segment in parsed.segments)
-        {
-            if (!value.IsReference)
-            {
-                Console.WriteLine($"{path}: \"{value.Summary}\" has no members.");
-                return;
-            }
-            if (value.IsNull)
-            {
-                Console.WriteLine($"{path}: null reference.");
-                return;
-            }
-            var match = locals.Inspector.Expand(value).FirstOrDefault(c => c.Name == segment);
-            if (match.Value == null)
-            {
-                Console.WriteLine($"{path}: no member \"{segment}\".");
-                return;
-            }
-            value = match.Value;
         }
 
         Console.WriteLine($"{path} = {value.Summary}");

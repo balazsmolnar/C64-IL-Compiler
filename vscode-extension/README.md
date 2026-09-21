@@ -70,6 +70,11 @@ Extension Development Host step.
   tab you're on. Setting a breakpoint directly in the Disassembly View
   (gutter click on an instruction row) isn't supported yet -- only source-line
   breakpoints.
+- **Watch panel, Debug Console, and hover tooltips**: type any `print`-style
+  expression (`obj.Child.Id`, `arr[3]`, a bare local name) into the WATCH
+  panel or the Debug Console while stopped, and it resolves the same way
+  the CLI's `print` does. Hovering over a variable name in the source
+  editor while stopped shows its value as a tooltip too.
 
 ## Launch config
 

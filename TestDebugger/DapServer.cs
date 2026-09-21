@@ -97,6 +97,7 @@ class DapServer
                 {
                     supportsConfigurationDoneRequest = true,
                     supportsDisassembleRequest = true,
+                    supportsEvaluateForHovers = true,
                 });
                 return true;
 
@@ -154,6 +155,10 @@ class DapServer
 
             case "disassemble":
                 HandleDisassemble(msg);
+                return true;
+
+            case "evaluate":
+                HandleEvaluate(msg);
                 return true;
 
             case "disconnect":
@@ -313,6 +318,42 @@ class DapServer
         }
 
         _io.WriteResponse(msg.Seq, msg.Command, true, new { variables });
+    }
+
+    // Powers the Debug Console REPL and the Watch panel -- both send
+    // "evaluate" for whatever expression the user typed. Reuses the exact
+    // same path-walking logic ReplLoop's `print` command uses
+    // (LocalVariableInspector.TryResolvePath), so a Watch entry and the
+    // CLI's `print` resolve identically. A resulting object/array mints a
+    // variablesReference too, so the Watch panel can expand it like any
+    // other variable row.
+    private void HandleEvaluate(DapIncomingMessage msg)
+    {
+        var expression = msg.Arguments.GetProperty("expression").GetString();
+        var locals = _session?.Locals;
+        if (locals == null)
+        {
+            _io.WriteResponse(msg.Seq, msg.Command, false, null, "No active session.");
+            return;
+        }
+        if (!locals.TryResolvePath(expression, out var value, out var error))
+        {
+            _io.WriteResponse(msg.Seq, msg.Command, false, null, error);
+            return;
+        }
+
+        var reference = 0;
+        if (value.IsReference && !value.IsNull)
+        {
+            reference = _nextVariablesReference++;
+            _variableRefs[reference] = value;
+        }
+        _io.WriteResponse(msg.Seq, msg.Command, true, new
+        {
+            result = value.Summary,
+            type = ObjectInspector.FriendlyTypeName(value.StaticType),
+            variablesReference = reference,
+        });
     }
 
     private static object RegVar(string name, byte value) =>

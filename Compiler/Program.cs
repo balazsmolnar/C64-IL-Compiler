@@ -21,6 +21,7 @@ class Program
         var output = args[1];
         var entryFilePath = args.Length > 2 ? args[2] : null;
         var isUnitTest = args.Length > 3 && args[3] == "unittest";
+        var emitDebugInfo = args.Length > 4 && args[4] == "debug";
         var asm = Assembly.LoadFrom(asmLocation);
 
         using (var outputFile = File.CreateText(Path.Combine(output, "generated.asm")))
@@ -32,7 +33,8 @@ class Program
                 OutputDirectory = output,
                 EntryFilePath = entryFilePath,
                 IsUnitTest = isUnitTest,
-                Optimize = true
+                Optimize = true,
+                EmitDebugInfo = emitDebugInfo
             };
             var passes = new List<ICompilerPass> {
                 new ILRawAssemblyPass(),
@@ -45,6 +47,7 @@ class Program
                         new ILMethodCodePass(),
                         new ILLibraryUsagePass(),
                         new ILMethodLabelPass(),
+                        new ILMethodDebugLabelPass(),
                         new ILMethodNextInstructionPass(),
                         new ILMethodBuildEvaluationStackPass(),
                         new ILAddressFromLabelPass(),
@@ -86,6 +89,7 @@ class Program
                     }),
                 new ILLibraryFlagsPass(),
                 new ILStringResourcesPass(),
+                new ILDebugMapPass(),
                 new ILEntryPointPass() };
             passes.ForEach(p => p.Execute(context));
         }

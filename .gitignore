@@ -5,6 +5,7 @@ all.l
 Test/x
 C64.sln.DotSettings.user
 asm/unittest/**
+asm/unittest_debug/**
 asm/generated/**
 asm/presentation/**
 asm/hunchback/**
@@ -14,6 +15,7 @@ asm/hunchback.asm
 asm/main.asm
 asm/presentation.asm
 asm/unittest.asm
+asm/unittest_debug.asm
 prg/**
 .vs/**
 NuGet.Config

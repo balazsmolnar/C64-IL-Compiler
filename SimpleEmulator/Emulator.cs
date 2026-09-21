@@ -618,5 +618,88 @@ namespace SimpleEmulator
                     break;
             }
         }
+
+        // --- Debugger support (TestDebugger project) -- purely additive,
+        // none of the above is touched by any of this. ---
+
+        // Read-only view of the current PC -- e.g. for reporting "stopped at
+        // address X" before it's been resolved back to a source line.
+        public int ProgramCounter => pointer;
+
+        // The real 6502 hardware stack pointer -- distinct from this
+        // compiler's own zero-page frame-base byte ($4b, see
+        // asm/helper/zeropage.asm), which is already reachable via the
+        // existing GetMemory(0x4b).
+        public byte HardwareStackPointer => sp;
+
+        public EmulatorRegisters Registers => new EmulatorRegisters(
+            registers.A, registers.X, registers.Y, registers.P,
+            registers.N, registers.C, registers.Z, registers.V, registers.I);
+
+        // Sets the PC without executing anything -- the first call in a
+        // debug session, before the first RunUntil.
+        public void SetProgramCounter(int address) => pointer = address;
+
+        // Resumable execution primitive: continues from wherever `pointer`
+        // currently is (ordinary instance state, left exactly where the last
+        // Step() call put it) until a breakpoint address is reached, the
+        // program halts (Step() returns false, e.g. on BRK), or maxSteps is
+        // exhausted. Always executes at least one instruction before testing
+        // for a hit, so resuming from an address already in
+        // breakpointAddresses makes forward progress instead of
+        // re-triggering immediately -- this is what lets a debugger's
+        // `continue` after stopping on a breakpoint, and `step` across a
+        // loop back-edge that revisits the same statement, both work.
+        public RunResult RunUntil(HashSet<int> breakpointAddresses, long maxSteps, out int stoppedAtAddress, out long stepsExecuted)
+        {
+            long steps = 0;
+            while (true)
+            {
+                if (!Step())
+                {
+                    stoppedAtAddress = pointer;
+                    stepsExecuted = steps;
+                    return RunResult.Halted;
+                }
+                steps++;
+                if (breakpointAddresses.Contains(pointer))
+                {
+                    stoppedAtAddress = pointer;
+                    stepsExecuted = steps;
+                    return RunResult.Breakpoint;
+                }
+                if (steps >= maxSteps)
+                {
+                    stoppedAtAddress = pointer;
+                    stepsExecuted = steps;
+                    return RunResult.StepLimitReached;
+                }
+            }
+        }
+    }
+
+    public readonly struct EmulatorRegisters
+    {
+        public byte A { get; }
+        public byte X { get; }
+        public byte Y { get; }
+        public byte P { get; }
+        public bool N { get; }
+        public bool C { get; }
+        public bool Z { get; }
+        public bool V { get; }
+        public bool I { get; }
+
+        public EmulatorRegisters(byte a, byte x, byte y, byte p, bool n, bool c, bool z, bool v, bool i)
+        {
+            A = a; X = x; Y = y; P = p; N = n; C = c; Z = z; V = v; I = i;
+        }
+    }
+
+    public enum RunResult
+    {
+        Breakpoint,
+        Halted,
+        StepLimitReached
     }
 }

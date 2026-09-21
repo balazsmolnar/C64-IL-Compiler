@@ -44,5 +44,23 @@
         //     "pc": "$c000",
         //     "binary": "c:\\Balazs\\C64\\.cache\\asm\\test.prg"
         // }
+        {
+            // Requires the vscode-extension/ folder to be loaded first --
+            // see vscode-extension/README.md. Omit "testSelector" to
+            // auto-resolve it from the class/method the cursor is in.
+            "name": "Debug C64 Test",
+            "type": "c64test",
+            "request": "launch",
+            "testSelector": "StringInterpolationTests.Interpolation_SingleHoleNoLiteral"
+        },
+        {
+            // Runs every test in turn (fresh emulator per test, same as the
+            // real suite), pausing only when one of them hits a breakpoint
+            // you've set -- see vscode-extension/README.md.
+            "name": "Debug All C64 Tests",
+            "type": "c64test",
+            "request": "launch",
+            "testSelector": "*"
+        }
     ]
 }

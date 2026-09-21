@@ -30,37 +30,9 @@ public class RunInEmulatorAspect : MethodInterceptionAspect
         if (args.Method is MethodInfo)
         {
             var type = ((MethodInfo)args.Method).ReturnType;
-            if (type == typeof(int))
-                args.ReturnValue = (int)(sbyte)emulator.GetMemory(RETURN_VALUE_ADDRESS);
-            if (type == typeof(Boolean))
-                args.ReturnValue = emulator.GetMemory(RETURN_VALUE_ADDRESS) != 0;
-            if (type == typeof(uint))
-                args.ReturnValue = (uint)emulator.GetMemory(RETURN_VALUE_ADDRESS);
-            if (type == typeof(long))
-                args.ReturnValue = (long)BitConverter.ToInt16(new[]
-                    { emulator.GetMemory(RETURN_VALUE_ADDRESS), emulator.GetMemory(RETURN_VALUE_ADDRESS+1) });
-            if (type == typeof(ulong))
-                args.ReturnValue = (ulong)BitConverter.ToUInt16(new[]
-                    { emulator.GetMemory(RETURN_VALUE_ADDRESS), emulator.GetMemory(RETURN_VALUE_ADDRESS+1) });
-            if (type == typeof(float))
-            {
-                // The 5 bytes were PULLED off the emulated stack (top/last-
-                // pushed byte first, see asm/helper/stack.asm's
-                // stack_pull_mflpt and Compiler/Templates/UnitTestEntry.asm's
-                // endtest), so they land here in REVERSE of Mflpt's own
-                // byte[0..4] order -- same reversal long/ulong's
-                // low-then-high capture above already relies on, just for
-                // 5 bytes instead of 2.
-                var mflpt = new[]
-                {
-                    emulator.GetMemory(RETURN_VALUE_ADDRESS + 4),
-                    emulator.GetMemory(RETURN_VALUE_ADDRESS + 3),
-                    emulator.GetMemory(RETURN_VALUE_ADDRESS + 2),
-                    emulator.GetMemory(RETURN_VALUE_ADDRESS + 1),
-                    emulator.GetMemory(RETURN_VALUE_ADDRESS),
-                };
-                args.ReturnValue = Compiler.Mflpt.FromBytes(mflpt);
-            }
+            var value = EmulatorArgumentMarshaling.ReadReturnValue(emulator, type, RETURN_VALUE_ADDRESS);
+            if (value != null)
+                args.ReturnValue = value;
         }
     }
 
@@ -70,44 +42,7 @@ public class RunInEmulatorAspect : MethodInterceptionAspect
         var pointer = ARGUMENTS_ADDRESS + 1;
         for (byte i = 0; i < (byte) args.Arguments.Count; i++)
         {
-            if (args.Arguments[i] is int)
-            {
-                int v = (int) args.Arguments[i];
-                if (v < -127 || v > 127)
-                    throw new ArgumentOutOfRangeException("int");
-                emulator.SetMemory(pointer++, v < 0 ? (byte) (256 + v) : (byte) v);
-            }
-
-            if (args.Arguments[i] is uint)
-            {
-                emulator.SetMemory(pointer++, (byte) (uint) args.Arguments[i]);
-            }
-
-            if (args.Arguments[i] is long)
-            {
-                var bytes = BitConverter.GetBytes((short)(long) args.Arguments[i]);
-                emulator.SetMemory(pointer++, bytes[1]);
-                emulator.SetMemory(pointer++, bytes[0]);
-            }
-
-            if (args.Arguments[i] is ulong)
-            {
-                var bytes = BitConverter.GetBytes((ushort)(ulong)args.Arguments[i]);
-                emulator.SetMemory(pointer++, bytes[1]);
-                emulator.SetMemory(pointer++, bytes[0]);
-            }
-
-            if (args.Arguments[i] is float)
-            {
-                // Natural Mflpt byte[0..4] order -- matches how
-                // #locals_push_valueflt/stack_push_var_mflpt push a float
-                // (byte[0] first ... byte[4] last), the same "wide type
-                // pushed high/first-byte-first" convention long/ulong's
-                // bytes[1]-then-bytes[0] write above already follows.
-                var mflpt = Compiler.Mflpt.ToBytes((float)args.Arguments[i]);
-                foreach (var b in mflpt)
-                    emulator.SetMemory(pointer++, b);
-            }
+            EmulatorArgumentMarshaling.WriteArgument(emulator, ref pointer, args.Arguments[i]);
         }
 
         emulator.SetMemory(ARGUMENTS_ADDRESS, (byte) (pointer- ARGUMENTS_ADDRESS-1));

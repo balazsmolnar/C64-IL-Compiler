@@ -25,6 +25,15 @@ class CompilerContext
 
     public bool Optimize { get; set; }
 
+    // Set from the compiler's 5th CLI arg ("debug"); gates
+    // ILMethodDebugLabelPass/ILDebugMapPass. Off by default -- labeling
+    // every source-line-start operation (needed for breakpoint resolution)
+    // suppresses several optimizer passes that skip already-labeled
+    // operations, so this must never be on for a normal build.
+    public bool EmitDebugInfo { get; set; }
+    public List<DebugSequencePoint> DebugSequencePoints { get; } = new();
+    public List<DebugLocal> DebugLocals { get; } = new();
+
     // Set by ILLibraryUsagePass as it scans every compiled method's Call/
     // Callvirt targets for C64Lib methods; read by ILLibraryFlagsPass once
     // all methods are done, to decide which individual hand-written asm

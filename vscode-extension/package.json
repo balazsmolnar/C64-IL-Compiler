@@ -1,0 +1,76 @@
+{
+  "name": "c64-test-debugger",
+  "displayName": "C64 IL Compiler Test Debugger",
+  "description": "Step-debug compiled 6502 unit tests (breakpoints, step, locals) via the repo's TestDebugger CLI engine.",
+  "version": "0.1.0",
+  "publisher": "local",
+  "private": true,
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": ["Debuggers"],
+  "main": "./extension.js",
+  "activationEvents": [
+    "onDebugResolve:c64test",
+    "onDebugDynamicConfigurations:c64test"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "c64test.debugTestAtCursor",
+        "title": "C64 Test Debugger: Debug Test at Cursor"
+      },
+      {
+        "command": "c64test.debugAllTests",
+        "title": "C64 Test Debugger: Debug All Tests"
+      }
+    ],
+    "debuggers": [
+      {
+        "type": "c64test",
+        "label": "C64 Test Debugger",
+        "languages": ["csharp"],
+        "configurationAttributes": {
+          "launch": {
+            "properties": {
+              "testSelector": {
+                "type": "string",
+                "description": "TestClass.TestMethod[:N] to run. If omitted, resolved from the class/method enclosing the cursor in the active editor."
+              }
+            }
+          }
+        },
+        "initialConfigurations": [
+          {
+            "name": "Debug C64 Test",
+            "type": "c64test",
+            "request": "launch",
+            "testSelector": "ClassName.MethodName"
+          }
+        ],
+        "configurationSnippets": [
+          {
+            "label": "C64 Test Debugger: Launch",
+            "description": "Debug a compiled unit test in SimpleEmulator",
+            "body": {
+              "name": "Debug C64 Test",
+              "type": "c64test",
+              "request": "launch",
+              "testSelector": "ClassName.MethodName"
+            }
+          },
+          {
+            "label": "C64 Test Debugger: Launch (all tests)",
+            "description": "Run every test in turn, stopping wherever a breakpoint fires in whichever test hits it",
+            "body": {
+              "name": "Debug All C64 Tests",
+              "type": "c64test",
+              "request": "launch",
+              "testSelector": "*"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

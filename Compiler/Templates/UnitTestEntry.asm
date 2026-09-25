@@ -128,6 +128,24 @@ result = $20
 .include "./GC.asm"
 .include "./helper/object.asm"
 .include "./{{FOLDER}}/library_flags.asm"
+
+; Hi-res bitmap graphics reservation -- see ProgramEntry.asm's identical
+; block for the full reasoning (memory layout, VIC bank/ROM-shadow
+; constraints, why $0c00/$2000 specifically, why real bytes not .virtual).
+GRAPHICS_USED = Flag_Screen_EnableBitmapMode | Flag_Screen_DisableBitmapMode | Flag_Screen_SetPixel | Flag_Screen_DrawLine | Flag_Screen_DrawRectangle | Flag_Screen_DrawCircle
+.if GRAPHICS_USED
+graphics_resume_point = *
+* = $0c00
+Graphics_ColorMatrix
+.fill 1000
+* = graphics_resume_point
+
+* = $2000
+Graphics_Bitmap
+.fill 8000
+* = $4000
+.endif
+
 .include "./C64.asm"
 .include "./helper/tostring.asm"
 .include "./helper/stringops.asm"

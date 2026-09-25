@@ -51,6 +51,56 @@ rts
 .include "./GC.asm"
 .include "./helper/object.asm"
 .include "./{{FOLDER}}/library_flags.asm"
+
+; Hi-res bitmap graphics reservation -- "if you don't use it you don't pay
+; for it," extended from code size (the Flag_X mechanism above) to the
+; memory layout itself. Flag_Screen_* here is already resolved by
+; library_flags.asm (just included) if any graphics routine is actually
+; called, else falls back to asm/C64Graphics.asm's own .weak defaults of 0
+; -- same include-order reasoning C64_Set_Screen_Ptr's own comment
+; (asm/C64.asm) already relies on. A program that never calls any graphics
+; method gets today's layout exactly, byte for byte -- this whole block
+; emits zero bytes and defines zero labels in that case.
+GRAPHICS_USED = Flag_Screen_EnableBitmapMode | Flag_Screen_DisableBitmapMode | Flag_Screen_SetPixel | Flag_Screen_DrawLine | Flag_Screen_DrawRectangle | Flag_Screen_DrawCircle
+.if GRAPHICS_USED
+; Color matrix: 1000 bytes (one per 8x8 cell, hi nibble=foreground/lo
+; nibble=background), must be 1K-aligned within VIC bank 0. $0c00 sits in
+; the otherwise-dead gap between the BASIC boot stub (asm/helper/
+; loader.asm's start_at macro: "* = $0801" + ~12 bytes) and "* = $1000"
+; where compiled code starts -- genuinely free today regardless of
+; graphics use, so this costs nothing even before the .if above.
+graphics_resume_point = *
+* = $0c00
+Graphics_ColorMatrix
+.fill 1000
+* = graphics_resume_point
+
+; Bitmap: 8000 bytes, must be 8K-aligned within VIC bank 0 -- $2000 is the
+; only such address that's both non-zero (avoiding zero page/stack/screen/
+; sprite-pointer territory at $0000) and outside the VIC-II's own
+; character-ROM shadow at $1000-$1fff (asm/helper/memoryLayout.asm,
+; confirmed live in VICE). NOT $4000 -- that's VIC BANK 1, not bank 0 (each
+; bank is 16K), invisible to the VIC-II while bank 0 is selected (this
+; codebase never switches banks -- see asm/helper/memoryLayout.asm).
+; Real (non-.virtual) bytes: this sits in the MIDDLE of the address space
+; with real compiled code resuming right after it, unlike
+; asm/helper/objectTables.asm's .virtual reservation, which is only
+; correct because it's the very LAST thing in the file (.virtual/.endv
+; rewinds * back afterward, which would let code emitted after THIS
+; reservation alias straight back over these addresses).
+;
+; Known collision, not resolved automatically: Hunchback's own custom
+; character set (Hunchback/CharSet.asm, #align_vic_safe 2048) is ALSO
+; placed at exactly $2000. A program using both a charset raw-asm resource
+; targeting $2000 and this graphics feature would collide -- moot today
+; since Hunchback doesn't have the headroom for graphics mode at all (see
+; the plan this was built from), but worth knowing if that ever changes.
+* = $2000
+Graphics_Bitmap
+.fill 8000
+* = $4000
+.endif
+
 .include "./C64.asm"
 .include "./helper/tostring.asm"
 .include "./helper/stringops.asm"

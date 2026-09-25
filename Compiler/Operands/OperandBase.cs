@@ -329,6 +329,58 @@ class OpNewObj : OpBase
     {
     }
 
+    // A constructor body is only ever safe to silently skip (see the "ctor"
+    // hardcoded to "0" below) when it does nothing but forward its
+    // arguments to a base constructor -- Ldarg*/Call/Nop/Ret. Anything else
+    // (most importantly Stfld, but really any other opcode too: a call to
+    // some other method, arithmetic, a branch...) is real constructor logic
+    // that this compiler has never actually executed for ANY ordinary
+    // class: #newObj's own ctor parameter is hardcoded to "0" (no call at
+    // all) for everything except the special-cased Func<T> delegate type,
+    // so a constructor body doing real work silently leaves the object's
+    // fields at their zero-initialized heap default instead -- found via a
+    // real crash this way (see ILPropertyGetterOptimizer.cs's own history/
+    // this compiler's regression tests for the investigation). Flag it as
+    // a compile-time error instead of miscompiling silently.
+    private static readonly System.Reflection.Metadata.ILOpCode[] SafeToSkipOpCodes =
+    {
+        System.Reflection.Metadata.ILOpCode.Ldarg_0,
+        System.Reflection.Metadata.ILOpCode.Ldarg_1,
+        System.Reflection.Metadata.ILOpCode.Ldarg_2,
+        System.Reflection.Metadata.ILOpCode.Ldarg_3,
+        System.Reflection.Metadata.ILOpCode.Ldarg_s,
+        System.Reflection.Metadata.ILOpCode.Call,
+        System.Reflection.Metadata.ILOpCode.Nop,
+        System.Reflection.Metadata.ILOpCode.Ret,
+    };
+
+    private static bool ConstructorHasUnsupportedBody(MethodBase ctor)
+    {
+        var body = ctor.GetMethodBody();
+        if (body == null)
+            return false;
+
+        var il = body.GetILAsByteArray();
+        var index = 0;
+        while (index < il.Length)
+        {
+            System.Reflection.Metadata.ILOpCode opCode;
+            if (il[index] >= 254)
+                opCode = (System.Reflection.Metadata.ILOpCode)(il[index++] * 256 + il[index++]);
+            else
+                opCode = (System.Reflection.Metadata.ILOpCode)(il[index++]);
+
+            if (Array.IndexOf(SafeToSkipOpCodes, opCode) < 0)
+                return true;
+
+            if (!CommandMap.Supported(opCode))
+                return true; // can't even check its parameter size safely
+
+            index += CommandMap.Get(opCode).ParameterSize;
+        }
+        return false;
+    }
+
     public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
     {
         var method = context.CompilerContext.Assembly.ManifestModule.ResolveMethod((int)operation.RawParameter);
@@ -345,6 +397,14 @@ class OpNewObj : OpBase
         // for this compiler anyway.
         if (typeof(Delegate).IsAssignableFrom(t) && !t.Name.StartsWith("Func"))
             return null;
+
+        if (t.Assembly != typeof(Func<object>).Assembly && ConstructorHasUnsupportedBody(method))
+            throw new NotSupportedException(
+                $"Constructor body is not supported: {t.FullName}'s constructor does more than call a base " +
+                "constructor (e.g. it sets a field, or calls another method). This compiler's #newObj never " +
+                "invokes a type's constructor body for an ordinary class -- only C#'s object-initializer syntax " +
+                "(`new T { Field = value }`) or a type with no fields to set is supported. Move the field " +
+                "assignments to an object initializer at the call site instead.");
 
         var size = 0;
         var referenceFields = 0;

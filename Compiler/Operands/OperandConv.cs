@@ -101,3 +101,36 @@ class OpConvIntToFloat : OpBase
         return "#conv_int_to_float";
     }
 }
+
+// Synthesized replacement for [any 1-byte-producing operation; Conv_u8 or
+// Conv_i8] -- see ILMethodWiden8To16Optimizer for the matching rule and the
+// full reasoning. OpConv_8_16's own #conv_8_16 macro (asm/helper/
+// arithmetic.asm) already handles this correctly: pull the byte the
+// producer just pushed back off the hardware stack, push a 0 high byte,
+// push the byte back as the low byte. That's the producer's own push, plus
+// a pull and two more pushes on top -- pure overhead, since
+// #stack_push_int16's "high byte pushed first" convention means the 0 just
+// needs to land on the stack BEFORE the producer's push runs, not be
+// spliced in after it by pulling the producer's byte back out. So this
+// re-emits the producer's own text completely unchanged, preceded by a
+// literal 0-byte push -- correct for ANY producer (a local/field/constant
+// read, an arithmetic result, even a method call whose own return-value
+// push is its very last action), since every producer's own hardware-stack
+// usage is self-balanced by construction in this stack-machine model --
+// nothing below where an operation started is ever touched -- so it
+// doesn't matter what that operation does internally between the 0 push
+// and its own final push.
+class OpFusedWiden8To16 : OpBase
+{
+    private readonly ILOperation _inner;
+
+    public OpFusedWiden8To16(ILOperation inner) : base(0)
+    {
+        _inner = inner;
+    }
+
+    public override string Emit(CompilerMethodContext context, ILOperation operation)
+    {
+        return $"#stack_push_int8 0\n    {_inner.Operation.Emit(context, _inner)}";
+    }
+}

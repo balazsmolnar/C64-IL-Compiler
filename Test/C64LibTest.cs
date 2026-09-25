@@ -55,6 +55,16 @@ public class C64LibTest
         Assert.AreEqual(C64.Screen.GetChar(2, 2), 65);
     }
 
+    // No Chars.A-style constants needed -- a char literal already converts
+    // to the exact same uint constant (65) at compile time with zero new
+    // library code, so SetChar(x, y, 'A', ...) works directly.
+    [Test]
+    public void SetChar_Accepts_Char_Literal()
+    {
+        C64.Screen.SetChar(4, 4, 'A', Colors.White);
+        Assert.AreEqual(C64.Screen.GetChar(4, 4), 65);
+    }
+
     [Test]
     public void Write_Stops_At_Terminator()
     {
@@ -162,4 +172,22 @@ public class C64LibTest
         // the pass condition -- there's nothing to read back and compare
         // against for a write-only property in the first place.
     }
+
+    // NOTE: no NUnit/SimpleEmulator-level test for Screen.SetPixel/graphics
+    // here, despite that being the natural, fast, exact-byte-verification
+    // choice for its addressing math (see asm/C64Graphics.asm's
+    // Graphics_ComputePixelAddress) -- confirmed empirically that it
+    // doesn't fit. This project's unit-test harness compiles ALL 560+
+    // Test/*.cs tests as ONE combined program (asm/unittest.asm), which
+    // already has only ~1.9KB headroom before OBJ_TABLES_MAX_START ($d000,
+    // the hardest possible ceiling for this program type -- I/O registers
+    // start there, and it's already at that limit, nowhere higher to
+    // raise it). The graphics feature's memory reservation
+    // (Compiler/Templates/UnitTestEntry.asm's GRAPHICS_USED block) costs
+    // ~9.2KB the moment ANY test calls a graphics method -- confirmed via
+    // a real build attempt: `.cerror * >= OBJ_TABLES_MAX_START` (asm/
+    // helper/objectTables.asm) fired exactly as designed, rather than
+    // silently corrupting memory. Graphics correctness is instead verified
+    // visually via VICE (vice-verify skill) against Demo/Program.cs -- see
+    // that file and the plan this feature was built from.
 }

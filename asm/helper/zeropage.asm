@@ -40,6 +40,66 @@
 ; ===========================================================================
 
 ; ---------------------------------------------------------------------------
+; Bitmap graphics scratch (asm/C64Graphics.asm) -- $02-$1f, the one
+; genuinely free, contiguous, never-otherwise-claimed block in this file
+; (everything else below starts at $20). Only ever live while
+; Screen_SetPixel/DrawLine/DrawRectangle/DrawCircle's own routines are
+; executing, which never nest into each other or into anything else that
+; claims zero page, so there's no cross-subsystem reasoning needed here
+; the way the $30-$39 param bank below requires.
+; ---------------------------------------------------------------------------
+zp_gfx_ptr_low    = $02   ; ComputePixelAddress/SetPixel_Core: computed bitmap byte address
+zp_gfx_ptr_high   = $03
+zp_gfx_mask       = $04   ; SetPixel_Core: bit mask (1 bit set) for the target pixel's column
+zp_gfx_on         = $05   ; SetPixel_Core: nonzero = set the bit, zero = clear it
+
+zp_gfx_x_low      = $06   ; current/target X (0-319) being plotted
+zp_gfx_x_high     = $07
+zp_gfx_y          = $08   ; current/target Y (0-199, fits one byte)
+zp_gfx_y_high     = $09   ; Y's stack-pulled high byte -- ulong is 2 bytes on the stack
+                           ; machine even though Y's real range fits in zp_gfx_y alone;
+                           ; expected always 0, never read after the pull.
+
+zp_gfx_endx_low   = $0A   ; DrawLine: x1 -- DrawRectangle/DrawCircle: right edge / cx+radius
+zp_gfx_endx_high  = $0B
+zp_gfx_endy       = $0C   ; DrawLine: y1 -- DrawRectangle/DrawCircle: bottom edge / cy+radius
+zp_gfx_endy_high  = $0D   ; throwaway pull target, see zp_gfx_y_high
+
+zp_gfx_dx_low     = $0E   ; DrawLine: dx = |x1-x0|
+zp_gfx_dx_high    = $0F
+zp_gfx_dy         = $10   ; DrawLine: dy = |y1-y0|
+zp_gfx_dy_high    = $11   ; throwaway pull target, see zp_gfx_y_high
+zp_gfx_sx         = $12   ; DrawLine: x step direction, 1=increasing/0=decreasing
+                           ; (a flag, not a signed +-1 byte -- x is 16-bit, so
+                           ; stepping is a plain inc/dec branch, not a signed add)
+zp_gfx_sy         = $13   ; DrawLine: y step direction, 1=increasing/0=decreasing
+zp_gfx_err_low    = $14   ; DrawLine: Bresenham error term (signed 16-bit -- 2*dx can reach 638)
+zp_gfx_err_high   = $15
+
+zp_gfx_cx_low     = $16   ; DrawCircle: center X (0-319)
+zp_gfx_cx_high    = $17
+zp_gfx_cy         = $18   ; DrawCircle: center Y (0-199)
+zp_gfx_radius     = $19   ; DrawCircle: radius (0-199, fits one byte)
+zp_gfx_circle_x   = $1A   ; DrawCircle: midpoint algorithm's own x (0..radius)
+zp_gfx_circle_y   = $1B   ; DrawCircle: midpoint algorithm's own y (radius..0)
+zp_gfx_circle_d_low  = $1C  ; DrawCircle: decision variable (signed 16-bit)
+zp_gfx_circle_d_high = $1D
+
+; DrawRectangle reuses DrawCircle's center/edge registers as its own
+; "pristine x0/y0" scratch (needed because Graphics_HLine_Core/VLine_Core
+; destroy zp_gfx_x_low/high/zp_gfx_y while drawing each side) -- safe since
+; the two never run concurrently.
+zp_gfx_rect_x0_low   = zp_gfx_cx_low    ; $16
+zp_gfx_rect_x0_high  = zp_gfx_cx_high   ; $17
+zp_gfx_rect_y0       = zp_gfx_cy        ; $18
+
+; NOT aliased to zp_gfx_radius: DrawCircle needs radius and filled live at
+; the same time (unlike DrawRectangle, which has no radius), so this gets
+; its own byte out of the $1e-$1f spare pair.
+zp_gfx_filled        = $1E   ; DrawRectangle/DrawCircle: fill flag, nonzero = filled
+; $1f spare
+
+; ---------------------------------------------------------------------------
 ; Return-address / stack-machine scratch
 ; ---------------------------------------------------------------------------
 ; zp_tmp1_low/high: the default "save my own return address" slot used by

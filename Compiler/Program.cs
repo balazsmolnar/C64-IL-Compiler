@@ -82,6 +82,16 @@ class Program
                         new ILMethodCompareConstOptimizer(),
                         new ILMethodBranchConstOptimizer(),
                         new ILMethodMulConstOptimizer(),
+                        // Last: broadly matches "[any 1-byte-producing op];
+                        // Conv_u8/Conv_i8", so it must run after
+                        // ILMethodMulConstOptimizer's own, more specific
+                        // Ldc-Conv-Mul rule gets first claim on any window
+                        // it would otherwise also match (moot in practice --
+                        // see ILMethodWiden8To16Optimizer's own comment for
+                        // why a constant producer never reaches this rule at
+                        // all -- but the ordering is the correct, safe
+                        // default regardless).
+                        new ILMethodWiden8To16Optimizer(),
                     },
                     new ICompilerMethodPass[] {
                         new ILMethodEmitPass(),

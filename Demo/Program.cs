@@ -19,7 +19,7 @@ class Program
 {
     static void Main()
     {
-        C64.Interrupt += MoveBall;
+        // C64.Interrupt += MoveBall;
 
         var ball = C64.Sprites.Sprite0;
         ball.DataBlock = C64Address.FromLabel("spt_ball");
@@ -40,7 +40,46 @@ class Program
         ShowResult(1, 13, "2.0 < 3.0 IS TRUE", (2.0f < 3.0f) ? 1.0f : 0.0f, 1.0f);
         ShowResult(1, 15, "5.0 == 5.0 IS TRUE", (5.0f == 5.0f) ? 1.0f : 0.0f, 1.0f);
 
-        for (;;) { }
+        // Bitmap graphics scene -- replaces the text demo above visually
+        // (bitmap mode repoints the VIC-II's video matrix away from the
+        // text screen). Sprite turned off first: the VIC-II
+        // reads a sprite's data pointer from (video-matrix-base + $3F8),
+        // NOT a fixed address -- c64sprite.asm's spriteData=$07F8 only
+        // works while $D018 points at the normal $0400 text screen.
+        // EnableBitmapMode moves the video matrix to Graphics_ColorMatrix
+        // ($0C00), so that lookup would land on $0FF8 instead -- unrelated,
+        // uninitialized memory, not the real pointer this program set up
+        // -- and render as a garbled sprite. Confirmed via vice-verify
+        // (an early build of this scene showed exactly that artifact).
+        // Making sprites and bitmap mode coexist for real (e.g. relocating
+        // or duplicating the pointer table) is out of scope for this
+        // graphics feature; sidestepped here by simply not showing a
+        // sprite during the bitmap demo.
+        ball.Visible = false;
+        C64.Screen.EnableBitmapMode();
+        // Color matrix: one byte per 8x8 cell, high nibble = foreground
+        // (shown where a bit is set), low nibble = background. FillMemory
+        // maxes at 256 bytes/call, so the 1000-byte matrix needs 4 calls.
+        // Note: C64_FillMemory's dey/bne loop never touches offset 0 of its
+        // target (see C64LibTest.FillMemory_Nonzero_Size_Starts_At_Offset_
+        // One) -- so cell (0,0) keeps the 0/0 (black/black) from
+        // Graphics_ClearColorMatrix, visible in VICE as one small black
+        // square in the screen's top-left corner. That's this demo's own
+        // fill pattern leaving a gap, not a graphics-library bug.
+        var colorMatrix = C64Address.FromLabel("Graphics_ColorMatrix");
+        C64.FillMemory(colorMatrix, 0x1E, 250);
+        C64.FillMemory(colorMatrix + 250UL, 0x1E, 250);
+        C64.FillMemory(colorMatrix + 500UL, 0x1E, 250);
+        C64.FillMemory(colorMatrix + 750UL, 0x1E, 250);
+
+        // See RotatingCube.cs. Created with a plain `new` (no constructor
+        // body -- not supported, see OpNewObj) and set up via Init().
+        var cube = new RotatingCube();
+        cube.Init();
+        for (;;)
+        {
+            cube.Step();
+        }
     }
 
     static void ShowResult(uint x, uint y, string label, float actual, float expected)

@@ -423,11 +423,11 @@ On_Interrupt_Ret
     rti
 .endif
 
-; $1B is this program's untouched KERNAL boot default for $d011 (25-row
-; text mode, DEN=1, YSCROLL=3) -- confirmed nothing else in this codebase
-; ever writes it, so it's safe to hardcode as "the" resting value rather
-; than read-modify-write around just the DEN bit. $0B is the same value
-; with DEN (bit 4) cleared, blanking the whole physical display.
+; Read-modify-write, touching only DEN (bit 4) -- NOT a flat "$d011 = $0B/
+; $1B" overwrite like this pair used to be (that was safe only as long as
+; nothing else in this codebase ever wrote $d011; asm/C64Graphics.asm's
+; Screen_EnableBitmapMode now sets bit 5, BMM, which a flat overwrite here
+; would silently clear back off). Preserves BMM/ECM/RSEL/YSCROLL either way.
 .weak
 Flag_Screen_BeginUpdate = 0
 .endweak
@@ -435,7 +435,8 @@ Flag_Screen_BeginUpdate = 0
 
 Screen_BeginUpdate:
     #stack_save_return_adress zp_tmp1_low
-    lda #$0B
+    lda $d011
+    and #%11101111
     sta $d011
     #stack_return_to_saved_address zp_tmp1_low
 .endif
@@ -447,7 +448,8 @@ Flag_Screen_EndUpdate = 0
 
 Screen_EndUpdate:
     #stack_save_return_adress zp_tmp1_low
-    lda #$1B
+    lda $d011
+    ora #%00010000
     sta $d011
     #stack_return_to_saved_address zp_tmp1_low
 .endif
@@ -457,3 +459,4 @@ Screen_EndUpdate:
 .include "./C64Sound.asm"
 .include "./c64Keys.asm"
 .include "./C64Debug.asm"
+.include "./C64Graphics.asm"

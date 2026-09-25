@@ -34,6 +34,30 @@ namespace C64Lib
             public static void SetCharSet(ulong address) { }
             public static void SetMultiColor() { }
             public static void SetCharBackgroundColor(uint colorIndex, Colors color) { }
+
+            // Hi-res bitmap graphics -- "if you don't use it you don't pay
+            // for it" extends to the memory layout itself here, not just
+            // code size: calling any one of these reserves an 8000-byte
+            // bitmap (Graphics_Bitmap, $2000) + a 1000-byte per-cell color
+            // matrix (Graphics_ColorMatrix, $0c00) in the compiled program;
+            // never calling any of them costs nothing. Coordinates are
+            // ulong (this compiler's 16-bit integer type) because X needs
+            // 0-319, past uint's 8-bit range in this compiler's own width
+            // convention -- see Compiler/TypeExtensions.cs.
+            //
+            // No separate color-setting API: the color matrix (one byte per
+            // 8x8 cell, high nibble = foreground shown where a bit is set,
+            // low nibble = background shown where clear, same row-major
+            // layout as the text screen) is reachable via the existing
+            // C64Address.FromLabel("Graphics_ColorMatrix") + C64.FillMemory/
+            // SetMemory/GetMemory, exactly like any other named label --
+            // see Demo/Program.cs for the pattern.
+            public static void EnableBitmapMode() { }
+            public static void DisableBitmapMode() { }
+            public static void SetPixel(ulong x, ulong y, bool on = true) { }
+            public static void DrawLine(ulong x0, ulong y0, ulong x1, ulong y1, bool on = true) { }
+            public static void DrawRectangle(ulong x0, ulong y0, ulong x1, ulong y1, bool filled = false, bool on = true) { }
+            public static void DrawCircle(ulong cx, ulong cy, ulong radius, bool filled = false, bool on = true) { }
         }
     }
 }

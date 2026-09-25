@@ -25,15 +25,34 @@
 OBJ_TABLES_MAX_START = $c800
 OBJ_TABLES_FALLBACK = $c800
 
+; Object allocation must stay below $d000 (I/O) -- see asm/helper/fault.asm's
+; Runtime_CheckHeapRoom.
+HEAP_LIMIT = $d000
+
 #initHeap heap
 
 #locals_stack_init
+
+; BASIC ROM float errors (overflow, division by zero...) jump through ($0300);
+; point it at our fault handler -- see asm/helper/fault.asm. Put back below,
+; before returning to BASIC.
+lda #<Runtime_FloatError
+sta $0300
+lda #>Runtime_FloatError
+sta $0301
 
 ; Static constructors -- nothing else ever calls a type's .cctor, so any
 ; static readonly field with a real initializer needs this to run once
 ; before Program_Main touches it.
 {{STATIC_CTORS}}
 jsr Program_Main
+
+; Main returned: BASIC's own error handling needs its vector back
+; ($e38b is the power-on value).
+lda #$8b
+sta $0300
+lda #$e3
+sta $0301
 
 ; Main returned. Put BASIC ROM back before returning to the SYS line that
 ; started us: #disable_basic_rom above turned it into RAM, so without this
@@ -59,6 +78,7 @@ rts
 .include "./helper/division.asm"
 
 .include "./system.asm"
+.include "./helper/fault.asm"
 .include "./GC.asm"
 .include "./helper/object.asm"
 .include "./{{FOLDER}}/library_flags.asm"

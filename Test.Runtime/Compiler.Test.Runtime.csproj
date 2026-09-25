@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Second unit-test project, for tests that don't fit in Test/'s program:
+    every Test/*.cs test is compiled into ONE 6502 program that is already at
+    its memory ceiling (see Test/C64LibTest.cs). This one builds its own
+    program (prg/unittest_runtime.prg, chosen by the UnitTestProgram
+    attribute in assembly.cs) and otherwise works exactly like Test/.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\C64Lib\C64Lib.csproj" />
+    <ProjectReference Include="..\C64TestFramework\C64TestFramework.csproj" />
+    <ProjectReference Include="..\Compiler\Compiler.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <PackageReference Include="NUnit" Version="3.12.0" />
+    <PackageReference Include="NUnit3TestAdapter" Version="3.16.1" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.5.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="PostSharp" Version="2026.0.16" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <DefineConstants>POSTSHARP</DefineConstants>
+    <RunPostBuildEvent>OnOutputUpdated</RunPostBuildEvent>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Optimize>true</Optimize>
+  </PropertyGroup>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="run.bat" />
+  </Target>
+</Project>

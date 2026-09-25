@@ -18,6 +18,8 @@ class ProgramSession : IDebugSession
     private readonly Dictionary<string, MethodBase> _methodsByLabel;
     private readonly List<SourceLineEntry> _linesByAddress;
     private HashSet<int> _userBreakpoints = new();
+    private readonly int _faultAddress = -1;
+    private int? _faultSourcePc;
 
     public ProgramSession(DebugMapModel model, ViceTarget target, Assembly programAssembly)
     {
@@ -26,9 +28,13 @@ class ProgramSession : IDebugSession
         _target.RunTimeoutMs = -1;
         _methodsByLabel = IndexMethods(programAssembly);
         _linesByAddress = model.Lines.OrderBy(l => l.Address).ToList();
+        if (model.TryResolveLabelAddress("Runtime_Fault", out var fault))
+            _faultAddress = fault;
     }
 
     public IDebugTarget Target => _target;
+
+    public int SourcePc => _faultSourcePc ?? _target.ProgramCounter;
 
     public void ReplaceBreakpoints(IEnumerable<int> addresses) => _userBreakpoints = addresses.ToHashSet();
 
@@ -40,7 +46,7 @@ class ProgramSession : IDebugSession
     {
         get
         {
-            var pc = _target.ProgramCounter;
+            var pc = SourcePc;
             SourceLineEntry best = null;
             foreach (var line in _linesByAddress)
             {
@@ -92,9 +98,14 @@ class ProgramSession : IDebugSession
     {
         try
         {
+            _faultSourcePc = null;
+            if (_faultAddress >= 0)
+                stopAt = stopAt.Concat(new[] { _faultAddress }).ToHashSet();
             var result = _target.RunUntil(stopAt, 0, out var stoppedAt, out _);
             if (result == RunResult.Halted)
                 return Jammed();
+            if (stoppedAt == _faultAddress)
+                return FaultStop();
             return StopAt(stoppedAt, stopAt.Contains(stoppedAt) ? hitKind : SessionStopKind.Pause);
         }
         catch (ViceProtocolException ex)
@@ -112,6 +123,59 @@ class ProgramSession : IDebugSession
             SourceFile = entry?.SourceFile ?? "?",
             Line = entry?.Line ?? -1,
         };
+    }
+
+    // The program called Runtime_Fault (asm/helper/fault.asm): A = the fault
+    // code, and the message text is in the table at Runtime_FaultMsgLow/High.
+    // The PC is inside the fault routine, so the source location comes from
+    // the first return address on the hardware stack that points into
+    // compiled code -- the call that led here.
+    private SessionStop FaultStop()
+    {
+        var code = _target.Registers.A;
+        var text = ReadFaultText(code);
+        _faultSourcePc = FindCallerInCompiledCode();
+        var entry = _faultSourcePc == null ? null : _model.FindLineAtOrBefore(_faultSourcePc.Value);
+        return new SessionStop
+        {
+            Kind = SessionStopKind.Fault,
+            Message = text,
+            SourceFile = entry?.SourceFile ?? "?",
+            Line = entry?.Line ?? -1,
+        };
+    }
+
+    private string ReadFaultText(int code)
+    {
+        if (!_model.TryResolveLabelAddress("Runtime_FaultMsgLow", out var lowTable) ||
+            !_model.TryResolveLabelAddress("Runtime_FaultMsgHigh", out var highTable))
+            return $"Runtime fault {code}";
+
+        var address = _target.GetMemory(lowTable + code) | (_target.GetMemory(highTable + code) << 8);
+        var sb = new System.Text.StringBuilder();
+        for (int i = 0; i < 40; i++)
+        {
+            var b = _target.GetMemory(address + i);
+            if (b == 0)
+                break;
+            sb.Append((char)b);
+        }
+        var text = sb.ToString().ToLowerInvariant();
+        return "Runtime fault: " + char.ToUpperInvariant(text[0]) + text.Substring(1);
+    }
+
+    private int? FindCallerInCompiledCode()
+    {
+        var sp = _target.HardwareStackPointer;
+        for (int offset = sp + 1; offset < 0xff; offset++)
+        {
+            // JSR pushes (return address - 1).
+            var returnAddress = (_target.GetMemory(0x100 + offset) | (_target.GetMemory(0x100 + offset + 1) << 8)) + 1;
+            var line = _model.FindLineAtOrBefore(returnAddress);
+            if (line != null && _methodsByLabel.ContainsKey(line.MethodLabel))
+                return returnAddress;
+        }
+        return null;
     }
 
     private SessionStop Jammed() =>

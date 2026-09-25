@@ -44,12 +44,24 @@ start_address = $09FE
 OBJ_TABLES_MAX_START = $d000
 OBJ_TABLES_FALLBACK = $d000
 
+; Object allocation must stay below $e000 (KERNAL ROM, still mapped) -- see
+; asm/helper/fault.asm's Runtime_CheckHeapRoom.
+HEAP_LIMIT = $e000
+RUNTIME_FAULT_UNITTEST = 1
+
 * = $1000
 Run_Test:
     #disable_basic_rom
 
     #locals_stack_init
     #initHeap heap
+
+    ; BASIC ROM float errors (overflow, division by zero...) jump through
+    ; ($0300); point it at our fault handler -- see asm/helper/fault.asm.
+    lda #<Runtime_FloatError
+    sta $0300
+    lda #>Runtime_FloatError
+    sta $0301
 
     ; Static constructors -- see ProgramEntry.asm's fuller rationale.
 {{STATIC_CTORS}}
@@ -125,6 +137,7 @@ result = $20
 .include "./helper/division.asm"
 
 .include "./system.asm"
+.include "./helper/fault.asm"
 .include "./GC.asm"
 .include "./helper/object.asm"
 .include "./{{FOLDER}}/library_flags.asm"

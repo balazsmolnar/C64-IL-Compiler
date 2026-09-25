@@ -78,6 +78,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleEmulator.Test", "Simp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestDebugger", "TestDebugger\TestDebugger.csproj", "{860C651B-4AE9-423F-A94A-91BC83B9597A}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Test.Runtime", "Test.Runtime", "{B36EB56E-ECA8-83C3-3343-5A426380FD77}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Compiler.Test.Runtime", "Test.Runtime\Compiler.Test.Runtime.csproj", "{83403AB5-C007-483B-B9EF-303527E5F6E0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -220,6 +224,18 @@ Global
 		{860C651B-4AE9-423F-A94A-91BC83B9597A}.Release|x64.Build.0 = Release|Any CPU
 		{860C651B-4AE9-423F-A94A-91BC83B9597A}.Release|x86.ActiveCfg = Release|Any CPU
 		{860C651B-4AE9-423F-A94A-91BC83B9597A}.Release|x86.Build.0 = Release|Any CPU
+		{83403AB5-C007-483B-B9EF-303527E5F6E0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{83403AB5-C007-483B-B9EF-303527E5F6E0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{83403AB5-C007-483B-B9EF-303527E5F6E0}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{83403AB5-C007-483B-B9EF-303527E5F6E0}.Debug|x64.Build.0 = Debug|Any CPU
+		{83403AB5-C007-483B-B9EF-303527E5F6E0}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{83403AB5-C007-483B-B9EF-303527E5F6E0}.Debug|x86.Build.0 = Debug|Any CPU
+		{83403AB5-C007-483B-B9EF-303527E5F6E0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{83403AB5-C007-483B-B9EF-303527E5F6E0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{83403AB5-C007-483B-B9EF-303527E5F6E0}.Release|x64.ActiveCfg = Release|Any CPU
+		{83403AB5-C007-483B-B9EF-303527E5F6E0}.Release|x64.Build.0 = Release|Any CPU
+		{83403AB5-C007-483B-B9EF-303527E5F6E0}.Release|x86.ActiveCfg = Release|Any CPU
+		{83403AB5-C007-483B-B9EF-303527E5F6E0}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -227,6 +243,7 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{390B952B-D9EF-406B-A6A2-C2C29A1ABB3C} = {6C456ECB-F27B-45C0-A97E-49C42B99766D}
 		{4BB6AA39-0331-41A3-9420-885062CF26DE} = {6C456ECB-F27B-45C0-A97E-49C42B99766D}
+		{83403AB5-C007-483B-B9EF-303527E5F6E0} = {B36EB56E-ECA8-83C3-3343-5A426380FD77}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D87EC081-913B-4FF1-9D29-17018065ED7E}

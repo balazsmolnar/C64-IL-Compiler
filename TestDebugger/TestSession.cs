@@ -22,7 +22,8 @@ enum SessionStopKind
     Passed,
     Failed,
     Pause,   // program session: stopped because the user asked to pause
-    Exited   // program session: VICE went away (or the CPU jammed)
+    Exited,  // program session: VICE went away (or the CPU jammed)
+    Fault    // program session: the program ended in Runtime_Fault
 }
 
 class SessionStop
@@ -60,6 +61,7 @@ class TestSession : IDebugSession
 
     public LocalVariableInspector Locals => _method == null ? null : new LocalVariableInspector(_emulator, _model, _method);
     public IDebugTarget Target => _emulator;
+    public int SourcePc => _emulator.ProgramCounter;
 
     public void AddBreakpoint(int address) => _userBreakpoints.Add(address);
 

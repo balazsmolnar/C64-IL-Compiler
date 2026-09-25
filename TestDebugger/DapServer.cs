@@ -334,8 +334,8 @@ class DapServer
         var frames = new List<object>();
         if (_session?.Target != null && !_running)
         {
-            var pc = _session.Target.ProgramCounter;
-            var entry = _model.FindByAddress(pc);
+            var pc = _session.SourcePc;
+            var entry = pc == _session.Target.ProgramCounter ? _model.FindByAddress(pc) : _model.FindLineAtOrBefore(pc);
             var frame = new Dictionary<string, object>
             {
                 ["id"] = 1,
@@ -474,6 +474,19 @@ class DapServer
             if (stop.Kind == SessionStopKind.Pause)
             {
                 _io.WriteEvent("stopped", new { reason = "pause", threadId = ThreadId, allThreadsStopped = true, description = "Paused" });
+                return;
+            }
+            if (stop.Kind == SessionStopKind.Fault)
+            {
+                _io.WriteEvent("output", new { category = "stderr", output = stop.Message + "\n" });
+                _io.WriteEvent("stopped", new
+                {
+                    reason = "exception",
+                    threadId = ThreadId,
+                    allThreadsStopped = true,
+                    description = stop.Message,
+                    text = stop.Message,
+                });
                 return;
             }
             if (stop.Kind == SessionStopKind.Exited)

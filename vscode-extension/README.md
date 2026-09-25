@@ -112,6 +112,10 @@ binary monitor (`-binarymonitor`) on a free local port, attaches, sets your
 breakpoints while the machine is still paused, then lets it run. VICE's window
 is the C64 screen; stops show up in VS Code.
 
+Runtime faults (out of memory, too many objects, float overflow / division by zero,
+see `asm/helper/fault.asm`) stop the debugger as an exception ("Runtime fault: Out of
+memory"), with the stack frame on the C# line that triggered it.
+
 Works: breakpoints, continue, step (F10/F11, line or instruction), pause,
 locals and object/array inspection, registers, disassembly, watch/hover,
 closing the session (kills VICE).

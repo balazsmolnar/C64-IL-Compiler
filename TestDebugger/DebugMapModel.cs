@@ -89,6 +89,9 @@ class DebugMapModel
 
     public int ResolveLabelAddress(string label) => _labelAddresses[label];
 
+    public bool TryResolveLabelAddress(string label, out int address) =>
+        _labelAddresses.TryGetValue(label, out address);
+
     public bool TryResolveMethodAddress(string methodLabel, out int address) =>
         _labelAddresses.TryGetValue(methodLabel, out address);
 
@@ -96,6 +99,21 @@ class DebugMapModel
 
     public SourceLineEntry FindByAddress(int address) =>
         Lines.FirstOrDefault(l => l.Address == address);
+
+    // The source line whose code contains `address`: the nearest sequence
+    // point at or before it, if within maxDistance bytes (an address inside a
+    // statement, e.g. a return address after a call, isn't itself a sequence
+    // point). Null if there's none that close.
+    public SourceLineEntry FindLineAtOrBefore(int address, int maxDistance = 256)
+    {
+        SourceLineEntry best = null;
+        foreach (var line in Lines)
+        {
+            if (line.Address <= address && (best == null || line.Address > best.Address))
+                best = line;
+        }
+        return best != null && address - best.Address <= maxDistance ? best : null;
+    }
 
     public IEnumerable<LocalEntry> LocalsForMethod(string methodLabel) =>
         Locals.Where(l => l.MethodLabel == methodLabel);

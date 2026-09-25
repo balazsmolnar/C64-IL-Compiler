@@ -33,6 +33,9 @@ newObjL
   sta zp_param2_low  ; Size
   sty zp_param2_high  ; Reference fields
 
+  ; Fault instead of running off the end of the heap
+  jsr Runtime_CheckHeapRoom
+
   ; Find an empty entry in the object table --> X
   jsr findEmptySlot
 
@@ -62,6 +65,9 @@ newObjLInit
   sta zp_param2_low  ; Size
   sty zp_param2_high  ; Reference fields
 
+  ; Fault instead of running off the end of the heap
+  jsr Runtime_CheckHeapRoom
+
   ; Find an empty entry in the object table --> X
   jsr findEmptySlot
 
@@ -83,7 +89,8 @@ findEmptySlot
   bne -
   rts
 out_of_memory
-  brk
+  lda #FAULT_TOO_MANY_OBJECTS
+  jmp Runtime_Fault
 
 setObjParams
   ; set values in the tables: Size, referenceFieldCount, pointer

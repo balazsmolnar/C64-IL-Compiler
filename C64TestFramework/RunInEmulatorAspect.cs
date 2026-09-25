@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
@@ -12,6 +12,7 @@ namespace C64TestFramework;
 public class RunInEmulatorAspect : MethodInterceptionAspect
 {
     private const int RETURN_VALUE_ADDRESS = 0x2c;
+    private const byte FAULT_RESULT = 0xFE;
     public override void OnInvoke(MethodInterceptionArgs args)
     {
         var emulator = InitEmulator(args);
@@ -24,6 +25,24 @@ public class RunInEmulatorAspect : MethodInterceptionAspect
     private static void CopyResultFromEmulator(MethodInterceptionArgs args, Emulator emulator)
     {
         var result = emulator.GetMemory(0x20);
+        var expected = (ExpectFaultAttribute)Attribute.GetCustomAttribute(args.Method, typeof(ExpectFaultAttribute));
+
+        // $FE: the program ended in Runtime_Fault (asm/helper/fault.asm), code
+        // in $2E. Distinct from Assert_Fail's $FF, whose $2E/$2F is a message
+        // pointer.
+        if (result == FAULT_RESULT)
+        {
+            var fault = (RuntimeFault)emulator.GetMemory(0x2E);
+            if (expected == null)
+                NUnit.Framework.Assert.Fail($"Runtime fault: {fault}");
+            if (expected.Fault != fault)
+                NUnit.Framework.Assert.Fail($"Expected runtime fault {expected.Fault}, but got {fault}.");
+            return;
+        }
+
+        if (expected != null && result == 0)
+            NUnit.Framework.Assert.Fail($"Expected runtime fault {expected.Fault}, but the test completed normally.");
+
         if (result != 0)
             NUnit.Framework.Assert.Fail(GetMessage(emulator));
 
@@ -55,7 +74,7 @@ public class RunInEmulatorAspect : MethodInterceptionAspect
         var prgFolder = Path.Combine(directory, "..\\..\\..\\prg");
         var emulator = new Emulator();
         emulator.SetMemory(0x09fe, GetMethodAddress(prgFolder, args.Method));
-        emulator.LoadPrg(Path.Combine(prgFolder, "unittest.prg"));
+        emulator.LoadPrg(Path.Combine(prgFolder, ProgramName(args.Method) + ".prg"));
         return emulator;
     }
 
@@ -80,17 +99,23 @@ public class RunInEmulatorAspect : MethodInterceptionAspect
     // Locking the whole check-and-populate (not just wrapping the
     // assignment) closes the window entirely.
     private static readonly object labelsLock = new object();
-    private static Dictionary<string, string> labels;
+    private static readonly Dictionary<string, Dictionary<string, string>> labelsByProgram = new();
+
+    // The compiled program this method's tests run in: prg/<name>.prg, named
+    // by the assembly's UnitTestProgram attribute ("unittest" if none).
+    private static string ProgramName(MethodBase method) =>
+        method.DeclaringType?.Assembly.GetCustomAttribute<UnitTestProgramAttribute>()?.Name ?? "unittest";
     public static byte[] GetMethodAddress(string prgFolder, MethodBase method)
     {
         string label = $".{method.ReflectedType.Name}_{method.Name}";
 
         lock (labelsLock)
         {
-            if (labels == null)
+            var program = ProgramName(method);
+            if (!labelsByProgram.TryGetValue(program, out var labels))
             {
                 var newLabels = new Dictionary<string, string>();
-                var lines = File.ReadAllLines(Path.Combine(prgFolder, "unittest.labels"));
+                var lines = File.ReadAllLines(Path.Combine(prgFolder, program + ".labels"));
                 foreach (var line in lines)
                 {
                     var parts = line.Split(' ');
@@ -103,6 +128,7 @@ public class RunInEmulatorAspect : MethodInterceptionAspect
                     newLabels[parts[2]] = parts[1];
                 }
                 labels = newLabels;
+                labelsByProgram[program] = labels;
             }
 
             var s = labels[label];

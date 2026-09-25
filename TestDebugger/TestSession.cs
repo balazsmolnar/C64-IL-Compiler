@@ -57,7 +57,7 @@ class TestSession
     }
 
     public LocalVariableInspector Locals => _method == null ? null : new LocalVariableInspector(_emulator, _model, _method);
-    public Emulator Emulator => _emulator;
+    public IDebugTarget Target => _emulator;
 
     public void AddBreakpoint(int address) => _userBreakpoints.Add(address);
 

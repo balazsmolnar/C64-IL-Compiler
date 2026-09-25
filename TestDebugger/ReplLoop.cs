@@ -169,7 +169,7 @@ class ReplLoop
 
     private void PrintRegisters()
     {
-        var emu = _session.Emulator;
+        var emu = _session.Target;
         if (emu == null)
         {
             Console.WriteLine("No active session.");
@@ -183,7 +183,7 @@ class ReplLoop
     // "disasm" (defaults to 10 rows at the current PC) or "disasm N".
     private void PrintDisassembly(string arg)
     {
-        var emu = _session.Emulator;
+        var emu = _session.Target;
         if (emu == null)
         {
             Console.WriteLine("No active session.");
@@ -216,7 +216,7 @@ class ReplLoop
                 if (stop.Line >= 0)
                     Console.WriteLine($"Stopped at {stop.SourceFile}:{stop.Line} (in {_session.CurrentMethod?.Name})");
                 else
-                    Console.WriteLine($"Stepped to ${_session.Emulator.ProgramCounter:X4} (in {_session.CurrentMethod?.Name}, no source line here)");
+                    Console.WriteLine($"Stepped to ${_session.Target.ProgramCounter:X4} (in {_session.CurrentMethod?.Name}, no source line here)");
                 return;
             }
 

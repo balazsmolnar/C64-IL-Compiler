@@ -27,13 +27,13 @@ namespace TestDebugger;
 // to interpret a handle.
 class ObjectInspector
 {
-    private readonly Emulator _emulator;
+    private readonly IMemoryReader _emulator;
     private readonly CompilerContext _compilerContext = new();
     private readonly int _objTableLow;
     private readonly int _objTableHigh;
     private readonly int _objTableSize;
 
-    public ObjectInspector(Emulator emulator, DebugMapModel model)
+    public ObjectInspector(IMemoryReader emulator, DebugMapModel model)
     {
         _emulator = emulator;
         _objTableLow = model.ResolveLabelAddress("objTableLow");

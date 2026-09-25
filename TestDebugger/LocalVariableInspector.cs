@@ -12,13 +12,13 @@ namespace TestDebugger;
 // injected by `run` -- is all that's supported; a known v1 limitation).
 class LocalVariableInspector
 {
-    private readonly Emulator _emulator;
+    private readonly IMemoryReader _emulator;
     private readonly DebugMapModel _model;
     private readonly MethodBase _testMethod;
     private readonly int _localsStackBase;
     private readonly ObjectInspector _objectInspector;
 
-    public LocalVariableInspector(Emulator emulator, DebugMapModel model, MethodBase testMethod)
+    public LocalVariableInspector(IMemoryReader emulator, DebugMapModel model, MethodBase testMethod)
     {
         _emulator = emulator;
         _model = model;

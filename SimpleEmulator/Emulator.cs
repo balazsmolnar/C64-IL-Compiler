@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace SimpleEmulator
 {
-    public class Emulator
+    public class Emulator : IDebugTarget
     {
         // The one true copy of RAM -- always 64K, always reflects the last
         // write to any address regardless of what's currently banked in for

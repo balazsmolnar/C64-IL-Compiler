@@ -65,7 +65,7 @@ public static class EmulatorArgumentMarshaling
     // Compiler/Templates/UnitTestEntry.asm's endtest) -- do not reuse this
     // for a local variable read, which is a flat memory read, not a stack
     // pull; use ReadLocal for that instead.
-    public static object ReadReturnValue(Emulator emulator, Type type, int address)
+    public static object ReadReturnValue(IMemoryReader emulator, Type type, int address)
     {
         if (type == typeof(int))
             return (int)(sbyte)emulator.GetMemory(address);
@@ -110,7 +110,7 @@ public static class EmulatorArgumentMarshaling
     //    convention ReadReturnValue uses (`address` holds Mflpt byte[4],
     //    `address+4` holds byte[0]) -- see locals_push_valueflt's own
     //    comment in localsStack.asm, which states this explicitly.
-    public static object ReadLocal(Emulator emulator, Type type, int address)
+    public static object ReadLocal(IMemoryReader emulator, Type type, int address)
     {
         if (type == typeof(int))
             return (int)(sbyte)emulator.GetMemory(address);

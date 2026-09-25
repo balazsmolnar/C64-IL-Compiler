@@ -252,9 +252,9 @@ class DapServer
     private void HandleStackTrace(DapIncomingMessage msg)
     {
         var frames = new List<object>();
-        if (_session?.Emulator != null)
+        if (_session?.Target != null)
         {
-            var pc = _session.Emulator.ProgramCounter;
+            var pc = _session.Target.ProgramCounter;
             var entry = _model.FindByAddress(pc);
             var frame = new Dictionary<string, object>
             {
@@ -278,11 +278,11 @@ class DapServer
 
         if (variablesReference == RegistersVariablesReference)
         {
-            if (_session?.Emulator != null)
+            if (_session?.Target != null)
             {
-                var r = _session.Emulator.Registers;
-                var pc = _session.Emulator.ProgramCounter;
-                var sp = _session.Emulator.HardwareStackPointer;
+                var r = _session.Target.Registers;
+                var pc = _session.Target.ProgramCounter;
+                var sp = _session.Target.HardwareStackPointer;
                 variables.Add(RegVar("A", r.A));
                 variables.Add(RegVar("X", r.X));
                 variables.Add(RegVar("Y", r.Y));

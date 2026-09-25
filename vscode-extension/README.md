@@ -93,3 +93,37 @@ cursor is inside when you start debugging (a regex heuristic, not a real
 C# parser -- works for this project's flat, non-nested `Test/*.cs` layout).
 Set it to `"*"` explicitly (not omitted -- omitting it means "resolve from
 cursor", not "run all") to run every test instead.
+
+## Debugging a whole program on VICE
+
+Besides unit tests, the same adapter can build a C64 program (`Demo`,
+`Hunchback` or `C64Presentation`), run it on a real VICE and stop at
+breakpoints in its C# source.
+
+1. Build `TestDebugger` (`dotnet build TestDebugger/TestDebugger.csproj`) and
+   make sure VICE is installed (`VICE_EXE`, or `c:\tools\VICE\bin\x64sc.exe`).
+2. Set a breakpoint in e.g. `Demo/Program.cs` or `Demo/RotatingCube.cs`.
+3. Run the **"Debug Demo on VICE"** launch config (or the "C64 on VICE: Debug
+   Program" command; the project is taken from the open file's folder).
+
+The adapter builds a debug copy into `asm/<name>_debug/` and
+`prg/<name>_debug.*` (the normal build is untouched), starts x64sc with its
+binary monitor (`-binarymonitor`) on a free local port, attaches, sets your
+breakpoints while the machine is still paused, then lets it run. VICE's window
+is the C64 screen; stops show up in VS Code.
+
+Works: breakpoints, continue, step (F10/F11, line or instruction), pause,
+locals and object/array inspection, registers, disassembly, watch/hover,
+closing the session (kills VICE).
+
+Limits: locals are only resolved for the innermost method (no call-stack
+walking); breakpoints added while the program is running take effect at the
+next stop; while the program runs, memory-inspecting requests are refused
+(reading memory would stop the machine); VICE reads use the RAM bank, so
+the CPU port at `$01` isn't visible.
+
+`TestDebugger.dll vice-probe <port> [<labels> <label>...]` attaches to an
+already running VICE (`x64sc -binarymonitor -binarymonitoraddress
+ip4://127.0.0.1:<port>`) and prints registers/memory, a manual check of the
+monitor client. `tools/vice-dap-smoke.py` drives the whole launch flow
+headlessly over DAP.

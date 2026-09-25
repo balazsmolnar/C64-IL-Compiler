@@ -23,7 +23,8 @@ class ViceTarget : IDebugTarget, IDisposable
     // How long RunUntil waits for a breakpoint before pausing the machine and
     // reporting StepLimitReached. VICE runs in real time, so there's no
     // instruction count to bound; this is the equivalent guard against a
-    // program that never reaches any breakpoint.
+    // program that never reaches any breakpoint. Negative = wait forever
+    // (an interactive debug session, where the user pauses or stops it).
     public int RunTimeoutMs { get; set; } = 30000;
 
     public ViceTarget(ViceMonitorClient client)
@@ -84,9 +85,10 @@ class ViceTarget : IDebugTarget, IDisposable
     {
         SyncBreakpoints(breakpointAddresses);
         Invalidate();
+        stepsExecuted = 0; // VICE doesn't report an instruction count
+
         _client.Resume();
 
-        stepsExecuted = 0; // VICE doesn't report an instruction count
         if (!_client.WaitForStop(RunTimeoutMs))
         {
             _client.Stop();
@@ -99,6 +101,10 @@ class ViceTarget : IDebugTarget, IDisposable
             return RunResult.Halted;
         return breakpointAddresses.Contains(stoppedAtAddress) ? RunResult.Breakpoint : RunResult.StepLimitReached;
     }
+
+    // Stops a running machine (from another thread than the one blocked in
+    // RunUntil, which then returns). No-op if it is already stopped.
+    public void Pause() => _client.Stop();
 
     public bool StepOne()
     {

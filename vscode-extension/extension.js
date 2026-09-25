@@ -13,6 +13,31 @@ function activate(context) {
     vscode.debug.registerDebugAdapterDescriptorFactory('c64test', new C64TestAdapterFactory())
   );
 
+  // Same adapter process (TestDebugger.dll --dap) for both debug types: a
+  // launch config with "program" runs a whole program on VICE, one with
+  // "testSelector" runs a unit test in SimpleEmulator.
+  context.subscriptions.push(
+    vscode.debug.registerDebugConfigurationProvider('c64vice', new C64ViceConfigProvider())
+  );
+  context.subscriptions.push(
+    vscode.debug.registerDebugAdapterDescriptorFactory('c64vice', new C64TestAdapterFactory())
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('c64vice.debugProgram', async () => {
+      const folder = vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0];
+      if (!folder) {
+        vscode.window.showErrorMessage('C64 on VICE: open the C64-IL-Compiler folder as your workspace first.');
+        return;
+      }
+      await vscode.debug.startDebugging(folder, {
+        type: 'c64vice',
+        name: 'Debug C64 Program on VICE',
+        request: 'launch',
+      });
+    })
+  );
+
   context.subscriptions.push(
     vscode.commands.registerCommand('c64test.debugTestAtCursor', async () => {
       const folder = vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0];
@@ -93,6 +118,31 @@ class C64TestConfigProvider {
     config.request = config.request || 'launch';
     config.name = config.name || `Debug ${selector}`;
     config.testSelector = selector;
+    return config;
+  }
+}
+
+// Fills in `program` when the launch config doesn't set one: the project
+// folder (Demo, Hunchback, C64Presentation) of the file open in the active
+// editor, falling back to Demo.
+class C64ViceConfigProvider {
+  resolveDebugConfiguration(folder, config) {
+    if (!config.program) {
+      const known = ['Demo', 'Hunchback', 'C64Presentation'];
+      const editor = vscode.window.activeTextEditor;
+      let program = 'Demo';
+      if (editor && folder) {
+        const rel = path.relative(folder.uri.fsPath, editor.document.uri.fsPath);
+        const top = rel.split(path.sep)[0];
+        if (known.includes(top)) {
+          program = top;
+        }
+      }
+      config.program = program;
+    }
+    config.type = config.type || 'c64vice';
+    config.request = config.request || 'launch';
+    config.name = config.name || `Debug ${config.program} on VICE`;
     return config;
   }
 }

@@ -54,6 +54,16 @@
             "testSelector": "StringInterpolationTests.Interpolation_SingleHoleNoLiteral"
         },
         {
+            // Builds a debug copy of the program, runs it on VICE and stops
+            // at breakpoints you've set in Demo/*.cs -- see
+            // vscode-extension/README.md. Needs x64sc (VICE_EXE or
+            // c:\tools\VICE\bin\x64sc.exe).
+            "name": "Debug Demo on VICE",
+            "type": "c64vice",
+            "request": "launch",
+            "program": "Demo"
+        },
+        {
             // Runs every test in turn (fresh emulator per test, same as the
             // real suite), pausing only when one of them hits a breakpoint
             // you've set -- see vscode-extension/README.md.

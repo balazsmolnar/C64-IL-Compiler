@@ -71,7 +71,7 @@ class TestCompiler
     // a JSON-RPC-ish protocol stream that a stray "Assembling file: ..." line
     // from Compiler.exe/64tass would corrupt. Harmless for the plain REPL
     // too (stderr shows in the same terminal).
-    private static void RunProcess(string exe, string arguments)
+    internal static void RunProcess(string exe, string arguments)
     {
         var psi = new ProcessStartInfo(exe, arguments)
         {

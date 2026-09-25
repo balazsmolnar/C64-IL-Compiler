@@ -12,7 +12,9 @@
   "main": "./extension.js",
   "activationEvents": [
     "onDebugResolve:c64test",
-    "onDebugDynamicConfigurations:c64test"
+    "onDebugDynamicConfigurations:c64test",
+    "onDebugResolve:c64vice",
+    "onDebugDynamicConfigurations:c64vice"
   ],
   "contributes": {
     "commands": [
@@ -23,6 +25,10 @@
       {
         "command": "c64test.debugAllTests",
         "title": "C64 Test Debugger: Debug All Tests"
+      },
+      {
+        "command": "c64vice.debugProgram",
+        "title": "C64 on VICE: Debug Program"
       }
     ],
     "debuggers": [
@@ -67,6 +73,46 @@
               "type": "c64test",
               "request": "launch",
               "testSelector": "*"
+            }
+          }
+        ]
+      },
+      {
+        "type": "c64vice",
+        "label": "C64 Program on VICE",
+        "languages": ["csharp"],
+        "configurationAttributes": {
+          "launch": {
+            "properties": {
+              "program": {
+                "type": "string",
+                "description": "Project to build and run: Demo, Hunchback or C64Presentation. If omitted, taken from the project folder of the active editor (default Demo).",
+                "default": "Demo"
+              },
+              "viceExe": {
+                "type": "string",
+                "description": "Path to x64sc.exe. Defaults to the VICE_EXE environment variable, then c:\\tools\\VICE\\bin\\x64sc.exe."
+              }
+            }
+          }
+        },
+        "initialConfigurations": [
+          {
+            "name": "Debug C64 Program on VICE",
+            "type": "c64vice",
+            "request": "launch",
+            "program": "Demo"
+          }
+        ],
+        "configurationSnippets": [
+          {
+            "label": "C64 on VICE: Launch",
+            "description": "Build a debug copy of a C64 program, run it on VICE and stop at breakpoints",
+            "body": {
+              "name": "Debug C64 Program on VICE",
+              "type": "c64vice",
+              "request": "launch",
+              "program": "Demo"
             }
           }
         ]

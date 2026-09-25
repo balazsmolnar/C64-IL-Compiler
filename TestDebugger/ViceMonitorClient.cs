@@ -244,17 +244,22 @@ class ViceMonitorClient : IDisposable
         }
     }
 
+    // timeoutMs < 0 waits indefinitely (until stopped or the connection closes).
     public bool WaitForStop(int timeoutMs)
     {
-        var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
+        var deadline = timeoutMs < 0 ? DateTime.MaxValue : DateTime.UtcNow.AddMilliseconds(timeoutMs);
         lock (_stateLock)
         {
             while (!_stopped)
             {
+                if (_closed)
+                    throw new ViceProtocolException("Connection to VICE is closed.");
                 var remaining = deadline - DateTime.UtcNow;
-                if (remaining <= TimeSpan.Zero || _closed)
-                    return _stopped;
-                Monitor.Wait(_stateLock, remaining);
+                if (remaining <= TimeSpan.Zero)
+                    return false;
+                // Wake up periodically: Monitor.Wait can't take an
+                // unbounded TimeSpan, and this also re-checks _closed.
+                Monitor.Wait(_stateLock, remaining > TimeSpan.FromSeconds(30) ? TimeSpan.FromSeconds(30) : remaining);
             }
             return true;
         }

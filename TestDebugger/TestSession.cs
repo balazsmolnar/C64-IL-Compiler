@@ -20,7 +20,9 @@ enum SessionStopKind
     Breakpoint,
     Step,
     Passed,
-    Failed
+    Failed,
+    Pause,   // program session: stopped because the user asked to pause
+    Exited   // program session: VICE went away (or the CPU jammed)
 }
 
 class SessionStop
@@ -35,7 +37,7 @@ class SessionStop
 // Owns one Emulator instance for one test method run, and drives it via
 // Emulator.RunUntil. No call-stack walking -- the method injected by Run()
 // is the only frame LocalVariableInspector can see.
-class TestSession
+class TestSession : IDebugSession
 {
     private readonly Assembly _testAssembly;
     private readonly DebugMapModel _model;
@@ -47,7 +49,7 @@ class TestSession
     private HashSet<int> _userBreakpoints = new();
     private bool _halted;
 
-    public MethodInfo CurrentMethod => _method;
+    public MethodBase CurrentMethod => _method;
 
     public TestSession(Assembly testAssembly, DebugMapModel model, string prgPath)
     {

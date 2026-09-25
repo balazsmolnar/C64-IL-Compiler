@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace TestDebugger;
 
@@ -30,8 +31,22 @@ class DapServer
     private DebugMapModel _model;
     private DisassemblyListing _listing;
     private BreakpointResolver _resolver;
-    private TestSession _session;
+    private IDebugSession _session;
+    private TestSession _testSession; // null in program mode
     private string _testSelector;
+
+    // Program mode (launch config has a "program"): the debuggee is a whole
+    // program on VICE rather than one test in SimpleEmulator. Continue/step
+    // then run on a worker thread so pause/disconnect stay serviceable while
+    // the C64 runs; _lock serialises that thread's stop reporting with
+    // request handling, and _running gates anything that would touch VICE
+    // (reading memory stops the machine).
+    private bool _programMode;
+    private bool _running;
+    private ViceProcess _vice;
+    private ViceTarget _viceTarget;
+    private string _sourceDir = "Test";
+    private readonly object _lock = new();
     private readonly Dictionary<string, HashSet<int>> _breakpointsByFile = new();
 
     // Maps a minted DAP variablesReference -> the InspectedValue it expands
@@ -58,6 +73,24 @@ class DapServer
 
     public void Run()
     {
+        try
+        {
+            RunLoop();
+        }
+        finally
+        {
+            Shutdown();
+        }
+    }
+
+    private void Shutdown()
+    {
+        _viceTarget?.Dispose();
+        _vice?.Dispose();
+    }
+
+    private void RunLoop()
+    {
         while (true)
         {
             DapIncomingMessage msg;
@@ -77,7 +110,10 @@ class DapServer
 
             try
             {
-                if (!Handle(msg))
+                bool keepGoing;
+                lock (_lock)
+                    keepGoing = Handle(msg);
+                if (!keepGoing)
                     return;
             }
             catch (Exception ex)
@@ -98,6 +134,7 @@ class DapServer
                     supportsConfigurationDoneRequest = true,
                     supportsDisassembleRequest = true,
                     supportsEvaluateForHovers = true,
+                    supportsTerminateRequest = true,
                 });
                 return true;
 
@@ -112,7 +149,10 @@ class DapServer
             case "configurationDone":
                 _io.WriteResponse(msg.Seq, msg.Command, true, null);
                 SyncBreakpoints();
-                ReportStop(SafeRun(_testSelector));
+                if (_programMode)
+                    RunAsync(() => _session.Continue());
+                else
+                    ReportStop(SafeRun(_testSelector));
                 return true;
 
             case "threads":
@@ -145,12 +185,39 @@ class DapServer
             case "stepIn":
             case "stepOut":
                 _io.WriteResponse(msg.Seq, msg.Command, true, null);
-                ReportStop(IsInstructionGranularity(msg) ? _session.StepInstruction() : _session.Step());
+                if (_programMode)
+                {
+                    if (_running)
+                        return true;
+                    SyncBreakpoints();
+                    var instruction = IsInstructionGranularity(msg);
+                    RunAsync(() => instruction ? _session.StepInstruction() : _session.Step());
+                }
+                else
+                {
+                    ReportStop(IsInstructionGranularity(msg) ? _session.StepInstruction() : _session.Step());
+                }
                 return true;
 
             case "continue":
                 _io.WriteResponse(msg.Seq, msg.Command, true, new { allThreadsContinued = true });
-                ReportStop(_session.Continue());
+                if (_programMode)
+                {
+                    if (!_running)
+                    {
+                        SyncBreakpoints();
+                        RunAsync(() => _session.Continue());
+                    }
+                }
+                else
+                {
+                    ReportStop(_session.Continue());
+                }
+                return true;
+
+            case "pause":
+                _io.WriteResponse(msg.Seq, msg.Command, true, null);
+                (_session as ProgramSession)?.Pause();
                 return true;
 
             case "disassemble":
@@ -177,6 +244,13 @@ class DapServer
 
     private void HandleLaunch(DapIncomingMessage msg)
     {
+        var program = msg.Arguments.TryGetProperty("program", out var pr) ? pr.GetString() : null;
+        if (!string.IsNullOrEmpty(program))
+        {
+            LaunchProgram(msg, program);
+            return;
+        }
+
         var selector = msg.Arguments.TryGetProperty("testSelector", out var s) ? s.GetString() : null;
 
         var compiler = new TestCompiler(_repoRoot);
@@ -185,11 +259,12 @@ class DapServer
         _listing = DisassemblyListing.Load(compiler.DumpListingPath);
         _resolver = new BreakpointResolver(_model);
         var testAssembly = Assembly.LoadFrom(compiler.TestDllPath);
-        _session = new TestSession(testAssembly, _model, compiler.PrgPath);
+        _testSession = new TestSession(testAssembly, _model, compiler.PrgPath);
+        _session = _testSession;
 
         if (string.IsNullOrEmpty(selector) || selector == "*" || selector.Equals("all", StringComparison.OrdinalIgnoreCase))
         {
-            _runAllQueue = _session.DiscoverAllTestSelectors();
+            _runAllQueue = _testSession.DiscoverAllTestSelectors();
             if (_runAllQueue.Count == 0)
                 throw new InvalidOperationException("No [Test]/[TestCase] methods found in the compiled test assembly.");
             _runAllIndex = 0;
@@ -233,6 +308,11 @@ class DapServer
         }
 
         _breakpointsByFile[fileName] = addresses;
+        // While the program is running the change waits for the next stop
+        // (touching VICE now would stop it); otherwise apply it right away so
+        // a breakpoint added mid-session isn't ignored.
+        if (!_running)
+            SyncBreakpoints();
         _io.WriteResponse(msg.Seq, msg.Command, true, new { breakpoints = resolved });
     }
 
@@ -252,7 +332,7 @@ class DapServer
     private void HandleStackTrace(DapIncomingMessage msg)
     {
         var frames = new List<object>();
-        if (_session?.Target != null)
+        if (_session?.Target != null && !_running)
         {
             var pc = _session.Target.ProgramCounter;
             var entry = _model.FindByAddress(pc);
@@ -265,7 +345,7 @@ class DapServer
                 ["column"] = 1,
             };
             if (entry != null)
-                frame["source"] = new { name = entry.SourceFile, path = Path.Combine(_repoRoot, "Test", entry.SourceFile) };
+                frame["source"] = new { name = entry.SourceFile, path = Path.Combine(_repoRoot, _sourceDir, entry.SourceFile) };
             frames.Add(frame);
         }
         _io.WriteResponse(msg.Seq, msg.Command, true, new { stackFrames = frames, totalFrames = frames.Count });
@@ -278,7 +358,7 @@ class DapServer
 
         if (variablesReference == RegistersVariablesReference)
         {
-            if (_session?.Target != null)
+            if (_session?.Target != null && !_running)
             {
                 var r = _session.Target.Registers;
                 var pc = _session.Target.ProgramCounter;
@@ -301,7 +381,7 @@ class DapServer
             return;
         }
 
-        var locals = _session.Locals;
+        var locals = _running ? null : _session.Locals;
         if (variablesReference == LocalsVariablesReference)
         {
             if (locals != null)
@@ -330,10 +410,10 @@ class DapServer
     private void HandleEvaluate(DapIncomingMessage msg)
     {
         var expression = msg.Arguments.GetProperty("expression").GetString();
-        var locals = _session?.Locals;
+        var locals = _running ? null : _session?.Locals;
         if (locals == null)
         {
-            _io.WriteResponse(msg.Seq, msg.Command, false, null, "No active session.");
+            _io.WriteResponse(msg.Seq, msg.Command, false, null, _running ? "The program is running." : "No active session.");
             return;
         }
         if (!locals.TryResolvePath(expression, out var value, out var error))
@@ -391,6 +471,18 @@ class DapServer
 
         while (true)
         {
+            if (stop.Kind == SessionStopKind.Pause)
+            {
+                _io.WriteEvent("stopped", new { reason = "pause", threadId = ThreadId, allThreadsStopped = true, description = "Paused" });
+                return;
+            }
+            if (stop.Kind == SessionStopKind.Exited)
+            {
+                if (!string.IsNullOrEmpty(stop.Message))
+                    _io.WriteEvent("output", new { category = "console", output = stop.Message + "\n" });
+                _io.WriteEvent("terminated", null);
+                return;
+            }
             if (stop.Kind == SessionStopKind.Breakpoint || stop.Kind == SessionStopKind.Step)
             {
                 var testLabel = _runAllQueue != null ? $" (in {_session.CurrentMethod?.Name})" : "";
@@ -470,12 +562,75 @@ class DapServer
                 instructionBytes = string.Join(" ", row.Bytes.Select(b => b.ToString("x2"))),
                 instruction = row.SourceText,
                 symbol = labels.Count > 0 ? labels[0] : null,
-                location = entry != null ? new { name = entry.SourceFile, path = Path.Combine(_repoRoot, "Test", entry.SourceFile) } : null,
+                location = entry != null ? new { name = entry.SourceFile, path = Path.Combine(_repoRoot, _sourceDir, entry.SourceFile) } : null,
                 line = entry?.Line,
             });
         }
 
         _io.WriteResponse(msg.Seq, msg.Command, true, new { instructions });
+    }
+
+    // Builds a debug copy of the program, starts it on VICE with the monitor
+    // open, and attaches. The machine is left stopped until configurationDone
+    // (after VS Code has sent its breakpoints) so an early breakpoint can't be
+    // missed.
+    private void LaunchProgram(DapIncomingMessage msg, string program)
+    {
+        var viceExe = msg.Arguments.TryGetProperty("viceExe", out var ve) ? ve.GetString() : null;
+
+        Log($"Building {program} (debug)...");
+        var compiler = new ProgramCompiler(_repoRoot, program);
+        compiler.Build();
+        _model = DebugMapModel.Load(compiler.DebugMapPath, compiler.LabelsPath);
+        _listing = DisassemblyListing.Load(compiler.DumpListingPath);
+        _resolver = new BreakpointResolver(_model);
+        var assembly = Assembly.LoadFrom(compiler.DllPath);
+
+        Log("Starting VICE...");
+        _vice = ViceProcess.Start(viceExe, compiler.PrgPath);
+        _vice.Exited += () =>
+        {
+            lock (_lock)
+            {
+                if (_running)
+                    return; // the worker thread reports it via its failed read
+                _io.WriteEvent("terminated", null);
+            }
+        };
+        var client = ViceMonitorClient.Connect("127.0.0.1", _vice.Port, 20000);
+        _viceTarget = new ViceTarget(client);
+        _session = new ProgramSession(_model, _viceTarget, assembly);
+
+        _programMode = true;
+        _sourceDir = program;
+        _io.WriteResponse(msg.Seq, msg.Command, true, null);
+        _io.WriteEvent("initialized", null);
+    }
+
+    private void Log(string text) =>
+        _io.WriteEvent("output", new { category = "console", output = text + "\n" });
+
+    // Runs a resume/step on a worker thread and reports its stop when it comes.
+    private void RunAsync(Func<SessionStop> action)
+    {
+        _running = true;
+        Task.Run(() =>
+        {
+            SessionStop stop;
+            try
+            {
+                stop = action();
+            }
+            catch (Exception ex)
+            {
+                stop = new SessionStop { Kind = SessionStopKind.Exited, Message = ex.Message };
+            }
+            lock (_lock)
+            {
+                _running = false;
+                ReportStop(stop);
+            }
+        });
     }
 
     private static int ParseAddress(string s) =>
@@ -492,7 +647,7 @@ class DapServer
     {
         try
         {
-            return _session.Run(selector);
+            return _testSession.Run(selector);
         }
         catch (Exception ex) when (_runAllQueue != null)
         {

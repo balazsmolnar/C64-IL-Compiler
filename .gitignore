@@ -24,3 +24,7 @@ obj/**
 /asm/generated/*
 /asm/hunchback/*
 /.debug-tmp/
+
+# Debug builds of programs made by the VICE debugger (TestDebugger/ProgramCompiler.cs)
+asm/*_debug/**
+asm/*_debug.asm

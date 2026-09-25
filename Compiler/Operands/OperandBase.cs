@@ -163,16 +163,34 @@ class OpCall : OpBase
         if (method == null)
             return;
 
-        var declaringType = method.DeclaringType;
-        if (declaringType == null)
+        if (IsResolvable(method, context.CompilerContext.Assembly))
             return;
 
-        if (declaringType.Assembly == context.CompilerContext.Assembly)
-            return;
+        var declaringType = method.DeclaringType;
+        throw new NotSupportedException(
+            $"Unsupported method call: {declaringType.FullName}.{method.Name}(...). This compiler has no way to " +
+            "compile or link this call -- it isn't defined in the assembly being compiled, isn't a C64Lib.* " +
+            "method, and doesn't match any of the specially-handled BCL patterns (numeric .ToString(), " +
+            "string.Concat(string,string)/.Length/.PadLeft(int,char), a static readonly array literal, " +
+            "System.Func<T>.Invoke(), System.MathF.Sin/Cos/Sqrt, System.Console.Write/WriteLine(string)). " +
+            "Without this check the same problem would instead surface much later, as a confusing 64tass " +
+            "\"not defined symbol\" error at assembly time.");
+    }
+
+    // The allowlist itself, split out from EnsureCallIsResolvable so it can
+    // be unit tested without building a whole CompilerMethodContext.
+    internal static bool IsResolvable(MethodBase method, Assembly compiledAssembly)
+    {
+        var declaringType = method.DeclaringType;
+        if (declaringType == null)
+            return true;
+
+        if (declaringType.Assembly == compiledAssembly)
+            return true;
         if (declaringType.FullName != null && declaringType.FullName.StartsWith("C64Lib."))
-            return;
+            return true;
         if (declaringType.Name.StartsWith("Func"))
-            return;
+            return true;
         // C64TestFramework.Assert's AreEqual/AreEqualString/Fail/IsTrue/
         // IsFalse are hand-written directly into the test-harness entry
         // templates (Compiler/Templates/UnitTestEntry.asm), not into a
@@ -182,7 +200,7 @@ class OpCall : OpBase
         // its own allowlist entry rather than falling under the C64Lib.*
         // check above.
         if (declaringType.FullName == "C64TestFramework.Assert")
-            return;
+            return true;
         // System.GC.Collect() is a real BCL method this compiler links
         // directly against a hand-written asm/GC.asm routine (label
         // "GC_Collect", matching GetLabel()'s own Type_Method naming) --
@@ -198,7 +216,7 @@ class OpCall : OpBase
         // core capability, and false positives here would be strictly
         // worse than the confusing-but-rare assembler error this replaces.
         if (declaringType.FullName == "System.GC")
-            return;
+            return true;
         // System.MathF.Sin/Cos/Sqrt -- same technique as System.GC.Collect()
         // above, just for the three MathF methods asm/helper/float.asm
         // actually implements (MathF_Sin/Cos/Sqrt). Explicit per-method
@@ -210,15 +228,24 @@ class OpCall : OpBase
         // whole check exists to avoid. Shared with ILLibraryUsagePass's own
         // identical check (see MathFSupport's own comment on why one list).
         if (declaringType.FullName == "System.MathF" && MathFSupport.SupportedMethods.Contains(method.Name))
-            return;
+            return true;
+        // System.Console.Write/WriteLine(string) -- asm/system.asm's
+        // Console_Write/Console_WriteLine (KERNAL CHROUT), linked by the same
+        // Type_Method naming convention as System.GC above. Only the single
+        // string overload has an implementation there (it pulls one string
+        // pointer off the stack); other overloads (int, char, format
+        // strings...) would pass the wrong data, so they stay rejected.
+        // This used to work before this allowlist existed; it was left out
+        // when the check was added, which broke existing Console.WriteLine
+        // callers with a spurious "unsupported" error.
+        if (declaringType.FullName == "System.Console" && (method.Name == "Write" || method.Name == "WriteLine"))
+        {
+            var parameters = method.GetParameters();
+            if (parameters.Length == 1 && parameters[0].ParameterType == typeof(string))
+                return true;
+        }
 
-        throw new NotSupportedException(
-            $"Unsupported method call: {declaringType.FullName}.{method.Name}(...). This compiler has no way to " +
-            "compile or link this call -- it isn't defined in the assembly being compiled, isn't a C64Lib.* " +
-            "method, and doesn't match any of the specially-handled BCL patterns (numeric .ToString(), " +
-            "string.Concat(string,string)/.Length/.PadLeft(int,char), a static readonly array literal, " +
-            "System.Func<T>.Invoke(), System.MathF.Sin/Cos/Sqrt). Without this check the same problem would " +
-            "instead surface much later, as a confusing 64tass \"not defined symbol\" error at assembly time.");
+        return false;
     }
 }
 
@@ -354,7 +381,7 @@ class OpNewObj : OpBase
         System.Reflection.Metadata.ILOpCode.Ret,
     };
 
-    private static bool ConstructorHasUnsupportedBody(MethodBase ctor)
+    internal static bool ConstructorHasUnsupportedBody(MethodBase ctor)
     {
         var body = ctor.GetMethodBody();
         if (body == null)
@@ -362,6 +389,7 @@ class OpNewObj : OpBase
 
         var il = body.GetILAsByteArray();
         var index = 0;
+        var calls = 0;
         while (index < il.Length)
         {
             System.Reflection.Metadata.ILOpCode opCode;
@@ -371,6 +399,11 @@ class OpNewObj : OpBase
                 opCode = (System.Reflection.Metadata.ILOpCode)(il[index++]);
 
             if (Array.IndexOf(SafeToSkipOpCodes, opCode) < 0)
+                return true;
+
+            // The one allowed Call is the base constructor; a second one is
+            // real work (another method) that would be skipped too.
+            if (opCode == System.Reflection.Metadata.ILOpCode.Call && ++calls > 1)
                 return true;
 
             if (!CommandMap.Supported(opCode))

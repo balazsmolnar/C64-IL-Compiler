@@ -20,7 +20,20 @@ Console_Write
         ldy #0
 		beq +			; enter loop
 
--			jsr basout	; output character
+        ; String literals are assembled with .enc "screen", so they hold
+        ; SCREEN codes (uppercase A-Z = 1-26, lowercase = 65-90), but CHROUT
+        ; ($ffd2) takes PETSCII. Codes 0-31 (@, A-Z, [, pound, ], up/left
+        ; arrow) sit at PETSCII $40-$5F: without the +64 below a capital
+        ; letter arrives as a control code (H = screen 8 = PETSCII $08,
+        ; which prints nothing). 32-63 (space, digits, punctuation) are the
+        ; same in both, and 64 and up are passed through, so lowercase source
+        ; letters print as capitals in the default character set.
+-			cmp #32
+			bcs Console_Write_Out
+			clc
+			adc #64
+Console_Write_Out
+			jsr basout	; output character
 			iny		; advance pointer
 +			lda (zp_param0_low),y	; get character
 			bne -		; check whether last

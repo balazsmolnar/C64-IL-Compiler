@@ -34,6 +34,17 @@ OBJ_TABLES_FALLBACK = $c800
 ; before Program_Main touches it.
 {{STATIC_CTORS}}
 jsr Program_Main
+
+; Main returned. Put BASIC ROM back before returning to the SYS line that
+; started us: #disable_basic_rom above turned it into RAM, so without this
+; the rts below lands in BASIC's (now RAM) SYS handler, executes garbage,
+; and the machine ends up in the reset path -- clearing the screen and
+; printing READY. With BASIC mapped back in, control returns to BASIC
+; normally: READY. is printed on the next line and whatever the program
+; left on the screen stays there. ($37 = LORAM/HIRAM/CHAREN all set, the
+; power-on value.)
+lda #$37
+sta $01
 rts
 
 ; Real subroutines (not macros), so unlike everything included above they

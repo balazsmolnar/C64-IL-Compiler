@@ -17,6 +17,9 @@ class Program
             return 0;
         }
 
+        if (args.Length > 0 && args[0] == "vice-probe")
+            return ViceProbe.Run(args);
+
         string testSelector = null;
         var breakSpecs = new List<string>();
         var forceRecompile = false;

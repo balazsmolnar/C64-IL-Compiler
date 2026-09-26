@@ -35,6 +35,14 @@ class RotatingCube
     // Whether each of the 12 edges was drawn last frame (see UpdateEdges).
     bool vis0_, vis1_, vis2_, vis3_, vis4_, vis5_, vis6_, vis7_, vis8_, vis9_, vis10_, vis11_;
 
+    // Double-buffered mode (see Init): the hidden buffer still holds the
+    // frame from two swaps ago, so that frame's vertices (ppv*) and edge
+    // visibility (pvis*) are kept as well.
+    bool doubleBuffered_;
+    uint ppvx0_, ppvy0_, ppvx1_, ppvy1_, ppvx2_, ppvy2_, ppvx3_, ppvy3_;
+    uint ppvx4_, ppvy4_, ppvx5_, ppvy5_, ppvx6_, ppvy6_, ppvx7_, ppvy7_;
+    bool pvis0_, pvis1_, pvis2_, pvis3_, pvis4_, pvis5_, pvis6_, pvis7_, pvis8_, pvis9_, pvis10_, pvis11_;
+
     // The cube's screen position moves every frame and bounces off the
     // edges. Bounds keep every projected vertex inside 0-255 (8-bit
     // float->int, see class comment) and inside the 200-line screen: the
@@ -43,9 +51,21 @@ class RotatingCube
     float centerX_, centerY_;
     float velX_, velY_;
 
-    const float CubeSize = 10f;      // half-edge length
+    const float CubeSize = 20f;      // half-edge length
     const float CubeCamDist = 150f;  // pseudo-perspective "camera" distance
     const float FaceTolerance = CubeSize * CubeSize / CubeCamDist;  // see UpdateEdges
+    // Colors for both bitmaps' color matrices in double-buffered mode (high
+    // nibble foreground, low background): the same white-on-light-blue as
+    // Program.cs, which only fills buffer 0's matrix.
+    const uint BitmapColors = 0x1E;
+    // Byte in the free gap under the color matrix ($0fe8-$0fff): the demo
+    // runs double-buffered while it is 0 (the normal case: nothing else
+    // ever writes there, and the assembled .prg has zeros in that gap) and
+    // falls back to the single-buffered, erase-and-redraw path otherwise, so
+    // one program image serves both: patch this byte to 1 in the .prg file
+    // to see the flicker the double buffer removes (that is how the two ran
+    // side by side in VICE).
+    const ulong ModeByteAddress = 0x0FF0UL;
     // Margins leave room for one frame's overshoot (velocity is applied
     // before the bounds check) on top of the ~46 pixel extent.
     const float MinCenterX = 54f;
@@ -67,6 +87,14 @@ class RotatingCube
         centerY_ = 100f;
         velX_ = 4f;
         velY_ = 3f;
+
+        doubleBuffered_ = C64.GetMemory(ModeByteAddress, 0) == 0;
+        if (doubleBuffered_)
+        {
+            // Buffer 0 is being shown; draw into the hidden buffer 1.
+            C64.Screen.SetBitmapColors(BitmapColors);
+            C64.Screen.SetDrawBuffer(1);
+        }
     }
 
     public void Step()
@@ -100,8 +128,17 @@ class RotatingCube
         Project(p6x, p6y, p6z); uint vx6 = lastVx_; uint vy6 = lastVy_;
         Project(p7x, p7y, p7z); uint vx7 = lastVx_; uint vy7 = lastVy_;
 
-        UpdateEdges(vx0, vy0, vx1, vy1, vx2, vy2, vx3, vy3,
-                    vx4, vy4, vx5, vy5, vx6, vy6, vx7, vy7);
+        if (doubleBuffered_)
+        {
+            UpdateEdgesBuffered(vx0, vy0, vx1, vy1, vx2, vy2, vx3, vy3,
+                                vx4, vy4, vx5, vy5, vx6, vy6, vx7, vy7);
+            C64.Screen.SwapBuffers();
+        }
+        else
+        {
+            UpdateEdges(vx0, vy0, vx1, vy1, vx2, vy2, vx3, vy3,
+                        vx4, vy4, vx5, vy5, vx6, vy6, vx7, vy7);
+        }
 
         pvx0_ = vx0; pvy0_ = vy0; pvx1_ = vx1; pvy1_ = vy1;
         pvx2_ = vx2; pvy2_ = vy2; pvx3_ = vx3; pvy3_ = vy3;
@@ -234,5 +271,85 @@ class RotatingCube
         if (vis11_) C64.Screen.DrawLine(pvx3_, pvy3_, pvx7_, pvy7_, false);
         if (e11) C64.Screen.DrawLine(nx3, ny3, nx7, ny7, true);
         vis11_ = e11;
+    }
+
+    // Double-buffered version of UpdateEdges: everything is drawn into the
+    // hidden buffer, which still holds the frame from two swaps ago, so that
+    // frame's edges are erased (all of them first -- nothing new to clip
+    // yet), the new frame's visible edges are drawn, and Step then swaps.
+    // Nothing is ever shown half-updated, so there is no blinking. The
+    // vertex/visibility history shifts at the end.
+    void UpdateEdgesBuffered(uint nx0, uint ny0, uint nx1, uint ny1, uint nx2, uint ny2, uint nx3, uint ny3,
+                             uint nx4, uint ny4, uint nx5, uint ny5, uint nx6, uint ny6, uint nx7, uint ny7)
+    {
+        bool xp = az_ < -FaceTolerance;
+        bool xn = az_ > FaceTolerance;
+        bool yp = bz_ < -FaceTolerance;
+        bool yn = bz_ > FaceTolerance;
+        bool zp = cz_ < -FaceTolerance;
+        bool zn = cz_ > FaceTolerance;
+
+        bool e0 = yn || zn;
+        bool e1 = xp || zn;
+        bool e2 = yp || zn;
+        bool e3 = xn || zn;
+        bool e4 = yn || zp;
+        bool e5 = xp || zp;
+        bool e6 = yp || zp;
+        bool e7 = xn || zp;
+        bool e8 = xn || yn;
+        bool e9 = xp || yn;
+        bool e10 = xp || yp;
+        bool e11 = xn || yp;
+
+        // Erase the frame this buffer still holds.
+        if (pvis0_) C64.Screen.DrawLine(ppvx0_, ppvy0_, ppvx1_, ppvy1_, false);
+        if (pvis1_) C64.Screen.DrawLine(ppvx1_, ppvy1_, ppvx2_, ppvy2_, false);
+        if (pvis2_) C64.Screen.DrawLine(ppvx2_, ppvy2_, ppvx3_, ppvy3_, false);
+        if (pvis3_) C64.Screen.DrawLine(ppvx3_, ppvy3_, ppvx0_, ppvy0_, false);
+        if (pvis4_) C64.Screen.DrawLine(ppvx4_, ppvy4_, ppvx5_, ppvy5_, false);
+        if (pvis5_) C64.Screen.DrawLine(ppvx5_, ppvy5_, ppvx6_, ppvy6_, false);
+        if (pvis6_) C64.Screen.DrawLine(ppvx6_, ppvy6_, ppvx7_, ppvy7_, false);
+        if (pvis7_) C64.Screen.DrawLine(ppvx7_, ppvy7_, ppvx4_, ppvy4_, false);
+        if (pvis8_) C64.Screen.DrawLine(ppvx0_, ppvy0_, ppvx4_, ppvy4_, false);
+        if (pvis9_) C64.Screen.DrawLine(ppvx1_, ppvy1_, ppvx5_, ppvy5_, false);
+        if (pvis10_) C64.Screen.DrawLine(ppvx2_, ppvy2_, ppvx6_, ppvy6_, false);
+        if (pvis11_) C64.Screen.DrawLine(ppvx3_, ppvy3_, ppvx7_, ppvy7_, false);
+
+        // Draw the new frame.
+        if (e0) C64.Screen.DrawLine(nx0, ny0, nx1, ny1, true);
+        if (e1) C64.Screen.DrawLine(nx1, ny1, nx2, ny2, true);
+        if (e2) C64.Screen.DrawLine(nx2, ny2, nx3, ny3, true);
+        if (e3) C64.Screen.DrawLine(nx3, ny3, nx0, ny0, true);
+        if (e4) C64.Screen.DrawLine(nx4, ny4, nx5, ny5, true);
+        if (e5) C64.Screen.DrawLine(nx5, ny5, nx6, ny6, true);
+        if (e6) C64.Screen.DrawLine(nx6, ny6, nx7, ny7, true);
+        if (e7) C64.Screen.DrawLine(nx7, ny7, nx4, ny4, true);
+        if (e8) C64.Screen.DrawLine(nx0, ny0, nx4, ny4, true);
+        if (e9) C64.Screen.DrawLine(nx1, ny1, nx5, ny5, true);
+        if (e10) C64.Screen.DrawLine(nx2, ny2, nx6, ny6, true);
+        if (e11) C64.Screen.DrawLine(nx3, ny3, nx7, ny7, true);
+
+        // History: what was one frame back is now two back.
+        ppvx0_ = pvx0_; ppvy0_ = pvy0_;
+        ppvx1_ = pvx1_; ppvy1_ = pvy1_;
+        ppvx2_ = pvx2_; ppvy2_ = pvy2_;
+        ppvx3_ = pvx3_; ppvy3_ = pvy3_;
+        ppvx4_ = pvx4_; ppvy4_ = pvy4_;
+        ppvx5_ = pvx5_; ppvy5_ = pvy5_;
+        ppvx6_ = pvx6_; ppvy6_ = pvy6_;
+        ppvx7_ = pvx7_; ppvy7_ = pvy7_;
+        pvis0_ = vis0_; vis0_ = e0;
+        pvis1_ = vis1_; vis1_ = e1;
+        pvis2_ = vis2_; vis2_ = e2;
+        pvis3_ = vis3_; vis3_ = e3;
+        pvis4_ = vis4_; vis4_ = e4;
+        pvis5_ = vis5_; vis5_ = e5;
+        pvis6_ = vis6_; vis6_ = e6;
+        pvis7_ = vis7_; vis7_ = e7;
+        pvis8_ = vis8_; vis8_ = e8;
+        pvis9_ = vis9_; vis9_ = e9;
+        pvis10_ = vis10_; vis10_ = e10;
+        pvis11_ = vis11_; vis11_ = e11;
     }
 }

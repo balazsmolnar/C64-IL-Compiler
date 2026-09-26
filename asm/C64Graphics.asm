@@ -365,22 +365,113 @@ Screen_DrawRectangle_Done:
 ; ===========================================================================
 .if Flag_Screen_DrawLine
 
-; Classic (non-symmetric) integer Bresenham: drives the loop along whichever
-; axis has the larger delta, so "err" only ever needs a "< 0" check (the N
-; flag straight off a 16-bit SBC) instead of a signed compare against a
-; second nonzero threshold -- much cheaper on a 6502 than the textbook
-; "single loop, e2=2*err" formulation, which needs two signed comparisons
-; per step. dx/dy are stored as unsigned magnitudes (16-bit -- x spans
-; 0-319, needs the high byte; y's 0-199 never does, but dy/dy_high are kept
-; 16-bit for symmetry with dx in the shared shift/compare code below), sx/sy
-; are 0/1 "increasing" flags (not signed +-1 bytes) so stepping x/y is a
-; plain inc/dec, never a signed add.
+; Integer Bresenham with the exact same pixels as the textbook version (X-major
+; when dx >= dy, error starts at half the major delta, the minor axis steps
+; when the error goes negative -- SimpleEmulator.Test's GraphicsLineTests
+; checks every pixel against a reference of that), but built for speed:
 ;
-; In: zp_gfx_x_low/high=x0, zp_gfx_y=y0 (start -- also the live "current
-; point" Graphics_SetPixel_Core plots from every step), zp_gfx_endx_low/
-; high=x1, zp_gfx_endy=y1 (end), zp_gfx_on. Destroys zp_gfx_x_low/high,
-; zp_gfx_y (advanced to the endpoint), zp_gfx_dx_low/high, zp_gfx_dy/
-; zp_gfx_dy_high, zp_gfx_sx, zp_gfx_sy, zp_gfx_err_low/high.
+;   * The bitmap address and bit mask are computed once, for the start point,
+;     and then stepped: an X step shifts the mask (adding/subtracting 8 to the
+;     pointer only when it wraps to the next byte); a Y step moves the pointer
+;     one scanline (adding/subtracting 313 = 320-7 only when it crosses into
+;     the next 8-pixel cell row). The pointer's low three bits always equal
+;     y&7 (the bitmap and every cell are 8-byte aligned), so that's what the
+;     cell-crossing test looks at. The old version recomputed the whole
+;     address from x and y for every pixel.
+;   * The error term is 8 bits, with the borrow from SBC as the "went
+;     negative" test. That needs the major delta to fit in a byte: always
+;     true for Y-major (dy <= 199), and for X-major unless dx > 255, which
+;     takes the original 16-bit loop below (Graphics_DrawLine_XMajor_Wide).
+;   * Each loop counts its pixels in X (Y stays 0 for the indirect access)
+;     instead of comparing the coordinate with the end point, and there is a
+;     separate loop per step direction, so nothing tests a direction per pixel.
+;   * Set vs clear is patched into the loops' plot instruction before they
+;     run (Graphics_DrawLine_Patch): "bit mask" (no effect on A) sets, "eor
+;     mask" clears, since (b | m) ^ m == b & ~m. Program code is RAM, so this
+;     is safe here.
+;
+; In: zp_gfx_x_low/high=x0, zp_gfx_y=y0 (start), zp_gfx_endx_low/high=x1,
+; zp_gfx_endy=y1 (end), zp_gfx_on (nonzero = set, 0 = clear). Destroys A, X,
+; Y and the zp_gfx_* registers -- including x/y, which are NOT advanced to the
+; end point any more.
+
+; Advance one pixel in X (falls through). The mask is a single bit: shifting
+; it out of the byte means moving to the neighbouring byte, 8 bytes away.
+gfx_xstep_right .macro
+    lsr zp_gfx_mask
+    bcc +
+    ror zp_gfx_mask                 ; carry (1) becomes bit 7 again
+    lda zp_gfx_ptr_low
+    clc
+    adc #8
+    sta zp_gfx_ptr_low
+    bcc +
+    inc zp_gfx_ptr_high
++
+.endm
+
+gfx_xstep_left .macro
+    asl zp_gfx_mask
+    bcc +
+    rol zp_gfx_mask                 ; carry (1) becomes bit 0 again
+    lda zp_gfx_ptr_low
+    sec
+    sbc #8
+    sta zp_gfx_ptr_low
+    bcs +
+    dec zp_gfx_ptr_high
++
+.endm
+
+; Advance one scanline down/up, then continue at \back. Within a cell the
+; pointer moves by 1; crossing a cell boundary moves it 313 (down: from the
+; cell's last scanline to the first of the next cell row) or -313.
+gfx_ystep_down .macro back
+    lda zp_gfx_ptr_low
+    and #7
+    cmp #7
+    beq +
+    inc zp_gfx_ptr_low
+    jmp \back
++   lda zp_gfx_ptr_low
+    clc
+    adc #<313
+    sta zp_gfx_ptr_low
+    lda zp_gfx_ptr_high
+    adc #>313
+    sta zp_gfx_ptr_high
+    jmp \back
+.endm
+
+gfx_ystep_up .macro back
+    lda zp_gfx_ptr_low
+    and #7
+    beq +
+    dec zp_gfx_ptr_low
+    jmp \back
++   lda zp_gfx_ptr_low
+    sec
+    sbc #<313
+    sta zp_gfx_ptr_low
+    lda zp_gfx_ptr_high
+    sbc #>313
+    sta zp_gfx_ptr_high
+    jmp \back
+.endm
+
+; Turns each loop's "bit mask" into "eor mask" when clearing ($24 = BIT zp,
+; $45 = EOR zp). Destroys A, X.
+Graphics_DrawLine_Patch:
+    ldx #$45
+    lda zp_gfx_on
+    beq +
+    ldx #$24
++   stx Graphics_DrawLine_XR_Plot
+    stx Graphics_DrawLine_XL_Plot
+    stx Graphics_DrawLine_YD_Plot
+    stx Graphics_DrawLine_YU_Plot
+    rts
+
 Graphics_DrawLine_Core:
     ; dx = |x1-x0| (16-bit), sx = 1 if x1>=x0 else 0
     sec
@@ -437,35 +528,178 @@ Graphics_DrawLine_DYDone:
     bcs Graphics_DrawLine_XMajor
     jmp Graphics_DrawLine_YMajor
 
+; ---------------------------------------------------------------------------
+; X-major (dx >= dy). dx <= 255: fast loops; wider: the 16-bit loop below.
+; ---------------------------------------------------------------------------
 Graphics_DrawLine_XMajor:
+    lda zp_gfx_dx_high
+    beq +
+    jmp Graphics_DrawLine_XMajor_Wide
++   jsr Graphics_DrawLine_Patch
+    jsr Graphics_ComputePixelAddress
+    lda zp_gfx_dx_low               ; err = dx >> 1
+    lsr
+    sta zp_gfx_err_low
+    lda zp_gfx_dx_low               ; X = pixel count, dx+1 (256 wraps to 0,
+    clc                             ; which the dex/beq below counts as 256)
+    adc #1
+    tax
+    ldy #0
+    lda zp_gfx_sx
+    beq Graphics_DrawLine_XL_Loop
+
+Graphics_DrawLine_XR_Loop:
+    lda (zp_gfx_ptr_low),y
+    ora zp_gfx_mask
+Graphics_DrawLine_XR_Plot:
+    bit zp_gfx_mask
+    sta (zp_gfx_ptr_low),y
+    dex
+    beq Graphics_DrawLine_Done
+    #gfx_xstep_right
+    lda zp_gfx_err_low              ; err -= dy; borrow = went negative
+    sec
+    sbc zp_gfx_dy
+    sta zp_gfx_err_low
+    bcs Graphics_DrawLine_XR_Loop
+    clc                             ; err += dx, and step Y
+    adc zp_gfx_dx_low
+    sta zp_gfx_err_low
+    lda zp_gfx_sy
+    beq Graphics_DrawLine_XR_Up
+    #gfx_ystep_down Graphics_DrawLine_XR_Loop
+Graphics_DrawLine_XR_Up:
+    #gfx_ystep_up Graphics_DrawLine_XR_Loop
+
+Graphics_DrawLine_XL_Loop:
+    lda (zp_gfx_ptr_low),y
+    ora zp_gfx_mask
+Graphics_DrawLine_XL_Plot:
+    bit zp_gfx_mask
+    sta (zp_gfx_ptr_low),y
+    dex
+    beq Graphics_DrawLine_Done
+    #gfx_xstep_left
+    lda zp_gfx_err_low
+    sec
+    sbc zp_gfx_dy
+    sta zp_gfx_err_low
+    bcs Graphics_DrawLine_XL_Loop
+    clc
+    adc zp_gfx_dx_low
+    sta zp_gfx_err_low
+    lda zp_gfx_sy
+    beq Graphics_DrawLine_XL_Up
+    #gfx_ystep_down Graphics_DrawLine_XL_Loop
+Graphics_DrawLine_XL_Up:
+    #gfx_ystep_up Graphics_DrawLine_XL_Loop
+
+; ---------------------------------------------------------------------------
+; Y-major (dy > dx, so dx <= 198 and the 8-bit error always fits).
+; ---------------------------------------------------------------------------
+Graphics_DrawLine_YMajor:
+    jsr Graphics_DrawLine_Patch
+    jsr Graphics_ComputePixelAddress
+    lda zp_gfx_dy                   ; err = dy >> 1
+    lsr
+    sta zp_gfx_err_low
+    lda zp_gfx_dy                   ; X = pixel count, dy+1 (<= 200)
+    clc
+    adc #1
+    tax
+    ldy #0
+    lda zp_gfx_sy
+    beq Graphics_DrawLine_YU_Loop
+
+Graphics_DrawLine_YD_Loop:
+    lda (zp_gfx_ptr_low),y
+    ora zp_gfx_mask
+Graphics_DrawLine_YD_Plot:
+    bit zp_gfx_mask
+    sta (zp_gfx_ptr_low),y
+    dex
+    beq Graphics_DrawLine_Done
+    #gfx_ystep_down Graphics_DrawLine_YD_Err
+Graphics_DrawLine_YD_Err:
+    lda zp_gfx_err_low              ; err -= dx; borrow = went negative
+    sec
+    sbc zp_gfx_dx_low
+    sta zp_gfx_err_low
+    bcs Graphics_DrawLine_YD_Loop
+    clc                             ; err += dy, and step X
+    adc zp_gfx_dy
+    sta zp_gfx_err_low
+    lda zp_gfx_sx
+    beq Graphics_DrawLine_YD_Left
+    #gfx_xstep_right
+    jmp Graphics_DrawLine_YD_Loop
+Graphics_DrawLine_YD_Left:
+    #gfx_xstep_left
+    jmp Graphics_DrawLine_YD_Loop
+
+Graphics_DrawLine_YU_Loop:
+    lda (zp_gfx_ptr_low),y
+    ora zp_gfx_mask
+Graphics_DrawLine_YU_Plot:
+    bit zp_gfx_mask
+    sta (zp_gfx_ptr_low),y
+    dex
+    beq Graphics_DrawLine_Done
+    #gfx_ystep_up Graphics_DrawLine_YU_Err
+Graphics_DrawLine_YU_Err:
+    lda zp_gfx_err_low
+    sec
+    sbc zp_gfx_dx_low
+    sta zp_gfx_err_low
+    bcs Graphics_DrawLine_YU_Loop
+    clc
+    adc zp_gfx_dy
+    sta zp_gfx_err_low
+    lda zp_gfx_sx
+    beq Graphics_DrawLine_YU_Left
+    #gfx_xstep_right
+    jmp Graphics_DrawLine_YU_Loop
+Graphics_DrawLine_YU_Left:
+    #gfx_xstep_left
+    jmp Graphics_DrawLine_YU_Loop
+
+Graphics_DrawLine_Done:
+    rts
+
+; ---------------------------------------------------------------------------
+; X-major with dx > 255 (up to 319): the original per-pixel loop with a 16-bit
+; error term, plotting through Graphics_SetPixel_Core from zp_gfx_x/y. Only
+; lines wider than 255 pixels come here.
+; ---------------------------------------------------------------------------
+Graphics_DrawLine_XMajor_Wide:
     lda zp_gfx_dx_high              ; err = dx >> 1 (unsigned)
     lsr
     sta zp_gfx_err_high
     lda zp_gfx_dx_low
     ror
     sta zp_gfx_err_low
-Graphics_DrawLine_XMajor_Loop:
+Graphics_DrawLine_Wide_Loop:
     jsr Graphics_SetPixel_Core
     lda zp_gfx_x_low
     cmp zp_gfx_endx_low
-    bne Graphics_DrawLine_XMajor_Step
+    bne Graphics_DrawLine_Wide_Step
     lda zp_gfx_x_high
     cmp zp_gfx_endx_high
     beq Graphics_DrawLine_Done
-Graphics_DrawLine_XMajor_Step:
+Graphics_DrawLine_Wide_Step:
     lda zp_gfx_sx                   ; x += sx (16-bit)
-    beq Graphics_DrawLine_XMajor_DecX
+    beq Graphics_DrawLine_Wide_DecX
     inc zp_gfx_x_low
-    bne Graphics_DrawLine_XMajor_AfterX
+    bne Graphics_DrawLine_Wide_AfterX
     inc zp_gfx_x_high
-    jmp Graphics_DrawLine_XMajor_AfterX
-Graphics_DrawLine_XMajor_DecX:
+    jmp Graphics_DrawLine_Wide_AfterX
+Graphics_DrawLine_Wide_DecX:
     lda zp_gfx_x_low
-    bne Graphics_DrawLine_XMajor_DecX_NoBorrow
+    bne Graphics_DrawLine_Wide_DecX_NoBorrow
     dec zp_gfx_x_high
-Graphics_DrawLine_XMajor_DecX_NoBorrow:
+Graphics_DrawLine_Wide_DecX_NoBorrow:
     dec zp_gfx_x_low
-Graphics_DrawLine_XMajor_AfterX:
+Graphics_DrawLine_Wide_AfterX:
     sec                              ; err -= dy
     lda zp_gfx_err_low
     sbc zp_gfx_dy
@@ -473,14 +707,14 @@ Graphics_DrawLine_XMajor_AfterX:
     lda zp_gfx_err_high
     sbc zp_gfx_dy_high
     sta zp_gfx_err_high
-    bpl Graphics_DrawLine_XMajor_Loop
+    bpl Graphics_DrawLine_Wide_Loop
     lda zp_gfx_sy                   ; err < 0: y += sy
-    beq Graphics_DrawLine_XMajor_DecY
+    beq Graphics_DrawLine_Wide_DecY
     inc zp_gfx_y
-    jmp Graphics_DrawLine_XMajor_AfterY
-Graphics_DrawLine_XMajor_DecY:
+    jmp Graphics_DrawLine_Wide_AfterY
+Graphics_DrawLine_Wide_DecY:
     dec zp_gfx_y
-Graphics_DrawLine_XMajor_AfterY:
+Graphics_DrawLine_Wide_AfterY:
     clc                              ; err += dx
     lda zp_gfx_err_low
     adc zp_gfx_dx_low
@@ -488,59 +722,7 @@ Graphics_DrawLine_XMajor_AfterY:
     lda zp_gfx_err_high
     adc zp_gfx_dx_high
     sta zp_gfx_err_high
-    jmp Graphics_DrawLine_XMajor_Loop
-
-Graphics_DrawLine_YMajor:
-    lda zp_gfx_dy_high               ; err = dy >> 1 (unsigned)
-    lsr
-    sta zp_gfx_err_high
-    lda zp_gfx_dy
-    ror
-    sta zp_gfx_err_low
-Graphics_DrawLine_YMajor_Loop:
-    jsr Graphics_SetPixel_Core
-    lda zp_gfx_y
-    cmp zp_gfx_endy
-    beq Graphics_DrawLine_Done
-    lda zp_gfx_sy                    ; y += sy
-    beq Graphics_DrawLine_YMajor_DecY
-    inc zp_gfx_y
-    jmp Graphics_DrawLine_YMajor_AfterY
-Graphics_DrawLine_YMajor_DecY:
-    dec zp_gfx_y
-Graphics_DrawLine_YMajor_AfterY:
-    sec                               ; err -= dx
-    lda zp_gfx_err_low
-    sbc zp_gfx_dx_low
-    sta zp_gfx_err_low
-    lda zp_gfx_err_high
-    sbc zp_gfx_dx_high
-    sta zp_gfx_err_high
-    bpl Graphics_DrawLine_YMajor_Loop
-    lda zp_gfx_sx                    ; err < 0: x += sx (16-bit)
-    beq Graphics_DrawLine_YMajor_DecX
-    inc zp_gfx_x_low
-    bne Graphics_DrawLine_YMajor_AfterX
-    inc zp_gfx_x_high
-    jmp Graphics_DrawLine_YMajor_AfterX
-Graphics_DrawLine_YMajor_DecX:
-    lda zp_gfx_x_low
-    bne Graphics_DrawLine_YMajor_DecX_NoBorrow
-    dec zp_gfx_x_high
-Graphics_DrawLine_YMajor_DecX_NoBorrow:
-    dec zp_gfx_x_low
-Graphics_DrawLine_YMajor_AfterX:
-    clc                               ; err += dy
-    lda zp_gfx_err_low
-    adc zp_gfx_dy
-    sta zp_gfx_err_low
-    lda zp_gfx_err_high
-    adc zp_gfx_dy_high
-    sta zp_gfx_err_high
-    jmp Graphics_DrawLine_YMajor_Loop
-
-Graphics_DrawLine_Done:
-    rts
+    jmp Graphics_DrawLine_Wide_Loop
 
 Screen_DrawLine:
     #stack_save_return_adress zp_tmp1_low

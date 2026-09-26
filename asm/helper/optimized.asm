@@ -92,6 +92,34 @@ pushfld16 .macro pos
 
 .endm
 
+; Float field of `this`, pushed straight from the object onto the evaluation
+; stack (exponent first, same byte order as stack_push_var_mflpt) -- no detour
+; through zp_flt_a like the unfused Ldarg_0 + ldfldflt.
+pushfldflt .macro pos
+
+  ldy stackPointer
+  dey
+  ldx localsStack,y
+  jsr resolveObjPtr
+
+  ldy #\pos
+  lda (tmpPointer),y
+  pha
+  iny
+  lda (tmpPointer),y
+  pha
+  iny
+  lda (tmpPointer),y
+  pha
+  iny
+  lda (tmpPointer),y
+  pha
+  iny
+  lda (tmpPointer),y
+  pha
+
+.endm
+
 incfld .macro pos 
 
   ldy stackPointer

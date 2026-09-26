@@ -344,23 +344,23 @@ ldfldflt .macro pos
   #stack_pull_int_x
   jsr resolveObjPtr
 
+  ; pushed straight from the object (exponent first, same order as
+  ; stack_push_var_mflpt) instead of copying through zp_flt_a first
   ldy #\pos
   lda (tmpPointer),y
-  sta zp_flt_a
-  ldy #\pos+1
+  pha
+  iny
   lda (tmpPointer),y
-  sta zp_flt_a+1
-  ldy #\pos+2
+  pha
+  iny
   lda (tmpPointer),y
-  sta zp_flt_a+2
-  ldy #\pos+3
+  pha
+  iny
   lda (tmpPointer),y
-  sta zp_flt_a+3
-  ldy #\pos+4
+  pha
+  iny
   lda (tmpPointer),y
-  sta zp_flt_a+4
-
-  #stack_push_var_mflpt zp_flt_a
+  pha
 .endm
 
 stelemflt .macro

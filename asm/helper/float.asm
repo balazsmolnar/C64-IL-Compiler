@@ -63,21 +63,77 @@ FAC1YA = $B1AA
 ; "-5" with no extra space). Float_ToString below strips that space and
 ; copies the result out before returning.
 FOUT   = $BDDD
+ROUND  = $BC1B   ; FAC1 rounding, the first thing MOVMF does
+
+; Replacements for the ROM's MOVFM/MOVMF calls, which cost ~80 and ~110 cycles
+; and dominated the per-operation overhead of Float_Add etc. (see the
+; byte-for-byte equivalence test in SimpleEmulator.Test's FloatWrapperTests).
+; Real subroutines rather than macros: float.asm is always included, and the
+; inline copies at every call site cost ~360 bytes for a ~12 cycle saving.
+; They work on this compiler's own zero-page MFLPT copy (5 bytes: exponent,
+; then four mantissa bytes with the sign in bit 7 of the first one) and the
+; ROM's unpacked FAC1 ($61 exponent, $62-$65 mantissa with the implied
+; leading 1 made explicit, $66 sign, $70 rounding byte).
+;
+; Float_LoadFac1_A/_B = MOVFM: FAC1 = zp_flt_a/zp_flt_b. $66 gets the raw
+; first mantissa byte (only its bit 7, the sign, is ever looked at), $62 gets
+; it with bit 7 forced on, and the rounding byte $70 is cleared -- exactly
+; what the ROM does.
+flt_load_fac1 .macro addr
+    lda \addr+4
+    sta $65
+    lda \addr+3
+    sta $64
+    lda \addr+2
+    sta $63
+    lda \addr+1
+    sta $66
+    ora #$80
+    sta $62
+    lda \addr
+    sta $61
+    lda #0
+    sta $70
+    rts
+.endm
+
+Float_LoadFac1_A
+    #flt_load_fac1 zp_flt_a
+Float_LoadFac1_B
+    #flt_load_fac1 zp_flt_b
+
+; Float_StoreFac1_A = MOVMF: zp_flt_a = FAC1, rounded first (ROUND at $BC1B is
+; the very routine MOVMF itself calls, and needs the ROM banked in). The sign
+; is merged back into bit 7 of the first mantissa byte and $70 is left at 0.
+Float_StoreFac1_A
+    jsr ROUND
+    lda $65
+    sta zp_flt_a+4
+    lda $64
+    sta zp_flt_a+3
+    lda $63
+    sta zp_flt_a+2
+    lda $66
+    ora #$7f
+    and $62
+    sta zp_flt_a+1
+    lda $61
+    sta zp_flt_a
+    lda #0
+    sta $70
+    rts
+
 
 ; Both operands already sit in zp_flt_a/zp_flt_b (the calling macro pulls
 ; them off this compiler's own evaluation stack first -- that doesn't touch
 ; $01/ROM banking, so it's safe to inline anywhere). Result left in zp_flt_a.
 Float_Add
     #bank_in_basic_rom
-    lda #<zp_flt_a
-    ldy #>zp_flt_a
-    jsr MOVFM
+    jsr Float_LoadFac1_A
     lda #<zp_flt_b
     ldy #>zp_flt_b
     jsr FADD
-    ldx #<zp_flt_a
-    ldy #>zp_flt_a
-    jsr MOVMF
+    jsr Float_StoreFac1_A
     #bank_out_basic_rom
     rts
 
@@ -85,29 +141,21 @@ Float_Add
 ; first and the ROM call points at a.
 Float_Sub
     #bank_in_basic_rom
-    lda #<zp_flt_b
-    ldy #>zp_flt_b
-    jsr MOVFM
+    jsr Float_LoadFac1_B
     lda #<zp_flt_a
     ldy #>zp_flt_a
     jsr FSUB
-    ldx #<zp_flt_a
-    ldy #>zp_flt_a
-    jsr MOVMF
+    jsr Float_StoreFac1_A
     #bank_out_basic_rom
     rts
 
 Float_Mul
     #bank_in_basic_rom
-    lda #<zp_flt_a
-    ldy #>zp_flt_a
-    jsr MOVFM
+    jsr Float_LoadFac1_A
     lda #<zp_flt_b
     ldy #>zp_flt_b
     jsr FMULT
-    ldx #<zp_flt_a
-    ldy #>zp_flt_a
-    jsr MOVMF
+    jsr Float_StoreFac1_A
     #bank_out_basic_rom
     rts
 
@@ -132,15 +180,11 @@ Float_Mul
 ; which was already correct.
 Float_Div
     #bank_in_basic_rom
-    lda #<zp_flt_b
-    ldy #>zp_flt_b
-    jsr MOVFM
+    jsr Float_LoadFac1_B
     lda #<zp_flt_a
     ldy #>zp_flt_a
     jsr FDIV
-    ldx #<zp_flt_a
-    ldy #>zp_flt_a
-    jsr MOVMF
+    jsr Float_StoreFac1_A
     #bank_out_basic_rom
     rts
 
@@ -148,9 +192,7 @@ Float_Div
 ; convention, passed straight through to the caller.
 Float_Compare
     #bank_in_basic_rom
-    lda #<zp_flt_a
-    ldy #>zp_flt_a
-    jsr MOVFM
+    jsr Float_LoadFac1_A
     lda #<zp_flt_b
     ldy #>zp_flt_b
     jsr FCOMP
@@ -165,9 +207,7 @@ Float_FromInt
     lda zp_flt_int_hi
     ldy zp_flt_int_lo
     jsr GIVAYF
-    ldx #<zp_flt_a
-    ldy #>zp_flt_a
-    jsr MOVMF
+    jsr Float_StoreFac1_A
     #bank_out_basic_rom
     rts
 
@@ -177,9 +217,7 @@ Float_FromInt
 ; arithmetic op here already has for out-of-range values).
 Float_ToInt
     #bank_in_basic_rom
-    lda #<zp_flt_a
-    ldy #>zp_flt_a
-    jsr MOVFM
+    jsr Float_LoadFac1_A
     jsr FAC1YA
     #bank_out_basic_rom
     tya
@@ -226,9 +264,7 @@ Float_ToInt
 ; C64.Interrupt subscriber.
 Float_ToString
     #bank_in_basic_rom
-    lda #<zp_flt_a
-    ldy #>zp_flt_a
-    jsr MOVFM
+    jsr Float_LoadFac1_A
     jsr FOUT
     sta zp_param0_low
     sty zp_param0_high
@@ -499,13 +535,9 @@ MathF_Sin
     #stack_save_return_adress zp_tmp1_low
     #stack_pull_mflpt zp_flt_a
     #bank_in_basic_rom
-    lda #<zp_flt_a
-    ldy #>zp_flt_a
-    jsr MOVFM
+    jsr Float_LoadFac1_A
     jsr SIN
-    ldx #<zp_flt_a
-    ldy #>zp_flt_a
-    jsr MOVMF
+    jsr Float_StoreFac1_A
     #bank_out_basic_rom
     #stack_push_var_mflpt zp_flt_a
     #stack_return_to_saved_address zp_tmp1_low
@@ -520,13 +552,9 @@ MathF_Cos
     #stack_save_return_adress zp_tmp1_low
     #stack_pull_mflpt zp_flt_a
     #bank_in_basic_rom
-    lda #<zp_flt_a
-    ldy #>zp_flt_a
-    jsr MOVFM
+    jsr Float_LoadFac1_A
     jsr COS
-    ldx #<zp_flt_a
-    ldy #>zp_flt_a
-    jsr MOVMF
+    jsr Float_StoreFac1_A
     #bank_out_basic_rom
     #stack_push_var_mflpt zp_flt_a
     #stack_return_to_saved_address zp_tmp1_low
@@ -541,13 +569,9 @@ MathF_Sqrt
     #stack_save_return_adress zp_tmp1_low
     #stack_pull_mflpt zp_flt_a
     #bank_in_basic_rom
-    lda #<zp_flt_a
-    ldy #>zp_flt_a
-    jsr MOVFM
+    jsr Float_LoadFac1_A
     jsr SQR
-    ldx #<zp_flt_a
-    ldy #>zp_flt_a
-    jsr MOVMF
+    jsr Float_StoreFac1_A
     #bank_out_basic_rom
     #stack_push_var_mflpt zp_flt_a
     #stack_return_to_saved_address zp_tmp1_low

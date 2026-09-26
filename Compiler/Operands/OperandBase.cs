@@ -806,12 +806,26 @@ class OpPushFld : OpBase
     private readonly string thisVar;
     private readonly string pos;
     private readonly bool is16Bit;
+    private readonly bool isFloat;
 
-    public OpPushFld(string thisVar, string pos, bool is16Bit) : base(0, "#pushfld")
+    // isFloat is passed in rather than read from StackContent: the
+    // ILPropertyGettterOptimizer's shorter rule deliberately leaves
+    // StackContent null on the fused operation.
+    public OpPushFld(string thisVar, string pos, bool is16Bit, bool isFloat = false) : base(0, "#pushfld")
     {
         this.thisVar = thisVar;
         this.pos = pos;
         this.is16Bit = is16Bit;
+        this.isFloat = isFloat;
+    }
+
+    protected override string SizeSuffix(CompilerMethodContext context, ILOperation operation)
+    {
+        // #pushfldflt (asm/helper/optimized.asm): a float field is 5 bytes,
+        // which neither #pushfld8 nor #pushfld16 pushes.
+        if (isFloat)
+            return "flt";
+        return base.SizeSuffix(context, operation);
     }
 
     public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)

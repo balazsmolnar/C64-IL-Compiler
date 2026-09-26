@@ -149,7 +149,7 @@ Float_Sub
     #bank_out_basic_rom
     rts
 
-Float_Mul
+Float_Mul_ROM
     #bank_in_basic_rom
     jsr Float_LoadFac1_A
     lda #<zp_flt_b
@@ -158,6 +158,22 @@ Float_Mul
     jsr Float_StoreFac1_A
     #bank_out_basic_rom
     rts
+
+; ---------------------------------------------------------------------------
+; Optional fast float multiply: Flag_FastFloatMul = 1 (off by default) swaps
+; the ROM-backed Float_Mul_ROM for asm/helper/floatFastMul.asm's routine,
+; which the program entry file must then .include AFTER the generated code
+; (its 2 KB of page-aligned tables don't fit in the 4 KB below the graphics
+; bitmap at $2000 and would silently overlap it there).
+; ---------------------------------------------------------------------------
+.weak
+Flag_FastFloatMul = 0
+.endweak
+.if Flag_FastFloatMul
+Float_Mul = Float_Mul_Fast
+.else
+Float_Mul = Float_Mul_ROM
+.endif
 
 ; a / b: FDIV computes memory-operand divided by FAC1, so FAC1 is loaded
 ; with b (the divisor) first and the ROM call points at a.

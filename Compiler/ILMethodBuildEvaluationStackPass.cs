@@ -23,6 +23,7 @@ class ILMethodBuildEvaluationStackPass : ICompilerMethodPass
                 op.StackContent = new List<Type>();
             else
                 op.StackContent = new List<Type>(op.PreviousInstructions.First(x => x.StackContent != null).StackContent);
+            context.CurrentIlOffset = op.Position;
             op.Operation.SetStackContent(context, op);
             foreach (var instruction in op.NextInstructions)
             {

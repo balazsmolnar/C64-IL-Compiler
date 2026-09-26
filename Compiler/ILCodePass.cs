@@ -89,6 +89,7 @@ class ILCodePass : ICompilerPass
                 {
                     pass.Execute(typeContext);
                 }
+                CheckFields(context, @type);
 
                 var methods = @type.GetMethods(BindingFlags.Static | BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public).OfType<MethodBase>();
                 var staticConstructors = @type.GetConstructors(BindingFlags.Static | BindingFlags.NonPublic).OfType<MethodBase>();
@@ -98,6 +99,16 @@ class ILCodePass : ICompilerPass
 
                 foreach (var method in methods.Concat(staticConstructors).Where(m => m.DeclaringType != typeof(object)))
                 {
+                    // Implemented by the runtime, not in IL (a delegate type's
+                    // Invoke/BeginInvoke/EndInvoke): nothing to compile. A call
+                    // to one is rejected where it is made (OpCallVirt).
+                    if (!method.IsAbstract && method.GetMethodBody() == null)
+                        continue;
+                    // Inherited from the class library (a delegate type's
+                    // MulticastDelegate members, say): not ours to compile.
+                    if (method.DeclaringType != null && method.DeclaringType.Assembly != context.Assembly)
+                        continue;
+
                     // MethodBase.IsConstructor is deliberately false for a
                     // static constructor (.NET's own docs: it "excludes
                     // type initializers") -- check the name instead.
@@ -113,28 +124,99 @@ class ILCodePass : ICompilerPass
                     };
                     context.Methods.Add(methodContext);
 
-                    foreach (var pass in _setupPasses)
+                    // One method failing must not stop the others from being
+                    // checked: every unsupported construct in the program is
+                    // reported in a single build.
+                    try
                     {
-                        pass.Execute(methodContext);
-                    }
-
-                    for (int iteration = 0; iteration < MaxOptimizerIterations; iteration++)
-                    {
-                        var before = methodContext.Lines.Count;
-                        foreach (var pass in _optimizerPasses)
+                        foreach (var pass in _setupPasses)
                         {
                             pass.Execute(methodContext);
                         }
-                        if (methodContext.Lines.Count == before)
-                            break;
-                    }
 
-                    foreach (var pass in _finalPasses)
+                        for (int iteration = 0; iteration < MaxOptimizerIterations; iteration++)
+                        {
+                            var before = methodContext.Lines.Count;
+                            foreach (var pass in _optimizerPasses)
+                            {
+                                pass.Execute(methodContext);
+                            }
+                            if (methodContext.Lines.Count == before)
+                                break;
+                        }
+
+                        foreach (var pass in _finalPasses)
+                        {
+                            pass.Execute(methodContext);
+                        }
+                    }
+                    catch (UnsupportedFeatureException e)
                     {
-                        pass.Execute(methodContext);
+                        Report(context, methodContext, e.Code, e.Message, e.Hint);
+                    }
+                    catch (NotSupportedException e)
+                    {
+                        // Thrown by passes that already say what is unsupported
+                        // (string interpolation shapes, ...): not a compiler bug.
+                        Report(context, methodContext, DiagnosticCodes.UnsupportedInstruction, e.Message, null);
+                    }
+                    catch (Exception e) when (e is not CompilationFailedException)
+                    {
+                        // A crash inside the compiler itself. Whatever the C#
+                        // was doing is most likely a construct nothing here
+                        // handles, so say that, with the location.
+                        Report(context, methodContext, DiagnosticCodes.InternalError,
+                            $"The compiler failed on this method ({e.GetType().Name}: {FirstLine(e.Message)}).",
+                            "This C# construct is probably not supported. Simplify the code at the reported line, and report it if it should work.");
                     }
                 }
             }
+        }
+
+        // Nothing is worth assembling if anything above was rejected.
+        context.Diagnostics.ThrowIfErrors();
+    }
+
+    private static string FirstLine(string text) => (text ?? "").Split((char)10)[0].Trim();
+
+    private static void Report(CompilerContext context, CompilerMethodContext methodContext, string code, string message, string hint)
+    {
+        var method = methodContext.Method;
+        var location = context.SourceLocator.Locate(method, methodContext.CurrentIlOffset);
+        context.Diagnostics.Add(new CompilerDiagnostic
+        {
+            Code = code,
+            Message = message,
+            Hint = hint,
+            File = location?.file,
+            Line = location?.line ?? 0,
+            Method = $"{method.DeclaringType?.Name}.{method.Name}",
+        });
+    }
+
+    // Field types can't be reached through a method body, so check them
+    // separately. Compiler-generated holders (static array data) hold
+    // value-type fields by design and are never real program state.
+    private static void CheckFields(CompilerContext context, Type type)
+    {
+        if (type.Name.StartsWith("<PrivateImplementationDetails>"))
+            return;
+
+        var flags = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
+        foreach (var field in type.GetFields(flags))
+        {
+            if (field.IsLiteral)
+                continue;
+            var problem = UnsupportedTypes.Check(field.FieldType, context.Assembly, $"The field '{field.Name}'");
+            if (problem == null)
+                continue;
+            context.Diagnostics.Add(new CompilerDiagnostic
+            {
+                Code = problem.Code,
+                Message = problem.Message,
+                Hint = problem.Hint,
+                Method = type.Name,
+            });
         }
     }
 }

@@ -144,7 +144,9 @@ mul_shift_const16 .macro shift
 
 negate16 .macro
 
-    #stack_pull_int zp_param2_low
+    ; 16-bit pull/push (stack_pull_int/stack_push_var are the 8-bit ones: with
+    ; them a long's high byte never came off the stack, so -x was wrong)
+    #stack_pull_int16 zp_param2_low
 
     lda zp_param2_high
     eor #$FF
@@ -156,10 +158,29 @@ negate16 .macro
     bcc +
     inc zp_param2_high
 +   sta zp_param2_low
-    #stack_push_var zp_param2_low
+    #stack_push_var16 zp_param2_low
 .endm
 
-negate8 .macro  
+; Bitwise complement (C#'s ~x). Like every macro here it costs nothing unless a
+; program actually uses it.
+not8 .macro
+    #stack_pull_int_a
+    eor #$FF
+    #stack_push_int_a
+.endm
+
+not16 .macro
+    #stack_pull_int16 zp_param2_low
+    lda zp_param2_high
+    eor #$FF
+    sta zp_param2_high
+    lda zp_param2_low
+    eor #$FF
+    sta zp_param2_low
+    #stack_push_var16 zp_param2_low
+.endm
+
+negate8 .macro
 
     #stack_pull_int_a
 

@@ -166,15 +166,10 @@ class OpCall : OpBase
         if (IsResolvable(method, context.CompilerContext.Assembly))
             return;
 
-        var declaringType = method.DeclaringType;
-        throw new NotSupportedException(
-            $"Unsupported method call: {declaringType.FullName}.{method.Name}(...). This compiler has no way to " +
-            "compile or link this call -- it isn't defined in the assembly being compiled, isn't a C64Lib.* " +
-            "method, and doesn't match any of the specially-handled BCL patterns (numeric .ToString(), " +
-            "string.Concat(string,string)/.Length/.PadLeft(int,char), a static readonly array literal, " +
-            "System.Func<T>.Invoke(), System.MathF.Sin/Cos/Sqrt, System.Console.Write/WriteLine(string)). " +
-            "Without this check the same problem would instead surface much later, as a confusing 64tass " +
-            "\"not defined symbol\" error at assembly time.");
+        // The message names the call and says what to use instead (see
+        // UnsupportedCalls in Diagnostics.cs); the source line is added by
+        // ILCodePass when it catches this.
+        throw UnsupportedCalls.For(method);
     }
 
     // The allowlist itself, split out from EnsureCallIsResolvable so it can
@@ -189,8 +184,11 @@ class OpCall : OpBase
             return true;
         if (declaringType.FullName != null && declaringType.FullName.StartsWith("C64Lib."))
             return true;
+        // Func<TResult> only: asm/system.asm has Func_1_x_ctor/Func_1_Invoke and
+        // nothing for Func<T, TResult> and up (calling one used to fail in
+        // 64tass with an undefined label).
         if (declaringType.Name.StartsWith("Func"))
-            return true;
+            return !declaringType.IsGenericType || declaringType.GetGenericArguments().Length == 1;
         // C64TestFramework.Assert's AreEqual/AreEqualString/Fail/IsTrue/
         // IsFalse are hand-written directly into the test-harness entry
         // templates (Compiler/Templates/UnitTestEntry.asm), not into a
@@ -266,6 +264,24 @@ class OpCallVirt : OpCall
     {
         bool normalCall = false;
         var methodInfo = context.CompilerContext.Assembly.ManifestModule.ResolveMethod((int)operation.OriginalParameter);
+
+        // The vtable slot below is looked up by the method's position among
+        // the DECLARING type's virtual methods. For an interface that is the
+        // position in the interface, which has nothing to do with where the
+        // implementing class keeps the method, so the call silently ran
+        // whichever method happened to sit in that slot. Refuse instead.
+        if (methodInfo.DeclaringType != null && methodInfo.DeclaringType.IsInterface)
+            throw new UnsupportedFeatureException(DiagnosticCodes.UnsupportedDeclaration,
+                $"Calling the interface method '{methodInfo.DeclaringType.Name}.{methodInfo.Name}' is not supported.",
+                "Interfaces are not supported yet. Use an abstract base class with virtual methods instead.");
+        // A user-defined delegate's Invoke is not implemented either (only
+        // Func<TResult> has one, see IsResolvable); it used to crash the compiler.
+        if (methodInfo.Name == "Invoke" && methodInfo.DeclaringType != null
+            && typeof(Delegate).IsAssignableFrom(methodInfo.DeclaringType)
+            && !methodInfo.DeclaringType.Name.StartsWith("Func"))
+            throw new UnsupportedFeatureException(DiagnosticCodes.UnsupportedCall,
+                $"Invoking the delegate type '{methodInfo.DeclaringType.Name}' is not supported.",
+                "Only Func<TResult> (no parameters) can be invoked. Other delegate types can only be assigned to C64.Interrupt.");
         // for Func<>
         if (!methodInfo.IsVirtual || methodInfo.ReflectedType.Name.StartsWith("Func"))
             normalCall = true;
@@ -432,12 +448,14 @@ class OpNewObj : OpBase
             return null;
 
         if (t.Assembly != typeof(Func<object>).Assembly && ConstructorHasUnsupportedBody(method))
-            throw new NotSupportedException(
-                $"Constructor body is not supported: {t.FullName}'s constructor does more than call a base " +
-                "constructor (e.g. it sets a field, or calls another method). This compiler's #newObj never " +
-                "invokes a type's constructor body for an ordinary class -- only C#'s object-initializer syntax " +
-                "(`new T { Field = value }`) or a type with no fields to set is supported. Move the field " +
-                "assignments to an object initializer at the call site instead.");
+            throw new UnsupportedFeatureException(DiagnosticCodes.UnsupportedDeclaration,
+                $"The constructor of '{t.Name}' does real work (sets a field, including a field initializer such as 'int x = 5;', or calls a method), which is not supported yet.",
+                "Set the fields where you create the object, with an object initializer (new " + t.Name + " { Field = value }), or add an Init() method and call it after new.");
+
+        // new List<T>(), new StringBuilder(), new Random()...: a class-library
+        // type has no implementation here (its "vtable" label would not exist).
+        if (!OpCall.IsResolvable(method, context.CompilerContext.Assembly))
+            throw UnsupportedCalls.For(method);
 
         var size = 0;
         var referenceFields = 0;
@@ -1291,6 +1309,47 @@ class OpStsfld : OpBase
         operation.StackContent.RemoveLast(1);
     }
 
+}
+
+// starg.s: `a = a + 1;` where a is a parameter. Parameters live in the same
+// locals stack as locals (see OpLdarg's #locals_push_value), so this is
+// OpStloc's #locals_pull_value aimed at the parameter's slot -- including
+// the reference-count update when the parameter is an object reference.
+class OpStarg_s : OpBase
+{
+    public OpStarg_s() : base(1, "#locals_pull_value")
+    {
+    }
+
+    private static int ArgIndex(ILOperation operation) => (int)operation.OriginalParameter;
+
+    public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
+    {
+        var index = ArgIndex(operation);
+        var relPos = context.GetParameterReferencePosition(index);
+        var isRef = context.GetParameterType(index).IsReferenceCounted() ? "1" : "0";
+        return $"{relPos}, {isRef}";
+    }
+
+    public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
+    {
+        operation.StackContent.Last().CheckCompatible(context.GetParameterType(ArgIndex(operation)));
+        operation.StackContent.RemoveLast(1);
+    }
+
+    public override bool Is16BitSupported => true;
+
+    public override bool Is16Bit(CompilerMethodContext context, ILOperation operation)
+    {
+        return context.GetParameterSize(ArgIndex(operation)) == 2;
+    }
+
+    protected override string SizeSuffix(CompilerMethodContext context, ILOperation operation)
+    {
+        if (context.GetParameterType(ArgIndex(operation)) == typeof(float))
+            return "flt";
+        return base.SizeSuffix(context, operation);
+    }
 }
 
 class OpStloc_s : OpBase

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,6 +8,14 @@ namespace Compiler.Ops;
 
 class OpArithmetic2 : OpBase
 {
+    // The types an arithmetic/compare operand may have on the evaluation stack.
+    // byte, sbyte and char are 1-byte values like int/uint (this compiler's
+    // narrow integer widths; see TypeExtensions.GetStorageBytes).
+    internal static bool IsNumericOperand(System.Type type) =>
+        type == typeof(int) || type == typeof(uint) || type == typeof(long) || type == typeof(ulong) ||
+        type == typeof(bool) || type == typeof(float) ||
+        type == typeof(byte) || type == typeof(sbyte) || type == typeof(char);
+
     public OpArithmetic2(string command) : base(0, command)
     {
     }
@@ -16,7 +24,7 @@ class OpArithmetic2 : OpBase
     {
         var last = operation.StackContent.Last();
         var last2 = operation.StackContent.Last(1);
-        if (last != typeof(int) && last != typeof(uint) && last != typeof(long) && last != typeof(ulong) && last != typeof(bool) && last != typeof(float))
+        if (!IsNumericOperand(last))
             throw new InvalidOperationException("Unsupported type in arithmetic operation.");
         if (last2.GetStorageBytes() != last.GetStorageBytes())
             throw new InvalidOperationException("2 types in stack must be equal.");
@@ -51,7 +59,7 @@ class OpArithmetic1 : OpBase
     public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
     {
         var last = operation.StackContent.Last();
-        if (last != typeof(int) && last != typeof(uint) && last != typeof(long) && last != typeof(ulong) && last != typeof(bool) && last != typeof(float))
+        if (!OpArithmetic2.IsNumericOperand(last))
             throw new InvalidOperationException("Unsupported type in arithmetic operation.");
 
         operation.StackContent.RemoveLast(1);
@@ -78,7 +86,15 @@ class OpCompare : OpArithmetic2
     {
         var last = operation.StackContent.Last();
         var last2 = operation.StackContent.Last(1);
-        if (last != typeof(int) && last != typeof(uint) && last != typeof(long) && last != typeof(ulong) && last != typeof(bool) && last != typeof(float))
+
+        // Object references (class instances, arrays, null) are 1-byte object
+        // table handles, so `a == b`, `a != b` and `a != null` used as a VALUE
+        // (bool x = a != null; return a == b;) compare two bytes with the same
+        // 8-bit macros as numbers: equal handles = the same object, 0 = null.
+        // (In an `if` condition the compiler emits brtrue/beq, which already
+        // worked.) Strings are 2-byte pointers and stay unsupported here.
+        bool isReference = !last.IsValueType && last != typeof(string);
+        if (!isReference && !IsNumericOperand(last))
             throw new InvalidOperationException("Unsupported type in arithmetic operation.");
         if (last2.GetStorageBytes() != last.GetStorageBytes())
             throw new InvalidOperationException("2 types in stack must be equal.");

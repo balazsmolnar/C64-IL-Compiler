@@ -16,6 +16,13 @@ class CompilerContext
 
     public string OutputDirectory { get; set; }
 
+    // Every "this C# construct isn't supported" problem found while compiling,
+    // collected per method (ILCodePass) so one build reports all of them, with
+    // source lines from the PDB when there is one.
+    public CompilerDiagnostics Diagnostics { get; } = new CompilerDiagnostics();
+    private SourceLocator _sourceLocator;
+    public SourceLocator SourceLocator => _sourceLocator ??= new SourceLocator(Assembly);
+
     // Read by ILEntryPointPass: where to write the top-level entry .asm
     // file (e.g. asm/hunchback.asm), and whether it should be the
     // unittest.asm-style test harness instead of a normal Program_Main
@@ -91,6 +98,10 @@ class CompilerMethodContext
     public CompilerTypeContext TypeContext { get; set; }
     public MethodBase Method { get; set; }
     public List<ILOperation> Lines { get; set; }
+
+    // IL offset of the instruction currently being decoded/translated, so a
+    // failure can be reported against the C# line that produced it.
+    public int? CurrentIlOffset { get; set; }
 
     public int GetLocalVariableReferencePosition(int index)
     {

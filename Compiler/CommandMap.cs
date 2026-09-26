@@ -39,6 +39,13 @@ internal static class CommandMap
             { ILOpCode.Stfld, new OpStfld() },
             { ILOpCode.Stelem_ref, new OpStElem() },
             { ILOpCode.Ldelem_ref, new OpLdElem() },
+            // byte[]/sbyte[]/bool[] elements are 1 byte, exactly like this
+            // compiler's uint[]/int[]: the array ops pick their width from the
+            // element TYPE (GetStorageBytes), never from the opcode, so the
+            // 1-byte-element opcodes just reuse the same operations.
+            { ILOpCode.Stelem_i1, new OpStElem() },
+            { ILOpCode.Ldelem_i1, new OpLdElem() },
+            { ILOpCode.Ldelem_u1, new OpLdElem() },
             { ILOpCode.Stelem_i4, new OpStElem() },
             { ILOpCode.Ldelem_i4, new OpLdElem() },
             // Ldelem_u4 is IL's uint[]-read opcode -- stelem has no
@@ -149,6 +156,8 @@ internal static class CommandMap
             { ILOpCode.Rem, new OpArithmetic2("#rem") },
             { ILOpCode.Rem_un, new OpArithmetic2("#rem_unsigned") },
             { ILOpCode.Neg, new OpArithmetic1("#negate") },
+            { ILOpCode.Not, new OpArithmetic1("#not") },
+            { ILOpCode.Starg_s, new OpStarg_s() },
             { ILOpCode.And, new OpArithmetic2("#and") },
             // Same reasoning as Div/Div_un above -- Or/Xor reuse OpArithmetic2
             // verbatim, just like And; C# has no `|`/`^` operator on float, so
@@ -167,6 +176,11 @@ internal static class CommandMap
             { ILOpCode.Conv_u8, new OpConv_8_16() },
             { ILOpCode.Conv_u4, new OpConv_16_8() },
             { ILOpCode.Conv_i4, new OpConv_16_8()  },
+            // (byte)x / (sbyte)x: this compiler's int/uint are already 8 bits,
+            // so narrowing to a byte is the same "keep the low byte" step as
+            // narrowing a 16-bit value to int (and a no-op for an 8-bit source).
+            { ILOpCode.Conv_u1, new OpConv_16_8() },
+            { ILOpCode.Conv_i1, new OpConv_16_8() },
             { ILOpCode.Conv_r4, new OpConvIntToFloat() },
             // Roslyn emits Conv_r_un (not Conv_r4) for an implicit uint ->
             // float conversion (e.g. "float f = someUint;" or a uint

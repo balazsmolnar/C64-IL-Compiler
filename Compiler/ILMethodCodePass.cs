@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Reflection.Metadata;
 
 namespace Compiler;
@@ -10,6 +11,8 @@ class ILMethodCodePass : ICompilerMethodPass
     {
         if (context.Method.IsAbstract)
             return;
+
+        CheckDeclaration(context);
 
         var body = context.Method.GetMethodBody();
         var input = body.GetILAsByteArray();
@@ -32,11 +35,14 @@ class ILMethodCodePass : ICompilerMethodPass
                 opCode = (ILOpCode)(input[index++]);
             }
             operation.OpCode = opCode;
-            operation.Operation = CommandMap.Get(operation.OpCode);
+            context.CurrentIlOffset = operation.Position;
 
+            // Checked before the lookup: CommandMap.Get throws a bare
+            // KeyNotFoundException for anything it doesn't know.
             if (!CommandMap.Supported(opCode))
-                throw new NotSupportedException($"Command is not supported: {opCode.ToString()}");
+                throw UnsupportedInstructions.For(opCode);
 
+            operation.Operation = CommandMap.Get(operation.OpCode);
             var op = CommandMap.Get(opCode);
             int parameter = 0;
             if (op.ParameterSize == 1)
@@ -64,5 +70,47 @@ class ILMethodCodePass : ICompilerMethodPass
             lines.Add(operation);
         }
         context.Lines = lines;
+        context.CurrentIlOffset = null;
+    }
+
+    // Generic definitions can't be compiled (each instantiation would need its
+    // own copy), and the types of everything the method declares have to be
+    // ones the compiler can represent.
+    private static void CheckDeclaration(CompilerMethodContext context)
+    {
+        var method = context.Method;
+        var assembly = context.CompilerContext.Assembly;
+
+        if (method.IsGenericMethodDefinition)
+            throw new UnsupportedFeatureException(DiagnosticCodes.UnsupportedDeclaration,
+                $"The generic method '{method.Name}' is not supported.",
+                "Write a separate method for each type you need. Generic methods and classes with methods are not supported yet.");
+        if (method.DeclaringType != null && method.DeclaringType.IsGenericTypeDefinition)
+            throw new UnsupportedFeatureException(DiagnosticCodes.UnsupportedDeclaration,
+                $"The method '{method.Name}' of the generic class '{method.DeclaringType.Name.Split('`')[0]}<...>' is not supported.",
+                "Write a separate class for each type you need. Generic classes with methods are not supported yet (a generic class with only fields is).");
+
+        if (method is MethodInfo info)
+        {
+            var returned = UnsupportedTypes.Check(info.ReturnType, assembly, "A return value");
+            if (returned != null)
+                throw returned;
+        }
+        foreach (var parameter in method.GetParameters())
+        {
+            var problem = UnsupportedTypes.Check(parameter.ParameterType, assembly, $"The parameter '{parameter.Name}'");
+            if (problem != null)
+                throw problem;
+        }
+        var body = method.GetMethodBody();
+        if (body != null)
+        {
+            foreach (var local in body.LocalVariables)
+            {
+                var problem = UnsupportedTypes.Check(local.LocalType, assembly, "A local variable");
+                if (problem != null)
+                    throw problem;
+            }
+        }
     }
 }

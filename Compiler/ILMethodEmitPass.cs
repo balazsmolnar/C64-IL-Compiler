@@ -63,6 +63,7 @@ class ILMethodEmitPass : ICompilerMethodPass
 
         foreach (var line in context.Lines)
         {
+            context.CurrentIlOffset = line.Position;
             outputLine = $"{(line.Label == null ? "" : line.Label + ":")}  {(line.Optimized ? "; OPT " : "")}  {line.Operation.Emit(context, line)} ; {line.OpCode}";
             output.WriteLine(outputLine);
 

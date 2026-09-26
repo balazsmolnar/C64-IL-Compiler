@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.Emit;
@@ -9,7 +9,31 @@ namespace Compiler;
 
 class Program
 {
-    static void Main(string[] args)
+    static int Main(string[] args)
+    {
+        return Run(args, Console.Error);
+    }
+
+    // Compiles the assembly named by args[0]; 0 on success, 1 when the program
+    // uses something unsupported (every problem is written to `error`, one per
+    // line, before returning). Separate from Main so tests can call it.
+    internal static int Run(string[] args, TextWriter error)
+    {
+        try
+        {
+            Compile(args);
+            return 0;
+        }
+        catch (CompilationFailedException e)
+        {
+            foreach (var diagnostic in e.Diagnostics.Items)
+                error.WriteLine(diagnostic.ToString());
+            error.WriteLine($"Compilation failed: {e.Diagnostics.Items.Count} error(s).");
+            return 1;
+        }
+    }
+
+    static void Compile(string[] args)
     {
         if (args.Length < 1)
             throw new InvalidOperationException("Assembly must be specified.");

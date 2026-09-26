@@ -145,7 +145,11 @@ result = $20
 ; Hi-res bitmap graphics reservation -- see ProgramEntry.asm's identical
 ; block for the full reasoning (memory layout, VIC bank/ROM-shadow
 ; constraints, why $0c00/$2000 specifically, why real bytes not .virtual).
-GRAPHICS_USED = Flag_Screen_EnableBitmapMode | Flag_Screen_DisableBitmapMode | Flag_Screen_SetPixel | Flag_Screen_DrawLine | Flag_Screen_DrawRectangle | Flag_Screen_DrawCircle
+; Double buffering (Screen.SetDrawBuffer/SwapBuffers) adds a second bitmap +
+; color matrix in VIC bank 1, below; Screen.SetBitmapColors alone just needs
+; the normal single buffer.
+GRAPHICS_DOUBLE_BUFFER = Flag_Screen_SetDrawBuffer | Flag_Screen_SwapBuffers
+GRAPHICS_USED = Flag_Screen_EnableBitmapMode | Flag_Screen_DisableBitmapMode | Flag_Screen_SetPixel | Flag_Screen_DrawLine | Flag_Screen_DrawRectangle | Flag_Screen_DrawCircle | Flag_Screen_SetBitmapColors | GRAPHICS_DOUBLE_BUFFER
 .if GRAPHICS_USED
 graphics_resume_point = *
 * = $0c00
@@ -156,7 +160,25 @@ Graphics_ColorMatrix
 * = $2000
 Graphics_Bitmap
 .fill 8000
+.if GRAPHICS_DOUBLE_BUFFER
+; Second buffer, in VIC bank 1 ($4000-$7fff; no character-ROM shadow there,
+; and CIA2 $dd00 bits 0-1 switch to it -- see Screen_SwapBuffers in
+; asm/C64Graphics.asm): the bitmap at bank offset $0000, its color matrix
+; (1K, any 1K boundary) at offset $2000 right after it, and compiled code
+; resuming at $6400 instead of $4000. Costs ~9 KB of address space, and only
+; programs that actually double-buffer pay it. Sprite data pointers live at
+; matrix+$3f8, so sprites don't survive a flip -- keep them hidden in bitmap
+; mode, as with the single buffer.
 * = $4000
+Graphics_Bitmap2
+.fill 8000
+* = $6000
+Graphics_ColorMatrix2
+.fill 1000
+* = $6400
+.else
+* = $4000
+.endif
 .endif
 
 .include "./C64.asm"

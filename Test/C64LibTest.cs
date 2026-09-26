@@ -124,6 +124,20 @@ public class C64LibTest
         Assert.AreEqual((uint)C64.Screen.GetBorderColor(), (uint)Colors.Cyan);
     }
 
+    // WaitForVBlank polls the raster beam ($D012); SimpleEmulator's raster
+    // model moves the beam on with every read, so the wait terminates --
+    // this is the end-to-end check (C# call -> compiler flag -> asm ->
+    // emulator). The routine's own behavior (ends on line 251, back-to-back
+    // calls a frame apart) is covered by SimpleEmulator.Test's RasterTests.
+    [Test]
+    public void WaitForVBlank_Returns_And_Leaves_Following_Code_Running()
+    {
+        C64.Screen.WaitForVBlank();
+        C64.Screen.WaitForVBlank();
+        C64.Screen.SetBorderColor(Colors.Green);
+        Assert.AreEqual((uint)C64.Screen.GetBorderColor(), (uint)Colors.Green);
+    }
+
     // SpriteCollection.Collisions reads the real VIC-II sprite-collision
     // register ($D01E) directly -- with no sprites ever drawn in this
     // headless harness, it should read back reliably zero.

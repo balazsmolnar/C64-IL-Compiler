@@ -17,7 +17,54 @@ Flag_Screen_DisableBitmapMode = 0
 Flag_Screen_DrawLine = 0
 Flag_Screen_DrawRectangle = 0
 Flag_Screen_DrawCircle = 0
+Flag_Screen_SetDrawBuffer = 0
+Flag_Screen_SwapBuffers = 0
+Flag_Screen_SetBitmapColors = 0
+Flag_Screen_WaitForVBlank = 0
+; 1 when the program uses double buffering (Screen.SetDrawBuffer/SwapBuffers):
+; the entry file then also reserves Graphics_Bitmap2/Graphics_ColorMatrix2 in
+; VIC bank 1 (see ProgramEntry.asm). Defined there as a strong symbol;
+; harnesses that include this file directly get this default.
+GRAPHICS_DOUBLE_BUFFER = 0
 .endweak
+
+; Distance from Graphics_Bitmap to Graphics_Bitmap2, in 256-byte pages: the
+; amount Graphics_ComputePixelAddress adds to the high byte of every pixel
+; address while buffer 1 is the draw target.
+.if GRAPHICS_DOUBLE_BUFFER
+GRAPHICS_BUFFER_DELTA = (>Graphics_Bitmap2) - (>Graphics_Bitmap)
+.endif
+
+; ===========================================================================
+; Screen.WaitForVBlank -- see Raster_WaitVBlank. (Also the wait inside
+; Screen.SwapBuffers, hence the shared core.)
+; ===========================================================================
+; Blocks until the raster beam reaches line $FB (251): the first line of the
+; bottom border, below the last line the 25-row display fetches, so anything
+; done right after this returns (flipping VIC banks/pointers, moving sprites)
+; can't tear the visible frame. A call made while the beam is already on
+; line $FB first waits for it to leave, so back-to-back calls are one frame
+; apart instead of the second returning at once. The beam is polled every 9
+; cycles against a 63-cycle line, so it can't be stepped over. Line numbers
+; past 255 have a low byte of 0-55 (PAL 311 lines), never $FB, so $D011's
+; raster bit 8 doesn't need checking. Destroys A.
+.if Flag_Screen_WaitForVBlank | Flag_Screen_SwapBuffers
+Raster_WaitVBlank:
+-   lda $d012
+    cmp #$fb
+    beq -
+-   lda $d012
+    cmp #$fb
+    bne -
+    rts
+.endif
+
+.if Flag_Screen_WaitForVBlank
+Screen_WaitForVBlank:
+    #stack_save_return_adress zp_tmp1_low
+    jsr Raster_WaitVBlank
+    #stack_return_to_saved_address zp_tmp1_low
+.endif
 
 ; ===========================================================================
 ; Shared pixel addressing -- used by SetPixel and every shape routine.
@@ -57,6 +104,10 @@ Graphics_ComputePixelAddress:
     sta zp_gfx_ptr_low
     lda bitmap_cellrow_high,x
     adc zp_gfx_x_high            ; high byte of (x & ~7) (x's 256s bit, 0 or 1) + carry
+.if GRAPHICS_DOUBLE_BUFFER
+    clc
+    adc graphics_draw_delta      ; 0 = Graphics_Bitmap, else Graphics_Bitmap2
+.endif
     sta zp_gfx_ptr_high
     lda zp_gfx_y
     and #$07                     ; y&7 -- scanline within the cell
@@ -132,11 +183,11 @@ graphics_saved_d018 .byte 0
 ; the low byte of the pointer never needs to change -- only Y (0-255,
 ; wrapping) sweeps each page and the pointer's high byte advances between
 ; pages.
+; In: A = high byte of the bitmap's base address ($20 or $40; low byte is 0).
 Graphics_ClearBitmap:
+    sta zp_gfx_ptr_high
     lda #0
     sta zp_gfx_ptr_low
-    lda #>Graphics_Bitmap
-    sta zp_gfx_ptr_high
     ldx #31                       ; 31 full 256-byte pages (31*256=7936)
     lda #0
 Graphics_ClearBitmap_PageLoop:
@@ -155,37 +206,60 @@ Graphics_ClearBitmap_TailLoop:
     cpy #64
     bne Graphics_ClearBitmap_TailLoop
     rts
+.endif
 
-Graphics_ClearColorMatrix:
+.if Flag_Screen_EnableBitmapMode | Flag_Screen_SetBitmapColors
+
+; In: A = high byte of the color matrix's base address (low byte is 0),
+; X = value to fill all 1000 cells with. Destroys A, X, Y.
+Graphics_FillColorMatrix:
+    sta zp_gfx_ptr_high
     lda #0
     sta zp_gfx_ptr_low
-    lda #>Graphics_ColorMatrix
-    sta zp_gfx_ptr_high
+    txa
     ldx #3                         ; 3 full pages (3*256=768)
-Graphics_ClearColorMatrix_PageLoop:
+Graphics_FillColorMatrix_PageLoop:
     ldy #0
-Graphics_ClearColorMatrix_ByteLoop:
+Graphics_FillColorMatrix_ByteLoop:
     sta (zp_gfx_ptr_low),y
     iny
-    bne Graphics_ClearColorMatrix_ByteLoop
+    bne Graphics_FillColorMatrix_ByteLoop
     inc zp_gfx_ptr_high
     dex
-    bne Graphics_ClearColorMatrix_PageLoop
+    bne Graphics_FillColorMatrix_PageLoop
     ldy #0                         ; final partial page: 1000-768=232 bytes
-Graphics_ClearColorMatrix_TailLoop:
+Graphics_FillColorMatrix_TailLoop:
     sta (zp_gfx_ptr_low),y
     iny
     cpy #232
-    bne Graphics_ClearColorMatrix_TailLoop
+    bne Graphics_FillColorMatrix_TailLoop
     rts
+.endif
+
+.if Flag_Screen_EnableBitmapMode
 
 ; %00111000: bits 7-4 (video matrix, 1K units) = %0011 = block 3 = $0c00
 ; (Graphics_ColorMatrix); bit 3 (bitmap half, 8K units) = 1 = $2000
 ; (Graphics_Bitmap). $d011 bit 5 = BMM (bitmap mode enable).
 Screen_EnableBitmapMode:
     #stack_save_return_adress zp_tmp1_low
+    lda #>Graphics_Bitmap
     jsr Graphics_ClearBitmap
-    jsr Graphics_ClearColorMatrix
+    lda #>Graphics_ColorMatrix
+    ldx #0
+    jsr Graphics_FillColorMatrix
+.if GRAPHICS_DOUBLE_BUFFER
+    lda #>Graphics_Bitmap2
+    jsr Graphics_ClearBitmap
+    lda #>Graphics_ColorMatrix2
+    ldx #0
+    jsr Graphics_FillColorMatrix
+    lda #0
+    sta graphics_draw_delta       ; draw into (and show) buffer 0 to start with
+    lda $dd00
+    ora #%00000011                ; VIC bank 0
+    sta $dd00
+.endif
     lda $d018
     sta graphics_saved_d018
     lda #%00111000
@@ -205,6 +279,87 @@ Screen_DisableBitmapMode:
     sta $d011
     lda graphics_saved_d018
     sta $d018
+.if GRAPHICS_DOUBLE_BUFFER
+    lda $dd00
+    ora #%00000011                ; VIC bank 0 again (buffer 1 lives in bank 1)
+    sta $dd00
+.endif
+    #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+; ===========================================================================
+; Double buffering: Screen.SetDrawBuffer / SwapBuffers / SetBitmapColors
+; ===========================================================================
+; Buffer 0 is Graphics_Bitmap/Graphics_ColorMatrix in VIC bank 0 ($D018=$38),
+; buffer 1 is Graphics_Bitmap2/Graphics_ColorMatrix2 in VIC bank 1 ($D018=$80:
+; matrix at bank offset $2000, bitmap at offset 0) -- see the layout block in
+; ProgramEntry.asm. Drawing goes into whichever buffer graphics_draw_delta
+; selects; the display shows the other one.
+.if GRAPHICS_DOUBLE_BUFFER
+
+graphics_draw_delta .byte 0      ; 0 = draw into buffer 0, else GRAPHICS_BUFFER_DELTA
+
+.if Flag_Screen_SetDrawBuffer
+Screen_SetDrawBuffer:
+    #stack_save_return_adress zp_tmp1_low
+    #stack_pull_int zp_gfx_on
+    lda zp_gfx_on
+    beq +
+    lda #GRAPHICS_BUFFER_DELTA
++   sta graphics_draw_delta
+    #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+; Shows the buffer that was just drawn into, then makes the other one the
+; draw target. The wait puts the beam on line 251, in the bottom border,
+; where the VIC reads no bitmap data, so the two register writes below
+; (which land a few cycles apart) can't tear the picture; the new buffer is
+; what the next frame starts with. $DD00's upper bits are the serial bus, so
+; only bits 0-1 (VIC bank: %11 = bank 0, %10 = bank 1) are touched.
+.if Flag_Screen_SwapBuffers
+Screen_SwapBuffers:
+    #stack_save_return_adress zp_tmp1_low
+    jsr Raster_WaitVBlank
+    lda graphics_draw_delta
+    bne Graphics_Swap_ShowBuffer1
+    lda #%00111000                ; buffer 0: matrix $0c00, bitmap $2000
+    sta $d018
+    lda $dd00
+    ora #%00000011
+    sta $dd00
+    lda #GRAPHICS_BUFFER_DELTA
+    sta graphics_draw_delta       ; next frame is drawn into buffer 1
+    jmp Graphics_Swap_Done
+Graphics_Swap_ShowBuffer1:
+    lda #%10000000                ; buffer 1: matrix $6000, bitmap $4000
+    sta $d018
+    lda $dd00
+    and #%11111100
+    ora #%00000010
+    sta $dd00
+    lda #0
+    sta graphics_draw_delta       ; next frame is drawn into buffer 0
+Graphics_Swap_Done:
+    #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+.endif
+
+; Sets every cell of the color matrix (both buffers' when double buffering)
+; to one foreground/background byte (high nibble = foreground, low =
+; background).
+.if Flag_Screen_SetBitmapColors
+Screen_SetBitmapColors:
+    #stack_save_return_adress zp_tmp1_low
+    #stack_pull_int zp_gfx_on
+    ldx zp_gfx_on
+    lda #>Graphics_ColorMatrix
+    jsr Graphics_FillColorMatrix
+.if GRAPHICS_DOUBLE_BUFFER
+    ldx zp_gfx_on
+    lda #>Graphics_ColorMatrix2
+    jsr Graphics_FillColorMatrix
+.endif
     #stack_return_to_saved_address zp_tmp1_low
 .endif
 

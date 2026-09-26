@@ -25,6 +25,12 @@ namespace C64Lib
         {
             public static void BeginUpdate() { }
             public static void EndUpdate() { }
+
+            // Waits for the raster beam to reach the start of the bottom
+            // border (line 251), so what follows can't tear the visible
+            // frame. Consecutive calls are one video frame (1/50 s PAL)
+            // apart.
+            public static void WaitForVBlank() { }
             public static void SetChar(uint x, uint y, uint ch, Colors colors = Colors.LightBlue) { }
             public static int GetChar(uint x, uint y) => 0;
             public static void Write(uint x, uint y, string s, Colors colors = Colors.LightBlue) { }
@@ -54,6 +60,31 @@ namespace C64Lib
             // see Demo/Program.cs for the pattern.
             public static void EnableBitmapMode() { }
             public static void DisableBitmapMode() { }
+
+            // Double buffering, to avoid the flicker of erasing and redrawing
+            // a shape on the visible bitmap. Using either of these two calls
+            // reserves a second bitmap + color matrix in VIC bank 1
+            // (Graphics_Bitmap2 $4000, Graphics_ColorMatrix2 $6000) and moves
+            // where compiled code starts from $4000 to $6400 -- about 9 KB
+            // more address space, paid only by programs that call them.
+            // EnableBitmapMode shows and draws buffer 0, as without double
+            // buffering; SetDrawBuffer(1) directs SetPixel/DrawLine/... into
+            // the hidden buffer 1, and SwapBuffers shows whichever buffer was
+            // just drawn into (waiting for the bottom border first, see
+            // WaitForVBlank, so the flip can't tear) and makes the other one
+            // the draw target. The hidden buffer still holds the frame from
+            // two swaps ago -- erase or redraw it before drawing the next.
+            // Sprites don't survive a flip (their data pointers sit at
+            // matrix+$3f8, which differs per buffer): keep them hidden.
+            public static void SetDrawBuffer(uint buffer) { }
+            public static void SwapBuffers() { }
+
+            // Fills every cell of the color matrix (both buffers' when
+            // double buffering) with one byte: high nibble = foreground,
+            // low nibble = background. Without this, buffer 1's matrix would
+            // need filling separately via C64Address.FromLabel(
+            // "Graphics_ColorMatrix2").
+            public static void SetBitmapColors(uint foregroundBackground) { }
             public static void SetPixel(ulong x, ulong y, bool on = true) { }
             public static void DrawLine(ulong x0, ulong y0, ulong x1, ulong y1, bool on = true) { }
             public static void DrawRectangle(ulong x0, ulong y0, ulong x1, ulong y1, bool filled = false, bool on = true) { }

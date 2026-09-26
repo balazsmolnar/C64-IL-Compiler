@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -136,10 +136,32 @@ namespace SimpleEmulator
             if (mode == AddressingMode.Accumulator)
                 return registers.A;
 
-            //if (GetAddress(mode, byte1, byte2) == 0xd012)
-            //    memory[0xd012] = IncByte(memory[0xd012]);
-            return ReadByte(GetAddress(mode, byte1, byte2));
+            var address = GetAddress(mode, byte1, byte2);
+
+            // Minimal raster model, so code that polls the beam terminates:
+            // every program read of $D012 moves the beam on by one line
+            // (PAL: 312 lines, wrapping), and $D011 bit 7 reports its 9th
+            // bit. Deliberately not tied to executed cycles -- the point is
+            // only that a wait-for-line loop sees every line go by, in
+            // order. Only operand reads of the running program count (not
+            // GetMemory, which the debugger and tests use), so inspecting
+            // memory never moves the beam.
+            if (address == 0xd012)
+            {
+                rasterLine = (rasterLine + 1) % RasterLines;
+                return (byte)rasterLine;
+            }
+            if (address == 0xd011)
+                return (byte)((memory[0xd011] & 0x7f) | (rasterLine >= 256 ? 0x80 : 0));
+
+            return ReadByte(address);
         }
+
+        public const int RasterLines = 312;
+        private int rasterLine;
+
+        // The beam line the raster model is currently on (see GetValue).
+        public int RasterLine => rasterLine;
 
         // Tracks the CPU I/O port ($01) LORAM/HIRAM bits: LORAM=0 banks out
         // BASIC ROM ($a000-$bfff reads as RAM), HIRAM=0 banks out KERNAL ROM

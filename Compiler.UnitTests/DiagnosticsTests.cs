@@ -214,10 +214,23 @@ class Program
     // --- class library calls -------------------------------------------------
 
     [Test]
-    public void String_Equality_Explains_What_To_Do()
+    public void String_Equality_Compiles_Successfully()
     {
-        var output = Errors("", "string s = \"abc\"; return s == \"abc\" ? 1u : 0u;");
-        AssertReports(output, "C64002", "'String.op_Equality'", "String comparison");
+        // s == "abc"/s != "abc" (and s == null/s != null, and the static
+        // string.Equals(a, b) overload) are supported -- see
+        // Test.Runtime/LanguageFeatureTests.cs for the actual emulator-run
+        // checks of what they compute. Only the .Equals()/Compare()/
+        // CompareOrdinal() instance-method shapes stay rejected, see
+        // Instance_String_Equals_Explains_What_To_Do below.
+        var (exit, output) = CompileProgram(Wrap("", "string s = \"abc\"; return s == \"abc\" ? 1u : 0u;"));
+        Assert.That(exit, Is.EqualTo(0), output);
+    }
+
+    [Test]
+    public void Instance_String_Equals_Explains_What_To_Do()
+    {
+        var output = Errors("", "string s = \"abc\"; string t = \"abd\"; return s.Equals(t) ? 1u : 0u;");
+        AssertReports(output, "C64002", "'String.Equals'", "Only s == other");
     }
 
     [Test]

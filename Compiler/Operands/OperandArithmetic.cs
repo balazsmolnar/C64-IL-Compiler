@@ -90,10 +90,23 @@ class OpCompare : OpArithmetic2
         // Object references (class instances, arrays, null) are 1-byte object
         // table handles, so `a == b`, `a != b` and `a != null` used as a VALUE
         // (bool x = a != null; return a == b;) compare two bytes with the same
-        // 8-bit macros as numbers: equal handles = the same object, 0 = null.
-        // (In an `if` condition the compiler emits brtrue/beq, which already
-        // worked.) Strings are 2-byte pointers and stay unsupported here.
-        bool isReference = !last.IsValueType && last != typeof(string);
+        // 8-bit/16-bit macros as numbers: equal handles/pointers = the same
+        // object, 0 = null. (In an `if` condition the compiler emits
+        // brtrue/beq, which already worked.)
+        //
+        // string is included here too, but ONLY reaches a raw Ceq/Cgt/Clt (as
+        // opposed to a call to the overloaded op_Equality/op_Inequality,
+        // handled separately via ILStringOpsPass -> String_Equals) when one
+        // side is the null LITERAL: Roslyn compiles `s == null`/`s != null`
+        // straight to `ceq`/`cgt.un` on the raw pointer, bypassing the
+        // content-comparison operator entirely (confirmed by dumping the
+        // actual IL) -- a real two-string content comparison (`a == b`,
+        // neither side a literal null) always goes through op_Equality
+        // instead, so a raw pointer-identity compare between two REAL
+        // (non-null) strings never reaches here to be silently wrong.
+        // OpLdnull infers string's width (2 bytes, not the usual 1-byte
+        // handle) from context specifically for this case.
+        bool isReference = !last.IsValueType;
         if (!isReference && !IsNumericOperand(last))
             throw new InvalidOperationException("Unsupported type in arithmetic operation.");
         if (last2.GetStorageBytes() != last.GetStorageBytes())

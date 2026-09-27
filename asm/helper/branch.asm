@@ -1,6 +1,28 @@
 
-branch_true .macro label 
+; branch_true/branch_false default to the 1-byte form (every truthiness test
+; here used to be exactly 1 byte: bool, or an ordinary object reference,
+; which is a 1-byte object-table handle) -- kept as a bare alias so nothing
+; that already names "branch_true"/"branch_false" directly needs to change.
+branch_true .macro label
+    #branch_true8 \label
+.endm
+
+branch_true8 .macro label
     #stack_pull_int_a
+    bne \label
+.endm
+
+; string is the one reference type wider than 1 byte (a real 2-byte
+; pointer, not an object-table handle -- TypeExtensions.GetStorageBytes),
+; so `if (s == null)`/`if (s != null)` (which Roslyn compiles straight to
+; brtrue.s/brfalse.s on s, no Ceq involved) need a 2-byte truthiness test:
+; nonzero if EITHER byte is nonzero. zp_tmp3 is scratch, dead between any
+; two compiler-emitted instructions (asm/helper/zeropage.asm).
+branch_true16 .macro label
+    #stack_pull_int_a
+    sta zp_tmp3
+    #stack_pull_int_a
+    ora zp_tmp3
     bne \label
 .endm
 
@@ -324,8 +346,21 @@ branch_greater_equal_const .macro value, label
     beq \label
 .endm
 
-branch_false .macro label 
+branch_false .macro label
+    #branch_false8 \label
+.endm
+
+branch_false8 .macro label
     #stack_pull_int_a
+    beq \label
+.endm
+
+; See branch_true16's comment.
+branch_false16 .macro label
+    #stack_pull_int_a
+    sta zp_tmp3
+    #stack_pull_int_a
+    ora zp_tmp3
     beq \label
 .endm
 

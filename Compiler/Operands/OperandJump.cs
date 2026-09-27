@@ -32,10 +32,45 @@ class OpJump : OpBase
         operation.NextInstructions.Add(jmpInstruction);
     }
 
-    public override bool Is16BitSupported => _jumpType == JumpType.Compare;
+    // Conditional (Brtrue/Brfalse -- a bare `if (x)`/`if (!x)` truthiness
+    // test) needs this too, not just Compare: string is the one reference
+    // type wider than 1 byte (TypeExtensions.GetStorageBytes), and Roslyn
+    // compiles a reference null-check used as a plain `if` condition
+    // straight to `ldloc s; brtrue.s`/`brfalse.s` -- no Ceq, so no OTHER
+    // instruction ever gets a chance to notice the width -- confirmed by
+    // dumping the actual IL for `if (s == null)`. Pulling only 1 byte for a
+    // 2-byte value (the untouched default before this) both desyncs the
+    // evaluation stack by 1 byte AND tests only the low byte's zero-ness,
+    // silently misjudging a non-null pointer whose low byte happens to be
+    // 0 (e.g. any page-aligned address) as null. A bool or an ordinary
+    // 1-byte object-table handle -- everything else Brtrue/Brfalse was
+    // ever used on -- is unaffected (GetStorageBytes()==1 either way).
+    // UnConditional (Br/Br_s) is excluded: it consumes no stack value at
+    // all, so there's nothing to check the width of, and its predecessor's
+    // StackContent could legitimately be empty (e.g. a Br bypassing an
+    // else-branch, jumped to right after the stack was already emptied by
+    // a Ret/Stloc) -- Is16Bit would either throw or read meaningless data.
+    public override bool Is16BitSupported => _jumpType != JumpType.UnConditional;
 
+    // Guarded (not a bare PreviousInstructions[0] access): an operation an
+    // optimizer SYNTHESIZED and inserted -- fusing a separate compare+branch
+    // into one branch-on-comparison op, e.g. ILMethodBranchIfLessOptimizer,
+    // is exactly this shape -- never went through ILMethodNextInstructionPass
+    // (which only runs once, before the optimizers), so it can have an
+    // empty PreviousInstructions list; confirmed live (ArgumentOutOfRangeException,
+    // an otherwise-passing ternary-with-a-comparison test) once Conditional
+    // started asking this question too (Compare already did, apparently
+    // without ever hitting a synthesized/predecessor-less case in practice).
+    // Falls back to the 1-byte width, exactly this method's behavior before
+    // Is16BitSupported covered Conditional at all -- correct for everything
+    // except a synthesized branch testing a 2-byte value's truthiness
+    // directly, which nothing in this compiler currently synthesizes (the
+    // optimizers that build these fuse a COMPARE, i.e. Compare-type, not a
+    // bare Brtrue/Brfalse on an already-2-byte value).
     public override bool Is16Bit(CompilerMethodContext context, ILOperation operation)
     {
+        if (operation.PreviousInstructions.Count != 1)
+            return false;
         return operation.PreviousInstructions[0].StackContent.Last().GetStorageBytes() == 2;
     }
 
@@ -89,6 +124,18 @@ class OpBranchConst : OpJump
     }
 
     public override object ConvertParameter(CompilerMethodContext context, ILOperation operation) => 0;
+
+    // Uses JumpType.Conditional only to inherit OpJump's RemoveLast(1)
+    // SetStackContent -- this isn't a bare truthiness test on a raw pushed
+    // value (Brtrue/Brfalse) the way that base class's Is16Bit override now
+    // assumes, and its Command is always a full, already-specific,
+    // unsuffixed macro name built by ILMethodBranchConstOptimizer (e.g.
+    // "#branch_greater_unsigned_const") with no "8"/"16"-suffixed variant
+    // defined at all -- letting SizeSuffix append one produced "not defined
+    // symbol 'branch_greater_unsigned_const8'" (confirmed live: broke an
+    // otherwise-passing comparison-in-a-ternary test the moment Conditional
+    // jumps generally became width-aware).
+    public override bool Is16BitSupported => false;
 }
 
 class OpBranchIfNotEqual : OpBase

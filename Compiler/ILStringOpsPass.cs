@@ -103,6 +103,17 @@ class ILStringOpsPass : ICompilerMethodPass
             parameters[0].ParameterType == typeof(int) && parameters[1].ParameterType == typeof(char))
             return "String_PadLeft";
 
+        // op_Equality/op_Inequality (s == "x", s != "x") and the static two-
+        // string string.Equals(a, b) overload -- not the instance .Equals(string)
+        // (a different, unresolved IL shape: callvirt on a possibly-devirtualized
+        // sealed-class method, not a plain two-argument call).
+        if ((callee.Name == "op_Equality" || (callee.Name == nameof(string.Equals) && callee.IsStatic)) &&
+            parameters.Length == 2 && parameters[0].ParameterType == typeof(string) && parameters[1].ParameterType == typeof(string))
+            return "String_Equals";
+        if (callee.Name == "op_Inequality" && parameters.Length == 2 &&
+            parameters[0].ParameterType == typeof(string) && parameters[1].ParameterType == typeof(string))
+            return "String_NotEquals";
+
         return null;
     }
 }

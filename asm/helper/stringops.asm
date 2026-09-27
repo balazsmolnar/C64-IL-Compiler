@@ -24,6 +24,8 @@
 Flag_String_Concat = 0
 Flag_String_Length = 0
 Flag_String_PadLeft = 0
+Flag_String_Equals = 0
+Flag_String_NotEquals = 0
 .endweak
 
 .if Flag_String_Concat
@@ -59,6 +61,69 @@ String_Concat_CopyB:
     jmp String_Concat_CopyB
 String_Concat_Done:
     #stack_push_pointer stringops_buffer
+    #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+; Shared by both String_Equals and String_NotEquals -- a plain byte-by-byte
+; comparison, stopping at the first mismatch or (if every byte compared so
+; far matched) the null terminator both strings must then share.
+;
+; In: zp_param1_low/high, zp_param2_low/high (the two string pointers --
+; already pulled off the hardware stack by the caller, NOT pulled here).
+; Out: A = 1 (equal) or 0. This must NOT touch the hardware PHA/PLA stack
+; itself (no #stack_pull_*/#stack_push_*): it's `jsr`'d from a wrapper that
+; has already stripped ITS OWN return address to expose the real arguments
+; (#stack_save_return_adress, same as String_Concat/Length/PadLeft above),
+; so by the time this runs, the jsr into here has put ITS return address
+; where those arguments used to be visible -- a #stack_pull_pointer in here
+; would pop that return address instead of an operand, and this routine's
+; own `rts` would then "return" into whatever the real operand bytes happen
+; to encode as an address (confirmed live: landed inside a string literal's
+; character data). Same zero-page-in/zero-page-out shape as
+; Graphics_ComputePixelAddress (asm/C64Graphics.asm) and Float_LoadFac1_A
+; (float.asm), which are `jsr`'d from inside other stack-pulling routines
+; for exactly this reason.
+.if Flag_String_Equals | Flag_String_NotEquals
+String_Equals_Core:
+    ldy #0
+String_Equals_Loop:
+    lda (zp_param1_low),y
+    cmp (zp_param2_low),y
+    bne String_Equals_Loop_NotEqual
+    cmp #0
+    beq String_Equals_Loop_Equal
+    iny
+    jmp String_Equals_Loop
+String_Equals_Loop_Equal:
+    lda #1
+    rts
+String_Equals_Loop_NotEqual:
+    lda #0
+    rts
+.endif
+
+.if Flag_String_Equals
+
+; Pops two string pointers (b popped first, per this compiler's usual
+; argument order) and pushes 1 (equal) or 0 as a 1-byte bool.
+String_Equals:
+    #stack_save_return_adress zp_tmp1_low
+    #stack_pull_pointer zp_param2_low
+    #stack_pull_pointer zp_param1_low
+    jsr String_Equals_Core
+    #stack_push_int_a
+    #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+.if Flag_String_NotEquals
+
+String_NotEquals:
+    #stack_save_return_adress zp_tmp1_low
+    #stack_pull_pointer zp_param2_low
+    #stack_pull_pointer zp_param1_low
+    jsr String_Equals_Core
+    eor #1
+    #stack_push_int_a
     #stack_return_to_saved_address zp_tmp1_low
 .endif
 

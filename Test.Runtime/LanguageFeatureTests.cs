@@ -30,6 +30,9 @@ public class LanguageFeatureTests
         return items[0];
     }
 
+    // Not a constant Roslyn could fold into its caller.
+    static string Suffix() => "o";
+
     [Test]
     public void Byte_Array_Stores_And_Loads_Elements()
     {
@@ -146,5 +149,116 @@ public class LanguageFeatureTests
         bool isSet = missing != null;
         Assert.IsTrue(wasNull);
         Assert.IsTrue(isSet);
+    }
+
+    // Chained assignment ("a1 = a2 = a3 = null;") inserts a `dup` between
+    // `ldnull` and the first store, which the null-width inference below
+    // has to see through -- found via Test/GCTest.cs failing to compile
+    // while building this feature.
+    [Test]
+    public void A_Null_Reference_Can_Be_Chain_Assigned_To_Several_Locals()
+    {
+        var a = new Thing();
+        var b = new Thing();
+        var c = new Thing();
+        a = b = c = null;
+        Assert.IsTrue(a == null);
+        Assert.IsTrue(b == null);
+        Assert.IsTrue(c == null);
+    }
+
+    // `a[i] = null;` -- Stelem_ref, a third shape (besides Stloc/Stfld and a
+    // trailing call argument) the null-width inference has to recognize;
+    // also found via Test/GCTest.cs.
+    [Test]
+    public void An_Array_Element_Can_Be_Set_To_Null()
+    {
+        var a = new Thing[2];
+        a[0] = new Thing();
+        a[1] = null;
+        Assert.IsTrue(a[0] != null);
+        Assert.IsTrue(a[1] == null);
+    }
+
+    // string is stored as a real 2-byte pointer, unlike every other
+    // reference type (a 1-byte object-table handle) -- see
+    // Compiler/Operands/OperandBase.cs's OpLdnull for the full story. These
+    // exercise the string-specific paths on top of the generic reference
+    // ones already covered above.
+    [Test]
+    public void String_Equality_And_Inequality_Compare_Content_Not_Identity()
+    {
+        string a = "hello";
+        string b = "hell" + Suffix(); // same content as a, built at runtime (not a constant Roslyn could fold)
+        string c = "world";
+        Assert.IsTrue(a == b);
+        Assert.IsTrue(a != c);
+        Assert.IsFalse(a == c);
+        Assert.IsFalse(a != b);
+    }
+
+    [Test]
+    public void Static_String_Equals_Compares_Content()
+    {
+        string a = "xy";
+        string b = "xy";
+        string c = "yz";
+        Assert.IsTrue(string.Equals(a, b));
+        Assert.IsFalse(string.Equals(a, c));
+    }
+
+    [Test]
+    public void Switch_On_A_String_Value_Dispatches_By_Content()
+    {
+        string s = "b";
+        uint result;
+        switch (s)
+        {
+            case "a": result = 1u; break;
+            case "b": result = 2u; break;
+            case "c": result = 3u; break;
+            default: result = 9u; break;
+        }
+        Assert.AreEqual(result, 2u);
+    }
+
+    // "s == null"/"s != null" compile to a raw pointer compare (ceq/cgt.un),
+    // not a call to the overloaded op_Equality -- confirmed by dumping the
+    // actual IL while building this. Both the value form (used in an
+    // expression, here) and the branch form (below) need their own
+    // coverage: they go through different code paths (OpCompare vs a bare
+    // Brtrue/Brfalse on the string pointer directly).
+    [Test]
+    public void A_String_Can_Be_Compared_To_Null_As_A_Value()
+    {
+        string s = "abc";
+        string none = null;
+        bool sIsNotNull = s != null;
+        bool sEqualsNull = s == null;
+        bool noneIsNull = none == null;
+        Assert.IsTrue(sIsNotNull);
+        Assert.IsFalse(sEqualsNull);
+        Assert.IsTrue(noneIsNull);
+    }
+
+    // Regression test for a real, previously-silent bug: `if (x != null)`/
+    // `if (x == null)` on a string used to pull and test only the LOW byte
+    // of the 2-byte pointer (branch_true/branch_false were never width-
+    // aware) -- both desyncing the evaluation stack by a byte and
+    // misjudging any non-null string whose low byte happened to be 0 as
+    // null. Found live in C64Presentation/SlideElements/RightArrow.cs
+    // ("if (Text1 != null)"), not hypothetically -- this exact pattern was
+    // already shipping.
+    [Test]
+    public void A_String_Can_Be_Compared_To_Null_In_An_If_Condition()
+    {
+        string s = "abc";
+        string none = null;
+        uint result = 0;
+        if (s != null) result += 1;
+        if (s == null) result += 10;
+        if (none == null) result += 100;
+        if (none != null) result += 1000;
+        Assert.AreEqual(result, 101u);
     }
 }

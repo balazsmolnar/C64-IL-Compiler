@@ -1216,11 +1216,157 @@ class OpLdnull : OpPushBase
 
     public override object ConvertParameter(CompilerMethodContext context, ILOperation operation) => 0;
 
+    // IL's `ldnull` is untyped -- .NET erases the target type, unlike every
+    // other reference push here (a class instance is always a 1-byte
+    // object-table handle, GetStorageBytes()==1). string is the ONE
+    // reference type stored as a real 2-byte pointer instead
+    // (TypeExtensions.GetStorageBytes), so "string s = null;"/"s == null"/
+    // etc. need Ldnull to push 2 bytes, not the 1-byte handle every other
+    // "SomeClass x = null;" in this codebase already relies on -- pushing
+    // the wrong width silently desyncs the evaluation stack (confirmed:
+    // this was an unreachable latent bug before string support existed,
+    // since nothing previously compared/stored a null string).
+    //
+    // The real (2 vs 1 byte) width is figured out here, in SetStackContent,
+    // by looking at exactly where the pushed value is consumed: the local/
+    // field/parameter/return slot it's stored into, the type of the OTHER
+    // operand of an immediately-following `==`/`!=` against null (which is
+    // what "s == null" actually compiles to -- a plain `ceq`, NOT a call to
+    // string's overloaded op_Equality, confirmed empirically: the C# null-
+    // check idiom bypasses the user operator since reference-null-ness is
+    // decidable without it), or -- when null is genuinely passed to a call
+    // as its LAST argument (`string.Equals(s, null)`) -- that argument's
+    // declared type. Is16Bit (below, at emit time) recomputes the same
+    // answer rather than caching it on this ILOperation -- there's nowhere
+    // safe to cache it: RawParameter already holds the "0" immediate Emit
+    // appends after the push command, and OpLdnull itself is one instance
+    // reused for every `ldnull` in the whole program (CommandMap), so it
+    // can't hold per-call-site state either. Recomputing is cheap and, since
+    // it never reads this operation's OWN (by-then-already-grown)
+    // StackContent, always gives the same answer both times. An
+    // instruction shape this doesn't recognize (most notably: null NOT as
+    // the trailing call argument, e.g. `null == s` instead of `s == null`)
+    // is rejected at compile time rather than risking the exact class of
+    // silent corruption this fixes.
     public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
     {
-        operation.StackContent.Add(typeof(object));
+        operation.StackContent.Add(DestinationStorageBytes(context, operation) == 2 ? typeof(string) : typeof(object));
     }
 
+    public override bool Is16BitSupported => true;
+
+    public override bool Is16Bit(CompilerMethodContext context, ILOperation operation)
+    {
+        return DestinationStorageBytes(context, operation) == 2;
+    }
+
+    private static int DestinationStorageBytes(CompilerMethodContext context, ILOperation nullOp)
+    {
+        // A chained assignment ("a1 = a2 = a3 = null;") compiles to
+        // `ldnull; dup; stloc a3; dup; stloc a2; stloc a1;` -- Dup doesn't
+        // consume or change the pushed value, so it's skipped over (bounded,
+        // like every other forward walk here) to find the real consumer;
+        // whichever store this reaches first is exactly as good as any
+        // other in the chain, since C# requires them all to be the same
+        // type. Confirmed via the real IL (Test/GCTest.cs's
+        // Hierarchies_Local_Variable_Root has exactly this shape).
+        var next = nullOp.NextInstructions.Count == 1 ? nullOp.NextInstructions[0] : null;
+        for (int hops = 0; next?.Operation is OpDup && hops < 8; hops++)
+            next = next.NextInstructions.Count == 1 ? next.NextInstructions[0] : null;
+        switch (next?.Operation)
+        {
+            case OpLdftn:
+                // `SomeDelegate d = StaticMethod;` -- `ldnull; ldftn StaticMethod;
+                // newobj SomeDelegate::.ctor(object, native int)`. This Ldnull is
+                // the delegate constructor's "target object" argument (there is
+                // none, for a static method), always 1 byte: OpNewObj's own Emit
+                // special-cases this exact construction shape
+                // (#stack_construct_static_delegate) and already assumes/requires
+                // exactly that width, regardless of what follows Ldftn.
+                return 1;
+            case OpStloc stloc:
+                return context.GetLocalVariableType(stloc.VarIndex).GetStorageBytes();
+            case OpStloc_s:
+                return context.GetLocalVariableType((int)next.OriginalParameter).GetStorageBytes();
+            case OpStarg_s:
+                return context.GetParameterType((int)next.OriginalParameter).GetStorageBytes();
+            case OpStfld:
+                {
+                    var field = context.CompilerContext.Assembly.ManifestModule.ResolveField((int)next.OriginalParameter);
+                    return field.FieldType.GetStorageBytes();
+                }
+            case OpStsfld:
+                {
+                    var field = context.CompilerContext.Assembly.ManifestModule.ResolveField((int)next.OriginalParameter);
+                    return field.FieldType.GetStorageBytes();
+                }
+            case OpRet:
+                {
+                    var method = context.Method as MethodInfo;
+                    return method != null && method.ReturnType != typeof(void) ? method.ReturnType.GetStorageBytes() : 1;
+                }
+            case OpStElem:
+                {
+                    // `a[i] = null;` -- `ldloc a; ldc.i4 i; ldnull; stelem.ref;`.
+                    // OpStElem itself only learns the element type from ITS OWN
+                    // SetStackContent (StackContent.Last(2) at THAT point),
+                    // which hasn't run yet here (this runs first, in program
+                    // order) -- so the array's type is read the same safe way
+                    // as the Ceq case above: nullOp's immediate predecessor
+                    // (pushing the index) has its own already-finalized
+                    // StackContent, [..., arrayType, indexType], with the
+                    // array one below the top.
+                    if (nullOp.PreviousInstructions.Count != 1)
+                        break;
+                    var stack = nullOp.PreviousInstructions[0].StackContent;
+                    if (stack == null || stack.Count < 2)
+                        break;
+                    var elementType = stack.Last(1).GetElementType();
+                    return elementType?.GetStorageBytes() ?? 1;
+                }
+            case OpCompare:
+                {
+                    // `s == null` compiles to a plain `ceq`; `s != null`
+                    // (used as a value, e.g. in a ternary -- a direct `if`
+                    // instead compiles to brtrue/brfalse on s with no ldnull
+                    // at all, see below) compiles to `cgt.un` (an unsigned
+                    // "not zero" test), not to `ceq` -- confirmed by
+                    // dumping the actual IL rather than assuming; every
+                    // OpCompare opcode (Ceq/Cgt/Cgt_un/Clt/Clt_un) has the
+                    // same "both operands must be the same width" structure,
+                    // so all are handled here alike. The other operand's
+                    // type is nullOp's immediate PREDECESSOR's already-
+                    // finalized StackContent (a separate, never-mutated-
+                    // again list on THAT instruction) -- not
+                    // operation.StackContent here, which SetStackContent is
+                    // about to grow with THIS Ldnull's own entry.
+                    if (nullOp.PreviousInstructions.Count != 1)
+                        break;
+                    var other = nullOp.PreviousInstructions[0].StackContent?.LastOrDefault();
+                    if (other == null)
+                        break;
+                    return other.GetStorageBytes();
+                }
+            case OpCall or OpCallVirt:
+                {
+                    // nullOp directly precedes the call, so (this compiler's
+                    // "last pushed = first popped" argument convention) it is
+                    // the LAST declared parameter -- never the receiver,
+                    // which is always pushed first for an instance call.
+                    var method = context.CompilerContext.Assembly.ManifestModule.ResolveMethod((int)next.OriginalParameter) as MethodBase;
+                    var parameters = method?.GetParameters();
+                    if (parameters == null || parameters.Length == 0)
+                        break;
+                    return parameters[parameters.Length - 1].ParameterType.GetStorageBytes();
+                }
+        }
+
+        throw new UnsupportedFeatureException(DiagnosticCodes.UnsupportedInstruction,
+            "This use of 'null' is not supported: the compiler cannot tell whether it needs a 1-byte object " +
+            "reference or a 2-byte string pointer here.",
+            "Put it in a variable first (string empty = null; ... ) and use the variable, or write the " +
+            "non-null value on the left (s == null instead of null == s).");
+    }
 }
 
 class OpPullBase : OpBase

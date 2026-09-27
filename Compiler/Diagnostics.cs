@@ -367,8 +367,12 @@ static class UnsupportedCalls
         {
             return name switch
             {
-                "op_Equality" or "op_Inequality" or "Equals" or "Compare" or "CompareOrdinal" =>
-                    "String comparison is not implemented yet; compare a Length and the characters yourself, or use an enum/number instead of a string as the key.",
+                // op_Equality(string,string)/op_Inequality(string,string) and the
+                // static string.Equals(string,string) ARE implemented (ResolveLabel
+                // in ILStringOpsPass) -- reaching here means a DIFFERENT overload,
+                // most often the instance s.Equals(other) shape.
+                "Equals" or "Compare" or "CompareOrdinal" =>
+                    "Only s == other and s != other are supported, not .Equals()/Compare(); use == instead.",
                 "get_Chars" => "String indexing is not implemented yet.",
                 "Concat" => "Only the two-string overload of string.Concat (a + b) is supported; join longer strings one pair at a time, or use string interpolation.",
                 "Format" => "string.Format is not supported; use string interpolation ($\"...\").",

@@ -39,8 +39,12 @@ static class DungeonView
         {
             if (Maze.LeftIsWall(px, py, dir, s))
                 DrawSideSegment(s, FX0);
+            else
+                DrawOpeningEdge(s, FX0);
             if (Maze.RightIsWall(px, py, dir, s))
                 DrawSideSegment(s, FX1);
+            else
+                DrawOpeningEdge(s, FX1);
         }
 
         // Floor and ceiling: a horizontal line at every visible depth,
@@ -69,5 +73,16 @@ static class DungeonView
     {
         C64.Screen.DrawLine(xEdge[s], FY0[s], xEdge[s + 1], FY0[s + 1]);
         C64.Screen.DrawLine(xEdge[s], FY1[s], xEdge[s + 1], FY1[s + 1]);
+    }
+
+    // Marks a side opening (a passage branching off, or just the corridor
+    // continuing straight with nothing walling this side) with a short
+    // vertical line at frame s's own edge, connecting the ceiling line to
+    // the floor line at that depth -- like a door jamb. Without this, "no
+    // wall" and "nothing drawn there" look identical, so an opening just
+    // reads as a gap in the picture rather than a clearly bounded passage.
+    static void DrawOpeningEdge(uint s, ulong[] xEdge)
+    {
+        C64.Screen.DrawLine(xEdge[s], FY0[s], xEdge[s], FY1[s]);
     }
 }

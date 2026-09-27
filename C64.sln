@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.3.32825.248
+# Visual Studio Version 18
+VisualStudioVersion = 18.9.12120.119 stable
 MinimumVisualStudioVersion = 15.0.26124.0
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Demo", "Demo\Demo.csproj", "{D09E1A1C-5B96-40F4-A30E-B0FF08FE1D96}"
 EndProject
@@ -17,36 +17,43 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "C64Lib", "C64Lib\C64Lib.csp
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "C64Presentation", "C64Presentation\C64Presentation.csproj", "{69DDB2E5-47B1-480B-A559-7442D417B5A6}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Catacombs", "Catacombs\Catacombs.csproj", "{3D1AA0A0-E89B-4082-A9AA-41C781FD5162}"
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "asm", "asm", "{6C456ECB-F27B-45C0-A97E-49C42B99766D}"
 	ProjectSection(SolutionItems) = preProject
 		asm\C64.asm = asm\C64.asm
 		asm\C64Debug.asm = asm\C64Debug.asm
+		asm\C64Graphics.asm = asm\C64Graphics.asm
 		asm\c64Joystick.asm = asm\c64Joystick.asm
 		asm\c64Keys.asm = asm\c64Keys.asm
 		asm\C64Sound.asm = asm\C64Sound.asm
 		asm\c64sprite.asm = asm\c64sprite.asm
-		asm\data.asm = asm\data.asm
 		asm\GC.asm = asm\GC.asm
-		asm\main.asm = asm\main.asm
-		asm\Program.asm = asm\Program.asm
 		asm\system.asm = asm\system.asm
-		asm\unittest.asm = asm\unittest.asm
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "helper", "helper", "{390B952B-D9EF-406B-A6A2-C2C29A1ABB3C}"
 	ProjectSection(SolutionItems) = preProject
-		asm\helper\16bit.asm = asm\helper\16bit.asm
 		asm\helper\8bit.asm = asm\helper\8bit.asm
 		asm\helper\arithmetic.asm = asm\helper\arithmetic.asm
+		asm\helper\banking.asm = asm\helper\banking.asm
 		asm\helper\branch.asm = asm\helper\branch.asm
-		asm\helper\customStack.asm = asm\helper\customStack.asm
+		asm\helper\division.asm = asm\helper\division.asm
+		asm\helper\fault.asm = asm\helper\fault.asm
+		asm\helper\float.asm = asm\helper\float.asm
+		asm\helper\floatBanking.asm = asm\helper\floatBanking.asm
+		asm\helper\floatFastMul.asm = asm\helper\floatFastMul.asm
 		asm\helper\heap.asm = asm\helper\heap.asm
 		asm\helper\loader.asm = asm\helper\loader.asm
 		asm\helper\localsStack.asm = asm\helper\localsStack.asm
+		asm\helper\memoryLayout.asm = asm\helper\memoryLayout.asm
 		asm\helper\object.asm = asm\helper\object.asm
+		asm\helper\objectTables.asm = asm\helper\objectTables.asm
 		asm\helper\optimized.asm = asm\helper\optimized.asm
 		asm\helper\stack.asm = asm\helper\stack.asm
-		asm\helper\zp.asm = asm\helper\zp.asm
+		asm\helper\stringops.asm = asm\helper\stringops.asm
+		asm\helper\tostring.asm = asm\helper\tostring.asm
+		asm\helper\zeropage.asm = asm\helper\zeropage.asm
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "generated", "generated", "{4BB6AA39-0331-41A3-9420-885062CF26DE}"
@@ -176,6 +183,18 @@ Global
 		{69DDB2E5-47B1-480B-A559-7442D417B5A6}.Release|x64.Build.0 = Release|Any CPU
 		{69DDB2E5-47B1-480B-A559-7442D417B5A6}.Release|x86.ActiveCfg = Release|Any CPU
 		{69DDB2E5-47B1-480B-A559-7442D417B5A6}.Release|x86.Build.0 = Release|Any CPU
+		{3D1AA0A0-E89B-4082-A9AA-41C781FD5162}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3D1AA0A0-E89B-4082-A9AA-41C781FD5162}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3D1AA0A0-E89B-4082-A9AA-41C781FD5162}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{3D1AA0A0-E89B-4082-A9AA-41C781FD5162}.Debug|x64.Build.0 = Debug|Any CPU
+		{3D1AA0A0-E89B-4082-A9AA-41C781FD5162}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{3D1AA0A0-E89B-4082-A9AA-41C781FD5162}.Debug|x86.Build.0 = Debug|Any CPU
+		{3D1AA0A0-E89B-4082-A9AA-41C781FD5162}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3D1AA0A0-E89B-4082-A9AA-41C781FD5162}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3D1AA0A0-E89B-4082-A9AA-41C781FD5162}.Release|x64.ActiveCfg = Release|Any CPU
+		{3D1AA0A0-E89B-4082-A9AA-41C781FD5162}.Release|x64.Build.0 = Release|Any CPU
+		{3D1AA0A0-E89B-4082-A9AA-41C781FD5162}.Release|x86.ActiveCfg = Release|Any CPU
+		{3D1AA0A0-E89B-4082-A9AA-41C781FD5162}.Release|x86.Build.0 = Release|Any CPU
 		{358AE8A2-64B0-484E-8153-2C8920FE65DE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{358AE8A2-64B0-484E-8153-2C8920FE65DE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{358AE8A2-64B0-484E-8153-2C8920FE65DE}.Debug|x64.ActiveCfg = Debug|Any CPU

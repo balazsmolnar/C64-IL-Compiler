@@ -93,10 +93,10 @@ static class DungeonView
         // of its sides), so that needs no separate DrawRectangle call.
         for (uint f = 0; f <= lastIndex; f++)
         {
-            C64.Screen.DrawLine(FX0[f], FY0[f], FX1[f], FY0[f]);
-            C64.Screen.DrawLine(FX0[f], FY1[f], FX1[f], FY1[f]);
-            C64.Screen.DrawLine(FX0[f], FY0[f], FX0[f], FY1[f]);
-            C64.Screen.DrawLine(FX1[f], FY0[f], FX1[f], FY1[f]);
+            C64.Screen.DrawLine(FX0[f], FY0[f], FX1[f], FY0[f], true, BitmapColorSource.MatrixHigh);
+            C64.Screen.DrawLine(FX0[f], FY1[f], FX1[f], FY1[f], true, BitmapColorSource.MatrixHigh);
+            C64.Screen.DrawLine(FX0[f], FY0[f], FX0[f], FY1[f], true, BitmapColorSource.MatrixHigh);
+            C64.Screen.DrawLine(FX1[f], FY0[f], FX1[f], FY1[f], true, BitmapColorSource.MatrixHigh);
         }
 
         DrawFrontDoor(lastIndex);
@@ -110,8 +110,8 @@ static class DungeonView
     // the wall geometry itself.
     static void DrawWallWithDoor(uint s, ulong[] xEdge, ulong[] doorNearX, bool isOpen)
     {
-        C64.Screen.DrawLine(xEdge[s], FY0[s], xEdge[s + 1], FY0[s + 1]);
-        C64.Screen.DrawLine(xEdge[s], FY1[s], xEdge[s + 1], FY1[s + 1]);
+        C64.Screen.DrawLine(xEdge[s], FY0[s], xEdge[s + 1], FY0[s + 1], true, BitmapColorSource.MatrixHigh);
+        C64.Screen.DrawLine(xEdge[s], FY1[s], xEdge[s + 1], FY1[s + 1], true, BitmapColorSource.MatrixHigh);
 
         if (!isOpen)
             return;
@@ -119,8 +119,9 @@ static class DungeonView
         // Far edge/bottom flush against xEdge[s+1]/FY1[s+1] -- the frame's
         // own corner, already drawn by the outline loop -- so the door
         // visibly joins onto real frame geometry instead of floating free
-        // in open space.
-        C64.Screen.DrawRectangle(doorNearX[s], DoorTop[s], xEdge[s + 1], FY1[s + 1]);
+        // in open space. ColorRam (not MatrixHigh, like the walls) so a
+        // door reads as visibly distinct from the wall it's set into.
+        C64.Screen.DrawRectangle(doorNearX[s], DoorTop[s], xEdge[s + 1], FY1[s + 1], false, true, BitmapColorSource.ColorRam);
     }
 
     // The doorway on the wall directly ahead, whenever there's a wall
@@ -136,12 +137,12 @@ static class DungeonView
         ulong right = FrontDoorRight[index];
         ulong top = FrontDoorTop[index];
         ulong bottom = FY1[index];
-        C64.Screen.DrawRectangle(left, top, right, bottom);
+        C64.Screen.DrawRectangle(left, top, right, bottom, false, true, BitmapColorSource.ColorRam);
 
         ulong innerLeft = Lerp(left, right, 1, 4);
         ulong innerRight = Lerp(right, left, 1, 4);
         ulong innerTop = Lerp(top, bottom, 1, 4);
-        C64.Screen.DrawRectangle(innerLeft, innerTop, innerRight, bottom);
+        C64.Screen.DrawRectangle(innerLeft, innerTop, innerRight, bottom, false, true, BitmapColorSource.ColorRam);
     }
 
     // Point a fraction (num/den) of the way from a to b. Unsigned-safe:

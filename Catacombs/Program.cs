@@ -13,8 +13,19 @@ class Program
         py_ = 1;
         dir_ = 1; // facing east into the first corridor
 
-        C64.Screen.SetScreenMode(ScreenMode.Bitmap);
-        C64.Screen.SetBitmapColors(0x1E); // white lines (foreground), light blue background
+        // MultiColor (not plain Bitmap) so doors can be a color distinct
+        // from the walls: MatrixHigh=White (walls/outline), Background=
+        // LightBlue (unchanged from before), ColorRam=Brown (doors --
+        // DungeonView passes BitmapColorSource.ColorRam on every door
+        // rectangle, MatrixHigh on every wall/outline line). MatrixLow
+        // (source 2) is set but never referenced -- nothing in
+        // DungeonView draws with it.
+        C64.Screen.SetScreenMode(ScreenMode.MultiColor);
+        C64.Screen.SetBackgroundColor(Colors.LightBlue);
+        C64.Screen.SetBitmapColors(0x1E); // MatrixHigh=White(1), MatrixLow=LightBlue(14)
+        var colorRam = 0xD800UL;
+        for (ulong offset = 0; offset < 1000UL; offset += 250UL)
+            C64.FillMemory(colorRam + offset, (uint)Colors.Brown, 250);
         C64.Screen.SetDrawBuffer(1);
         drawBuffer1_ = true;
 

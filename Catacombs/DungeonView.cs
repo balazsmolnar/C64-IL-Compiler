@@ -2,233 +2,134 @@ using C64Lib;
 
 namespace Catacombs;
 
-// First-person maze renderer: nested rectangles shrinking toward the
-// screen's vanishing point, one per visible depth, connected by diagonal
-// side-wall lines -- the classic Wizardry/Bard's Tale-style corridor view.
-//
-// Frame index i is the boundary after (i+1) cells traveled -- frame[0], the
-// near-full-screen frame, is the CLOSEST a wall can ever be: one step
-// ahead, filling almost the whole view, the way standing right in front of
-// a wall actually looks. There is deliberately no frame for "distance 0":
-// that's the camera/the player's own position, not a rendered surface, so
-// nothing is ever drawn for it -- the nearest thing on screen is always
-// exactly one step away, which is what makes the view read as "you are
-// standing here" rather than "you are one phantom half-step behind here".
-// MaxDepth is as far as the view ever looks (in cells), whether or not the
-// corridor is actually that long; frame[MaxDepth] (one past the last
-// checked distance) is used only as the vanishing edge when the corridor
-// stays open through every checked distance.
-//
-// Frame sizes shrink by roughly a consistent ratio each step (width ~65%,
-// height ~72%) so the perspective reads as a single, even vanishing point
-// rather than a lopsided taper.
-//
-// Side walls are always drawn, whether or not the maze actually has a wall
-// there: the tunnel should always look like a continuous, fully enclosed
-// corridor. Where a side is actually open (a passage you could turn into),
-// a door -- a smaller rectangle inset into that wall segment, its corners
-// hand-picked (not computed) per depth -- marks it, rather than leaving a
-// gap in the wall geometry itself.
-//
-// The wall you're facing, whenever you're facing one, always gets a
-// "front door" too -- a doorway with a smaller rectangle nested inside it,
-// hinting at more space (and maybe another door) glimpsed through it,
-// rather than a flat dead end.
+// First-person view of the single cell (room) the player is standing in.
+// Two frames: the near one (screen edges -- right where you're standing)
+// and the far one (one step ahead -- this room's own far boundary). A
+// room has 3 visible walls -- left, right, front -- each either solid or,
+// where the maze actually has an opening, marked with a door. No back
+// wall (nothing renders behind the camera) and no depth beyond the far
+// frame either, deliberately: this used to recede several cells into the
+// distance, tapering smaller with each one, but that shape needed far
+// more fill area (and far more per-row DrawRectangle calls) than a redraw
+// after every move could afford -- see git history for that version if
+// it's ever wanted back. This is deliberately less shape.
 static class DungeonView
 {
-    const uint MaxDepth = 4;
+    const ulong FX0Near = 4, FY0Near = 4, FX1Near = 315, FY1Near = 195;
+    const ulong FX0Far = 50, FY0Far = 26, FX1Far = 269, FY1Far = 173;
 
-    static readonly ulong[] FX0 = { 4, 50, 88, 116, 136 };
-    static readonly ulong[] FY0 = { 4, 26, 46, 60, 72 };
-    static readonly ulong[] FX1 = { 315, 269, 231, 203, 183 };
-    static readonly ulong[] FY1 = { 195, 173, 153, 139, 127 };
-
-    // Side-door corners, one entry per wall panel (s = 0..MaxDepth-1, the
-    // panel between frame[s] and frame[s+1]). The far edge/bottom of each
-    // door is exactly that panel's own far frame corner (FX0[s+1]/
-    // FX1[s+1]/FY1[s+1] -- no separate table needed, it already flushes
-    // against the frame line the outline loop draws), so only the door's
-    // near edge and top need their own hand-picked values here.
-    static readonly ulong[] DoorTop = { 63, 73, 80, 86 };
-    static readonly ulong[] DoorNearX0 = { 35, 75, 107, 129 };
-    static readonly ulong[] DoorNearX1 = { 284, 244, 212, 190 };
-
-    // Front-door corners, one entry per possible stop depth (0..MaxDepth):
-    // a doorway centered in that frame, sized as a fraction of it. Bottom
-    // is that frame's own floor line (FY1), so no separate table for it.
-    static readonly ulong[] FrontDoorLeft = { 119, 131, 140, 148, 153 };
-    static readonly ulong[] FrontDoorRight = { 199, 187, 178, 170, 165 };
-    static readonly ulong[] FrontDoorTop = { 90, 92, 94, 95, 97 };
+    // Door insets against the near/far frame corners -- the far edge is
+    // flush with the far frame's own line (already drawn by the outline
+    // below), only the near edge/top are hand-picked, same idea the
+    // multi-depth version used.
+    const ulong DoorTop = 63;
+    const ulong DoorNearLeft = 35;
+    const ulong DoorNearRight = 284;
+    const ulong FrontDoorLeft = 131;
+    const ulong FrontDoorRight = 187;
+    const ulong FrontDoorTop = 92;
 
     public static void Render(uint px, uint py, uint dir)
     {
-        // Maze.AheadIsWall(dist) checks the cell `dist` steps ahead (1-based:
-        // dist=1 is the very next cell). That maps to frame index dist-1, so
-        // the nearest possible wall (dist=1) lands on frame[0].
-        uint lastIndex = MaxDepth;
-        for (uint d = 1; d <= MaxDepth; d++)
-        {
-            if (Maze.AheadIsWall(px, py, dir, d))
-            {
-                lastIndex = d - 1;
-                break;
-            }
-        }
+        bool leftOpen = !Maze.LeftIsWall(px, py, dir, 0);
+        bool rightOpen = !Maze.RightIsWall(px, py, dir, 0);
+        bool frontOpen = !Maze.AheadIsWall(px, py, dir, 1);
 
-        // Solid fills for every segment's 4 surfaces (2 wall panels, floor,
-        // ceiling), drawn FIRST so the white outline/diagonal lines and
-        // brown doors (below) render crisply on top of them, not the other
-        // way around. Frame[s] strictly contains frame[s+1] (both FX/FY
-        // pairs move monotonically with depth), so the space between them
-        // is a rectangular "picture frame" ring; these 4 surfaces are the
-        // natural trapezoidal pieces you get splitting that ring along its
-        // own corner-to-corner diagonals -- the SAME diagonals
-        // DrawWallWithDoor already draws below, so no new outline is
-        // needed, only the fill.
-        for (uint s = 0; s < lastIndex; s++)
-        {
-            FillWallPanel(s, FX0);
-            FillWallPanel(s, FX1);
-            FillFloorCeiling(s);
-        }
+        // Fills (walls, floor, ceiling, front wall), drawn first so the
+        // white outline/diagonal lines and brown doors below land on top
+        // of them, not the other way around.
+        FillWallPanel(FX0Near, FX0Far);
+        FillWallPanel(FX1Near, FX1Far);
+        FillFloorCeiling();
+        C64.Screen.DrawRectangle(FX0Far, FY0Far, FX1Far, FY1Far, true, true, BitmapColorSource.MatrixLow);
 
-        // The wall you're facing (or the vanishing edge, if the corridor
-        // stays open) has no "next frame" to fill a panel against -- fill
-        // its own interior directly as one flat surface, same color as
-        // every other wall/floor/ceiling. The front door drawn below
-        // still lands on top of it, same as any other door on a filled
-        // panel.
-        C64.Screen.DrawRectangle(FX0[lastIndex], FY0[lastIndex], FX1[lastIndex], FY1[lastIndex], true, true, BitmapColorSource.MatrixLow);
+        // Side walls: the two diagonal edges, always drawn, plus a door
+        // overlay where that side is actually open.
+        DrawWallWithDoor(FX0Near, FX0Far, DoorNearLeft, leftOpen);
+        DrawWallWithDoor(FX1Near, FX1Far, DoorNearRight, rightOpen);
 
-        // Segment s (frame[s] to frame[s+1]) represents the cell reached
-        // after s+1 steps -- one more than the frame's own array index,
-        // since frame[0] itself already corresponds to dist=1.
-        for (uint s = 0; s < lastIndex; s++)
-        {
-            DrawWallWithDoor(s, FX0, DoorNearX0, !Maze.LeftIsWall(px, py, dir, s + 1));
-            DrawWallWithDoor(s, FX1, DoorNearX1, !Maze.RightIsWall(px, py, dir, s + 1));
-        }
+        // Both frames' own 4-sided outline.
+        DrawFrameOutline(FX0Near, FY0Near, FX1Near, FY1Near);
+        DrawFrameOutline(FX0Far, FY0Far, FX1Far, FY1Far);
 
-        // The cross-section outline (ceiling, floor, both vertical edges) at
-        // every visible depth, drawn unconditionally. Without this, a wall
-        // that spans several segments has no marked corner where one
-        // segment's diagonal hands off to the next -- it just changes
-        // slope, with nothing drawn AT that depth. This also IS the stop
-        // wall's rectangle at the deepest depth (f == lastIndex draws all 4
-        // of its sides), so that needs no separate DrawRectangle call.
-        for (uint f = 0; f <= lastIndex; f++)
-        {
-            C64.Screen.DrawLine(FX0[f], FY0[f], FX1[f], FY0[f], true, BitmapColorSource.MatrixHigh);
-            C64.Screen.DrawLine(FX0[f], FY1[f], FX1[f], FY1[f], true, BitmapColorSource.MatrixHigh);
-            C64.Screen.DrawLine(FX0[f], FY0[f], FX0[f], FY1[f], true, BitmapColorSource.MatrixHigh);
-            C64.Screen.DrawLine(FX1[f], FY0[f], FX1[f], FY1[f], true, BitmapColorSource.MatrixHigh);
-        }
-
-        DrawFrontDoor(lastIndex);
+        if (frontOpen)
+            C64.Screen.DrawRectangle(FrontDoorLeft, FrontDoorTop, FrontDoorRight, FY1Far, false, true, BitmapColorSource.ColorRam);
     }
 
-    // The two lines (top-corner-to-top-corner, bottom-corner-to-bottom-
-    // corner) that suggest a receding side wall between frame s and frame
-    // s+1. xEdge is FX0 for the left wall, FX1 for the right wall -- same
-    // shape either side, just the opposite edge of each frame. Always
-    // drawn; isOpen additionally overlays a door, without ever removing
-    // the wall geometry itself.
-    static void DrawWallWithDoor(uint s, ulong[] xEdge, ulong[] doorNearX, bool isOpen)
+    static void DrawFrameOutline(ulong x0, ulong y0, ulong x1, ulong y1)
     {
-        C64.Screen.DrawLine(xEdge[s], FY0[s], xEdge[s + 1], FY0[s + 1], true, BitmapColorSource.MatrixHigh);
-        C64.Screen.DrawLine(xEdge[s], FY1[s], xEdge[s + 1], FY1[s + 1], true, BitmapColorSource.MatrixHigh);
+        C64.Screen.DrawLine(x0, y0, x1, y0, true, BitmapColorSource.MatrixHigh);
+        C64.Screen.DrawLine(x0, y1, x1, y1, true, BitmapColorSource.MatrixHigh);
+        C64.Screen.DrawLine(x0, y0, x0, y1, true, BitmapColorSource.MatrixHigh);
+        C64.Screen.DrawLine(x1, y0, x1, y1, true, BitmapColorSource.MatrixHigh);
+    }
+
+    // The two diagonal lines (near top corner to far top corner, near
+    // bottom corner to far bottom corner) that suggest a receding side
+    // wall, always drawn, plus a door overlay where open. nearX/farX are
+    // FX0Near/FX0Far for the left wall, FX1Near/FX1Far for the right --
+    // same shape either side, just the opposite edge of each frame.
+    static void DrawWallWithDoor(ulong nearX, ulong farX, ulong doorNearX, bool isOpen)
+    {
+        C64.Screen.DrawLine(nearX, FY0Near, farX, FY0Far, true, BitmapColorSource.MatrixHigh);
+        C64.Screen.DrawLine(nearX, FY1Near, farX, FY1Far, true, BitmapColorSource.MatrixHigh);
 
         if (!isOpen)
             return;
 
-        // Far edge/bottom flush against xEdge[s+1]/FY1[s+1] -- the frame's
-        // own corner, already drawn by the outline loop -- so the door
-        // visibly joins onto real frame geometry instead of floating free
-        // in open space. ColorRam (not MatrixHigh, like the walls) so a
-        // door reads as visibly distinct from the wall it's set into.
-        C64.Screen.DrawRectangle(doorNearX[s], DoorTop[s], xEdge[s + 1], FY1[s + 1], false, true, BitmapColorSource.ColorRam);
+        // Far edge/bottom flush against farX/FY1Far -- the far frame's
+        // own corner, already drawn by its own outline -- so the door
+        // visibly joins onto real frame geometry instead of floating free.
+        C64.Screen.DrawRectangle(doorNearX, DoorTop, farX, FY1Far, false, true, BitmapColorSource.ColorRam);
     }
 
-    // The doorway on the wall directly ahead, whenever there's a wall
-    // directly ahead to put one on (index is either the stop depth, or
-    // MaxDepth's own vanishing edge when the corridor stays open the whole
-    // way -- both already get a full 4-sided frame from the outline loop
-    // above, so a door reads naturally on either). A smaller rectangle
-    // nested inside it hints at more space glimpsed through the doorway,
-    // rather than it being a flat dead end.
-    static void DrawFrontDoor(uint index)
+    // Fills the wall panel between the near and far frame (nearX/farX =
+    // FX0Near/FX0Far for the left wall, FX1Near/FX1Far for the right).
+    // The near frame's height range strictly contains the far frame's, so
+    // this bands into a top taper, a constant middle band -- one ordinary
+    // multi-row fill, not a per-row loop, since the opposite x doesn't
+    // change row to row there -- and a bottom taper.
+    static void FillWallPanel(ulong nearX, ulong farX)
     {
-        ulong left = FrontDoorLeft[index];
-        ulong right = FrontDoorRight[index];
-        ulong top = FrontDoorTop[index];
-        ulong bottom = FY1[index];
-        C64.Screen.DrawRectangle(left, top, right, bottom, false, true, BitmapColorSource.ColorRam);
-
-        ulong innerLeft = Lerp(left, right, 1, 4);
-        ulong innerRight = Lerp(right, left, 1, 4);
-        ulong innerTop = Lerp(top, bottom, 1, 4);
-        C64.Screen.DrawRectangle(innerLeft, innerTop, innerRight, bottom, false, true, BitmapColorSource.ColorRam);
-    }
-
-    // Fills the wall panel between frame s and frame s+1 (xEdge = FX0 for
-    // the left wall, FX1 for the right -- same shape either side, just the
-    // opposite edge of each frame). xEdge[s] is constant for the whole row
-    // range (frame s's own vertical edge); the opposite x is banded by
-    // row, because frame s's height range strictly contains frame s+1's:
-    // a top taper and a bottom taper (each along the diagonal to frame
-    // s+1's corresponding near corner), and in between, a MIDDLE band
-    // where the opposite x is ALSO constant (frame s+1's own edge, for as
-    // long as y stays within frame s+1's own height range) -- usually most
-    // of the panel's height. That middle band is a single ordinary
-    // (multi-row) filled DrawRectangle, not a per-row loop -- each row of
-    // a real multi-row fill is one asm-side Graphics_HLine_Core call
-    // inside ONE C# call, instead of one C# call (with its own argument-
-    // marshalling cost) per row; only the two tapers, where the width
-    // genuinely changes row to row, need the per-row treatment. MatrixLow
-    // -- distinct from the walls' own MatrixHigh outline and the doors'
-    // ColorRam -- so a solid wall doesn't just look like a thicker white
-    // line.
-    static void FillWallPanel(uint s, ulong[] xEdge)
-    {
-        for (ulong y = FY0[s]; y < FY0[s + 1]; y = y + 1)
+        for (ulong y = FY0Near; y < FY0Far; y = y + 1)
         {
-            ulong otherX = Lerp(xEdge[s], xEdge[s + 1], y - FY0[s], FY0[s + 1] - FY0[s]);
-            C64.Screen.DrawRectangle(xEdge[s], y, otherX, y, true, true, BitmapColorSource.MatrixLow);
+            ulong otherX = Lerp(nearX, farX, y - FY0Near, FY0Far - FY0Near);
+            C64.Screen.DrawRectangle(nearX, y, otherX, y, true, true, BitmapColorSource.MatrixLow);
         }
 
-        C64.Screen.DrawRectangle(xEdge[s], FY0[s + 1], xEdge[s + 1], FY1[s + 1], true, true, BitmapColorSource.MatrixLow);
+        C64.Screen.DrawRectangle(nearX, FY0Far, farX, FY1Far, true, true, BitmapColorSource.MatrixLow);
 
-        for (ulong y = FY1[s + 1] + 1; y <= FY1[s]; y = y + 1)
+        for (ulong y = FY1Far + 1; y <= FY1Near; y = y + 1)
         {
-            ulong otherX = Lerp(xEdge[s + 1], xEdge[s], y - FY1[s + 1], FY1[s] - FY1[s + 1]);
-            C64.Screen.DrawRectangle(xEdge[s], y, otherX, y, true, true, BitmapColorSource.MatrixLow);
+            ulong otherX = Lerp(farX, nearX, y - FY1Far, FY1Near - FY1Far);
+            C64.Screen.DrawRectangle(nearX, y, otherX, y, true, true, BitmapColorSource.MatrixLow);
         }
     }
 
-    // Fills the floor and ceiling trapezoids between frame s and frame
-    // s+1: unlike the wall panels, both left and right edges here are
-    // diagonals running the whole row range (FX0[s] to FX0[s+1] on the
-    // left, FX1[s] to FX1[s+1] on the right), so each row is a single
+    // Fills the floor and ceiling trapezoids between the near and far
+    // frame: unlike the wall panels, both left and right edges here are
+    // diagonals running the whole row range, so each row is a single
     // Lerp, no banding needed.
-    static void FillFloorCeiling(uint s)
+    static void FillFloorCeiling()
     {
-        for (ulong y = FY1[s + 1]; y <= FY1[s]; y = y + 1)
+        for (ulong y = FY1Far; y <= FY1Near; y = y + 1)
         {
-            ulong left = Lerp(FX0[s + 1], FX0[s], y - FY1[s + 1], FY1[s] - FY1[s + 1]);
-            ulong right = Lerp(FX1[s + 1], FX1[s], y - FY1[s + 1], FY1[s] - FY1[s + 1]);
+            ulong left = Lerp(FX0Far, FX0Near, y - FY1Far, FY1Near - FY1Far);
+            ulong right = Lerp(FX1Far, FX1Near, y - FY1Far, FY1Near - FY1Far);
             C64.Screen.DrawRectangle(left, y, right, y, true, true, BitmapColorSource.MatrixLow);
         }
-        for (ulong y = FY0[s]; y <= FY0[s + 1]; y = y + 1)
+        for (ulong y = FY0Near; y <= FY0Far; y = y + 1)
         {
-            ulong left = Lerp(FX0[s], FX0[s + 1], y - FY0[s], FY0[s + 1] - FY0[s]);
-            ulong right = Lerp(FX1[s], FX1[s + 1], y - FY0[s], FY0[s + 1] - FY0[s]);
+            ulong left = Lerp(FX0Near, FX0Far, y - FY0Near, FY0Far - FY0Near);
+            ulong right = Lerp(FX1Near, FX1Far, y - FY0Near, FY0Far - FY0Near);
             C64.Screen.DrawRectangle(left, y, right, y, true, true, BitmapColorSource.MatrixLow);
         }
     }
 
     // Point a fraction (num/den) of the way from a to b. Unsigned-safe:
     // works out which direction to step before subtracting, since a and b
-    // may fall either side of each other (FX0 rises with depth, FX1 falls).
+    // may fall either side of each other (left-wall x rises near to far,
+    // right-wall x falls).
     static ulong Lerp(ulong a, ulong b, ulong num, ulong den)
     {
         if (b >= a)

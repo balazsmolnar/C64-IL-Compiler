@@ -5,8 +5,19 @@ namespace Catacombs;
 // First-person maze renderer: nested rectangles shrinking toward the
 // screen's vanishing point, one per visible depth, connected by diagonal
 // side-wall lines -- the classic Wizardry/Bard's Tale-style corridor view.
-// Depth 0 is the cell the viewer stands in; MaxDepth is as far as the view
-// ever looks, whether or not the corridor is actually that long.
+//
+// Frame index i is the boundary after (i+1) cells traveled -- frame[0], the
+// near-full-screen frame, is the CLOSEST a wall can ever be: one step
+// ahead, filling almost the whole view, the way standing right in front of
+// a wall actually looks. There is deliberately no frame for "distance 0":
+// that's the camera/the player's own position, not a rendered surface, so
+// nothing is ever drawn for it -- the nearest thing on screen is always
+// exactly one step away, which is what makes the view read as "you are
+// standing here" rather than "you are one phantom half-step behind here".
+// MaxDepth is as far as the view ever looks (in cells), whether or not the
+// corridor is actually that long; frame[MaxDepth] (one past the last
+// checked distance) is used only as the vanishing edge when the corridor
+// stays open through every checked distance.
 //
 // Frame sizes shrink by roughly a consistent ratio each step (width ~65%,
 // height ~72%) so the perspective reads as a single, even vanishing point
@@ -28,23 +39,26 @@ static class DungeonView
 
     public static void Render(uint px, uint py, uint dir)
     {
-        uint stopDepth = MaxDepth;
-        bool stopped = false;
+        // Maze.AheadIsWall(dist) checks the cell `dist` steps ahead (1-based:
+        // dist=1 is the very next cell). That maps to frame index dist-1, so
+        // the nearest possible wall (dist=1) lands on frame[0].
+        uint lastIndex = MaxDepth;
         for (uint d = 1; d <= MaxDepth; d++)
         {
             if (Maze.AheadIsWall(px, py, dir, d))
             {
-                stopDepth = d;
-                stopped = true;
+                lastIndex = d - 1;
                 break;
             }
         }
 
-        uint openSegments = stopped ? stopDepth : MaxDepth;
-        for (uint s = 0; s < openSegments; s++)
+        // Segment s (frame[s] to frame[s+1]) represents the cell reached
+        // after s+1 steps -- one more than the frame's own array index,
+        // since frame[0] itself already corresponds to dist=1.
+        for (uint s = 0; s < lastIndex; s++)
         {
-            DrawWallWithDoor(s, FX0, !Maze.LeftIsWall(px, py, dir, s));
-            DrawWallWithDoor(s, FX1, !Maze.RightIsWall(px, py, dir, s));
+            DrawWallWithDoor(s, FX0, !Maze.LeftIsWall(px, py, dir, s + 1));
+            DrawWallWithDoor(s, FX1, !Maze.RightIsWall(px, py, dir, s + 1));
         }
 
         // The cross-section outline (ceiling, floor, both vertical edges) at
@@ -52,10 +66,9 @@ static class DungeonView
         // that spans several segments has no marked corner where one
         // segment's diagonal hands off to the next -- it just changes
         // slope, with nothing drawn AT that depth. This also IS the stop
-        // wall's rectangle at the deepest depth (f == stopDepth draws all 4
+        // wall's rectangle at the deepest depth (f == lastIndex draws all 4
         // of its sides), so that needs no separate DrawRectangle call.
-        uint visibleDepth = stopped ? stopDepth : MaxDepth;
-        for (uint f = 0; f <= visibleDepth; f++)
+        for (uint f = 0; f <= lastIndex; f++)
         {
             C64.Screen.DrawLine(FX0[f], FY0[f], FX1[f], FY0[f]);
             C64.Screen.DrawLine(FX0[f], FY1[f], FX1[f], FY1[f]);
@@ -78,23 +91,30 @@ static class DungeonView
         if (!isOpen)
             return;
 
-        // A doorway cut into the wall, sized and centered on the segment's
-        // FAR corner (frame s+1's own edge) rather than this segment's
-        // near/far midpoint. Using the far corner specifically -- an
-        // already-known-safe frame coordinate -- keeps the door inside the
-        // screen at every depth, including the outermost segment, where
-        // the NEAR corner sits right at the screen's own edge (a midpoint
-        // there previously pushed the door partly or wholly off-screen).
-        // It spans from the floor up to 3/4 of that frame's own height
-        // (leaving a "lintel" strip at the top), sized as a fraction of the
-        // same height, so it reads at a sensible size at every depth.
+        // A doorway cut into the wall panel, occupying the third of it
+        // closest to frame s+1. One edge sits exactly on xEdge[s+1] --
+        // flush against that frame's own vertical line, which the outline
+        // loop already draws -- so the door visibly joins onto real frame
+        // geometry instead of floating free in open space. The other edge
+        // is interpolated a third of the way back toward xEdge[s], so its
+        // width is always a fraction of THIS panel's own width and can
+        // never outgrow a shrunken, distant panel. Height-wise it spans
+        // from the floor up to 3/4 of the frame's own height (a "lintel"
+        // strip left at the top).
+        ulong xFar = xEdge[s + 1];
+        ulong xNear = Lerp(xFar, xEdge[s], 1, 3);
         ulong height = FY1[s + 1] - FY0[s + 1];
         ulong doorTop = FY0[s + 1] + height / 4;
-        ulong halfWidth = height / 6;
-        if (halfWidth < 2)
-            halfWidth = 2;
-        ulong x = xEdge[s + 1];
-        ulong doorLeft = x > halfWidth ? x - halfWidth : 0;
-        C64.Screen.DrawRectangle(doorLeft, doorTop, x + halfWidth, FY1[s + 1]);
+        C64.Screen.DrawRectangle(xNear, doorTop, xFar, FY1[s + 1]);
+    }
+
+    // Point a fraction (num/den) of the way from a to b. Unsigned-safe:
+    // works out which direction to step before subtracting, since a and b
+    // may fall either side of each other (FX0 rises with depth, FX1 falls).
+    static ulong Lerp(ulong a, ulong b, ulong num, ulong den)
+    {
+        if (b >= a)
+            return a + (b - a) * num / den;
+        return a - (a - b) * num / den;
     }
 }

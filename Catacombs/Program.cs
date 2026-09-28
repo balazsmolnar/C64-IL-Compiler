@@ -31,6 +31,8 @@ class Program
             C64.FillMemory(colorRam + offset, (uint)Colors.Brown, 250);
         C64.Screen.SetDrawBuffer(1);
         drawBuffer1_ = true;
+        Bats.Init();
+        Bats.SetRoomColor(Maze.RoomColorValue(px_, py_));
 
         // Buffer 1 starts out blank (SetScreenMode clears both buffers),
         // so the very first draw needs no explicit clear first.
@@ -61,6 +63,7 @@ class Program
         Colors c = Maze.RoomColor(px_, py_);
         C64.Screen.SetBorderColor(c);
         C64.Screen.SetBackgroundColor(c);
+        Bats.SetRoomColor(Maze.RoomColorValue(px_, py_));
     }
 
     // The buffer SwapBuffers just showed still holds the view from two
@@ -92,6 +95,10 @@ class Program
         bool found = false;
         while (!found)
         {
+            // One video frame per pass: paces the bats' animation, and
+            // key polling runs at 50 Hz, plenty responsive.
+            C64.Screen.WaitForVBlank();
+            Bats.Animate();
             if (C64.IsKeyPressed(Keys.W)) { key = Keys.W; found = true; }
             else if (C64.IsKeyPressed(Keys.S)) { key = Keys.S; found = true; }
             else if (C64.IsKeyPressed(Keys.A)) { key = Keys.A; found = true; }
@@ -142,6 +149,7 @@ class Program
             DungeonView.RenderOpening(px_, py_, dir_, DoorOpenPanelRight[i]);
             C64.Screen.SwapBuffers();
             drawBuffer1_ = !drawBuffer1_;
+            Bats.Animate();
         }
     }
 

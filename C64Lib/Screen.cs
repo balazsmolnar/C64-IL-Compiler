@@ -118,8 +118,13 @@ namespace C64Lib
             // WaitForVBlank, so the flip can't tear) and makes the other one
             // the draw target. The hidden buffer still holds the frame from
             // two swaps ago -- erase or redraw it before drawing the next.
-            // Sprites don't survive a flip (their data pointers sit at
-            // matrix+$3f8, which differs per buffer): keep them hidden.
+            // Sprites need care under a flip: their data pointers sit at
+            // matrix+$3f8, which differs per buffer, and each buffer is in
+            // its own VIC bank, so a sprite's art must exist in both banks
+            // and its pointer be written into both matrices' tables (the
+            // DataBlock setter only knows the text screen's $07f8). See
+            // Catacombs/Bats.cs and Sprites.cs for a working example; a
+            // program that doesn't want to deal with that keeps them hidden.
             public static void SetDrawBuffer(uint buffer) { }
             public static void SwapBuffers() { }
 

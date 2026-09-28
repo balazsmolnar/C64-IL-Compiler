@@ -13,18 +13,19 @@ class Program
         py_ = 1;
         dir_ = 1; // facing east into the first corridor
 
-        // MultiColor (not plain Bitmap) so doors and solid surfaces can
-        // each be a color distinct from the walls: MatrixHigh=White
-        // (walls/outline), Background=LightBlue (unchanged from before),
+        // MultiColor (not plain Bitmap) so doors can be a color distinct
+        // from the lines: MatrixHigh=White (wall/outline lines),
         // ColorRam=Brown (doors -- DungeonView passes
         // BitmapColorSource.ColorRam on every door rectangle, MatrixHigh
-        // on every wall/outline line), MatrixLow=Grey2 (the solid wall/
-        // floor/ceiling panel fills -- a stone-like tone distinct from
-        // both the white outline and the light-blue background it's
-        // drawn over).
+        // on every line). Everything else -- the screen background
+        // ($D021, what every unset pixel shows: walls, floor, ceiling)
+        // and the border ($D020, a separate VIC register) -- is the
+        // current room's own color (Maze.RoomColor, see ApplyRoomColor),
+        // so the room reads as lines and doors on one solid color, with
+        // no visible frame around it.
         C64.Screen.SetScreenMode(ScreenMode.MultiColor);
-        C64.Screen.SetBackgroundColor(Colors.LightBlue);
-        C64.Screen.SetBitmapColors(0x1C); // MatrixHigh=White(1), MatrixLow=Grey2(12)
+        ApplyRoomColor();
+        C64.Screen.SetBitmapColors(0x10); // MatrixHigh=White(1); MatrixLow unused
         var colorRam = 0xD800UL;
         for (ulong offset = 0; offset < 1000UL; offset += 250UL)
             C64.FillMemory(colorRam + offset, (uint)Colors.Brown, 250);
@@ -45,8 +46,21 @@ class Program
                 DungeonView.Render(px_, py_, dir_);
                 C64.Screen.SwapBuffers();
                 drawBuffer1_ = !drawBuffer1_;
+                // After the swap, not before: background/border are single
+                // global registers, not per buffer, so changing them while
+                // the new view is still being drawn would recolor the OLD
+                // room's picture mid-redraw.
+                ApplyRoomColor();
             }
         }
+    }
+
+    // Background and border both take the current room's color.
+    static void ApplyRoomColor()
+    {
+        Colors c = Maze.RoomColor(px_, py_);
+        C64.Screen.SetBorderColor(c);
+        C64.Screen.SetBackgroundColor(c);
     }
 
     // The buffer SwapBuffers just showed still holds the view from two

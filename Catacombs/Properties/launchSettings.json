@@ -1,6 +1,6 @@
 {
   "profiles": {
-    "Demo": {
+    "Catacombs": {
       "commandName": "Executable",
       "executablePath": ".\\run.bat",
       "workingDirectory": "."

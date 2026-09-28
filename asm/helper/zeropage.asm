@@ -84,6 +84,18 @@ zp_gfx_err_low    = $14   ; DrawLine: Bresenham error term (signed 16-bit -- 2*d
                            ; (holds it for the whole call), same reasoning.
 zp_gfx_err_high   = $15
 
+; Horizontal-span scratch (Graphics_SpanSetup/SpanRow/HLine_Core/FillRect_Core
+; in asm/C64Graphics.asm): DrawLine's own registers reused under new names.
+; Safe because DrawLine never runs inside a span, and nothing that calls
+; HLine_Core (DrawCircle: dx_low/dy; DrawRectangle: endy, cx/cy) keeps
+; anything in these across the call.
+zp_gfx_span_notHead  = zp_gfx_sx        ; AND mask for the first byte
+zp_gfx_span_fillHead = zp_gfx_sy        ; OR value for the first byte
+zp_gfx_span_notTail  = zp_gfx_err_low   ; same two, for the last byte
+zp_gfx_span_fillTail = zp_gfx_err_high
+zp_gfx_span_count    = zp_gfx_dy_high   ; bytes after the first (0 = one byte)
+zp_gfx_span_fill     = zp_gfx_endy_high ; value written to fully covered bytes
+
 zp_gfx_cx_low     = $16   ; DrawCircle: center X (0-319)
 zp_gfx_cx_high    = $17
 zp_gfx_cy         = $18   ; DrawCircle: center Y (0-199)

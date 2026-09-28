@@ -490,135 +490,209 @@ Screen_SetBitmapColors:
 ; ===========================================================================
 .if Flag_Screen_DrawLine | Flag_Screen_DrawRectangle | Flag_Screen_DrawCircle
 
-; Multicolor: repeated 2-bit color pattern for a FULLY interior byte (all 4
-; pixel-pairs the same color) -- index by colorSource (0-3). Used only by
-; Graphics_HLine_Core's fast interior-byte blit below; a single pixel still
-; goes through Graphics_SetPixel_Core_MC's own mc_pair_value_table.
+; Multicolor: repeated 2-bit color pattern for a FULLY covered byte (all 4
+; pixel-pairs the same color) -- index by colorSource (0-3). A single pixel
+; still goes through Graphics_SetPixel_Core_MC's own mc_pair_value_table.
 mc_fill_pattern .byte $00,$55,$AA,$FF
 
-; Plots pixels (zp_gfx_x_low/high .. zp_gfx_endx_low/high, zp_gfx_y)
-; inclusive. Caller must ensure start <= end. Leaves zp_gfx_x_low/high at
-; endx. Destroys zp_gfx_sx/sy (both throwaway across any HLine_Core call --
-; see asm/helper/zeropage.asm) and zp_gfx_err_low/high (DrawLine's own
-; registers -- never touched by anything that calls HLine_Core, same
-; "never concurrent" reasoning as DrawCircle's own reuse of
-; zp_gfx_dx_low/dy, just for a different pair of registers).
+; Which bits of a byte a span touches in its first / last byte. The first
+; byte is covered from a column to its right edge (span_left_mask, indexed
+; by x&7); the last from its left edge through a column (span_right_mask).
+; Multicolor uses the same tables at the column rounded to its pair
+; boundary (col&6 for the start, col|1 for the end): a 2-bit pair covers
+; two columns, so whichever column of a pair a span touches, the whole pair
+; is affected -- exactly what plotting the pixels one at a time did.
+span_left_mask .byte $FF,$7F,$3F,$1F,$0F,$07,$03,$01
+span_right_mask .byte $80,$C0,$E0,$F0,$F8,$FC,$FE,$FF
+
+; ---------------------------------------------------------------------------
+; Horizontal spans, a byte at a time. A byte holds 8 pixels (hi-res: 8 bits;
+; multicolor: 4 two-bit pairs, still 8 columns of x) at one fixed address --
+; unlike a vertical run, which lands in a different byte almost every
+; pixel (Graphics_VLine_Core, deliberately not given this treatment). So a
+; span [x0,x1] on one scanline is: the first byte (only some of its
+; columns), some number of fully covered bytes, the last byte (only some of
+; its columns). Every byte -- partial or not -- is written with one
+; read-modify-write or plain store, never per pixel:
+;     byte = (byte AND notMask) OR (fill AND mask)
+; with fill $FF/$00 for hi-res set/clear, and for multicolor the color's
+; repeated pattern (set) or $00 (clear, always to Background).
 ;
-; A bitmap byte holds 8 pixels (hi-res: 8 bits; multicolor: 4 two-bit
-; pairs, but still 8 pixels' worth of x -- see the pairIndex comment
-; above) at a FIXED address for that whole width, unlike a vertical run,
-; which crosses a different byte almost every pixel (Graphics_VLine_Core,
-; deliberately not given this treatment). So: any byte NOT fully covered
-; by [x,endx] -- the first, if x isn't already byte-aligned, and the
-; last -- is still plotted one pixel at a time via Graphics_SetPixel_Core,
-; same as before; every byte FULLY covered in between instead gets one
-; blind byte write ($FF/$00 hi-res, mc_fill_pattern multicolor) -- no
-; per-pixel address recomputation, no read-modify-write, since the whole
-; byte is being overwritten anyway.
-Graphics_HLine_Core:
-    ; End byte's address, stashed in zp_gfx_err_low/high: swap endx into
-    ; x_low/high, compute, stash, restore x_low/high.
-    lda zp_gfx_x_low
-    sta zp_gfx_sx
-    lda zp_gfx_x_high
-    sta zp_gfx_sy
-    lda zp_gfx_endx_low
-    sta zp_gfx_x_low
-    lda zp_gfx_endx_high
-    sta zp_gfx_x_high
-    jsr Graphics_ComputePixelPointer
-    lda zp_gfx_ptr_low
-    sta zp_gfx_err_low
-    lda zp_gfx_ptr_high
-    sta zp_gfx_err_high
-    lda zp_gfx_sx
-    sta zp_gfx_x_low
-    lda zp_gfx_sy
-    sta zp_gfx_x_high
-
-    ; Head: per-pixel until x lands on a byte boundary (x&7==0), or the
-    ; whole span turns out to fit within this one partial byte.
-Graphics_HLine_Core_Head:
-    lda zp_gfx_x_low
-    and #7
-    beq Graphics_HLine_Core_HeadDone
-    jsr Graphics_SetPixel_Core
-    lda zp_gfx_x_low
-    cmp zp_gfx_endx_low
-    bne Graphics_HLine_Core_HeadAdvance
-    lda zp_gfx_x_high
-    cmp zp_gfx_endx_high
-    beq Graphics_HLine_Core_Done
-Graphics_HLine_Core_HeadAdvance:
-    inc zp_gfx_x_low
-    bne Graphics_HLine_Core_Head
-    inc zp_gfx_x_high
-    jmp Graphics_HLine_Core_Head
-Graphics_HLine_Core_HeadDone:
-
-    ; Interior: blit whole bytes, from x's now byte-aligned position, up
-    ; to (not including) the end byte.
-    jsr Graphics_ComputePixelPointer   ; ptr_low/high = the byte x now starts
-
-    lda zp_gfx_on
-    beq Graphics_HLine_Core_FillZero
+; Graphics_SpanSetup computes everything that depends only on x0/x1/color
+; (so a rectangle does it ONCE for all its rows); Graphics_SpanRow then
+; applies it to one row. Scratch: the zp_gfx_span_* names (zeropage.asm) --
+; registers DrawLine uses, which nothing that calls these ever needs across
+; the call (Graphics_HLine_Core is reached from DrawCircle and DrawRectangle
+; with dx_low/dy/endy/cx/cy live, none of which are touched).
+;
+; In: zp_gfx_x_low/high <= zp_gfx_endx_low/high, zp_gfx_on, zp_gfx_color.
+; Out: the zp_gfx_span_* bytes. Destroys A, X, zp_gfx_mask.
+; ---------------------------------------------------------------------------
+Graphics_SpanSetup:
+    lda #0                             ; fill: what a fully covered byte becomes
+    ldx zp_gfx_on
+    beq Graphics_SpanSetup_FillDone
     lda graphics_multicolor_active
-    bne Graphics_HLine_Core_FillMC
+    bne Graphics_SpanSetup_FillMC
     lda #$FF
-    jmp Graphics_HLine_Core_FillDone
-Graphics_HLine_Core_FillMC:
+    jmp Graphics_SpanSetup_FillDone
+Graphics_SpanSetup_FillMC:
     ldx zp_gfx_color
     lda mc_fill_pattern,x
-    jmp Graphics_HLine_Core_FillDone
-Graphics_HLine_Core_FillZero:
-    lda #$00
-Graphics_HLine_Core_FillDone:
-    sta zp_gfx_sx                      ; fill_byte_value, reloaded each iteration
+Graphics_SpanSetup_FillDone:
+    sta zp_gfx_span_fill
 
-Graphics_HLine_Core_Interior:
-    lda zp_gfx_ptr_low
-    cmp zp_gfx_err_low
-    bne Graphics_HLine_Core_InteriorGo
-    lda zp_gfx_ptr_high
-    cmp zp_gfx_err_high
-    beq Graphics_HLine_Core_InteriorDone
-Graphics_HLine_Core_InteriorGo:
+    lda zp_gfx_endx_high               ; count = (endx>>3) - (x>>3): the number
+    lsr                                ; of bytes after the first
+    lda zp_gfx_endx_low
+    ror
+    lsr
+    lsr
+    sta zp_gfx_span_count
+    lda zp_gfx_x_high
+    lsr
+    lda zp_gfx_x_low
+    ror
+    lsr
+    lsr
+    sta zp_gfx_sy                      ; scratch: the first byte's column index
+    lda zp_gfx_span_count
+    sec
+    sbc zp_gfx_sy
+    sta zp_gfx_span_count
+
+    lda zp_gfx_x_low                   ; first byte's mask
+    and #7
+    ldx graphics_multicolor_active
+    beq Graphics_SpanSetup_HeadCol
+    and #6
+Graphics_SpanSetup_HeadCol:
+    tax
+    lda span_left_mask,x
+    sta zp_gfx_mask
+
+    lda zp_gfx_endx_low                ; last byte's mask (raw, for now)
+    and #7
+    ldx graphics_multicolor_active
+    beq Graphics_SpanSetup_TailCol
+    ora #1
+Graphics_SpanSetup_TailCol:
+    tax
+    lda span_right_mask,x
+    sta zp_gfx_span_notTail
+
+    lda zp_gfx_span_count              ; first byte == last byte: one byte,
+    bne Graphics_SpanSetup_TwoBytes    ; touched only where both masks agree
+    lda zp_gfx_mask
+    and zp_gfx_span_notTail
+    sta zp_gfx_mask
+Graphics_SpanSetup_TwoBytes:
+    lda zp_gfx_mask
+    eor #$FF
+    sta zp_gfx_span_notHead
+    lda zp_gfx_mask
+    and zp_gfx_span_fill
+    sta zp_gfx_span_fillHead
+    lda zp_gfx_span_notTail
+    and zp_gfx_span_fill
+    sta zp_gfx_span_fillTail
+    lda zp_gfx_span_notTail
+    eor #$FF
+    sta zp_gfx_span_notTail
+    rts
+
+; Applies the span to one row. In: zp_gfx_ptr_low/high = the byte holding the
+; span's first pixel (Graphics_ComputePixelPointer's result), after
+; Graphics_SpanSetup. Destroys zp_gfx_ptr_low/high (left at the last byte),
+; A, X, Y.
+Graphics_SpanRow:
     ldy #0
-    lda zp_gfx_sx
+    lda (zp_gfx_ptr_low),y
+    and zp_gfx_span_notHead
+    ora zp_gfx_span_fillHead
     sta (zp_gfx_ptr_low),y
-    lda zp_gfx_ptr_low                 ; next byte along this row is +8
-    clc                                ; (same cell row, next cell: bytes
-    adc #8                             ; within a row are 8 apart, not 1 --
-    sta zp_gfx_ptr_low                 ; see the (x&$F8) term ComputePixel-
-    bcc +                              ; Pointer adds directly)
+    ldx zp_gfx_span_count
+    beq Graphics_SpanRow_Done
+    dex
+    beq Graphics_SpanRow_Tail
+Graphics_SpanRow_Interior:             ; fully covered bytes: a plain store,
+    lda zp_gfx_ptr_low                 ; the next byte along a row is +8 (next
+    clc                                ; cell, same scanline -- the (x&$F8) term
+    adc #8                             ; Graphics_ComputePixelPointer adds)
+    sta zp_gfx_ptr_low
+    bcc Graphics_SpanRow_NoCarry
     inc zp_gfx_ptr_high
-+   lda zp_gfx_x_low
+Graphics_SpanRow_NoCarry:
+    lda zp_gfx_span_fill
+    sta (zp_gfx_ptr_low),y
+    dex
+    bne Graphics_SpanRow_Interior
+Graphics_SpanRow_Tail:
+    lda zp_gfx_ptr_low
     clc
     adc #8
-    sta zp_gfx_x_low
-    bcc +
-    inc zp_gfx_x_high
-+   jmp Graphics_HLine_Core_Interior
-Graphics_HLine_Core_InteriorDone:
+    sta zp_gfx_ptr_low
+    bcc Graphics_SpanRow_TailNoCarry
+    inc zp_gfx_ptr_high
+Graphics_SpanRow_TailNoCarry:
+    lda (zp_gfx_ptr_low),y
+    and zp_gfx_span_notTail
+    ora zp_gfx_span_fillTail
+    sta (zp_gfx_ptr_low),y
+Graphics_SpanRow_Done:
+    rts
 
-    ; Tail: per-pixel for whatever's left of the end byte (at most 8
-    ; pixels, never accelerated -- keeps this simple, and it's a small,
-    ; bounded cost next to however many interior bytes preceded it).
-Graphics_HLine_Core_Tail:
-    jsr Graphics_SetPixel_Core
-    lda zp_gfx_x_low
-    cmp zp_gfx_endx_low
-    bne Graphics_HLine_Core_TailAdvance
-    lda zp_gfx_x_high
-    cmp zp_gfx_endx_high
-    beq Graphics_HLine_Core_Done
-Graphics_HLine_Core_TailAdvance:
-    inc zp_gfx_x_low
-    bne Graphics_HLine_Core_Tail
-    inc zp_gfx_x_high
-    jmp Graphics_HLine_Core_Tail
+; Plots pixels (zp_gfx_x_low/high .. zp_gfx_endx_low/high, zp_gfx_y)
+; inclusive. Caller must ensure start <= end. Leaves x/y as they were.
+; Destroys the zp_gfx_span_* scratch (see above), zp_gfx_mask, zp_gfx_ptr_*.
+Graphics_HLine_Core:
+    jsr Graphics_SpanSetup
+    jsr Graphics_ComputePixelPointer
+    jmp Graphics_SpanRow
 
-Graphics_HLine_Core_Done:
+; Same inputs as Graphics_RectOutline_Core. Every row of a filled rectangle
+; is the SAME span (same x0/x1, same masks, same fill) at a different
+; scanline, so the span is set up once (Graphics_SpanSetup) and the start
+; byte's address is computed once; then each row just applies the span
+; (Graphics_SpanRow) and steps the row pointer -- +1 down a scanline within
+; a cell, +313 (320-7) from a cell's last scanline to the next cell row,
+; the same stepping DrawLine's gfx_ystep_down does (the pointer's low 3
+; bits always equal y&7). The row pointer lives in zp_gfx_dx_low/high --
+; DrawLine's registers, unused by DrawRectangle -- since SpanRow walks
+; zp_gfx_ptr along the row.
+Graphics_FillRect_Core:
+    jsr Graphics_SpanSetup
+    jsr Graphics_ComputePixelPointer
+    lda zp_gfx_ptr_low
+    sta zp_gfx_dx_low
+    lda zp_gfx_ptr_high
+    sta zp_gfx_dx_high
+Graphics_FillRect_Core_RowLoop:
+    lda zp_gfx_dx_low
+    sta zp_gfx_ptr_low
+    lda zp_gfx_dx_high
+    sta zp_gfx_ptr_high
+    jsr Graphics_SpanRow
+    lda zp_gfx_y
+    cmp zp_gfx_endy
+    beq Graphics_FillRect_Core_Done
+    inc zp_gfx_y
+    lda zp_gfx_dx_low
+    and #7
+    cmp #7
+    beq Graphics_FillRect_Core_NextCell
+    inc zp_gfx_dx_low
+    jmp Graphics_FillRect_Core_RowLoop
+Graphics_FillRect_Core_NextCell:
+    lda zp_gfx_dx_low
+    clc
+    adc #<313
+    sta zp_gfx_dx_low
+    lda zp_gfx_dx_high
+    adc #>313
+    sta zp_gfx_dx_high
+    jmp Graphics_FillRect_Core_RowLoop
+Graphics_FillRect_Core_Done:
     rts
 
 ; Plots pixels (zp_gfx_x_low/high, zp_gfx_y .. zp_gfx_endy) inclusive.
@@ -702,30 +776,6 @@ Graphics_RectOutline_Core:
     lda zp_gfx_rect_y0
     sta zp_gfx_y
     jsr Graphics_VLine_Core         ; right edge: x1, y0..y1
-    rts
-
-; Same inputs as Graphics_RectOutline_Core. One HLine per row, y0..y1.
-Graphics_FillRect_Core:
-    lda zp_gfx_x_low
-    sta zp_gfx_rect_x0_low
-    lda zp_gfx_x_high
-    sta zp_gfx_rect_x0_high
-    lda zp_gfx_y
-    sta zp_gfx_rect_y0
-Graphics_FillRect_Core_RowLoop:
-    lda zp_gfx_rect_x0_low
-    sta zp_gfx_x_low
-    lda zp_gfx_rect_x0_high
-    sta zp_gfx_x_high
-    jsr Graphics_HLine_Core
-    lda zp_gfx_rect_y0
-    cmp zp_gfx_endy
-    beq Graphics_FillRect_Core_Done
-    inc zp_gfx_rect_y0
-    lda zp_gfx_rect_y0
-    sta zp_gfx_y
-    jmp Graphics_FillRect_Core_RowLoop
-Graphics_FillRect_Core_Done:
     rts
 
 Screen_DrawRectangle:
@@ -905,6 +955,48 @@ Graphics_DrawLine_DYPositive:
 Graphics_DrawLine_DYDone:
     lda #0
     sta zp_gfx_dy_high
+
+    ; A horizontal line is just a span (byte-at-a-time, see
+    ; Graphics_HLine_Core): far faster than per-pixel plotting, and the only
+    ; fast option for a multicolor line. HLine wants start <= end; sx says
+    ; which way this line runs, so swap the ends first if it runs leftward.
+    lda zp_gfx_dy
+    bne Graphics_DrawLine_NotHorizontal
+    lda zp_gfx_sx
+    bne Graphics_DrawLine_HorizontalOrdered
+    lda zp_gfx_x_low
+    ldx zp_gfx_endx_low
+    stx zp_gfx_x_low
+    sta zp_gfx_endx_low
+    lda zp_gfx_x_high
+    ldx zp_gfx_endx_high
+    stx zp_gfx_x_high
+    sta zp_gfx_endx_high
+Graphics_DrawLine_HorizontalOrdered:
+    jmp Graphics_HLine_Core
+Graphics_DrawLine_NotHorizontal:
+
+    ; A vertical line is a rectangle one column wide: Graphics_FillRect_Core
+    ; sets the column's mask up once and steps the pointer a scanline at a
+    ; time, instead of recomputing a full pixel address per pixel. It wants
+    ; y0 <= y1 (sy says which way this line runs) and x1 == x0 (dx is 0).
+    ; Multicolor only: hi-res already has its own fast vertical loop below
+    ; (~56 cycles/pixel), which beats the rectangle path (~80); multicolor
+    ; has nothing but the per-pixel fallback (~200).
+    lda graphics_multicolor_active
+    beq Graphics_DrawLine_NotVertical
+    lda zp_gfx_dx_low
+    ora zp_gfx_dx_high
+    bne Graphics_DrawLine_NotVertical
+    lda zp_gfx_sy
+    bne Graphics_DrawLine_VerticalOrdered
+    lda zp_gfx_y
+    ldx zp_gfx_endy
+    stx zp_gfx_y
+    sta zp_gfx_endy
+Graphics_DrawLine_VerticalOrdered:
+    jmp Graphics_FillRect_Core
+Graphics_DrawLine_NotVertical:
 
     ; X-major if dx>=dy (unsigned 16-bit compare, same SBC/carry idiom as
     ; Graphics_NormalizeRectCoords). Multicolor lines can't use the fast

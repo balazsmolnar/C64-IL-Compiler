@@ -60,6 +60,13 @@ static class Maze
         return (Colors)RoomColors[y * Width + x];
     }
 
+    // The same value as a plain uint, for callers that need to do
+    // arithmetic on it (this compiler has no arithmetic on enum types).
+    public static uint RoomColorValue(uint x, uint y)
+    {
+        return RoomColors[y * Width + x];
+    }
+
     // Out-of-range coordinates read as solid: a step that would take x or y
     // negative wraps to a large uint (this compiler's int/uint are 8-bit,
     // see CLAUDE.md), which this same ">=" check still correctly rejects --

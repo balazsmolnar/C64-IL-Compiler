@@ -55,6 +55,22 @@ static class DungeonView
 
     public static void Render(uint px, uint py, uint dir)
     {
+        RenderRoom(px, py, dir, FrontDoorRight);
+    }
+
+    // The same room, with the front door part-way open: the door panel is
+    // drawn only from its left (hinge) edge to panelRight, and the doorway
+    // behind it is filled with MatrixLow -- Program.cs sets that to the
+    // NEXT room's color for the animation, so you see into the room you're
+    // about to enter. panelRight == FrontDoorLeft leaves no panel at all
+    // (fully open). Has no effect on a room with no front door.
+    public static void RenderOpening(uint px, uint py, uint dir, ulong panelRight)
+    {
+        RenderRoom(px, py, dir, panelRight);
+    }
+
+    static void RenderRoom(uint px, uint py, uint dir, ulong panelRight)
+    {
         bool leftOpen = !Maze.LeftIsWall(px, py, dir, 0);
         bool rightOpen = !Maze.RightIsWall(px, py, dir, 0);
         bool frontOpen = !Maze.AheadIsWall(px, py, dir, 1);
@@ -75,7 +91,12 @@ static class DungeonView
         if (rightOpen)
             DrawSideDoor(true);
         if (frontOpen)
-            C64.Screen.DrawRectangle(FrontDoorLeft, FrontDoorTop, FrontDoorRight, FY1Far, true, true, BitmapColorSource.ColorRam);
+        {
+            if (panelRight < FrontDoorRight)
+                C64.Screen.DrawRectangle(FrontDoorLeft, FrontDoorTop, FrontDoorRight, FY1Far, true, true, BitmapColorSource.MatrixLow);
+            if (panelRight > FrontDoorLeft)
+                C64.Screen.DrawRectangle(FrontDoorLeft, FrontDoorTop, panelRight, FY1Far, true, true, BitmapColorSource.ColorRam);
+        }
     }
 
     static void DrawFrameOutline(ulong x0, ulong y0, ulong x1, ulong y1)

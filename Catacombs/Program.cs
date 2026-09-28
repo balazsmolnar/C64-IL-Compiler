@@ -115,7 +115,34 @@ class Program
         else if (dir_ == 1) nx = px_ + 1;
         else if (dir_ == 2) ny = py_ + 1;
         else nx = px_ - 1;
-        if (!Maze.IsWall(nx, ny)) { px_ = nx; py_ = ny; }
+        if (!Maze.IsWall(nx, ny))
+        {
+            AnimateDoorOpening(nx, ny);
+            px_ = nx;
+            py_ = ny;
+        }
+    }
+
+    // Right edge of the door panel at each animation frame -- from the
+    // closed door's right edge (187) swinging in toward its left/hinge edge
+    // (131), the last frame having no panel at all.
+    static readonly ulong[] DoorOpenPanelRight = { 171, 155, 143, 135, 131 };
+
+    // Opens the front door of the CURRENT room, with the doorway showing
+    // the next room's color (MatrixLow, which nothing else draws with, is
+    // set to it), before the caller moves into it. Each frame goes through
+    // the same clear/render/swap as a normal redraw, so it stays
+    // double-buffered.
+    static void AnimateDoorOpening(uint nx, uint ny)
+    {
+        C64.Screen.SetBitmapColors(0x10 + Maze.RoomColorValue(nx, ny));
+        for (uint i = 0; i < 5; i++)
+        {
+            ClearDrawBuffer();
+            DungeonView.RenderOpening(px_, py_, dir_, DoorOpenPanelRight[i]);
+            C64.Screen.SwapBuffers();
+            drawBuffer1_ = !drawBuffer1_;
+        }
     }
 
     static void MoveBackward()

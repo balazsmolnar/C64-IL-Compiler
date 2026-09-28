@@ -490,23 +490,134 @@ Screen_SetBitmapColors:
 ; ===========================================================================
 .if Flag_Screen_DrawLine | Flag_Screen_DrawRectangle | Flag_Screen_DrawCircle
 
+; Multicolor: repeated 2-bit color pattern for a FULLY interior byte (all 4
+; pixel-pairs the same color) -- index by colorSource (0-3). Used only by
+; Graphics_HLine_Core's fast interior-byte blit below; a single pixel still
+; goes through Graphics_SetPixel_Core_MC's own mc_pair_value_table.
+mc_fill_pattern .byte $00,$55,$AA,$FF
+
 ; Plots pixels (zp_gfx_x_low/high .. zp_gfx_endx_low/high, zp_gfx_y)
-; inclusive. Caller must ensure start <= end. Destroys zp_gfx_x_low/high
-; (advances it to end+1).
+; inclusive. Caller must ensure start <= end. Leaves zp_gfx_x_low/high at
+; endx. Destroys zp_gfx_sx/sy (both throwaway across any HLine_Core call --
+; see asm/helper/zeropage.asm) and zp_gfx_err_low/high (DrawLine's own
+; registers -- never touched by anything that calls HLine_Core, same
+; "never concurrent" reasoning as DrawCircle's own reuse of
+; zp_gfx_dx_low/dy, just for a different pair of registers).
+;
+; A bitmap byte holds 8 pixels (hi-res: 8 bits; multicolor: 4 two-bit
+; pairs, but still 8 pixels' worth of x -- see the pairIndex comment
+; above) at a FIXED address for that whole width, unlike a vertical run,
+; which crosses a different byte almost every pixel (Graphics_VLine_Core,
+; deliberately not given this treatment). So: any byte NOT fully covered
+; by [x,endx] -- the first, if x isn't already byte-aligned, and the
+; last -- is still plotted one pixel at a time via Graphics_SetPixel_Core,
+; same as before; every byte FULLY covered in between instead gets one
+; blind byte write ($FF/$00 hi-res, mc_fill_pattern multicolor) -- no
+; per-pixel address recomputation, no read-modify-write, since the whole
+; byte is being overwritten anyway.
 Graphics_HLine_Core:
-Graphics_HLine_Core_Loop:
+    ; End byte's address, stashed in zp_gfx_err_low/high: swap endx into
+    ; x_low/high, compute, stash, restore x_low/high.
+    lda zp_gfx_x_low
+    sta zp_gfx_sx
+    lda zp_gfx_x_high
+    sta zp_gfx_sy
+    lda zp_gfx_endx_low
+    sta zp_gfx_x_low
+    lda zp_gfx_endx_high
+    sta zp_gfx_x_high
+    jsr Graphics_ComputePixelPointer
+    lda zp_gfx_ptr_low
+    sta zp_gfx_err_low
+    lda zp_gfx_ptr_high
+    sta zp_gfx_err_high
+    lda zp_gfx_sx
+    sta zp_gfx_x_low
+    lda zp_gfx_sy
+    sta zp_gfx_x_high
+
+    ; Head: per-pixel until x lands on a byte boundary (x&7==0), or the
+    ; whole span turns out to fit within this one partial byte.
+Graphics_HLine_Core_Head:
+    lda zp_gfx_x_low
+    and #7
+    beq Graphics_HLine_Core_HeadDone
     jsr Graphics_SetPixel_Core
     lda zp_gfx_x_low
     cmp zp_gfx_endx_low
-    bne Graphics_HLine_Core_Advance
+    bne Graphics_HLine_Core_HeadAdvance
     lda zp_gfx_x_high
     cmp zp_gfx_endx_high
     beq Graphics_HLine_Core_Done
-Graphics_HLine_Core_Advance:
+Graphics_HLine_Core_HeadAdvance:
     inc zp_gfx_x_low
-    bne Graphics_HLine_Core_Loop
+    bne Graphics_HLine_Core_Head
     inc zp_gfx_x_high
-    jmp Graphics_HLine_Core_Loop
+    jmp Graphics_HLine_Core_Head
+Graphics_HLine_Core_HeadDone:
+
+    ; Interior: blit whole bytes, from x's now byte-aligned position, up
+    ; to (not including) the end byte.
+    jsr Graphics_ComputePixelPointer   ; ptr_low/high = the byte x now starts
+
+    lda zp_gfx_on
+    beq Graphics_HLine_Core_FillZero
+    lda graphics_multicolor_active
+    bne Graphics_HLine_Core_FillMC
+    lda #$FF
+    jmp Graphics_HLine_Core_FillDone
+Graphics_HLine_Core_FillMC:
+    ldx zp_gfx_color
+    lda mc_fill_pattern,x
+    jmp Graphics_HLine_Core_FillDone
+Graphics_HLine_Core_FillZero:
+    lda #$00
+Graphics_HLine_Core_FillDone:
+    sta zp_gfx_sx                      ; fill_byte_value, reloaded each iteration
+
+Graphics_HLine_Core_Interior:
+    lda zp_gfx_ptr_low
+    cmp zp_gfx_err_low
+    bne Graphics_HLine_Core_InteriorGo
+    lda zp_gfx_ptr_high
+    cmp zp_gfx_err_high
+    beq Graphics_HLine_Core_InteriorDone
+Graphics_HLine_Core_InteriorGo:
+    ldy #0
+    lda zp_gfx_sx
+    sta (zp_gfx_ptr_low),y
+    lda zp_gfx_ptr_low                 ; next byte along this row is +8
+    clc                                ; (same cell row, next cell: bytes
+    adc #8                             ; within a row are 8 apart, not 1 --
+    sta zp_gfx_ptr_low                 ; see the (x&$F8) term ComputePixel-
+    bcc +                              ; Pointer adds directly)
+    inc zp_gfx_ptr_high
++   lda zp_gfx_x_low
+    clc
+    adc #8
+    sta zp_gfx_x_low
+    bcc +
+    inc zp_gfx_x_high
++   jmp Graphics_HLine_Core_Interior
+Graphics_HLine_Core_InteriorDone:
+
+    ; Tail: per-pixel for whatever's left of the end byte (at most 8
+    ; pixels, never accelerated -- keeps this simple, and it's a small,
+    ; bounded cost next to however many interior bytes preceded it).
+Graphics_HLine_Core_Tail:
+    jsr Graphics_SetPixel_Core
+    lda zp_gfx_x_low
+    cmp zp_gfx_endx_low
+    bne Graphics_HLine_Core_TailAdvance
+    lda zp_gfx_x_high
+    cmp zp_gfx_endx_high
+    beq Graphics_HLine_Core_Done
+Graphics_HLine_Core_TailAdvance:
+    inc zp_gfx_x_low
+    bne Graphics_HLine_Core_Tail
+    inc zp_gfx_x_high
+    jmp Graphics_HLine_Core_Tail
+
 Graphics_HLine_Core_Done:
     rts
 

@@ -75,6 +75,31 @@ static class DungeonView
             }
         }
 
+        // Solid fills for every segment's 4 surfaces (2 wall panels, floor,
+        // ceiling), drawn FIRST so the white outline/diagonal lines and
+        // brown doors (below) render crisply on top of them, not the other
+        // way around. Frame[s] strictly contains frame[s+1] (both FX/FY
+        // pairs move monotonically with depth), so the space between them
+        // is a rectangular "picture frame" ring; these 4 surfaces are the
+        // natural trapezoidal pieces you get splitting that ring along its
+        // own corner-to-corner diagonals -- the SAME diagonals
+        // DrawWallWithDoor already draws below, so no new outline is
+        // needed, only the fill.
+        for (uint s = 0; s < lastIndex; s++)
+        {
+            FillWallPanel(s, FX0);
+            FillWallPanel(s, FX1);
+            FillFloorCeiling(s);
+        }
+
+        // The wall you're facing (or the vanishing edge, if the corridor
+        // stays open) has no "next frame" to fill a panel against -- fill
+        // its own interior directly as one flat surface, same color as
+        // every other wall/floor/ceiling. The front door drawn below
+        // still lands on top of it, same as any other door on a filled
+        // panel.
+        C64.Screen.DrawRectangle(FX0[lastIndex], FY0[lastIndex], FX1[lastIndex], FY1[lastIndex], true, true, BitmapColorSource.MatrixLow);
+
         // Segment s (frame[s] to frame[s+1]) represents the cell reached
         // after s+1 steps -- one more than the frame's own array index,
         // since frame[0] itself already corresponds to dist=1.
@@ -143,6 +168,62 @@ static class DungeonView
         ulong innerRight = Lerp(right, left, 1, 4);
         ulong innerTop = Lerp(top, bottom, 1, 4);
         C64.Screen.DrawRectangle(innerLeft, innerTop, innerRight, bottom, false, true, BitmapColorSource.ColorRam);
+    }
+
+    // Fills the wall panel between frame s and frame s+1 (xEdge = FX0 for
+    // the left wall, FX1 for the right -- same shape either side, just the
+    // opposite edge of each frame). xEdge[s] is constant for the whole row
+    // range (frame s's own vertical edge); the opposite x is banded by
+    // row, because frame s's height range strictly contains frame s+1's:
+    // a top taper and a bottom taper (each along the diagonal to frame
+    // s+1's corresponding near corner), and in between, a MIDDLE band
+    // where the opposite x is ALSO constant (frame s+1's own edge, for as
+    // long as y stays within frame s+1's own height range) -- usually most
+    // of the panel's height. That middle band is a single ordinary
+    // (multi-row) filled DrawRectangle, not a per-row loop -- each row of
+    // a real multi-row fill is one asm-side Graphics_HLine_Core call
+    // inside ONE C# call, instead of one C# call (with its own argument-
+    // marshalling cost) per row; only the two tapers, where the width
+    // genuinely changes row to row, need the per-row treatment. MatrixLow
+    // -- distinct from the walls' own MatrixHigh outline and the doors'
+    // ColorRam -- so a solid wall doesn't just look like a thicker white
+    // line.
+    static void FillWallPanel(uint s, ulong[] xEdge)
+    {
+        for (ulong y = FY0[s]; y < FY0[s + 1]; y = y + 1)
+        {
+            ulong otherX = Lerp(xEdge[s], xEdge[s + 1], y - FY0[s], FY0[s + 1] - FY0[s]);
+            C64.Screen.DrawRectangle(xEdge[s], y, otherX, y, true, true, BitmapColorSource.MatrixLow);
+        }
+
+        C64.Screen.DrawRectangle(xEdge[s], FY0[s + 1], xEdge[s + 1], FY1[s + 1], true, true, BitmapColorSource.MatrixLow);
+
+        for (ulong y = FY1[s + 1] + 1; y <= FY1[s]; y = y + 1)
+        {
+            ulong otherX = Lerp(xEdge[s + 1], xEdge[s], y - FY1[s + 1], FY1[s] - FY1[s + 1]);
+            C64.Screen.DrawRectangle(xEdge[s], y, otherX, y, true, true, BitmapColorSource.MatrixLow);
+        }
+    }
+
+    // Fills the floor and ceiling trapezoids between frame s and frame
+    // s+1: unlike the wall panels, both left and right edges here are
+    // diagonals running the whole row range (FX0[s] to FX0[s+1] on the
+    // left, FX1[s] to FX1[s+1] on the right), so each row is a single
+    // Lerp, no banding needed.
+    static void FillFloorCeiling(uint s)
+    {
+        for (ulong y = FY1[s + 1]; y <= FY1[s]; y = y + 1)
+        {
+            ulong left = Lerp(FX0[s + 1], FX0[s], y - FY1[s + 1], FY1[s] - FY1[s + 1]);
+            ulong right = Lerp(FX1[s + 1], FX1[s], y - FY1[s + 1], FY1[s] - FY1[s + 1]);
+            C64.Screen.DrawRectangle(left, y, right, y, true, true, BitmapColorSource.MatrixLow);
+        }
+        for (ulong y = FY0[s]; y <= FY0[s + 1]; y = y + 1)
+        {
+            ulong left = Lerp(FX0[s], FX0[s + 1], y - FY0[s], FY0[s + 1] - FY0[s]);
+            ulong right = Lerp(FX1[s], FX1[s + 1], y - FY0[s], FY0[s + 1] - FY0[s]);
+            C64.Screen.DrawRectangle(left, y, right, y, true, true, BitmapColorSource.MatrixLow);
+        }
     }
 
     // Point a fraction (num/den) of the way from a to b. Unsigned-safe:

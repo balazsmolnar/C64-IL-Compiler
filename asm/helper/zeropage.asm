@@ -72,8 +72,16 @@ zp_gfx_dy_high    = $11   ; throwaway pull target, see zp_gfx_y_high
 zp_gfx_sx         = $12   ; DrawLine: x step direction, 1=increasing/0=decreasing
                            ; (a flag, not a signed +-1 byte -- x is 16-bit, so
                            ; stepping is a plain inc/dec branch, not a signed add)
-zp_gfx_sy         = $13   ; DrawLine: y step direction, 1=increasing/0=decreasing
-zp_gfx_err_low    = $14   ; DrawLine: Bresenham error term (signed 16-bit -- 2*dx can reach 638)
+                           ; Also: Graphics_HLine_Core's own throwaway scratch
+                           ; (temp swap, then the fast interior fill's byte
+                           ; value) -- never concurrent with DrawLine, which
+                           ; doesn't call HLine_Core.
+zp_gfx_sy         = $13   ; DrawLine: y step direction, 1=increasing/0=decreasing.
+                           ; Also: Graphics_HLine_Core's throwaway scratch, same
+                           ; reasoning as zp_gfx_sx above.
+zp_gfx_err_low    = $14   ; DrawLine: Bresenham error term (signed 16-bit -- 2*dx can reach 638).
+                           ; Also: Graphics_HLine_Core's end-byte-address scratch
+                           ; (holds it for the whole call), same reasoning.
 zp_gfx_err_high   = $15
 
 zp_gfx_cx_low     = $16   ; DrawCircle: center X (0-319)

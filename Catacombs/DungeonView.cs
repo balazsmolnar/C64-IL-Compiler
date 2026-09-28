@@ -26,8 +26,14 @@ namespace Catacombs;
 // Side walls are always drawn, whether or not the maze actually has a wall
 // there: the tunnel should always look like a continuous, fully enclosed
 // corridor. Where a side is actually open (a passage you could turn into),
-// a door -- a smaller rectangle inset into that wall segment -- marks it,
-// rather than leaving a gap in the wall geometry itself.
+// a door -- a smaller rectangle inset into that wall segment, its corners
+// hand-picked (not computed) per depth -- marks it, rather than leaving a
+// gap in the wall geometry itself.
+//
+// The wall you're facing, whenever you're facing one, always gets a
+// "front door" too -- a doorway with a smaller rectangle nested inside it,
+// hinting at more space (and maybe another door) glimpsed through it,
+// rather than a flat dead end.
 static class DungeonView
 {
     const uint MaxDepth = 4;
@@ -36,6 +42,23 @@ static class DungeonView
     static readonly ulong[] FY0 = { 4, 26, 46, 60, 72 };
     static readonly ulong[] FX1 = { 315, 269, 231, 203, 183 };
     static readonly ulong[] FY1 = { 195, 173, 153, 139, 127 };
+
+    // Side-door corners, one entry per wall panel (s = 0..MaxDepth-1, the
+    // panel between frame[s] and frame[s+1]). The far edge/bottom of each
+    // door is exactly that panel's own far frame corner (FX0[s+1]/
+    // FX1[s+1]/FY1[s+1] -- no separate table needed, it already flushes
+    // against the frame line the outline loop draws), so only the door's
+    // near edge and top need their own hand-picked values here.
+    static readonly ulong[] DoorTop = { 63, 73, 80, 86 };
+    static readonly ulong[] DoorNearX0 = { 35, 75, 107, 129 };
+    static readonly ulong[] DoorNearX1 = { 284, 244, 212, 190 };
+
+    // Front-door corners, one entry per possible stop depth (0..MaxDepth):
+    // a doorway centered in that frame, sized as a fraction of it. Bottom
+    // is that frame's own floor line (FY1), so no separate table for it.
+    static readonly ulong[] FrontDoorLeft = { 119, 131, 140, 148, 153 };
+    static readonly ulong[] FrontDoorRight = { 199, 187, 178, 170, 165 };
+    static readonly ulong[] FrontDoorTop = { 90, 92, 94, 95, 97 };
 
     public static void Render(uint px, uint py, uint dir)
     {
@@ -57,8 +80,8 @@ static class DungeonView
         // since frame[0] itself already corresponds to dist=1.
         for (uint s = 0; s < lastIndex; s++)
         {
-            DrawWallWithDoor(s, FX0, !Maze.LeftIsWall(px, py, dir, s + 1));
-            DrawWallWithDoor(s, FX1, !Maze.RightIsWall(px, py, dir, s + 1));
+            DrawWallWithDoor(s, FX0, DoorNearX0, !Maze.LeftIsWall(px, py, dir, s + 1));
+            DrawWallWithDoor(s, FX1, DoorNearX1, !Maze.RightIsWall(px, py, dir, s + 1));
         }
 
         // The cross-section outline (ceiling, floor, both vertical edges) at
@@ -75,6 +98,8 @@ static class DungeonView
             C64.Screen.DrawLine(FX0[f], FY0[f], FX0[f], FY1[f]);
             C64.Screen.DrawLine(FX1[f], FY0[f], FX1[f], FY1[f]);
         }
+
+        DrawFrontDoor(lastIndex);
     }
 
     // The two lines (top-corner-to-top-corner, bottom-corner-to-bottom-
@@ -83,7 +108,7 @@ static class DungeonView
     // shape either side, just the opposite edge of each frame. Always
     // drawn; isOpen additionally overlays a door, without ever removing
     // the wall geometry itself.
-    static void DrawWallWithDoor(uint s, ulong[] xEdge, bool isOpen)
+    static void DrawWallWithDoor(uint s, ulong[] xEdge, ulong[] doorNearX, bool isOpen)
     {
         C64.Screen.DrawLine(xEdge[s], FY0[s], xEdge[s + 1], FY0[s + 1]);
         C64.Screen.DrawLine(xEdge[s], FY1[s], xEdge[s + 1], FY1[s + 1]);
@@ -91,21 +116,32 @@ static class DungeonView
         if (!isOpen)
             return;
 
-        // A doorway cut into the wall panel, occupying the third of it
-        // closest to frame s+1. One edge sits exactly on xEdge[s+1] --
-        // flush against that frame's own vertical line, which the outline
-        // loop already draws -- so the door visibly joins onto real frame
-        // geometry instead of floating free in open space. The other edge
-        // is interpolated a third of the way back toward xEdge[s], so its
-        // width is always a fraction of THIS panel's own width and can
-        // never outgrow a shrunken, distant panel. Height-wise it spans
-        // from the floor up to 3/4 of the frame's own height (a "lintel"
-        // strip left at the top).
-        ulong xFar = xEdge[s + 1];
-        ulong xNear = Lerp(xFar, xEdge[s], 1, 3);
-        ulong height = FY1[s + 1] - FY0[s + 1];
-        ulong doorTop = FY0[s + 1] + height / 4;
-        C64.Screen.DrawRectangle(xNear, doorTop, xFar, FY1[s + 1]);
+        // Far edge/bottom flush against xEdge[s+1]/FY1[s+1] -- the frame's
+        // own corner, already drawn by the outline loop -- so the door
+        // visibly joins onto real frame geometry instead of floating free
+        // in open space.
+        C64.Screen.DrawRectangle(doorNearX[s], DoorTop[s], xEdge[s + 1], FY1[s + 1]);
+    }
+
+    // The doorway on the wall directly ahead, whenever there's a wall
+    // directly ahead to put one on (index is either the stop depth, or
+    // MaxDepth's own vanishing edge when the corridor stays open the whole
+    // way -- both already get a full 4-sided frame from the outline loop
+    // above, so a door reads naturally on either). A smaller rectangle
+    // nested inside it hints at more space glimpsed through the doorway,
+    // rather than it being a flat dead end.
+    static void DrawFrontDoor(uint index)
+    {
+        ulong left = FrontDoorLeft[index];
+        ulong right = FrontDoorRight[index];
+        ulong top = FrontDoorTop[index];
+        ulong bottom = FY1[index];
+        C64.Screen.DrawRectangle(left, top, right, bottom);
+
+        ulong innerLeft = Lerp(left, right, 1, 4);
+        ulong innerRight = Lerp(right, left, 1, 4);
+        ulong innerTop = Lerp(top, bottom, 1, 4);
+        C64.Screen.DrawRectangle(innerLeft, innerTop, innerRight, bottom);
     }
 
     // Point a fraction (num/den) of the way from a to b. Unsigned-safe:

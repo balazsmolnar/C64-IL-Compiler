@@ -96,7 +96,7 @@ rts
 ; color matrix in VIC bank 1, below; Screen.SetBitmapColors alone just needs
 ; the normal single buffer.
 GRAPHICS_DOUBLE_BUFFER = Flag_Screen_SetDrawBuffer | Flag_Screen_SwapBuffers
-GRAPHICS_USED = Flag_Screen_EnableBitmapMode | Flag_Screen_DisableBitmapMode | Flag_Screen_SetPixel | Flag_Screen_DrawLine | Flag_Screen_DrawRectangle | Flag_Screen_DrawCircle | Flag_Screen_SetBitmapColors | GRAPHICS_DOUBLE_BUFFER
+GRAPHICS_USED = Flag_Screen_SetScreenMode | Flag_Screen_SetPixel | Flag_Screen_DrawLine | Flag_Screen_DrawRectangle | Flag_Screen_DrawCircle | Flag_Screen_SetBitmapColors | GRAPHICS_DOUBLE_BUFFER
 .if GRAPHICS_USED
 ; Color matrix: 1000 bytes (one per 8x8 cell, hi nibble=foreground/lo
 ; nibble=background), must be 1K-aligned within VIC bank 0. $0c00 sits in
@@ -115,8 +115,10 @@ Graphics_ColorMatrix
 ; sprite-pointer territory at $0000) and outside the VIC-II's own
 ; character-ROM shadow at $1000-$1fff (asm/helper/memoryLayout.asm,
 ; confirmed live in VICE). NOT $4000 -- that's VIC BANK 1, not bank 0 (each
-; bank is 16K), invisible to the VIC-II while bank 0 is selected (this
-; codebase never switches banks -- see asm/helper/memoryLayout.asm).
+; bank is 16K), invisible to the VIC-II while bank 0 is selected, which it
+; is by default -- double buffering (Screen.SetDrawBuffer/SwapBuffers,
+; below) is the one thing that switches to bank 1, and only transiently,
+; to show whichever buffer isn't the current draw target.
 ; Real (non-.virtual) bytes: this sits in the MIDDLE of the address space
 ; with real compiled code resuming right after it, unlike
 ; asm/helper/objectTables.asm's .virtual reservation, which is only

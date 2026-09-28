@@ -13,12 +13,12 @@ class Program
         py_ = 1;
         dir_ = 1; // facing east into the first corridor
 
-        C64.Screen.EnableBitmapMode();
+        C64.Screen.SetScreenMode(ScreenMode.Bitmap);
         C64.Screen.SetBitmapColors(0x1E); // white lines (foreground), light blue background
         C64.Screen.SetDrawBuffer(1);
         drawBuffer1_ = true;
 
-        // Buffer 1 starts out blank (EnableBitmapMode clears both buffers),
+        // Buffer 1 starts out blank (SetScreenMode clears both buffers),
         // so the very first draw needs no explicit clear first.
         DungeonView.Render(px_, py_, dir_);
         C64.Screen.SwapBuffers();

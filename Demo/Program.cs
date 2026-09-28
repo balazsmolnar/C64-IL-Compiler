@@ -21,6 +21,7 @@ class Program
     {
         // C64.Interrupt += MoveBall;
 
+
         var ball = C64.Sprites.Sprite0;
         ball.DataBlock = C64Address.FromLabel("spt_ball");
         ball.Color = Colors.Yellow;
@@ -46,17 +47,17 @@ class Program
         // reads a sprite's data pointer from (video-matrix-base + $3F8),
         // NOT a fixed address -- c64sprite.asm's spriteData=$07F8 only
         // works while $D018 points at the normal $0400 text screen.
-        // EnableBitmapMode moves the video matrix to Graphics_ColorMatrix
-        // ($0C00), so that lookup would land on $0FF8 instead -- unrelated,
-        // uninitialized memory, not the real pointer this program set up
-        // -- and render as a garbled sprite. Confirmed via vice-verify
-        // (an early build of this scene showed exactly that artifact).
-        // Making sprites and bitmap mode coexist for real (e.g. relocating
-        // or duplicating the pointer table) is out of scope for this
-        // graphics feature; sidestepped here by simply not showing a
-        // sprite during the bitmap demo.
+        // SetScreenMode(Bitmap) moves the video matrix to
+        // Graphics_ColorMatrix ($0C00), so that lookup would land on $0FF8
+        // instead -- unrelated, uninitialized memory, not the real pointer
+        // this program set up -- and render as a garbled sprite. Confirmed
+        // via vice-verify (an early build of this scene showed exactly
+        // that artifact). Making sprites and bitmap mode coexist for real
+        // (e.g. relocating or duplicating the pointer table) is out of
+        // scope for this graphics feature; sidestepped here by simply not
+        // showing a sprite during the bitmap demo.
         ball.Visible = false;
-        C64.Screen.EnableBitmapMode();
+        C64.Screen.SetScreenMode(ScreenMode.Bitmap);
         // Color matrix: one byte per 8x8 cell, high nibble = foreground
         // (shown where a bit is set), low nibble = background. FillMemory
         // maxes at 256 bytes/call, so the 1000-byte matrix needs 4 calls.
@@ -73,12 +74,53 @@ class Program
         C64.FillMemory(colorMatrix + 750UL, 0x1E, 250);
 
         // See RotatingCube.cs. Created with a plain `new` (no constructor
-        // body -- not supported, see OpNewObj) and set up via Init().
+        // body -- not supported, see OpNewObj) and set up via Init(). Run
+        // for a fixed number of steps (not forever, unlike before) -- this
+        // now leads into a multicolor scene below, and a finite run here
+        // still proves hi-res DrawLine works before that switch happens.
         var cube = new RotatingCube();
         cube.Init();
-        for (;;)
+        for (uint step = 0; step < 60; step = step + 1)
         {
             cube.Step();
+        }
+
+        // Multicolor bitmap scene: SetScreenMode(MultiColor) reuses the
+        // exact same bitmap/color-matrix memory the hi-res scene above
+        // just used, so no separate mode-specific setup beyond the color
+        // sources below. All four BitmapColorSource values are set to
+        // different colors and drawn side by side, so each renders
+        // visibly distinct from the others -- Background is set to a
+        // color no other source uses, so its rectangle shows as a plain
+        // background-colored gap rather than invisible/blank.
+        C64.Screen.SetScreenMode(ScreenMode.MultiColor);
+        C64.Screen.SetBackgroundColor(Colors.Black);
+        // Video matrix: high nibble = MatrixHigh source, low nibble =
+        // MatrixLow source (same per-cell byte SetBitmapColors always
+        // filled, just read as two independent colors now instead of
+        // hi-res's single foreground/background pair).
+        C64.Screen.SetBitmapColors(0x12); // MatrixHigh=White(1), MatrixLow=Red(2)
+        // Color RAM ($D800, 1000 cells, one nibble each): the low nibble
+        // is what the VIC-II reads for ColorRam -- a fixed hardware
+        // address, no named label, same FillMemory used for the color
+        // matrix above. FillMemory's size parameter is this compiler's
+        // uint (8-bit, max 255), same reason the color matrix fill above
+        // needs 4 calls rather than one of 1000.
+        C64.FillMemory(0xD800UL, 0x0D, 250); // ColorRam=LightGreen(13)
+        C64.FillMemory(0xD800UL + 250UL, 0x0D, 250);
+        C64.FillMemory(0xD800UL + 500UL, 0x0D, 250);
+        C64.FillMemory(0xD800UL + 750UL, 0x0D, 250);
+
+        C64.Screen.DrawRectangle(10, 20, 70, 80, true, true, BitmapColorSource.Background);
+        C64.Screen.DrawRectangle(90, 20, 150, 80, true, true, BitmapColorSource.MatrixHigh);
+        C64.Screen.DrawRectangle(170, 20, 230, 80, true, true, BitmapColorSource.MatrixLow);
+        C64.Screen.DrawRectangle(250, 20, 310, 80, true, true, BitmapColorSource.ColorRam);
+
+        C64.Screen.DrawLine(10, 100, 310, 140, true, BitmapColorSource.MatrixHigh);
+        C64.Screen.DrawCircle(160, 160, 30, true, true, BitmapColorSource.ColorRam);
+
+        for (;;)
+        {
         }
     }
 

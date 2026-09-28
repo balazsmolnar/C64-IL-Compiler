@@ -2,8 +2,10 @@
 ; character-ROM-shadow window that intercepts ANY memory fetch landing
 ; there (confirmed live in VICE this session for BOTH charset data and
 ; sprite data, not just character-generator lookups) while VIC bank 0 is
-; selected. This codebase never switches VIC bank (no write to CIA2
-; $dd00 anywhere in asm/), so that's the only window ever worth dodging.
+; selected, which it is by default -- double buffering (Screen.SetDrawBuffer/
+; SwapBuffers, asm/C64Graphics.asm) is the one thing that switches to bank
+; 1, and only transiently, so that's the only window ever worth dodging for
+; anything this macro places.
 ;
 ; boundary must be a power of two: 2048 for charset data (the VIC-II
 ; charset base register only selects 2KB-aligned addresses), 64 for

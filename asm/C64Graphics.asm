@@ -5,15 +5,17 @@
 ; ... .endif shape as Screen_SetChar (above, in C64.asm) -- "if you don't
 ; use it you don't pay for it," down to the memory layout itself.
 ;
-; All six flags' .weak fallbacks are declared together, up front, even
-; though not every routine below has a body yet -- ProgramEntry.asm/
-; UnitTestEntry.asm's GRAPHICS_USED OR's all six together, and needs every
+; Every flag's .weak fallback is declared together, up front, even though
+; not every routine below has a body yet -- ProgramEntry.asm/
+; UnitTestEntry.asm's GRAPHICS_USED OR's them together, and needs every
 ; name to resolve to SOMETHING (its .weak 0 default, absent a real caller)
 ; the moment that line assembles, regardless of which routines exist yet.
 .weak
 Flag_Screen_SetPixel = 0
-Flag_Screen_EnableBitmapMode = 0
-Flag_Screen_DisableBitmapMode = 0
+; Screen.SetScreenMode(ScreenMode) replaces the old EnableBitmapMode/
+; DisableBitmapMode pair with one call taking Character/Bitmap/MultiColor --
+; see Screen_SetScreenMode below.
+Flag_Screen_SetScreenMode = 0
 Flag_Screen_DrawLine = 0
 Flag_Screen_DrawRectangle = 0
 Flag_Screen_DrawCircle = 0
@@ -66,16 +68,29 @@ Screen_WaitForVBlank:
     #stack_return_to_saved_address zp_tmp1_low
 .endif
 
+; Set by Screen_SetScreenMode (0 = Character or Bitmap, nonzero =
+; MultiColor) -- read by Graphics_ComputePixelAddress/Graphics_SetPixel_Core
+; (once per pixel op, not per pixel) and Graphics_DrawLine_Core (once per
+; line) to pick which pixel format to plot. Declared here, gated broadly
+; (writer OR every reader), so it exists whenever any of them are compiled,
+; matching graphics_saved_d018's own pattern below.
+.if Flag_Screen_SetScreenMode | Flag_Screen_SetPixel | Flag_Screen_DrawLine | Flag_Screen_DrawRectangle | Flag_Screen_DrawCircle
+graphics_multicolor_active .byte 0
+.endif
+
 ; ===========================================================================
 ; Shared pixel addressing -- used by SetPixel and every shape routine.
 ; ===========================================================================
 .if Flag_Screen_SetPixel | Flag_Screen_DrawLine | Flag_Screen_DrawRectangle | Flag_Screen_DrawCircle
 
-; Hi-res bitmap memory is organized in 8x8 cells (8 consecutive scanline
-; bytes per cell, cells in the same row-major 40x25 order as the text
-; screen/Graphics_ColorMatrix) -- NOT linear y*320+x rows, which is what
-; TEXT screen memory uses. byte offset = (y/8)*320 + (x&~7) + (y&7), bit =
-; 7-(x&7). Table indexed by CELL ROW (y/8, 0-24), not by y itself.
+; Bitmap memory is organized in 8x8 cells (8 consecutive scanline bytes per
+; cell, cells in the same row-major 40x25 order as the text screen/
+; Graphics_ColorMatrix) -- NOT linear y*320+x rows, which is what TEXT
+; screen memory uses. This layout is IDENTICAL for hi-res and multicolor
+; bitmap mode -- multicolor only changes how each byte's 8 bits are read
+; (four 2-bit pairs instead of eight single bits), not where a byte lives.
+; byte offset = (y/8)*320 + (x&~7) + (y&7). Table indexed by CELL ROW (y/8,
+; 0-24), not by y itself.
 bitmap_cellrow_low
 .for i = 0, i < 25, i = i + 1
     .byte <(Graphics_Bitmap + i * 320)
@@ -85,13 +100,29 @@ bitmap_cellrow_high
     .byte >(Graphics_Bitmap + i * 320)
 .next
 
-; MSB-first: bit 7 of a bitmap byte is the LEFTMOST pixel of its column.
+; Hi-res: MSB-first, one bit per pixel (bit 7 of a bitmap byte is the
+; leftmost pixel of its column).
 bitmap_bit_table .byte $80,$40,$20,$10,$08,$04,$02,$01
 
+; Multicolor: two bits per pixel (pairs 76/54/32/10, MSB-first), so x and
+; x+1 always share a pair -- pairIndex = (x&6)>>1, 0-3, falls out of the
+; same bit math the hi-res table above uses, just grouped by 2 instead of
+; by 1. mc_pair_clear_mask[pairIndex] ANDs a byte down to every bit EXCEPT
+; that pair; mc_pair_value_table[pairIndex*4 + colorSource] is the
+; already-shifted 2-bit value (BitmapColorSource, 0-3) to OR back in, one
+; 4-entry group per pairIndex -- table-driven, like the hi-res mask, so no
+; runtime shift is needed either.
+mc_pair_clear_mask .byte %00111111,%11001111,%11110011,%11111100
+mc_pair_value_table
+    .byte $00,%01000000,%10000000,%11000000    ; pairIndex 0 (shift 6)
+    .byte $00,%00010000,%00100000,%00110000    ; pairIndex 1 (shift 4)
+    .byte $00,%00000100,%00001000,%00001100    ; pairIndex 2 (shift 2)
+    .byte $00,%00000001,%00000010,%00000011    ; pairIndex 3 (shift 0)
+
 ; In: zp_gfx_x_low/high (0-319), zp_gfx_y (0-199).
-; Out: zp_gfx_ptr_low/high (byte address), zp_gfx_mask (bit within byte).
-; Destroys A, X.
-Graphics_ComputePixelAddress:
+; Out: zp_gfx_ptr_low/high (byte address). Destroys A, X. Shared by both
+; bitmap formats -- see the comment on bitmap_cellrow_low/high above.
+Graphics_ComputePixelPointer:
     lda zp_gfx_y
     lsr
     lsr
@@ -116,18 +147,44 @@ Graphics_ComputePixelAddress:
     sta zp_gfx_ptr_low
     bcc +
     inc zp_gfx_ptr_high
-+   lda zp_gfx_x_low
++   rts
+
+; In: zp_gfx_x_low/high, zp_gfx_y. Out: zp_gfx_ptr_low/high (byte address),
+; plus, depending on graphics_multicolor_active: hi-res -- zp_gfx_mask (bit
+; within byte); multicolor -- zp_gfx_mask (AND-mask that clears this
+; pixel's 2-bit pair) and zp_gfx_mc_pair_x4 (pairIndex*4, an offset into
+; mc_pair_value_table). Destroys A, X.
+Graphics_ComputePixelAddress:
+    jsr Graphics_ComputePixelPointer
+    lda graphics_multicolor_active
+    bne Graphics_ComputePixelAddress_MC
+    lda zp_gfx_x_low
     and #$07
     tax
     lda bitmap_bit_table,x
     sta zp_gfx_mask
     rts
+Graphics_ComputePixelAddress_MC:
+    lda zp_gfx_x_low
+    and #$06
+    lsr                          ; A = pairIndex (0-3) = (x&6)>>1
+    tax
+    lda mc_pair_clear_mask,x
+    sta zp_gfx_mask
+    txa
+    asl
+    asl                          ; A = pairIndex*4
+    sta zp_gfx_mc_pair_x4
+    rts
 
-; In: zp_gfx_x_low/high, zp_gfx_y, zp_gfx_on (nonzero=set/0=clear).
+; In: zp_gfx_x_low/high, zp_gfx_y, zp_gfx_on (nonzero=set/0=clear),
+; zp_gfx_color (multicolor mode only -- BitmapColorSource, 0-3).
 ; Destroys A, X, Y.
 Graphics_SetPixel_Core:
     jsr Graphics_ComputePixelAddress
     ldy #0
+    lda graphics_multicolor_active
+    bne Graphics_SetPixel_Core_MC
     lda zp_gfx_on
     beq Graphics_SetPixel_Core_Clear
     lda (zp_gfx_ptr_low),y
@@ -140,6 +197,21 @@ Graphics_SetPixel_Core_Clear:
     and (zp_gfx_ptr_low),y
     sta (zp_gfx_ptr_low),y
     rts
+Graphics_SetPixel_Core_MC:
+    lda (zp_gfx_ptr_low),y
+    and zp_gfx_mask               ; clear this pixel's pair (to Background)
+    sta (zp_gfx_ptr_low),y
+    lda zp_gfx_on
+    beq Graphics_SetPixel_Core_MC_Done   ; clearing: leave it at Background
+    lda zp_gfx_color
+    clc
+    adc zp_gfx_mc_pair_x4
+    tax
+    lda mc_pair_value_table,x
+    ora (zp_gfx_ptr_low),y
+    sta (zp_gfx_ptr_low),y
+Graphics_SetPixel_Core_MC_Done:
+    rts
 .endif
 
 ; ===========================================================================
@@ -149,6 +221,7 @@ Graphics_SetPixel_Core_Clear:
 
 Screen_SetPixel:
     #stack_save_return_adress zp_tmp1_low
+    #stack_pull_int zp_gfx_color
     #stack_pull_int zp_gfx_on
     #stack_pull_int16 zp_gfx_y
     #stack_pull_int16 zp_gfx_x_low
@@ -157,18 +230,24 @@ Screen_SetPixel:
 .endif
 
 ; ===========================================================================
-; Screen.EnableBitmapMode / DisableBitmapMode
+; Screen.SetScreenMode
 ; ===========================================================================
-.if Flag_Screen_EnableBitmapMode | Flag_Screen_DisableBitmapMode
+.if Flag_Screen_SetScreenMode
 ; $d018 already has other live bits (Screen_SetCharSet's charset-select
-; field) -- toggling bitmap mode needs a full save/restore of the byte, not
-; a read-modify-write, since bitmap mode's video-matrix field points
-; somewhere completely different ($0c00) than text mode's normal screen
-; pointer.
+; field) -- switching to/from bitmap mode needs a full save/restore of the
+; byte, not a read-modify-write, since bitmap mode's video-matrix field
+; points somewhere completely different ($0c00) than text mode's normal
+; screen pointer.
 graphics_saved_d018 .byte 0
+; $d016 has other live bits too (screen-width/scroll-X, and
+; Screen_SetMultiColor's own MCM use) -- MultiColor mode needs to restore
+; exactly what was there before on the way back to Character mode, not
+; just clear MCM unconditionally (which would also wipe those other bits
+; for a caller who set them before ever touching bitmap mode).
+graphics_saved_d016 .byte 0
 .endif
 
-.if Flag_Screen_EnableBitmapMode
+.if Flag_Screen_SetScreenMode
 
 ; Zeroes Graphics_Bitmap's 8000 bytes / Graphics_ColorMatrix's 1000 bytes at
 ; RUNTIME -- confirmed empirically (via vice-verify) that the assembled
@@ -208,7 +287,7 @@ Graphics_ClearBitmap_TailLoop:
     rts
 .endif
 
-.if Flag_Screen_EnableBitmapMode | Flag_Screen_SetBitmapColors
+.if Flag_Screen_SetScreenMode | Flag_Screen_SetBitmapColors
 
 ; In: A = high byte of the color matrix's base address (low byte is 0),
 ; X = value to fill all 1000 cells with. Destroys A, X, Y.
@@ -236,13 +315,18 @@ Graphics_FillColorMatrix_TailLoop:
     rts
 .endif
 
-.if Flag_Screen_EnableBitmapMode
+.if Flag_Screen_SetScreenMode
 
-; %00111000: bits 7-4 (video matrix, 1K units) = %0011 = block 3 = $0c00
-; (Graphics_ColorMatrix); bit 3 (bitmap half, 8K units) = 1 = $2000
-; (Graphics_Bitmap). $d011 bit 5 = BMM (bitmap mode enable).
-Screen_EnableBitmapMode:
-    #stack_save_return_adress zp_tmp1_low
+; Shared body of ScreenMode.Bitmap and ScreenMode.MultiColor: clears the
+; bitmap(s), fills the color matrix/matrices, sets up double buffering if
+; used, and points $d018 at bitmap mode's matrix/bitmap, plus turns on BMM
+; ($d011 bit 5 -- true for both bitmap sub-modes alike). Does NOT touch
+; $d016 (MCM) -- that differs between the two (MultiColor also needs to
+; save $d016 first), so it's left to Screen_SetScreenMode's own two tails
+; below. %00111000: bits 7-4 (video matrix, 1K units) = %0011 = block 3 =
+; $0c00 (Graphics_ColorMatrix); bit 3 (bitmap half, 8K units) = 1 = $2000
+; (Graphics_Bitmap).
+Graphics_EnterBitmapMode:
     lda #>Graphics_Bitmap
     jsr Graphics_ClearBitmap
     lda #>Graphics_ColorMatrix
@@ -265,25 +349,62 @@ Screen_EnableBitmapMode:
     lda #%00111000
     sta $d018
     lda $d011
-    ora #%00100000
+    ora #%00100000                ; BMM on
     sta $d011
-    #stack_return_to_saved_address zp_tmp1_low
-.endif
+    rts
 
-.if Flag_Screen_DisableBitmapMode
-
-Screen_DisableBitmapMode:
+; In: zp_gfx_on = ScreenMode (0=Character, 1=Bitmap, 2=MultiColor).
+Screen_SetScreenMode:
     #stack_save_return_adress zp_tmp1_low
+    #stack_pull_int zp_gfx_on
+    lda zp_gfx_on
+    beq Screen_SetScreenMode_Character
+    cmp #2
+    beq Screen_SetScreenMode_MultiColor
+
+Screen_SetScreenMode_Bitmap:
+    jsr Graphics_EnterBitmapMode
+    lda #0
+    sta graphics_multicolor_active
+    lda $d016
+    and #%11101111                 ; MCM off, in case a prior call set it
+    sta $d016
+    jmp Screen_SetScreenMode_Done
+
+Screen_SetScreenMode_MultiColor:
+    jsr Graphics_EnterBitmapMode
+    lda #1
+    sta graphics_multicolor_active
+    lda $d016
+    sta graphics_saved_d016
+    ora #%00010000                 ; MCM on
+    sta $d016
+    jmp Screen_SetScreenMode_Done
+
+; $d016 is only touched here if graphics_multicolor_active says MultiColor
+; was actually the last mode entered -- a Bitmap-only (or never-bitmap)
+; caller's $d016 is left completely alone, matching the old
+; DisableBitmapMode's behavior exactly for that case.
+Screen_SetScreenMode_Character:
     lda $d011
-    and #%11011111
+    and #%11011111                 ; BMM off
     sta $d011
     lda graphics_saved_d018
     sta $d018
+    lda graphics_multicolor_active
+    beq Screen_SetScreenMode_Character_NoD016
+    lda graphics_saved_d016
+    sta $d016
+    lda #0
+    sta graphics_multicolor_active
+Screen_SetScreenMode_Character_NoD016:
 .if GRAPHICS_DOUBLE_BUFFER
     lda $dd00
-    ora #%00000011                ; VIC bank 0 again (buffer 1 lives in bank 1)
+    ora #%00000011                 ; VIC bank 0 again (buffer 1 lives in bank 1)
     sta $dd00
 .endif
+
+Screen_SetScreenMode_Done:
     #stack_return_to_saved_address zp_tmp1_low
 .endif
 
@@ -498,6 +619,7 @@ Graphics_FillRect_Core_Done:
 
 Screen_DrawRectangle:
     #stack_save_return_adress zp_tmp1_low
+    #stack_pull_int zp_gfx_color
     #stack_pull_int zp_gfx_on
     #stack_pull_int zp_gfx_filled
     #stack_pull_int16 zp_gfx_endy
@@ -674,13 +796,30 @@ Graphics_DrawLine_DYDone:
     sta zp_gfx_dy_high
 
     ; X-major if dx>=dy (unsigned 16-bit compare, same SBC/carry idiom as
-    ; Graphics_NormalizeRectCoords).
+    ; Graphics_NormalizeRectCoords). Multicolor lines can't use the fast
+    ; inline hi-res paths below (the self-modified bit/eor plotting and
+    ; incremental mask-shift stepping both assume a single-bit mask) --
+    ; graphics_multicolor_active instead routes them to
+    ; Graphics_DrawLine_XMajor_Wide (already a complete, self-contained
+    ; per-pixel X-major loop via Graphics_SetPixel_Core -- previously only
+    ; reached for dx>255, reused unconditionally for multicolor too) or the
+    ; analogous Graphics_DrawLine_YMajor_Simple below.
     sec
     lda zp_gfx_dx_low
     sbc zp_gfx_dy
     lda zp_gfx_dx_high
     sbc zp_gfx_dy_high
-    bcs Graphics_DrawLine_XMajor
+    bcs Graphics_DrawLine_XMajorSelect
+    jmp Graphics_DrawLine_YMajorSelect
+
+Graphics_DrawLine_XMajorSelect:
+    lda graphics_multicolor_active
+    bne Graphics_DrawLine_XMajor_Wide
+    jmp Graphics_DrawLine_XMajor
+
+Graphics_DrawLine_YMajorSelect:
+    lda graphics_multicolor_active
+    bne Graphics_DrawLine_YMajor_Simple
     jmp Graphics_DrawLine_YMajor
 
 ; ---------------------------------------------------------------------------
@@ -822,9 +961,14 @@ Graphics_DrawLine_Done:
     rts
 
 ; ---------------------------------------------------------------------------
-; X-major with dx > 255 (up to 319): the original per-pixel loop with a 16-bit
-; error term, plotting through Graphics_SetPixel_Core from zp_gfx_x/y. Only
-; lines wider than 255 pixels come here.
+; X-major, plotting per-pixel through Graphics_SetPixel_Core with a 16-bit
+; error term, from zp_gfx_x/y -- instead of the fast loops above, which
+; assume a single-bit mask. Reached two ways: dx > 255 (up to 319, where
+; the fast loops' 8-bit error term would overflow) for EITHER bitmap
+; format, or ANY X-major multicolor line regardless of width (see
+; Graphics_DrawLine_Core's graphics_multicolor_active dispatch) -- already
+; fully general (termination is "x reached endx", not tied to a byte-sized
+; error term), so no separate multicolor-only copy is needed.
 ; ---------------------------------------------------------------------------
 Graphics_DrawLine_XMajor_Wide:
     lda zp_gfx_dx_high              ; err = dx >> 1 (unsigned)
@@ -879,8 +1023,63 @@ Graphics_DrawLine_Wide_AfterY:
     sta zp_gfx_err_high
     jmp Graphics_DrawLine_Wide_Loop
 
+; ---------------------------------------------------------------------------
+; Y-major, multicolor only -- the analogous per-pixel fallback to
+; Graphics_DrawLine_XMajor_Wide above, for when dy > dx (so termination is
+; "y reached endy" instead). dy <= 199 always fits an 8-bit error term, so
+; unlike the X-major case there's no separate "wide" reason to reach this
+; for hi-res lines -- hi-res Y-major always uses the fast YD/YU loops.
+; ---------------------------------------------------------------------------
+Graphics_DrawLine_YMajor_Simple:
+    lda zp_gfx_dy                   ; err = dy >> 1
+    lsr
+    sta zp_gfx_err_low
+Graphics_DrawLine_YMajor_Simple_Loop:
+    jsr Graphics_SetPixel_Core
+    lda zp_gfx_y
+    cmp zp_gfx_endy
+    bne Graphics_DrawLine_YMajor_Simple_Step
+    lda zp_gfx_x_low
+    cmp zp_gfx_endx_low
+    bne Graphics_DrawLine_YMajor_Simple_Step
+    lda zp_gfx_x_high
+    cmp zp_gfx_endx_high
+    beq Graphics_DrawLine_Done
+Graphics_DrawLine_YMajor_Simple_Step:
+    lda zp_gfx_sy                   ; y += sy
+    beq Graphics_DrawLine_YMajor_Simple_DecY
+    inc zp_gfx_y
+    jmp Graphics_DrawLine_YMajor_Simple_AfterY
+Graphics_DrawLine_YMajor_Simple_DecY:
+    dec zp_gfx_y
+Graphics_DrawLine_YMajor_Simple_AfterY:
+    sec                              ; err -= dx (dx <= dy <= 199, fits 8 bits)
+    lda zp_gfx_err_low
+    sbc zp_gfx_dx_low
+    sta zp_gfx_err_low
+    bpl Graphics_DrawLine_YMajor_Simple_Loop
+    lda zp_gfx_sx                    ; err < 0: x += sx (16-bit)
+    beq Graphics_DrawLine_YMajor_Simple_DecX
+    inc zp_gfx_x_low
+    bne Graphics_DrawLine_YMajor_Simple_AfterX
+    inc zp_gfx_x_high
+    jmp Graphics_DrawLine_YMajor_Simple_AfterX
+Graphics_DrawLine_YMajor_Simple_DecX:
+    lda zp_gfx_x_low
+    bne Graphics_DrawLine_YMajor_Simple_DecX_NoBorrow
+    dec zp_gfx_x_high
+Graphics_DrawLine_YMajor_Simple_DecX_NoBorrow:
+    dec zp_gfx_x_low
+Graphics_DrawLine_YMajor_Simple_AfterX:
+    lda zp_gfx_err_low               ; err += dy
+    clc
+    adc zp_gfx_dy
+    sta zp_gfx_err_low
+    jmp Graphics_DrawLine_YMajor_Simple_Loop
+
 Screen_DrawLine:
     #stack_save_return_adress zp_tmp1_low
+    #stack_pull_int zp_gfx_color
     #stack_pull_int zp_gfx_on
     #stack_pull_int16 zp_gfx_endy
     #stack_pull_int16 zp_gfx_endx_low
@@ -1065,6 +1264,7 @@ Graphics_DrawCircle_Done:
 
 Screen_DrawCircle:
     #stack_save_return_adress zp_tmp1_low
+    #stack_pull_int zp_gfx_color
     #stack_pull_int zp_gfx_on
     #stack_pull_int zp_gfx_filled
     ; radius and cy are pulled into DrawLine's scratch bytes, not their own

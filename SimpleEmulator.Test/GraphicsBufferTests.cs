@@ -9,13 +9,14 @@ using NUnit.Framework;
 namespace SimpleEmulator.Test;
 
 // Double buffering in asm/C64Graphics.asm (Screen.SetDrawBuffer, SwapBuffers,
-// SetBitmapColors, and how EnableBitmapMode/DisableBitmapMode treat the second
-// buffer), assembled with 64tass into a harness around the REAL source file
-// with GRAPHICS_DOUBLE_BUFFER = 1, at the addresses ProgramEntry.asm gives the
-// buffers. SimpleEmulator has no VIC-II, so what is checked is exactly what the
-// routines write: pixel bytes (which buffer they land in) and the $D018/$DD00
-// values that make the VIC show a buffer; whether the picture really flips is
-// only observable on VICE. Skipped when 64tass isn't installed (TASS_EXE, else
+// SetBitmapColors, and how Screen.SetScreenMode(Bitmap/Character) treats the
+// second buffer), assembled with 64tass into a harness around the REAL source
+// file with GRAPHICS_DOUBLE_BUFFER = 1, at the addresses ProgramEntry.asm
+// gives the buffers. SimpleEmulator has no VIC-II, so what is checked is
+// exactly what the routines write: pixel bytes (which buffer they land in)
+// and the $D018/$DD00/$D016 values that make the VIC show a buffer/format;
+// whether the picture really flips (or multicolor really renders) is only
+// observable on VICE. Skipped when 64tass isn't installed (TASS_EXE, else
 // the repo's usual c:\tools path).
 [TestFixture]
 public class GraphicsBufferTests
@@ -53,8 +54,7 @@ public class GraphicsBufferTests
 .include ""{Asm("helper/8bit.asm")}""
 Flag_Screen_SetPixel = 1
 Flag_Screen_DrawLine = 1
-Flag_Screen_EnableBitmapMode = 1
-Flag_Screen_DisableBitmapMode = 1
+Flag_Screen_SetScreenMode = 1
 Flag_Screen_SetDrawBuffer = 1
 Flag_Screen_SwapBuffers = 1
 Flag_Screen_SetBitmapColors = 1
@@ -70,11 +70,20 @@ Harness_Pixel
 Harness_Line
     jsr Graphics_DrawLine_Core
     brk
-Harness_Enable
-    jsr Screen_EnableBitmapMode
+Harness_Bitmap
+    lda #1
+    pha
+    jsr Screen_SetScreenMode
     brk
-Harness_Disable
-    jsr Screen_DisableBitmapMode
+Harness_MultiColor
+    lda #2
+    pha
+    jsr Screen_SetScreenMode
+    brk
+Harness_Character
+    lda #0
+    pha
+    jsr Screen_SetScreenMode
     brk
 Harness_Swap
     jsr Screen_SwapBuffers
@@ -149,11 +158,21 @@ Harness_End
         Assert.That(result, Is.EqualTo(RunResult.Halted), $"{entry} did not finish");
     }
 
-    void SetPixel(int x, int y)
+    void SetPixel(int x, int y, int colorSource = 3)
     {
         emulator.SetMemory(Label("zp_gfx_x_low"), (byte)(x & 0xff), (byte)(x >> 8));
         emulator.SetMemory(Label("zp_gfx_y"), (byte)y);
         emulator.SetMemory(Label("zp_gfx_on"), 1);
+        emulator.SetMemory(Label("zp_gfx_color"), (byte)colorSource);
+        Run("Harness_Pixel");
+    }
+
+    void ClearPixel(int x, int y, int colorSource = 3)
+    {
+        emulator.SetMemory(Label("zp_gfx_x_low"), (byte)(x & 0xff), (byte)(x >> 8));
+        emulator.SetMemory(Label("zp_gfx_y"), (byte)y);
+        emulator.SetMemory(Label("zp_gfx_on"), 0);
+        emulator.SetMemory(Label("zp_gfx_color"), (byte)colorSource);
         Run("Harness_Pixel");
     }
 
@@ -180,6 +199,17 @@ Harness_End
     {
         var offset = (y / 8) * 320 + (x & ~7) + (y & 7);
         return (emulator.GetMemory(bitmap + offset) & (0x80 >> (x & 7))) != 0;
+    }
+
+    // Multicolor: same byte address as Pixel above, but each byte holds 4
+    // 2-bit pairs (76/54/32/10, MSB-first) instead of 8 single bits -- x and
+    // x+1 always share a pair. Returns the pair's raw 2-bit value (0-3).
+    int PixelPair(int bitmap, int x, int y)
+    {
+        var offset = (y / 8) * 320 + (x & ~7) + (y & 7);
+        var b = emulator.GetMemory(bitmap + offset);
+        var shift = 6 - ((x & 6) >> 1) * 2;
+        return (b >> shift) & 3;
     }
 
     HashSet<(int, int)> SetPixels(int bitmap)
@@ -254,7 +284,7 @@ Harness_End
     public void SwapBuffers_Shows_The_Drawn_Buffer_And_Alternates_The_Draw_Target()
     {
         ClearBuffers();
-        Run("Harness_Enable");
+        Run("Harness_Bitmap");
 
         // Drawing into buffer 0; the swap shows it and moves drawing to buffer 1.
         Run("Harness_Swap");
@@ -278,7 +308,7 @@ Harness_End
     [Test]
     public void SwapBuffers_Only_Touches_The_VIC_Bank_Bits_Of_DD00()
     {
-        Run("Harness_Enable");
+        Run("Harness_Bitmap");
         foreach (var upper in new byte[] { 0xA4, 0x5C, 0xFC, 0x00 })
         {
             emulator.SetMemory(0xDD00, (byte)(upper | 3));
@@ -292,7 +322,7 @@ Harness_End
     }
 
     [Test]
-    public void EnableBitmapMode_Clears_Both_Buffers_And_Both_Color_Matrices_And_Resets_State()
+    public void SetScreenMode_Bitmap_Clears_Both_Buffers_And_Both_Color_Matrices_And_Resets_State()
     {
         // Poison everything, and leave the draw target on buffer 1 and the VIC on bank 1.
         Fill(Bitmap0, BitmapBytes + 64, 0xFF);
@@ -302,7 +332,7 @@ Harness_End
         Run("Harness_DrawBuffer1");
         emulator.SetMemory(0xDD00, 0x02);
 
-        Run("Harness_Enable");
+        Run("Harness_Bitmap");
 
         Assert.That(AllEqual(Bitmap0, BitmapBytes, 0), "bitmap 0");
         Assert.That(AllEqual(Bitmap1, BitmapBytes, 0), "bitmap 1");
@@ -322,17 +352,101 @@ Harness_End
     }
 
     [Test]
-    public void DisableBitmapMode_Returns_To_VIC_Bank_0()
+    public void SetScreenMode_Character_Returns_To_VIC_Bank_0()
     {
-        Run("Harness_Enable");
+        Run("Harness_Bitmap");
         Run("Harness_DrawBuffer1");
         Run("Harness_Swap");           // now showing buffer 1, in bank 1
         Assert.That(emulator.GetMemory(0xDD00) & 3, Is.EqualTo(2));
 
-        Run("Harness_Disable");
+        Run("Harness_Character");
 
         Assert.That(emulator.GetMemory(0xDD00) & 3, Is.EqualTo(3));
         Assert.That(emulator.GetMemory(0xD011) & 0x20, Is.EqualTo(0), "bitmap mode off");
+    }
+
+    [Test]
+    public void SetScreenMode_Bitmap_Leaves_D016_Untouched_Except_MCM()
+    {
+        // A Bitmap-only caller's other $d016 bits (screen width/scroll-X)
+        // must survive -- SetScreenMode(Bitmap) only ever clears MCM (a
+        // safe, idempotent RMW), never restores a saved byte over them.
+        emulator.SetMemory(0xD016, 0xE8); // arbitrary non-MCM bits set, MCM off
+        Run("Harness_Bitmap");
+        Assert.That(emulator.GetMemory(0xD016), Is.EqualTo(0xE8), "other bits preserved, MCM still off");
+
+        emulator.SetMemory(0xD016, 0xF8); // same, but MCM already on somehow
+        Run("Harness_Bitmap");
+        Assert.That(emulator.GetMemory(0xD016), Is.EqualTo(0xE8), "MCM cleared, other bits preserved");
+    }
+
+    [Test]
+    public void SetScreenMode_Character_Without_MultiColor_Leaves_D016_Untouched()
+    {
+        // The old DisableBitmapMode never touched $d016 at all -- a program
+        // that only ever used Bitmap (never MultiColor) must see the exact
+        // same behavior, not a stray restore-to-zero.
+        emulator.SetMemory(0xD016, 0xC8);
+        Run("Harness_Bitmap");
+        emulator.SetMemory(0xD016, 0xAB); // simulate something else changing it meanwhile
+        Run("Harness_Character");
+        Assert.That(emulator.GetMemory(0xD016), Is.EqualTo(0xAB), "untouched -- MultiColor was never entered");
+    }
+
+    [Test]
+    public void SetScreenMode_Character_After_MultiColor_Restores_D016()
+    {
+        emulator.SetMemory(0xD016, 0xC8); // arbitrary non-MCM bits, MCM off
+        Run("Harness_MultiColor");
+        Assert.That(emulator.GetMemory(0xD016), Is.EqualTo(0xD8), "MCM on, other bits preserved");
+
+        Run("Harness_Character");
+        Assert.That(emulator.GetMemory(0xD016), Is.EqualTo(0xC8), "fully restored, including MCM back off");
+    }
+
+    [Test]
+    public void MultiColorSetPixel_Sets_Correct_Bits_For_Each_Pair_Position()
+    {
+        // x and x+1 always share a pair -- one pixel set per pair (x=0,2,4,6)
+        // within a single byte (y=0, cell row 0), each with a distinct
+        // colorSource, confirms both the right pair position AND that
+        // setting one pair's bits doesn't disturb any other pair's.
+        ClearBuffers();
+        Run("Harness_MultiColor");
+        SetPixel(0, 0, colorSource: 1);
+        SetPixel(2, 0, colorSource: 2);
+        SetPixel(4, 0, colorSource: 3);
+        SetPixel(6, 0, colorSource: 1);
+
+        Assert.That(PixelPair(Bitmap0, 0, 0), Is.EqualTo(1));
+        Assert.That(PixelPair(Bitmap0, 1, 0), Is.EqualTo(1), "x+1 shares x's pair");
+        Assert.That(PixelPair(Bitmap0, 2, 0), Is.EqualTo(2));
+        Assert.That(PixelPair(Bitmap0, 4, 0), Is.EqualTo(3));
+        Assert.That(PixelPair(Bitmap0, 6, 0), Is.EqualTo(1));
+    }
+
+    [Test]
+    public void MultiColorSetPixel_Encodes_All_Four_ColorSource_Values()
+    {
+        ClearBuffers();
+        Run("Harness_MultiColor");
+        for (int colorSource = 0; colorSource <= 3; colorSource++)
+        {
+            SetPixel(0, 0, colorSource);
+            Assert.That(PixelPair(Bitmap0, 0, 0), Is.EqualTo(colorSource));
+        }
+    }
+
+    [Test]
+    public void MultiColorSetPixel_Off_Clears_To_Background_Regardless_Of_Prior_Color()
+    {
+        ClearBuffers();
+        Run("Harness_MultiColor");
+        SetPixel(0, 0, colorSource: 3);
+        Assert.That(PixelPair(Bitmap0, 0, 0), Is.EqualTo(3));
+
+        ClearPixel(0, 0, colorSource: 2); // colorSource ignored when clearing
+        Assert.That(PixelPair(Bitmap0, 0, 0), Is.EqualTo(0));
     }
 
     [Test]

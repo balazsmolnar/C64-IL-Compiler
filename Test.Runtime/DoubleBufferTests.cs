@@ -22,7 +22,7 @@ public class DoubleBufferTests
         ulong bitmap0 = C64Address.FromLabel("Graphics_Bitmap");
         ulong bitmap1 = C64Address.FromLabel("Graphics_Bitmap2");
 
-        C64.Screen.EnableBitmapMode();
+        C64.Screen.SetScreenMode(ScreenMode.Bitmap);
 
         // Buffer 0 (the default draw target): (1,1) is byte 1, bit 6.
         C64.Screen.SetPixel(1, 1);

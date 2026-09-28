@@ -97,7 +97,12 @@ zp_gfx_rect_y0       = zp_gfx_cy        ; $18
 ; the same time (unlike DrawRectangle, which has no radius), so this gets
 ; its own byte out of the $1e-$1f spare pair.
 zp_gfx_filled        = $1E   ; DrawRectangle/DrawCircle: fill flag, nonzero = filled
-; $1f spare
+zp_gfx_color         = $1F   ; SetPixel/DrawLine/DrawRectangle/DrawCircle: pulled
+                              ; BitmapColorSource argument -- multicolor mode only,
+                              ; unused (but still pulled, to keep the stack balanced)
+                              ; under hi-res mode. See also zp_gfx_mc_pair_x4 below,
+                              ; multicolor's other new scratch byte -- not contiguous
+                              ; with this block, the $02-$1f range is full now.
 
 ; ---------------------------------------------------------------------------
 ; Return-address / stack-machine scratch
@@ -371,6 +376,15 @@ zp_flt_b = $42                   ; 5 bytes, $42-$46
 ; is saved/restored rather than relocated like stackPointer was.
 zp_flt_saved_interrupt_low = $47
 zp_flt_saved_interrupt_high = $48
+
+; Multicolor bitmap graphics' second scratch byte (asm/C64Graphics.asm) --
+; the $02-$1f gfx block above is full, so this one continues here instead,
+; the next free byte past it. Same lifetime rule as that block: only ever
+; live while Graphics_ComputePixelAddress/Graphics_SetPixel_Core are
+; executing, immediately consumed, nothing here carries state between
+; separate SetPixel/DrawLine/DrawRectangle/DrawCircle calls.
+zp_gfx_mc_pair_x4 = $49      ; Graphics_ComputePixelAddress_MC: pairIndex*4,
+                              ; an offset into mc_pair_value_table
 
 ; conv_int_to_float/conv_uint_to_float (float.asm) stash the 16-bit
 ; sign/zero-extended source value across the two zp_flt_a bytes before

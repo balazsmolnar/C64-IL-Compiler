@@ -116,16 +116,20 @@ class Program
         }
     }
 
-    // EXPERIMENT: right edge of the door panel at each animation frame --
-    // top and bottom given separately (see DungeonView.RenderOpening) so
-    // the panel is a trapezoid, not a flat rectangle. The bottom edge
-    // recedes from the closed door's right edge (187) to the hinge (131)
-    // the same as before; the top edge recedes faster (halved distance
-    // from the hinge at every frame), so the panel reads as a door
-    // swinging away top-first rather than a panel sliding sideways. Both
-    // reach the hinge together on the last frame (fully open).
-    static readonly ulong[] DoorOpenPanelRightBottom = { 171, 155, 143, 135, 131 };
-    static readonly ulong[] DoorOpenPanelRightTop = { 151, 143, 137, 133, 131 };
+    // EXPERIMENT: the door panel's far (right) edge at each animation
+    // frame -- an x (receding from the closed door's right edge, 187,
+    // toward the hinge, 131, same curve as before) AND a top/bottom row
+    // pair (see DungeonView.RenderOpening/DrawTaperedPanel), shrinking
+    // symmetrically in from the door's own top (92) and bottom (173)
+    // toward its vertical center (132.5) at the same rate the edge
+    // recedes. The two right corners (top-right, bottom-right) trace
+    // inward AND toward the middle together -- a real 3D swing, not just
+    // a flat edge sliding sideways -- and collapse together at the hinge
+    // on the last frame (fully open). Row pairs sum to 265 (92+173) by
+    // construction, keeping them symmetric around the center.
+    static readonly ulong[] DoorOpenFarX = { 171, 155, 143, 135, 131 };
+    static readonly ulong[] DoorOpenFarTopRow = { 104, 115, 124, 130, 132 };
+    static readonly ulong[] DoorOpenFarBottomRow = { 161, 150, 141, 135, 133 };
 
     // Opens the front door of the CURRENT room, with the doorway showing
     // the next room's color (MatrixLow, which nothing else draws with, is
@@ -138,7 +142,7 @@ class Program
         for (uint i = 0; i < 5; i++)
         {
             C64.Screen.ClearBitmap();
-            DungeonView.RenderOpening(px_, py_, dir_, DoorOpenPanelRightTop[i], DoorOpenPanelRightBottom[i]);
+            DungeonView.RenderOpening(px_, py_, dir_, DoorOpenFarX[i], DoorOpenFarTopRow[i], DoorOpenFarBottomRow[i]);
             C64.Screen.SwapBuffers();
             Bats.Animate();
         }

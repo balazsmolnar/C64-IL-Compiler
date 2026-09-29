@@ -57,28 +57,34 @@ static class DungeonView
 
     public static void Render(uint px, uint py, uint dir)
     {
-        RenderRoom(px, py, dir, FrontDoorRight, FrontDoorRight);
+        RenderRoom(px, py, dir, FrontDoorRight, FrontDoorTop, FY1Far);
     }
 
     // EXPERIMENT: the front door used to open as a flat rectangle sliding
-    // its right edge toward the hinge (a uniform shrink, no sense of
-    // swinging in 3D). Now the panel is one Screen.DrawTrapezoid call with
-    // its own top and bottom right edges given independently -- Program.cs
-    // recedes the top edge faster than the bottom, so the panel reads as a
-    // door swinging away from the viewer (top leading) rather than a panel
-    // sliding sideways. The doorway behind it is filled with MatrixLow --
-    // Program.cs sets that to the NEXT room's color for the animation, so
-    // you see into the room you're about to enter -- drawn as a plain
-    // rectangle first, so the panel trapezoid (any shape) just needs
-    // drawing on top of it; wherever the panel doesn't reach, the doorway
-    // fill already shows through. Both edges == FrontDoorLeft leaves no
-    // panel at all (fully open). Has no effect on a room with no front door.
-    public static void RenderOpening(uint px, uint py, uint dir, ulong panelRightTop, ulong panelRightBottom)
+    // its right edge toward the hinge -- a uniform shrink, no sense of
+    // swinging in 3D. Now it opens with the same "constant near edge,
+    // shorter far edge, tapered top/bottom bands" shape DrawSideDoor
+    // already uses (see DrawTaperedPanel) -- the far (right) edge's x
+    // recedes toward the hinge AND its top/bottom span shrinks toward the
+    // door's own vertical center, symmetrically, so the two right corners
+    // trace inward AND toward the middle as the door swings away, instead
+    // of a flat edge just sliding sideways. farTopRow==FrontDoorTop and
+    // farBottomRow==FY1Far (the closed-door state Render() passes) leaves
+    // the top/bottom tapers degenerate (zero height) and the whole panel
+    // is just the closed flat rectangle, same as before. The doorway
+    // behind it is filled with MatrixLow -- Program.cs sets that to the
+    // NEXT room's color for the animation, so you see into the room
+    // you're about to enter -- drawn as a plain rectangle first, so the
+    // panel (any shape) just needs drawing on top of it; wherever the
+    // panel doesn't reach, the doorway fill already shows through.
+    // panelFarX == FrontDoorLeft leaves no panel at all (fully open). Has
+    // no effect on a room with no front door.
+    public static void RenderOpening(uint px, uint py, uint dir, ulong panelFarX, ulong panelFarTopRow, ulong panelFarBottomRow)
     {
-        RenderRoom(px, py, dir, panelRightTop, panelRightBottom);
+        RenderRoom(px, py, dir, panelFarX, panelFarTopRow, panelFarBottomRow);
     }
 
-    static void RenderRoom(uint px, uint py, uint dir, ulong panelRightTop, ulong panelRightBottom)
+    static void RenderRoom(uint px, uint py, uint dir, ulong panelFarX, ulong panelFarTopRow, ulong panelFarBottomRow)
     {
         bool leftOpen = !Maze.LeftIsWall(px, py, dir, 0);
         bool rightOpen = !Maze.RightIsWall(px, py, dir, 0);
@@ -101,10 +107,9 @@ static class DungeonView
             DrawSideDoor(true);
         if (frontOpen)
         {
-            ulong maxPanelRight = panelRightTop > panelRightBottom ? panelRightTop : panelRightBottom;
-            if (maxPanelRight < FrontDoorRight)
+            if (panelFarX < FrontDoorRight)
                 C64.Screen.DrawRectangle(FrontDoorLeft, FrontDoorTop, FrontDoorRight, FY1Far, true, true, BitmapColorSource.MatrixLow);
-            C64.Screen.DrawTrapezoid(FrontDoorLeft, panelRightTop, FrontDoorTop, FrontDoorLeft, panelRightBottom, FY1Far, true, BitmapColorSource.ColorRam);
+            DrawTaperedPanel(FrontDoorLeft, FrontDoorTop, panelFarX, panelFarTopRow, panelFarBottomRow, FY1Far, BitmapColorSource.ColorRam);
         }
     }
 
@@ -133,25 +138,34 @@ static class DungeonView
         return leftWallX;
     }
 
-    // See the DoorX*/Door*Row constants for the geometry. DrawTrapezoid,
-    // unlike DrawRectangle, does NOT sort its own left/right x's (they're
-    // directional, not symmetric corners -- see its own doc comment), so
-    // the mirrored (right-wall) calls -- where X(DoorXNear,true) is the
-    // LARGER of the two mirrored x's -- sort them into left/right here
-    // first.
+    // See the DoorX*/Door*Row constants for the geometry -- mirrored
+    // (right-wall) calls just feed mirrored x's into DrawTaperedPanel,
+    // which sorts left/right itself.
     static void DrawSideDoor(bool mirrored)
     {
-        ulong near = X(DoorXNear, mirrored);
-        ulong far = X(DoorXFar, mirrored);
-        ulong left = near < far ? near : far;
-        ulong right = near < far ? far : near;
+        DrawTaperedPanel(X(DoorXNear, mirrored), DoorTopFirstRow, X(DoorXFar, mirrored), DoorFullFirstRow, DoorFullLastRow, DoorBottomLastRow, BitmapColorSource.ColorRam);
+    }
 
-        // Top taper: a point at (near, DoorTopFirstRow) widening to the
-        // full band (left..right) by DoorFullFirstRow.
-        C64.Screen.DrawTrapezoid(near, near, DoorTopFirstRow, left, right, DoorFullFirstRow, true, BitmapColorSource.ColorRam);
-        // Flat middle band.
-        C64.Screen.DrawRectangle(left, DoorFullFirstRow, right, DoorFullLastRow, true, true, BitmapColorSource.ColorRam);
-        // Bottom taper: the full band narrowing back to a point at (near, DoorBottomLastRow).
-        C64.Screen.DrawTrapezoid(left, right, DoorFullLastRow, near, near, DoorBottomLastRow, true, BitmapColorSource.ColorRam);
+    // The shared shape behind both the side doors and the front door's
+    // opening animation: a "near" edge at constant x, spanning the full
+    // [topRow,bottomRow] height, and a "far" edge at constant x, spanning
+    // a SHORTER, vertically-centered [farTopRow,farBottomRow] sub-range --
+    // connected by a triangular taper above and below the far edge's own
+    // span. 3 calls: the top taper (a point at (nearX,topRow) widening to
+    // the far edge's span by farTopRow), the flat middle band (a plain
+    // rectangle from farTopRow to farBottomRow), and the bottom taper
+    // (narrowing back to a point at (nearX,bottomRow)). farTopRow==topRow
+    // and/or farBottomRow==bottomRow degenerate that taper to zero height
+    // (nothing drawn there), so farTopRow=topRow/farBottomRow=bottomRow
+    // together is just a plain rectangle nearX..farX. nearX/farX don't
+    // need nearX<farX -- sorted into left/right here, once, since both
+    // tapers and the middle band share the same two x's.
+    static void DrawTaperedPanel(ulong nearX, ulong topRow, ulong farX, ulong farTopRow, ulong farBottomRow, ulong bottomRow, BitmapColorSource color)
+    {
+        ulong left = nearX < farX ? nearX : farX;
+        ulong right = nearX < farX ? farX : nearX;
+        C64.Screen.DrawTrapezoid(nearX, nearX, topRow, left, right, farTopRow, true, color);
+        C64.Screen.DrawRectangle(left, farTopRow, right, farBottomRow, true, true, color);
+        C64.Screen.DrawTrapezoid(left, right, farBottomRow, nearX, nearX, bottomRow, true, color);
     }
 }

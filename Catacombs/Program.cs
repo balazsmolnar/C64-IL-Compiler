@@ -116,10 +116,16 @@ class Program
         }
     }
 
-    // Right edge of the door panel at each animation frame -- from the
-    // closed door's right edge (187) swinging in toward its left/hinge edge
-    // (131), the last frame having no panel at all.
-    static readonly ulong[] DoorOpenPanelRight = { 171, 155, 143, 135, 131 };
+    // EXPERIMENT: right edge of the door panel at each animation frame --
+    // top and bottom given separately (see DungeonView.RenderOpening) so
+    // the panel is a trapezoid, not a flat rectangle. The bottom edge
+    // recedes from the closed door's right edge (187) to the hinge (131)
+    // the same as before; the top edge recedes faster (halved distance
+    // from the hinge at every frame), so the panel reads as a door
+    // swinging away top-first rather than a panel sliding sideways. Both
+    // reach the hinge together on the last frame (fully open).
+    static readonly ulong[] DoorOpenPanelRightBottom = { 171, 155, 143, 135, 131 };
+    static readonly ulong[] DoorOpenPanelRightTop = { 151, 143, 137, 133, 131 };
 
     // Opens the front door of the CURRENT room, with the doorway showing
     // the next room's color (MatrixLow, which nothing else draws with, is
@@ -132,7 +138,7 @@ class Program
         for (uint i = 0; i < 5; i++)
         {
             C64.Screen.ClearBitmap();
-            DungeonView.RenderOpening(px_, py_, dir_, DoorOpenPanelRight[i]);
+            DungeonView.RenderOpening(px_, py_, dir_, DoorOpenPanelRightTop[i], DoorOpenPanelRightBottom[i]);
             C64.Screen.SwapBuffers();
             Bats.Animate();
         }

@@ -57,21 +57,28 @@ static class DungeonView
 
     public static void Render(uint px, uint py, uint dir)
     {
-        RenderRoom(px, py, dir, FrontDoorRight);
+        RenderRoom(px, py, dir, FrontDoorRight, FrontDoorRight);
     }
 
-    // The same room, with the front door part-way open: the door panel is
-    // drawn only from its left (hinge) edge to panelRight, and the doorway
-    // behind it is filled with MatrixLow -- Program.cs sets that to the
-    // NEXT room's color for the animation, so you see into the room you're
-    // about to enter. panelRight == FrontDoorLeft leaves no panel at all
-    // (fully open). Has no effect on a room with no front door.
-    public static void RenderOpening(uint px, uint py, uint dir, ulong panelRight)
+    // EXPERIMENT: the front door used to open as a flat rectangle sliding
+    // its right edge toward the hinge (a uniform shrink, no sense of
+    // swinging in 3D). Now the panel is one Screen.DrawTrapezoid call with
+    // its own top and bottom right edges given independently -- Program.cs
+    // recedes the top edge faster than the bottom, so the panel reads as a
+    // door swinging away from the viewer (top leading) rather than a panel
+    // sliding sideways. The doorway behind it is filled with MatrixLow --
+    // Program.cs sets that to the NEXT room's color for the animation, so
+    // you see into the room you're about to enter -- drawn as a plain
+    // rectangle first, so the panel trapezoid (any shape) just needs
+    // drawing on top of it; wherever the panel doesn't reach, the doorway
+    // fill already shows through. Both edges == FrontDoorLeft leaves no
+    // panel at all (fully open). Has no effect on a room with no front door.
+    public static void RenderOpening(uint px, uint py, uint dir, ulong panelRightTop, ulong panelRightBottom)
     {
-        RenderRoom(px, py, dir, panelRight);
+        RenderRoom(px, py, dir, panelRightTop, panelRightBottom);
     }
 
-    static void RenderRoom(uint px, uint py, uint dir, ulong panelRight)
+    static void RenderRoom(uint px, uint py, uint dir, ulong panelRightTop, ulong panelRightBottom)
     {
         bool leftOpen = !Maze.LeftIsWall(px, py, dir, 0);
         bool rightOpen = !Maze.RightIsWall(px, py, dir, 0);
@@ -94,10 +101,10 @@ static class DungeonView
             DrawSideDoor(true);
         if (frontOpen)
         {
-            if (panelRight < FrontDoorRight)
+            ulong maxPanelRight = panelRightTop > panelRightBottom ? panelRightTop : panelRightBottom;
+            if (maxPanelRight < FrontDoorRight)
                 C64.Screen.DrawRectangle(FrontDoorLeft, FrontDoorTop, FrontDoorRight, FY1Far, true, true, BitmapColorSource.MatrixLow);
-            if (panelRight > FrontDoorLeft)
-                C64.Screen.DrawRectangle(FrontDoorLeft, FrontDoorTop, panelRight, FY1Far, true, true, BitmapColorSource.ColorRam);
+            C64.Screen.DrawTrapezoid(FrontDoorLeft, panelRightTop, FrontDoorTop, FrontDoorLeft, panelRightBottom, FY1Far, true, BitmapColorSource.ColorRam);
         }
     }
 

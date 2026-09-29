@@ -18,6 +18,7 @@ Flag_Screen_SetPixel = 0
 Flag_Screen_SetScreenMode = 0
 Flag_Screen_DrawLine = 0
 Flag_Screen_DrawRectangle = 0
+Flag_Screen_DrawTrapezoid = 0
 Flag_Screen_DrawCircle = 0
 Flag_Screen_SetDrawBuffer = 0
 Flag_Screen_SwapBuffers = 0
@@ -75,14 +76,14 @@ Screen_WaitForVBlank:
 ; line) to pick which pixel format to plot. Declared here, gated broadly
 ; (writer OR every reader), so it exists whenever any of them are compiled,
 ; matching graphics_saved_d018's own pattern below.
-.if Flag_Screen_SetScreenMode | Flag_Screen_SetPixel | Flag_Screen_DrawLine | Flag_Screen_DrawRectangle | Flag_Screen_DrawCircle
+.if Flag_Screen_SetScreenMode | Flag_Screen_SetPixel | Flag_Screen_DrawLine | Flag_Screen_DrawRectangle | Flag_Screen_DrawTrapezoid | Flag_Screen_DrawCircle
 graphics_multicolor_active .byte 0
 .endif
 
 ; ===========================================================================
 ; Shared pixel addressing -- used by SetPixel and every shape routine.
 ; ===========================================================================
-.if Flag_Screen_SetPixel | Flag_Screen_DrawLine | Flag_Screen_DrawRectangle | Flag_Screen_DrawCircle
+.if Flag_Screen_SetPixel | Flag_Screen_DrawLine | Flag_Screen_DrawRectangle | Flag_Screen_DrawTrapezoid | Flag_Screen_DrawCircle
 
 ; Bitmap memory is organized in 8x8 cells (8 consecutive scanline bytes per
 ; cell, cells in the same row-major 40x25 order as the text screen/
@@ -533,10 +534,10 @@ Screen_SetBitmapColors:
 .endif
 
 ; ===========================================================================
-; Shared line-plotting helpers -- used by DrawRectangle directly, and by
-; DrawLine/DrawCircle for their own straight spans.
+; Shared line-plotting helpers -- used by DrawRectangle/DrawTrapezoid
+; directly, and by DrawLine/DrawCircle for their own straight spans.
 ; ===========================================================================
-.if Flag_Screen_DrawLine | Flag_Screen_DrawRectangle | Flag_Screen_DrawCircle
+.if Flag_Screen_DrawLine | Flag_Screen_DrawRectangle | Flag_Screen_DrawTrapezoid | Flag_Screen_DrawCircle
 
 ; Which bits of a byte a span touches in its first / last byte. The first
 ; byte is covered from a column to its right edge (span_left_mask, indexed
@@ -1498,6 +1499,282 @@ Screen_DrawLine:
     #stack_pull_int16 zp_gfx_y
     #stack_pull_int16 zp_gfx_x_low
     jsr Graphics_DrawLine_Core
+    #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+; ===========================================================================
+; Screen.DrawTrapezoid
+; ===========================================================================
+.if Flag_Screen_DrawTrapezoid
+
+; Ensures zp_gfx_y <= zp_gfx_endy, swapping each row's x-pair together with
+; the y's if not (a trapezoid's two rows can be given in either order) --
+; same unsigned-compare idiom as Graphics_NormalizeRectCoords, but three
+; pairs move together here, so both edges stay matched to their own row.
+Graphics_NormalizeTrapezoidCoords:
+    lda zp_gfx_y
+    cmp zp_gfx_endy
+    bcc Graphics_NormalizeTrapezoidCoords_Ok
+    beq Graphics_NormalizeTrapezoidCoords_Ok
+    ldy zp_gfx_y
+    lda zp_gfx_endy
+    sta zp_gfx_y
+    sty zp_gfx_endy
+    ldy zp_gfx_x_low
+    lda zp_gfx_endx_low
+    sta zp_gfx_x_low
+    sty zp_gfx_endx_low
+    ldy zp_gfx_x_high
+    lda zp_gfx_endx_high
+    sta zp_gfx_x_high
+    sty zp_gfx_endx_high
+    ldy zp_gfx_cx_low
+    lda zp_gfx_dx_low
+    sta zp_gfx_cx_low
+    sty zp_gfx_dx_low
+    ldy zp_gfx_cx_high
+    lda zp_gfx_dx_high
+    sta zp_gfx_cx_high
+    sty zp_gfx_dx_high
+Graphics_NormalizeTrapezoidCoords_Ok:
+    rts
+
+; In: zp_gfx_x_low/high=x0Left, zp_gfx_cx_low/high=x0Right, zp_gfx_y=y0,
+; zp_gfx_endx_low/high=x1Left, zp_gfx_dx_low/high=x1Right, zp_gfx_endy=y1,
+; zp_gfx_on, zp_gfx_color. Fills every row y0..y1 inclusive with the span
+; whose left/right x are linearly interpolated between (x0Left,x0Right) at
+; y0 and (x1Left,x1Right) at y1 -- a general 4-corner trapezoid (a
+; rectangle is the special case x0Left=x1Left/x0Right=x1Right; a triangle
+; is x0Left=x0Right or x1Left=x1Right, a corner degenerating to a point).
+;
+; Each edge's per-row movement is a one-time division (Divide16Core, the
+; same shift-subtract routine the compiler's own / operator uses) into an
+; integer step (added to that edge's x every row) plus a remainder; a
+; per-row DDA error accumulator folds the remainder in without any further
+; division (same idea as Graphics_DrawLine's Bresenham error term, just
+; between rows instead of between pixels). The row itself is filled via
+; Graphics_SpanSetup/SpanRow, the same byte-level span fill as HLine_Core/
+; FillRect_Core -- SpanSetup runs fresh every row (unlike FillRect_Core's
+; once), since a trapezoid's left/right x change every row, but that cost
+; is small next to the interior-byte fill itself.
+;
+; Destroys A, X, Y and every zp_gfx_* register except zp_gfx_on/zp_gfx_color.
+Graphics_Trapezoid_Core:
+    jsr Graphics_NormalizeTrapezoidCoords
+
+    lda zp_gfx_endy                  ; height = y1 - y0, cached once: y
+    sec                               ; itself becomes the row loop counter
+    sbc zp_gfx_y                      ; below, so this can't be recomputed
+    sta zp_gfx_trap_height            ; from y/endy partway through
+
+    ; --- left edge: delta = x1Left(endx) - x0Left(x), into zp_param2 ---
+    sec
+    lda zp_gfx_endx_low
+    sbc zp_gfx_x_low
+    sta zp_param2_low
+    lda zp_gfx_endx_high
+    sbc zp_gfx_x_high
+    sta zp_param2_high
+    bpl Graphics_Trapezoid_LeftPositive
+    sec
+    lda #0
+    sbc zp_param2_low
+    sta zp_param2_low
+    lda #0
+    sbc zp_param2_high
+    sta zp_param2_high
+    lda #1
+    sta zp_gfx_trap_left_sign
+    jmp Graphics_Trapezoid_LeftSignDone
+Graphics_Trapezoid_LeftPositive:
+    lda #0
+    sta zp_gfx_trap_left_sign
+Graphics_Trapezoid_LeftSignDone:
+    lda zp_gfx_trap_height
+    sta zp_param1_low
+    lda #0
+    sta zp_param1_high
+    jsr Divide16Core
+    lda zp_param2_low
+    sta zp_gfx_trap_left_step_low
+    lda zp_param2_high
+    sta zp_gfx_trap_left_step_high
+    lda zp_param0_low
+    sta zp_gfx_trap_left_rem
+    lda #0
+    sta zp_gfx_trap_left_error
+
+    ; --- move x0Right (cx) into endx: row-0 starting value for the right edge ---
+    lda zp_gfx_cx_low
+    sta zp_gfx_endx_low
+    lda zp_gfx_cx_high
+    sta zp_gfx_endx_high
+
+    ; --- right edge: delta = x1Right(dx) - x0Right(cx), into zp_param2 ---
+    sec
+    lda zp_gfx_dx_low
+    sbc zp_gfx_cx_low
+    sta zp_param2_low
+    lda zp_gfx_dx_high
+    sbc zp_gfx_cx_high
+    sta zp_param2_high
+    bpl Graphics_Trapezoid_RightPositive
+    sec
+    lda #0
+    sbc zp_param2_low
+    sta zp_param2_low
+    lda #0
+    sbc zp_param2_high
+    sta zp_param2_high
+    lda #1
+    sta zp_gfx_trap_right_sign
+    jmp Graphics_Trapezoid_RightSignDone
+Graphics_Trapezoid_RightPositive:
+    lda #0
+    sta zp_gfx_trap_right_sign
+Graphics_Trapezoid_RightSignDone:
+    lda zp_gfx_trap_height
+    sta zp_param1_low
+    lda #0
+    sta zp_param1_high
+    jsr Divide16Core
+    lda zp_param2_low
+    sta zp_gfx_trap_right_step_low
+    lda zp_param2_high
+    sta zp_gfx_trap_right_step_high
+    lda zp_param0_low
+    sta zp_gfx_trap_right_rem
+    lda #0
+    sta zp_gfx_trap_right_error
+
+Graphics_Trapezoid_RowLoop:
+    jsr Graphics_SpanSetup
+    jsr Graphics_ComputePixelPointer
+    jsr Graphics_SpanRow
+    lda zp_gfx_y
+    cmp zp_gfx_endy
+    beq Graphics_Trapezoid_Done
+    inc zp_gfx_y
+
+    ; --- step left edge's x (zp_gfx_x_low/high) by its per-row step ---
+    lda zp_gfx_trap_left_sign
+    bne Graphics_Trapezoid_LeftStepNeg
+    lda zp_gfx_x_low
+    clc
+    adc zp_gfx_trap_left_step_low
+    sta zp_gfx_x_low
+    lda zp_gfx_x_high
+    adc zp_gfx_trap_left_step_high
+    sta zp_gfx_x_high
+    jmp Graphics_Trapezoid_LeftStepDone
+Graphics_Trapezoid_LeftStepNeg:
+    lda zp_gfx_x_low
+    sec
+    sbc zp_gfx_trap_left_step_low
+    sta zp_gfx_x_low
+    lda zp_gfx_x_high
+    sbc zp_gfx_trap_left_step_high
+    sta zp_gfx_x_high
+Graphics_Trapezoid_LeftStepDone:
+    ; fold in the remainder: overflow (error+rem >= height) tested as
+    ; rem >= height-error (zp_gfx_mask as transient scratch -- free between
+    ; one row's SpanRow and the next row's SpanSetup) so the add itself
+    ; never needs to exceed a byte.
+    lda zp_gfx_trap_height
+    sec
+    sbc zp_gfx_trap_left_error
+    sta zp_gfx_mask
+    lda zp_gfx_trap_left_rem
+    cmp zp_gfx_mask
+    bcc Graphics_Trapezoid_LeftNoExtra
+    sec
+    sbc zp_gfx_mask
+    sta zp_gfx_trap_left_error
+    lda zp_gfx_trap_left_sign
+    bne Graphics_Trapezoid_LeftExtraNeg
+    inc zp_gfx_x_low
+    bne Graphics_Trapezoid_LeftExtraDone
+    inc zp_gfx_x_high
+    jmp Graphics_Trapezoid_LeftExtraDone
+Graphics_Trapezoid_LeftExtraNeg:
+    lda zp_gfx_x_low
+    bne Graphics_Trapezoid_LeftExtraNoBorrow
+    dec zp_gfx_x_high
+Graphics_Trapezoid_LeftExtraNoBorrow:
+    dec zp_gfx_x_low
+    jmp Graphics_Trapezoid_LeftExtraDone
+Graphics_Trapezoid_LeftNoExtra:
+    lda zp_gfx_trap_left_error
+    clc
+    adc zp_gfx_trap_left_rem
+    sta zp_gfx_trap_left_error
+Graphics_Trapezoid_LeftExtraDone:
+
+    ; --- step right edge's x (zp_gfx_endx_low/high), same shape ---
+    lda zp_gfx_trap_right_sign
+    bne Graphics_Trapezoid_RightStepNeg
+    lda zp_gfx_endx_low
+    clc
+    adc zp_gfx_trap_right_step_low
+    sta zp_gfx_endx_low
+    lda zp_gfx_endx_high
+    adc zp_gfx_trap_right_step_high
+    sta zp_gfx_endx_high
+    jmp Graphics_Trapezoid_RightStepDone
+Graphics_Trapezoid_RightStepNeg:
+    lda zp_gfx_endx_low
+    sec
+    sbc zp_gfx_trap_right_step_low
+    sta zp_gfx_endx_low
+    lda zp_gfx_endx_high
+    sbc zp_gfx_trap_right_step_high
+    sta zp_gfx_endx_high
+Graphics_Trapezoid_RightStepDone:
+    lda zp_gfx_trap_height
+    sec
+    sbc zp_gfx_trap_right_error
+    sta zp_gfx_mask
+    lda zp_gfx_trap_right_rem
+    cmp zp_gfx_mask
+    bcc Graphics_Trapezoid_RightNoExtra
+    sec
+    sbc zp_gfx_mask
+    sta zp_gfx_trap_right_error
+    lda zp_gfx_trap_right_sign
+    bne Graphics_Trapezoid_RightExtraNeg
+    inc zp_gfx_endx_low
+    bne Graphics_Trapezoid_RightExtraDone
+    inc zp_gfx_endx_high
+    jmp Graphics_Trapezoid_RightExtraDone
+Graphics_Trapezoid_RightExtraNeg:
+    lda zp_gfx_endx_low
+    bne Graphics_Trapezoid_RightExtraNoBorrow
+    dec zp_gfx_endx_high
+Graphics_Trapezoid_RightExtraNoBorrow:
+    dec zp_gfx_endx_low
+    jmp Graphics_Trapezoid_RightExtraDone
+Graphics_Trapezoid_RightNoExtra:
+    lda zp_gfx_trap_right_error
+    clc
+    adc zp_gfx_trap_right_rem
+    sta zp_gfx_trap_right_error
+Graphics_Trapezoid_RightExtraDone:
+    jmp Graphics_Trapezoid_RowLoop
+
+Graphics_Trapezoid_Done:
+    rts
+
+Screen_DrawTrapezoid:
+    #stack_save_return_adress zp_tmp1_low
+    #stack_pull_int zp_gfx_color
+    #stack_pull_int zp_gfx_on
+    #stack_pull_int16 zp_gfx_endy          ; y1
+    #stack_pull_int16 zp_gfx_dx_low        ; x1Right
+    #stack_pull_int16 zp_gfx_endx_low      ; x1Left
+    #stack_pull_int16 zp_gfx_y             ; y0
+    #stack_pull_int16 zp_gfx_cx_low        ; x0Right
+    #stack_pull_int16 zp_gfx_x_low         ; x0Left
+    jsr Graphics_Trapezoid_Core
     #stack_return_to_saved_address zp_tmp1_low
 .endif
 

@@ -32,16 +32,16 @@ class RotatingCube
 
     uint pvx0_, pvy0_, pvx1_, pvy1_, pvx2_, pvy2_, pvx3_, pvy3_;
     uint pvx4_, pvy4_, pvx5_, pvy5_, pvx6_, pvy6_, pvx7_, pvy7_;
-    // Whether each of the 12 edges was drawn last frame (see UpdateEdges).
-    bool vis0_, vis1_, vis2_, vis3_, vis4_, vis5_, vis6_, vis7_, vis8_, vis9_, vis10_, vis11_;
+    // Whether each of the 6 faces was drawn last frame (see UpdateFaces).
+    bool visXp_, visXn_, visYp_, visYn_, visZp_, visZn_;
 
     // Double-buffered mode (see Init): the hidden buffer still holds the
-    // frame from two swaps ago, so that frame's vertices (ppv*) and edge
+    // frame from two swaps ago, so that frame's vertices (ppv*) and face
     // visibility (pvis*) are kept as well.
     bool doubleBuffered_;
     uint ppvx0_, ppvy0_, ppvx1_, ppvy1_, ppvx2_, ppvy2_, ppvx3_, ppvy3_;
     uint ppvx4_, ppvy4_, ppvx5_, ppvy5_, ppvx6_, ppvy6_, ppvx7_, ppvy7_;
-    bool pvis0_, pvis1_, pvis2_, pvis3_, pvis4_, pvis5_, pvis6_, pvis7_, pvis8_, pvis9_, pvis10_, pvis11_;
+    bool pvisXp_, pvisXn_, pvisYp_, pvisYn_, pvisZp_, pvisZn_;
 
     // The cube's screen position moves every frame and bounces off the
     // edges. Bounds keep every projected vertex inside 0-255 (8-bit
@@ -130,13 +130,13 @@ class RotatingCube
 
         if (doubleBuffered_)
         {
-            UpdateEdgesBuffered(vx0, vy0, vx1, vy1, vx2, vy2, vx3, vy3,
+            UpdateFacesBuffered(vx0, vy0, vx1, vy1, vx2, vy2, vx3, vy3,
                                 vx4, vy4, vx5, vy5, vx6, vy6, vx7, vy7);
             C64.Screen.SwapBuffers();
         }
         else
         {
-            UpdateEdges(vx0, vy0, vx1, vy1, vx2, vy2, vx3, vy3,
+            UpdateFaces(vx0, vy0, vx1, vy1, vx2, vy2, vx3, vy3,
                         vx4, vy4, vx5, vy5, vx6, vy6, vx7, vy7);
         }
 
@@ -200,19 +200,21 @@ class RotatingCube
         lastVy_ = (uint)(centerY_ + y * scale);
     }
 
-    // Hidden-line removal by back-face culling: a cube is convex, so an edge
-    // is visible exactly when at least one of its two faces faces the camera.
-    // With the camera at z = -CamDist, the face whose outward normal is the
-    // rotated axis n (unit length) is visible when n.z < -CubeSize/CamDist;
-    // ax_/bz_/cz_ are those axes' z components times CubeSize, hence the
-    // FaceTolerance threshold. Only 6 float compares per frame.
+    // Hidden-surface removal by back-face culling: a cube is convex, so a
+    // face is visible exactly when it faces the camera. With the camera at
+    // z = -CamDist, the face whose outward normal is the rotated axis n
+    // (unit length) is visible when n.z < -CubeSize/CamDist; ax_/bz_/cz_
+    // are those axes' z components times CubeSize, hence the FaceTolerance
+    // threshold. Only 6 float compares per frame.
     //
-    // Erases each previously visible old edge and draws each now-visible new
-    // one, one edge at a time (see class comment). The old vertices are read
-    // from the pv*_ fields (Step overwrites them after this returns) and the
-    // old visibility from vis*_; on the first frame both are empty, so
-    // nothing is erased.
-    void UpdateEdges(uint nx0, uint ny0, uint nx1, uint ny1, uint nx2, uint ny2, uint nx3, uint ny3,
+    // Erases each previously visible old face and draws each now-visible
+    // new one, one face at a time (see class comment -- same reasoning as
+    // the old per-edge interleaving, just at face granularity now that
+    // faces are filled solid instead of outlined). The old vertices are
+    // read from the pv*_ fields (Step overwrites them after this returns)
+    // and the old visibility from vis*_; on the first frame both are
+    // empty, so nothing is erased.
+    void UpdateFaces(uint nx0, uint ny0, uint nx1, uint ny1, uint nx2, uint ny2, uint nx3, uint ny3,
                      uint nx4, uint ny4, uint nx5, uint ny5, uint nx6, uint ny6, uint nx7, uint ny7)
     {
         // Compares go through bool locals, see Step.
@@ -223,63 +225,33 @@ class RotatingCube
         bool zp = cz_ < -FaceTolerance;   // +Z face (v4,v5,v6,v7)
         bool zn = cz_ > FaceTolerance;    // -Z face (v0,v1,v2,v3)
 
-        bool e0 = yn || zn;
-        if (vis0_) C64.Screen.DrawLine(pvx0_, pvy0_, pvx1_, pvy1_, false);
-        if (e0) C64.Screen.DrawLine(nx0, ny0, nx1, ny1, true);
-        vis0_ = e0;
-        bool e1 = xp || zn;
-        if (vis1_) C64.Screen.DrawLine(pvx1_, pvy1_, pvx2_, pvy2_, false);
-        if (e1) C64.Screen.DrawLine(nx1, ny1, nx2, ny2, true);
-        vis1_ = e1;
-        bool e2 = yp || zn;
-        if (vis2_) C64.Screen.DrawLine(pvx2_, pvy2_, pvx3_, pvy3_, false);
-        if (e2) C64.Screen.DrawLine(nx2, ny2, nx3, ny3, true);
-        vis2_ = e2;
-        bool e3 = xn || zn;
-        if (vis3_) C64.Screen.DrawLine(pvx3_, pvy3_, pvx0_, pvy0_, false);
-        if (e3) C64.Screen.DrawLine(nx3, ny3, nx0, ny0, true);
-        vis3_ = e3;
-        bool e4 = yn || zp;
-        if (vis4_) C64.Screen.DrawLine(pvx4_, pvy4_, pvx5_, pvy5_, false);
-        if (e4) C64.Screen.DrawLine(nx4, ny4, nx5, ny5, true);
-        vis4_ = e4;
-        bool e5 = xp || zp;
-        if (vis5_) C64.Screen.DrawLine(pvx5_, pvy5_, pvx6_, pvy6_, false);
-        if (e5) C64.Screen.DrawLine(nx5, ny5, nx6, ny6, true);
-        vis5_ = e5;
-        bool e6 = yp || zp;
-        if (vis6_) C64.Screen.DrawLine(pvx6_, pvy6_, pvx7_, pvy7_, false);
-        if (e6) C64.Screen.DrawLine(nx6, ny6, nx7, ny7, true);
-        vis6_ = e6;
-        bool e7 = xn || zp;
-        if (vis7_) C64.Screen.DrawLine(pvx7_, pvy7_, pvx4_, pvy4_, false);
-        if (e7) C64.Screen.DrawLine(nx7, ny7, nx4, ny4, true);
-        vis7_ = e7;
-        bool e8 = xn || yn;
-        if (vis8_) C64.Screen.DrawLine(pvx0_, pvy0_, pvx4_, pvy4_, false);
-        if (e8) C64.Screen.DrawLine(nx0, ny0, nx4, ny4, true);
-        vis8_ = e8;
-        bool e9 = xp || yn;
-        if (vis9_) C64.Screen.DrawLine(pvx1_, pvy1_, pvx5_, pvy5_, false);
-        if (e9) C64.Screen.DrawLine(nx1, ny1, nx5, ny5, true);
-        vis9_ = e9;
-        bool e10 = xp || yp;
-        if (vis10_) C64.Screen.DrawLine(pvx2_, pvy2_, pvx6_, pvy6_, false);
-        if (e10) C64.Screen.DrawLine(nx2, ny2, nx6, ny6, true);
-        vis10_ = e10;
-        bool e11 = xn || yp;
-        if (vis11_) C64.Screen.DrawLine(pvx3_, pvy3_, pvx7_, pvy7_, false);
-        if (e11) C64.Screen.DrawLine(nx3, ny3, nx7, ny7, true);
-        vis11_ = e11;
+        if (visZn_) FillFace(pvx0_, pvy0_, pvx1_, pvy1_, pvx2_, pvy2_, pvx3_, pvy3_, false);
+        if (zn) FillFace(nx0, ny0, nx1, ny1, nx2, ny2, nx3, ny3, true);
+        visZn_ = zn;
+        if (visZp_) FillFace(pvx4_, pvy4_, pvx5_, pvy5_, pvx6_, pvy6_, pvx7_, pvy7_, false);
+        if (zp) FillFace(nx4, ny4, nx5, ny5, nx6, ny6, nx7, ny7, true);
+        visZp_ = zp;
+        if (visYn_) FillFace(pvx0_, pvy0_, pvx1_, pvy1_, pvx4_, pvy4_, pvx5_, pvy5_, false);
+        if (yn) FillFace(nx0, ny0, nx1, ny1, nx4, ny4, nx5, ny5, true);
+        visYn_ = yn;
+        if (visYp_) FillFace(pvx2_, pvy2_, pvx3_, pvy3_, pvx6_, pvy6_, pvx7_, pvy7_, false);
+        if (yp) FillFace(nx2, ny2, nx3, ny3, nx6, ny6, nx7, ny7, true);
+        visYp_ = yp;
+        if (visXp_) FillFace(pvx1_, pvy1_, pvx2_, pvy2_, pvx5_, pvy5_, pvx6_, pvy6_, false);
+        if (xp) FillFace(nx1, ny1, nx2, ny2, nx5, ny5, nx6, ny6, true);
+        visXp_ = xp;
+        if (visXn_) FillFace(pvx0_, pvy0_, pvx3_, pvy3_, pvx4_, pvy4_, pvx7_, pvy7_, false);
+        if (xn) FillFace(nx0, ny0, nx3, ny3, nx4, ny4, nx7, ny7, true);
+        visXn_ = xn;
     }
 
-    // Double-buffered version of UpdateEdges: everything is drawn into the
-    // hidden buffer, which still holds the frame from two swaps ago, so that
-    // frame's edges are erased (all of them first -- nothing new to clip
-    // yet), the new frame's visible edges are drawn, and Step then swaps.
-    // Nothing is ever shown half-updated, so there is no blinking. The
-    // vertex/visibility history shifts at the end.
-    void UpdateEdgesBuffered(uint nx0, uint ny0, uint nx1, uint ny1, uint nx2, uint ny2, uint nx3, uint ny3,
+    // Double-buffered version of UpdateFaces: everything is drawn into the
+    // hidden buffer, which still holds the frame from two swaps ago, so
+    // that frame's faces are erased (all of them first -- nothing new to
+    // clip yet), the new frame's visible faces are drawn, and Step then
+    // swaps. Nothing is ever shown half-updated, so there is no blinking.
+    // The vertex history shifts in Step; only face visibility shifts here.
+    void UpdateFacesBuffered(uint nx0, uint ny0, uint nx1, uint ny1, uint nx2, uint ny2, uint nx3, uint ny3,
                              uint nx4, uint ny4, uint nx5, uint ny5, uint nx6, uint ny6, uint nx7, uint ny7)
     {
         bool xp = az_ < -FaceTolerance;
@@ -289,46 +261,21 @@ class RotatingCube
         bool zp = cz_ < -FaceTolerance;
         bool zn = cz_ > FaceTolerance;
 
-        bool e0 = yn || zn;
-        bool e1 = xp || zn;
-        bool e2 = yp || zn;
-        bool e3 = xn || zn;
-        bool e4 = yn || zp;
-        bool e5 = xp || zp;
-        bool e6 = yp || zp;
-        bool e7 = xn || zp;
-        bool e8 = xn || yn;
-        bool e9 = xp || yn;
-        bool e10 = xp || yp;
-        bool e11 = xn || yp;
-
         // Erase the frame this buffer still holds.
-        if (pvis0_) C64.Screen.DrawLine(ppvx0_, ppvy0_, ppvx1_, ppvy1_, false);
-        if (pvis1_) C64.Screen.DrawLine(ppvx1_, ppvy1_, ppvx2_, ppvy2_, false);
-        if (pvis2_) C64.Screen.DrawLine(ppvx2_, ppvy2_, ppvx3_, ppvy3_, false);
-        if (pvis3_) C64.Screen.DrawLine(ppvx3_, ppvy3_, ppvx0_, ppvy0_, false);
-        if (pvis4_) C64.Screen.DrawLine(ppvx4_, ppvy4_, ppvx5_, ppvy5_, false);
-        if (pvis5_) C64.Screen.DrawLine(ppvx5_, ppvy5_, ppvx6_, ppvy6_, false);
-        if (pvis6_) C64.Screen.DrawLine(ppvx6_, ppvy6_, ppvx7_, ppvy7_, false);
-        if (pvis7_) C64.Screen.DrawLine(ppvx7_, ppvy7_, ppvx4_, ppvy4_, false);
-        if (pvis8_) C64.Screen.DrawLine(ppvx0_, ppvy0_, ppvx4_, ppvy4_, false);
-        if (pvis9_) C64.Screen.DrawLine(ppvx1_, ppvy1_, ppvx5_, ppvy5_, false);
-        if (pvis10_) C64.Screen.DrawLine(ppvx2_, ppvy2_, ppvx6_, ppvy6_, false);
-        if (pvis11_) C64.Screen.DrawLine(ppvx3_, ppvy3_, ppvx7_, ppvy7_, false);
+        if (pvisZn_) FillFace(ppvx0_, ppvy0_, ppvx1_, ppvy1_, ppvx2_, ppvy2_, ppvx3_, ppvy3_, false);
+        if (pvisZp_) FillFace(ppvx4_, ppvy4_, ppvx5_, ppvy5_, ppvx6_, ppvy6_, ppvx7_, ppvy7_, false);
+        if (pvisYn_) FillFace(ppvx0_, ppvy0_, ppvx1_, ppvy1_, ppvx4_, ppvy4_, ppvx5_, ppvy5_, false);
+        if (pvisYp_) FillFace(ppvx2_, ppvy2_, ppvx3_, ppvy3_, ppvx6_, ppvy6_, ppvx7_, ppvy7_, false);
+        if (pvisXp_) FillFace(ppvx1_, ppvy1_, ppvx2_, ppvy2_, ppvx5_, ppvy5_, ppvx6_, ppvy6_, false);
+        if (pvisXn_) FillFace(ppvx0_, ppvy0_, ppvx3_, ppvy3_, ppvx4_, ppvy4_, ppvx7_, ppvy7_, false);
 
         // Draw the new frame.
-        if (e0) C64.Screen.DrawLine(nx0, ny0, nx1, ny1, true);
-        if (e1) C64.Screen.DrawLine(nx1, ny1, nx2, ny2, true);
-        if (e2) C64.Screen.DrawLine(nx2, ny2, nx3, ny3, true);
-        if (e3) C64.Screen.DrawLine(nx3, ny3, nx0, ny0, true);
-        if (e4) C64.Screen.DrawLine(nx4, ny4, nx5, ny5, true);
-        if (e5) C64.Screen.DrawLine(nx5, ny5, nx6, ny6, true);
-        if (e6) C64.Screen.DrawLine(nx6, ny6, nx7, ny7, true);
-        if (e7) C64.Screen.DrawLine(nx7, ny7, nx4, ny4, true);
-        if (e8) C64.Screen.DrawLine(nx0, ny0, nx4, ny4, true);
-        if (e9) C64.Screen.DrawLine(nx1, ny1, nx5, ny5, true);
-        if (e10) C64.Screen.DrawLine(nx2, ny2, nx6, ny6, true);
-        if (e11) C64.Screen.DrawLine(nx3, ny3, nx7, ny7, true);
+        if (zn) FillFace(nx0, ny0, nx1, ny1, nx2, ny2, nx3, ny3, true);
+        if (zp) FillFace(nx4, ny4, nx5, ny5, nx6, ny6, nx7, ny7, true);
+        if (yn) FillFace(nx0, ny0, nx1, ny1, nx4, ny4, nx5, ny5, true);
+        if (yp) FillFace(nx2, ny2, nx3, ny3, nx6, ny6, nx7, ny7, true);
+        if (xp) FillFace(nx1, ny1, nx2, ny2, nx5, ny5, nx6, ny6, true);
+        if (xn) FillFace(nx0, ny0, nx3, ny3, nx4, ny4, nx7, ny7, true);
 
         // History: what was one frame back is now two back.
         ppvx0_ = pvx0_; ppvy0_ = pvy0_;
@@ -339,17 +286,108 @@ class RotatingCube
         ppvx5_ = pvx5_; ppvy5_ = pvy5_;
         ppvx6_ = pvx6_; ppvy6_ = pvy6_;
         ppvx7_ = pvx7_; ppvy7_ = pvy7_;
-        pvis0_ = vis0_; vis0_ = e0;
-        pvis1_ = vis1_; vis1_ = e1;
-        pvis2_ = vis2_; vis2_ = e2;
-        pvis3_ = vis3_; vis3_ = e3;
-        pvis4_ = vis4_; vis4_ = e4;
-        pvis5_ = vis5_; vis5_ = e5;
-        pvis6_ = vis6_; vis6_ = e6;
-        pvis7_ = vis7_; vis7_ = e7;
-        pvis8_ = vis8_; vis8_ = e8;
-        pvis9_ = vis9_; vis9_ = e9;
-        pvis10_ = vis10_; vis10_ = e10;
-        pvis11_ = vis11_; vis11_ = e11;
+        pvisZn_ = visZn_; visZn_ = zn;
+        pvisZp_ = visZp_; visZp_ = zp;
+        pvisYn_ = visYn_; visYn_ = yn;
+        pvisYp_ = visYp_; visYp_ = yp;
+        pvisXp_ = visXp_; visXp_ = xp;
+        pvisXn_ = visXn_; visXn_ = xn;
+    }
+
+    // ---------------------------------------------------------------------
+    // Solid face fill: a cube face projects to a convex quadrilateral (4
+    // vertices, order doesn't matter -- see SortQuadByY), filled as 2-3
+    // horizontal-banded trapezoids via Screen.DrawTrapezoid (on=false
+    // erases, matching DrawLine/DrawRectangle's own convention).
+    // ---------------------------------------------------------------------
+
+    // SortQuadByY's own output: the 4 vertices sorted by y ascending, each
+    // x kept paired with its own y. This compiler has neither tuples nor
+    // out params (see Project's own comment), so -- like Project/
+    // ProjectNeg -- results come back through fields, not a return value.
+    uint qx0_, qy0_, qx1_, qy1_, qx2_, qy2_, qx3_, qy3_;
+
+    // Sorts 4 (x,y) pairs by y using the standard 5-comparator optimal
+    // sorting network for 4 elements (compare 0-1, 2-3, 0-2, 1-3, then
+    // 1-2). For a convex quadrilateral this also happens to identify its
+    // shape correctly for FillFace below: the min-y and max-y vertices of
+    // a convex quad are its two opposite corners, so BOTH remaining
+    // (middle-y) vertices connect to the top corner and to the bottom
+    // corner by a real edge of the quad -- which edge specifically doesn't
+    // matter, only their (x,y) values do, so sorting by y alone (without
+    // tracking the original connectivity order) is enough.
+    void SortQuadByY(uint px0, uint py0, uint px1, uint py1, uint px2, uint py2, uint px3, uint py3)
+    {
+        uint x0 = px0, y0 = py0, x1 = px1, y1 = py1, x2 = px2, y2 = py2, x3 = px3, y3 = py3;
+        uint tx, ty;
+        if (y0 > y1) { tx = x0; ty = y0; x0 = x1; y0 = y1; x1 = tx; y1 = ty; }
+        if (y2 > y3) { tx = x2; ty = y2; x2 = x3; y2 = y3; x3 = tx; y3 = ty; }
+        if (y0 > y2) { tx = x0; ty = y0; x0 = x2; y0 = y2; x2 = tx; y2 = ty; }
+        if (y1 > y3) { tx = x1; ty = y1; x1 = x3; y1 = y3; x3 = tx; y3 = ty; }
+        if (y1 > y2) { tx = x1; ty = y1; x1 = x2; y1 = y2; x2 = tx; y2 = ty; }
+        qx0_ = x0; qy0_ = y0; qx1_ = x1; qy1_ = y1; qx2_ = x2; qy2_ = y2; qx3_ = x3; qy3_ = y3;
+    }
+
+    // The x of the line from (x0,y0) to (x1,y1) at row y (y0<=y<=y1 or
+    // y1<=y<=y0). Written with only non-negative subtractions (no signed
+    // type needed, matching this compiler's unsigned uint/ulong) --
+    // subtracts the smaller x from the larger for the magnitude, then
+    // re-applies the direction as a final add or subtract.
+    static ulong InterpolateX(ulong x0, ulong y0, ulong x1, ulong y1, ulong y)
+    {
+        if (y0 == y1)
+            return x0;
+        ulong loY = y0 < y1 ? y0 : y1;
+        ulong hiY = y0 < y1 ? y1 : y0;
+        ulong loX = y0 < y1 ? x0 : x1;
+        ulong hiX = y0 < y1 ? x1 : x0;
+        ulong dy = hiY - loY;
+        bool rising = loX < hiX;
+        ulong dx = rising ? hiX - loX : loX - hiX;
+        ulong offset = dx * (y - loY) / dy;
+        return rising ? loX + offset : loX - offset;
+    }
+
+    // Fills (on=true) or erases (on=false) one convex quad face, given its
+    // 4 vertices in ANY order. Sorts them by y (SortQuadByY) into a top
+    // corner, two middle vertices and a bottom corner, decides which
+    // middle is geometrically on the left (smaller x) vs right, then
+    // covers the shape with 2 trapezoids (if both middles share a row) or
+    // 3 (the usual case: down to the earlier middle, between the two
+    // middles -- where the earlier-ending side has switched to its
+    // mid->bottom edge while the other is still interpolated along its
+    // top->mid edge -- and down to the bottom corner), the same "one side
+    // constant, other side bends partway down" shape DungeonView's own
+    // wall/door panels use, just with the bend point found at runtime
+    // instead of known ahead of time.
+    void FillFace(uint px0, uint py0, uint px1, uint py1, uint px2, uint py2, uint px3, uint py3, bool on)
+    {
+        SortQuadByY(px0, py0, px1, py1, px2, py2, px3, py3);
+        uint topX = qx0_, topY = qy0_, botX = qx3_, botY = qy3_;
+        uint leftX, leftY, rightX, rightY;
+        if (qx1_ <= qx2_) { leftX = qx1_; leftY = qy1_; rightX = qx2_; rightY = qy2_; }
+        else { leftX = qx2_; leftY = qy2_; rightX = qx1_; rightY = qy1_; }
+
+        if (leftY == rightY)
+        {
+            C64.Screen.DrawTrapezoid(topX, topX, topY, leftX, rightX, leftY, on);
+            C64.Screen.DrawTrapezoid(leftX, rightX, leftY, botX, botX, botY, on);
+        }
+        else if (leftY < rightY)
+        {
+            ulong splitTop = InterpolateX(topX, topY, rightX, rightY, leftY);
+            ulong splitBot = InterpolateX(leftX, leftY, botX, botY, rightY);
+            C64.Screen.DrawTrapezoid(topX, topX, topY, leftX, splitTop, leftY, on);
+            C64.Screen.DrawTrapezoid(leftX, splitTop, leftY, splitBot, rightX, rightY, on);
+            C64.Screen.DrawTrapezoid(splitBot, rightX, rightY, botX, botX, botY, on);
+        }
+        else
+        {
+            ulong splitTop = InterpolateX(topX, topY, leftX, leftY, rightY);
+            ulong splitBot = InterpolateX(rightX, rightY, botX, botY, leftY);
+            C64.Screen.DrawTrapezoid(topX, topX, topY, splitTop, rightX, rightY, on);
+            C64.Screen.DrawTrapezoid(splitTop, rightX, rightY, leftX, splitBot, leftY, on);
+            C64.Screen.DrawTrapezoid(leftX, splitBot, leftY, botX, botX, botY, on);
+        }
     }
 }

@@ -149,7 +149,7 @@ result = $20
 ; color matrix in VIC bank 1, below; Screen.SetBitmapColors alone just needs
 ; the normal single buffer.
 GRAPHICS_DOUBLE_BUFFER = Flag_Screen_SetDrawBuffer | Flag_Screen_SwapBuffers
-GRAPHICS_USED = Flag_Screen_SetScreenMode | Flag_Screen_SetPixel | Flag_Screen_DrawLine | Flag_Screen_DrawRectangle | Flag_Screen_DrawCircle | Flag_Screen_SetBitmapColors | Flag_Screen_ClearBitmap | GRAPHICS_DOUBLE_BUFFER
+GRAPHICS_USED = Flag_Screen_SetScreenMode | Flag_Screen_SetPixel | Flag_Screen_DrawLine | Flag_Screen_DrawRectangle | Flag_Screen_DrawTrapezoid | Flag_Screen_DrawCircle | Flag_Screen_SetBitmapColors | Flag_Screen_ClearBitmap | GRAPHICS_DOUBLE_BUFFER
 .if GRAPHICS_USED
 graphics_resume_point = *
 * = $0c00

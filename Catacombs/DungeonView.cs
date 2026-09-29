@@ -39,15 +39,17 @@ static class DungeonView
     // local wall height above it (y=66 at x=29, 69 at x=43) -- so the door
     // is taller at its near side than its far side, like the wall.
     //
-    // Filled as: a few short rows at the top where the top edge is still
-    // sloping across the door's width (each row runs from x=29 to where
-    // the top edge crosses that row), then ONE rectangle for every row in
-    // between where the door spans its full width, then a few short rows
-    // at the bottom where the floor line cuts across. ~11 calls in all.
+    // Filled as 3 DrawTrapezoid calls -- a shape whose left edge is the
+    // constant column x=29 for the door's full height, and whose right
+    // edge is 3-banded (taper in from a point, a flat run at x=43, taper
+    // back out to a point): top taper (a triangle, x0Left=x0Right=29
+    // degenerating to a point at the top), the flat middle band (a plain
+    // rectangle, still expressed as a trapezoid with matching top/bottom
+    // x's), and the bottom taper (a triangle again). Each trapezoid does
+    // its own row interpolation in asm (Graphics_Trapezoid_Core), so this
+    // no longer hand-computes a per-row endpoint in C#.
     const ulong DoorXNear = 29, DoorXFar = 43;
-    const ulong DoorTopFirstRow = 66, DoorFullFirstRow = 69, DoorFullLastRow = 176, DoorBottomFirstRow = 177;
-    static readonly ulong[] DoorTopRowEnd = { 29, 33, 38 };                 // rows 66..68
-    static readonly ulong[] DoorBottomRowEnd = { 41, 39, 37, 35, 33, 31, 29 }; // rows 177..183
+    const ulong DoorTopFirstRow = 66, DoorFullFirstRow = 69, DoorFullLastRow = 176, DoorBottomLastRow = 183;
 
     const ulong FrontDoorLeft = 131;
     const ulong FrontDoorRight = 187;
@@ -124,27 +126,25 @@ static class DungeonView
         return leftWallX;
     }
 
-    // See the DoorX*/Door*Row* constants for the geometry. DrawRectangle
-    // sorts its corners itself, so the mirrored (right-wall) calls, where
-    // the first x is the larger, need no special handling.
+    // See the DoorX*/Door*Row constants for the geometry. DrawTrapezoid,
+    // unlike DrawRectangle, does NOT sort its own left/right x's (they're
+    // directional, not symmetric corners -- see its own doc comment), so
+    // the mirrored (right-wall) calls -- where X(DoorXNear,true) is the
+    // LARGER of the two mirrored x's -- sort them into left/right here
+    // first.
     static void DrawSideDoor(bool mirrored)
     {
-        // y is a separate ulong stepped alongside the uint array index --
-        // no mixed uint/ulong arithmetic (this compiler's widths differ).
-        ulong y = DoorTopFirstRow;
-        for (uint i = 0; i < 3; i++)
-        {
-            C64.Screen.DrawRectangle(X(DoorXNear, mirrored), y, X(DoorTopRowEnd[i], mirrored), y, true, true, BitmapColorSource.ColorRam);
-            y = y + 1;
-        }
+        ulong near = X(DoorXNear, mirrored);
+        ulong far = X(DoorXFar, mirrored);
+        ulong left = near < far ? near : far;
+        ulong right = near < far ? far : near;
 
-        C64.Screen.DrawRectangle(X(DoorXNear, mirrored), DoorFullFirstRow, X(DoorXFar, mirrored), DoorFullLastRow, true, true, BitmapColorSource.ColorRam);
-
-        y = DoorBottomFirstRow;
-        for (uint i = 0; i < 7; i++)
-        {
-            C64.Screen.DrawRectangle(X(DoorXNear, mirrored), y, X(DoorBottomRowEnd[i], mirrored), y, true, true, BitmapColorSource.ColorRam);
-            y = y + 1;
-        }
+        // Top taper: a point at (near, DoorTopFirstRow) widening to the
+        // full band (left..right) by DoorFullFirstRow.
+        C64.Screen.DrawTrapezoid(near, near, DoorTopFirstRow, left, right, DoorFullFirstRow, true, BitmapColorSource.ColorRam);
+        // Flat middle band.
+        C64.Screen.DrawRectangle(left, DoorFullFirstRow, right, DoorFullLastRow, true, true, BitmapColorSource.ColorRam);
+        // Bottom taper: the full band narrowing back to a point at (near, DoorBottomLastRow).
+        C64.Screen.DrawTrapezoid(left, right, DoorFullLastRow, near, near, DoorBottomLastRow, true, BitmapColorSource.ColorRam);
     }
 }

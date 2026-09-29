@@ -50,9 +50,11 @@ public class GraphicsFillTests
 Flag_Screen_DrawRectangle = 1
 Flag_Screen_DrawLine = 1
 Flag_Screen_DrawCircle = 1
+Flag_Screen_DrawTrapezoid = 1
 Flag_Screen_ClearBitmap = 1
 Graphics_Bitmap = ${BitmapAddress:x4}
 * = $1000
+.include ""{Asm("helper/division.asm")}""
 Harness_HLine
     jsr Graphics_HLine_Core
     brk
@@ -70,6 +72,9 @@ Harness_Clear
     jsr Graphics_ClearBitmap
     brk
 Harness_ClearPage .byte 0
+Harness_Trapezoid
+    jsr Graphics_Trapezoid_Core
+    brk
 Harness_Circle
     jsr Graphics_DrawCircle_Core
     brk
@@ -785,6 +790,182 @@ Harness_Line
             byte expected = a >= start && a < start + 8000 ? (byte)0 : (byte)0xA5;
             if (emulator.GetMemory(a) != expected)
                 Assert.Fail($"byte ${a:X4} is ${emulator.GetMemory(a):X2}, expected ${expected:X2}");
+        }
+    }
+
+    // ---- Screen.DrawTrapezoid ----
+
+    void SetupTrapezoid(int x0Left, int x0Right, int y0, int x1Left, int x1Right, int y1, bool on, int colorSource)
+    {
+        emulator.SetMemory(Label("zp_gfx_x_low"), (byte)(x0Left & 0xff), (byte)(x0Left >> 8));
+        emulator.SetMemory(Label("zp_gfx_cx_low"), (byte)(x0Right & 0xff), (byte)(x0Right >> 8));
+        emulator.SetMemory(Label("zp_gfx_y"), (byte)y0);
+        emulator.SetMemory(Label("zp_gfx_endx_low"), (byte)(x1Left & 0xff), (byte)(x1Left >> 8));
+        emulator.SetMemory(Label("zp_gfx_dx_low"), (byte)(x1Right & 0xff), (byte)(x1Right >> 8));
+        emulator.SetMemory(Label("zp_gfx_endy"), (byte)y1);
+        emulator.SetMemory(Label("zp_gfx_on"), (byte)(on ? 1 : 0));
+        emulator.SetMemory(Label("zp_gfx_color"), (byte)colorSource);
+    }
+
+    void RunTrapezoid(int x0Left, int x0Right, int y0, int x1Left, int x1Right, int y1, bool on, int colorSource)
+    {
+        SetupTrapezoid(x0Left, x0Right, y0, x1Left, x1Right, y1, on, colorSource);
+        emulator.SetProgramCounter(Label("Harness_Trapezoid"));
+        var result = emulator.RunUntil(new HashSet<int>(), 20_000_000, out _, out _);
+        Assert.That(result, Is.EqualTo(RunResult.Halted),
+            $"trapezoid ({x0Left},{x0Right})@{y0} -> ({x1Left},{x1Right})@{y1} didn't finish");
+    }
+
+    // Reference model: reproduces Graphics_Trapezoid_Core's own integer DDA
+    // exactly (one-time truncating division into a per-row step + a
+    // remainder folded in via a bounded error accumulator), not a
+    // continuous float interpolation -- same reasoning GraphicsLineTests'
+    // own Reference() uses the exact Bresenham algorithm rather than a
+    // rounded float line: an integer DDA's per-row position can legitimately
+    // lag a "smooth" interpolation by more than one pixel while its
+    // accumulated error is still building up (e.g. a slowly-converging
+    // edge steps 0 for several rows in a row, then jumps 1), so only an
+    // identical integer model gives an exact, tolerance-free comparison.
+    static int[] TrapezoidEdge(int topX, int bottomX, int height)
+    {
+        var xs = new int[height + 1];
+        xs[0] = topX;
+        int delta = bottomX - topX;
+        int sign = delta < 0 ? -1 : 1;
+        int adx = Math.Abs(delta);
+        int step = height == 0 ? 0 : adx / height;
+        int rem = height == 0 ? 0 : adx % height;
+        int x = topX, error = 0;
+        for (int row = 1; row <= height; row++)
+        {
+            x += sign * step;
+            error += rem;
+            if (error >= height)
+            {
+                error -= height;
+                x += sign;
+            }
+            xs[row] = x;
+        }
+        return xs;
+    }
+
+    // Every row's exact [left,right] span, keyed by row index (0 = y0).
+    static (int[] left, int[] right, int loY, int hiY) TrapezoidModel(int x0Left, int x0Right, int y0, int x1Left, int x1Right, int y1)
+    {
+        if (y0 > y1)
+            (x0Left, x0Right, y0, x1Left, x1Right, y1) = (x1Left, x1Right, y1, x0Left, x0Right, y0);
+        int height = y1 - y0;
+        return (TrapezoidEdge(x0Left, x1Left, height), TrapezoidEdge(x0Right, x1Right, height), y0, y1);
+    }
+
+    void AssertTrapezoid(int x0Left, int x0Right, int y0, int x1Left, int x1Right, int y1, bool on, int colorSource, bool multicolor, byte initial)
+    {
+        var (left, right, loY, hiY) = TrapezoidModel(x0Left, x0Right, y0, x1Left, x1Right, y1);
+        for (int y = 0; y < 200; y++)
+        {
+            bool inRange = y >= loY && y <= hiY;
+            int l = inRange ? left[y - loY] : 0, r = inRange ? right[y - loY] : -1;
+            for (int x = 0; x < 320; x++)
+            {
+                if (multicolor)
+                {
+                    bool touched = inRange && PairAffected(x, l, r);
+                    int initialPair = (initial >> (6 - ((x & 6) >> 1) * 2)) & 3;
+                    int expected = touched ? (on ? colorSource : 0) : initialPair;
+                    if (PixelPair(x, y) != expected)
+                        Assert.Fail($"trapezoid row y={y}: pair at x={x} is {PixelPair(x, y)}, expected {expected} (row span [{l},{r}])");
+                }
+                else
+                {
+                    bool inside = inRange && x >= l && x <= r;
+                    bool initialBit = (initial & (0x80 >> (x & 7))) != 0;
+                    bool expected = inside ? on : initialBit;
+                    if (Pixel(x, y) != expected)
+                        Assert.Fail($"trapezoid row y={y}: pixel at x={x} is {Pixel(x, y)}, expected {expected} (row span [{l},{r}])");
+                }
+            }
+        }
+    }
+
+    [Test]
+    public void Trapezoid_Random_Match_Model_Both_Modes()
+    {
+        var random = new Random(90);
+        for (int i = 0; i < 100; i++)
+        {
+            bool multicolor = i % 2 == 1;
+            int y0 = random.Next(200), y1 = random.Next(200);
+            // Left <= right at each row is this primitive's precondition
+            // (same as Graphics_HLine_Core's own x0<=x1) -- "left"/"right"
+            // are directional labels, not corners DrawTrapezoid sorts for
+            // the caller the way DrawRectangle's 2 symmetric corners are.
+            int a = random.Next(320), b = random.Next(320);
+            int x0Left = Math.Min(a, b), x0Right = Math.Max(a, b);
+            a = random.Next(320); b = random.Next(320);
+            int x1Left = Math.Min(a, b), x1Right = Math.Max(a, b);
+            bool on = random.Next(4) != 0;
+            int color = random.Next(4);
+            byte initial = (byte)(multicolor ? (random.Next(2) == 0 ? 0x1B : 0xE4) : (random.Next(2) == 0 ? 0xAA : 0x55));
+            FillBitmap(initial);
+            SetMultiColor(multicolor);
+            RunTrapezoid(x0Left, x0Right, y0, x1Left, x1Right, y1, on, color);
+            AssertTrapezoid(x0Left, x0Right, y0, x1Left, x1Right, y1, on, color, multicolor, initial);
+        }
+    }
+
+    [Test]
+    public void Trapezoid_Degenerate_Shapes_Match_Model()
+    {
+        var shapes = new (string name, int x0L, int x0R, int y0, int x1L, int x1R, int y1)[]
+        {
+            ("rectangle", 20, 80, 10, 20, 80, 60),
+            ("triangle apex at top", 50, 50, 10, 20, 80, 60),
+            ("triangle apex at bottom", 20, 80, 10, 50, 50, 60),
+            ("single row", 20, 80, 30, 60, 90, 30),
+            ("y0 > y1 (reversed rows)", 20, 80, 60, 30, 70, 10),
+            ("zero-width both rows (a line)", 50, 50, 10, 90, 90, 60),
+        };
+        foreach (var (name, x0L, x0R, y0, x1L, x1R, y1) in shapes)
+            foreach (var multicolor in new[] { false, true })
+            {
+                FillBitmap(0);
+                SetMultiColor(multicolor);
+                RunTrapezoid(x0L, x0R, y0, x1L, x1R, y1, true, 3);
+                AssertTrapezoid(x0L, x0R, y0, x1L, x1R, y1, true, 3, multicolor, 0, name);
+            }
+    }
+
+    void AssertTrapezoid(int x0Left, int x0Right, int y0, int x1Left, int x1Right, int y1, bool on, int colorSource, bool multicolor, byte initial, string what)
+    {
+        try
+        {
+            AssertTrapezoid(x0Left, x0Right, y0, x1Left, x1Right, y1, on, colorSource, multicolor, initial);
+        }
+        catch (AssertionException e)
+        {
+            throw new AssertionException($"{what}: {e.Message}");
+        }
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public void Report_Cycles_For_Trapezoid(bool multicolor)
+    {
+        var shapes = new[]
+        {
+            ("wall panel taper 4x22 (door top)", 29, 29, 66, 29, 43, 69),
+            ("wall panel taper 8x7 (door bottom)", 29, 43, 176, 29, 29, 183),
+            ("wide floor span 259x22", 4, 315, 4, 50, 269, 26),
+            ("cube face ~30x30", 100, 130, 70, 90, 150, 100),
+        };
+        foreach (var (name, x0L, x0R, y0, x1L, x1R, y1) in shapes)
+        {
+            FillBitmap(0);
+            SetMultiColor(multicolor);
+            SetupTrapezoid(x0L, x0R, y0, x1L, x1R, y1, true, 3);
+            long cycles = TraceCycles("Harness_Trapezoid");
+            TestContext.WriteLine($"{(multicolor ? "multicolor" : "hi-res")} {name}: {cycles} cycles");
         }
     }
 

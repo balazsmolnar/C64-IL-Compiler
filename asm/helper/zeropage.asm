@@ -114,6 +114,38 @@ zp_gfx_rect_x0_low   = zp_gfx_cx_low    ; $16
 zp_gfx_rect_x0_high  = zp_gfx_cx_high   ; $17
 zp_gfx_rect_y0       = zp_gfx_cy        ; $18
 
+; DrawTrapezoid's own scratch (Graphics_Trapezoid_Core in
+; asm/C64Graphics.asm): DrawLine's/DrawCircle's/DrawRectangle's registers
+; reused under new names, same reasoning as the span scratch above -- none
+; of those routines run while a trapezoid is being filled. Split across two
+; edges (left steps zp_gfx_x_low/high every row, right steps
+; zp_gfx_endx_low/high) plus one shared height; each edge's step/rem come
+; from a ONE-TIME division (Divide16Core) during setup, not division per
+; row -- see the routine's own comment for the DDA shape.
+;
+; The physical bytes are picked so nothing here is written before its own
+; raw input value (topLeftX/topRightX/bottomLeftX/bottomRightX, pulled into
+; zp_gfx_x/cx/endx/dx) has been read for the last time: the left edge's
+; final state lands in circle_x/circle_y/dy/radius/cy (free from the very
+; start), computed BEFORE zp_gfx_cx is copied into zp_gfx_endx; the right
+; edge's final state reuses zp_gfx_dx/cx themselves (each only after that
+; byte's own raw value has just been consumed by the delta subtraction on
+; the same line) plus circle_d_low; height goes in circle_d_high, chosen
+; because it is free from the start and never touched by either edge's
+; state, since both divisions (and the whole row loop) need it to stay
+; valid throughout.
+zp_gfx_trap_left_step_low   = zp_gfx_circle_x      ; $1A
+zp_gfx_trap_left_step_high  = zp_gfx_circle_y      ; $1B
+zp_gfx_trap_left_rem        = zp_gfx_dy            ; $10
+zp_gfx_trap_left_sign       = zp_gfx_radius        ; $19  (0 = x increasing, 1 = decreasing)
+zp_gfx_trap_left_error      = zp_gfx_cy            ; $18
+zp_gfx_trap_right_step_low  = zp_gfx_dx_low        ; $0E
+zp_gfx_trap_right_step_high = zp_gfx_dx_high       ; $0F
+zp_gfx_trap_right_sign      = zp_gfx_cx_low        ; $16
+zp_gfx_trap_right_rem       = zp_gfx_cx_high       ; $17
+zp_gfx_trap_right_error     = zp_gfx_circle_d_low  ; $1C
+zp_gfx_trap_height          = zp_gfx_circle_d_high ; $1D  (y1-y0, cached before either division or the row loop)
+
 ; NOT aliased to zp_gfx_radius: DrawCircle needs radius and filled live at
 ; the same time (unlike DrawRectangle, which has no radius), so this gets
 ; its own byte out of the $1e-$1f spare pair.

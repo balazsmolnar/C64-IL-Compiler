@@ -154,6 +154,23 @@ namespace C64Lib
             public static void DrawLine(ulong x0, ulong y0, ulong x1, ulong y1, bool on = true, BitmapColorSource colorSource = BitmapColorSource.ColorRam) { }
             public static void DrawRectangle(ulong x0, ulong y0, ulong x1, ulong y1, bool filled = false, bool on = true, BitmapColorSource colorSource = BitmapColorSource.ColorRam) { }
             public static void DrawCircle(ulong cx, ulong cy, ulong radius, bool filled = false, bool on = true, BitmapColorSource colorSource = BitmapColorSource.ColorRam) { }
+
+            // A filled, always-4-sided trapezoid: row y0 spans x0Left..
+            // x0Right, row y1 spans x1Left..x1Right, and every row between
+            // linearly interpolates each edge -- a rectangle is the special
+            // case x0Left=x1Left/x0Right=x1Right, a triangle is x0Left=
+            // x0Right or x1Left=x1Right (that corner degenerates to a
+            // point). y0/y1 (and the two x pairs together) can be given in
+            // either order. Always filled -- there is no outline-only mode,
+            // unlike DrawRectangle/DrawCircle (draw the two slanted edges
+            // with DrawLine and the two rows with DrawLine/DrawRectangle
+            // instead, if that's what's wanted).
+            //
+            // Costs one one-time division per edge (not a division per
+            // row), then the same byte-level span fill as DrawRectangle's
+            // filled mode per row -- see asm/C64Graphics.asm's
+            // Graphics_Trapezoid_Core for the DDA this runs.
+            public static void DrawTrapezoid(ulong x0Left, ulong x0Right, ulong y0, ulong x1Left, ulong x1Right, ulong y1, bool on = true, BitmapColorSource colorSource = BitmapColorSource.ColorRam) { }
         }
     }
 }

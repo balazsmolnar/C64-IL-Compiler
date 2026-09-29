@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using NUnit.Framework;
 
 namespace SimpleEmulator.Test;
@@ -48,6 +49,8 @@ public class GraphicsFillTests
 .include ""{Asm("helper/8bit.asm")}""
 Flag_Screen_DrawRectangle = 1
 Flag_Screen_DrawLine = 1
+Flag_Screen_DrawCircle = 1
+Flag_Screen_ClearBitmap = 1
 Graphics_Bitmap = ${BitmapAddress:x4}
 * = $1000
 Harness_HLine
@@ -55,6 +58,20 @@ Harness_HLine
     brk
 Harness_FillRect
     jsr Graphics_FillRect_Core
+    brk
+Harness_SetPixel
+    jsr Graphics_SetPixel_Core
+    brk
+Harness_Outline
+    jsr Graphics_RectOutline_Core
+    brk
+Harness_Clear
+    lda Harness_ClearPage
+    jsr Graphics_ClearBitmap
+    brk
+Harness_ClearPage .byte 0
+Harness_Circle
+    jsr Graphics_DrawCircle_Core
     brk
 Harness_Line
     jsr Graphics_DrawLine_Core
@@ -506,5 +523,296 @@ Harness_Line
             long cycles = TraceCycles("Harness_Line");
             TestContext.WriteLine($"{(multicolor ? "multicolor" : "hi-res")} {name}: {cycles} cycles");
         }
+    }
+
+    // ---- The other routines: lines (both modes), rectangle outlines,
+    // circles, single pixels. Each is checked pixel-for-pixel against a
+    // model of the plotted points. ----
+
+    static HashSet<(int, int)> LinePoints(int x0, int y0, int x1, int y1)
+    {
+        var points = new HashSet<(int, int)>();
+        int dx = Math.Abs(x1 - x0), dy = Math.Abs(y1 - y0);
+        int sx = x1 >= x0 ? 1 : -1, sy = y1 >= y0 ? 1 : -1;
+        int x = x0, y = y0;
+        if (dx >= dy)
+        {
+            int err = dx >> 1;
+            while (true)
+            {
+                points.Add((x, y));
+                if (x == x1) break;
+                x += sx;
+                err -= dy;
+                if (err < 0) { y += sy; err += dx; }
+            }
+        }
+        else
+        {
+            int err = dy >> 1;
+            while (true)
+            {
+                points.Add((x, y));
+                if (y == y1) break;
+                y += sy;
+                err -= dx;
+                if (err < 0) { x += sx; err += dy; }
+            }
+        }
+        return points;
+    }
+
+    static HashSet<(int, int)> OutlinePoints(int x0, int y0, int x1, int y1)
+    {
+        var points = new HashSet<(int, int)>();
+        for (int x = x0; x <= x1; x++) { points.Add((x, y0)); points.Add((x, y1)); }
+        for (int y = y0; y <= y1; y++) { points.Add((x0, y)); points.Add((x1, y)); }
+        return points;
+    }
+
+    // The midpoint algorithm exactly as Graphics_DrawCircle_Core steps it.
+    static HashSet<(int, int)> CirclePoints(int cx, int cy, int radius, bool filled)
+    {
+        var points = new HashSet<(int, int)>();
+        void Span(int y, int a, int b) { for (int x = a; x <= b; x++) points.Add((x, y)); }
+        void Plot4(int a, int b)
+        {
+            points.Add((cx + a, cy + b)); points.Add((cx - a, cy + b));
+            points.Add((cx - a, cy - b)); points.Add((cx + a, cy - b));
+        }
+        int px = radius, py = 0, d = 1 - radius;
+        while (py <= px)
+        {
+            if (filled)
+            {
+                Span(cy + py, cx - px, cx + px); Span(cy - py, cx - px, cx + px);
+                Span(cy + px, cx - py, cx + py); Span(cy - px, cx - py, cx + py);
+            }
+            else
+            {
+                Plot4(px, py);
+                Plot4(py, px);
+            }
+            py++;
+            if (d < 0) d += 2 * py + 1;
+            else { px--; d += 2 * (py - px) + 1; }
+        }
+        return points;
+    }
+
+    void AssertPoints(HashSet<(int, int)> points, bool on, int colorSource, bool multicolor, byte initial, string what)
+    {
+        for (int y = 0; y < 200; y++)
+            for (int x = 0; x < 320; x++)
+            {
+                if (multicolor)
+                {
+                    bool touched = points.Contains((x & ~1, y)) || points.Contains((x | 1, y));
+                    int initialPair = (initial >> (6 - ((x & 6) >> 1) * 2)) & 3;
+                    int expected = touched ? (on ? colorSource : 0) : initialPair;
+                    if (PixelPair(x, y) != expected)
+                        Assert.Fail($"{what}: pair at ({x},{y}) is {PixelPair(x, y)}, expected {expected}");
+                }
+                else
+                {
+                    bool initialBit = (initial & (0x80 >> (x & 7))) != 0;
+                    bool expected = points.Contains((x, y)) ? on : initialBit;
+                    if (Pixel(x, y) != expected)
+                        Assert.Fail($"{what}: pixel at ({x},{y}) is {Pixel(x, y)}, expected {expected}");
+                }
+            }
+    }
+
+    void SetupCircle(int cx, int cy, int radius, bool filled, bool on, int colorSource)
+    {
+        emulator.SetMemory(Label("zp_gfx_cx_low"), (byte)(cx & 0xff), (byte)(cx >> 8));
+        emulator.SetMemory(Label("zp_gfx_cy"), (byte)cy);
+        emulator.SetMemory(Label("zp_gfx_radius"), (byte)radius);
+        emulator.SetMemory(Label("zp_gfx_filled"), (byte)(filled ? 1 : 0));
+        emulator.SetMemory(Label("zp_gfx_on"), (byte)(on ? 1 : 0));
+        emulator.SetMemory(Label("zp_gfx_color"), (byte)colorSource);
+    }
+
+    void RunCircle(int cx, int cy, int radius, bool filled, bool on, int colorSource)
+    {
+        SetupCircle(cx, cy, radius, filled, on, colorSource);
+        emulator.SetProgramCounter(Label("Harness_Circle"));
+        var result = emulator.RunUntil(new HashSet<int>(), 50_000_000, out _, out _);
+        Assert.That(result, Is.EqualTo(RunResult.Halted), $"circle ({cx},{cy}) r={radius} didn't finish");
+    }
+
+    void RunOutline(int x0, int y0, int x1, int y1, bool on, int colorSource)
+    {
+        SetupRect(x0, y0, x1, y1, on, colorSource);
+        emulator.SetProgramCounter(Label("Harness_Outline"));
+        var result = emulator.RunUntil(new HashSet<int>(), 20_000_000, out _, out _);
+        Assert.That(result, Is.EqualTo(RunResult.Halted), $"outline ({x0},{y0})-({x1},{y1}) didn't finish");
+    }
+
+    void SetupPixel(int x, int y, bool on, int colorSource)
+    {
+        emulator.SetMemory(Label("zp_gfx_x_low"), (byte)(x & 0xff), (byte)(x >> 8));
+        emulator.SetMemory(Label("zp_gfx_y"), (byte)y);
+        emulator.SetMemory(Label("zp_gfx_on"), (byte)(on ? 1 : 0));
+        emulator.SetMemory(Label("zp_gfx_color"), (byte)colorSource);
+    }
+
+    void RunPixel(int x, int y, bool on, int colorSource)
+    {
+        SetupPixel(x, y, on, colorSource);
+        emulator.SetProgramCounter(Label("Harness_SetPixel"));
+        var result = emulator.RunUntil(new HashSet<int>(), 100_000, out _, out _);
+        Assert.That(result, Is.EqualTo(RunResult.Halted), $"pixel ({x},{y}) didn't finish");
+    }
+
+    [Test]
+    public void Lines_Grid_Match_Model_Both_Modes()
+    {
+        var xs = new[] { 0, 1, 7, 8, 9, 254, 255, 256, 300, 319 };
+        var ys = new[] { 0, 1, 7, 8, 100, 199 };
+        foreach (var multicolor in new[] { false, true })
+            foreach (var x0 in xs) foreach (var y0 in ys) foreach (var x1 in xs) foreach (var y1 in ys)
+            {
+                FillBitmap(0);
+                SetMultiColor(multicolor);
+                RunLine(x0, y0, x1, y1, true, 2);
+                AssertPoints(LinePoints(x0, y0, x1, y1), true, 2, multicolor, 0, $"line ({x0},{y0})-({x1},{y1}) mc={multicolor}");
+            }
+    }
+
+    [Test]
+    public void Lines_Random_Match_Model_Both_Modes()
+    {
+        var random = new Random(80);
+        for (int i = 0; i < 400; i++)
+        {
+            bool multicolor = i % 2 == 1;
+            int x0, y0, x1, y1;
+            if (i % 4 < 2)
+            {
+                x0 = random.Next(320); y0 = random.Next(200); x1 = random.Next(320); y1 = random.Next(200);
+            }
+            else
+            {
+                x0 = random.Next(20, 300); y0 = random.Next(20, 180);
+                x1 = x0 + random.Next(-15, 16); y1 = y0 + random.Next(-15, 16);
+            }
+            bool on = random.Next(4) != 0;
+            int color = random.Next(4);
+            byte initial = (byte)(multicolor ? (random.Next(2) == 0 ? 0x1B : 0xE4) : (random.Next(2) == 0 ? 0xAA : 0x55));
+            FillBitmap(initial);
+            SetMultiColor(multicolor);
+            RunLine(x0, y0, x1, y1, on, color);
+            AssertPoints(LinePoints(x0, y0, x1, y1), on, color, multicolor, initial, $"line ({x0},{y0})-({x1},{y1}) on={on} c={color} mc={multicolor}");
+        }
+    }
+
+    [Test]
+    public void Outlines_Random_Match_Model_Both_Modes()
+    {
+        var random = new Random(81);
+        for (int i = 0; i < 80; i++)
+        {
+            bool multicolor = i % 2 == 1;
+            int xa = random.Next(320), xb = random.Next(320), ya = random.Next(200), yb = random.Next(200);
+            int x0 = Math.Min(xa, xb), x1 = Math.Max(xa, xb), y0 = Math.Min(ya, yb), y1 = Math.Max(ya, yb);
+            bool on = random.Next(4) != 0;
+            int color = random.Next(4);
+            byte initial = (byte)(multicolor ? 0x1B : 0xAA);
+            FillBitmap(initial);
+            SetMultiColor(multicolor);
+            RunOutline(x0, y0, x1, y1, on, color);
+            AssertPoints(OutlinePoints(x0, y0, x1, y1), on, color, multicolor, initial, $"outline ({x0},{y0})-({x1},{y1}) on={on} c={color} mc={multicolor}");
+        }
+    }
+
+    [Test]
+    public void Circles_Match_Model_Both_Modes()
+    {
+        var random = new Random(82);
+        for (int i = 0; i < 60; i++)
+        {
+            bool multicolor = i % 2 == 1;
+            int radius = i < 6 ? i : random.Next(1, 90);
+            int cx = random.Next(radius, 320 - radius), cy = random.Next(radius, 200 - radius);
+            bool filled = (i / 2) % 2 == 0;
+            bool on = random.Next(4) != 0;
+            int color = random.Next(4);
+            byte initial = (byte)(multicolor ? 0x1B : 0xAA);
+            FillBitmap(initial);
+            SetMultiColor(multicolor);
+            RunCircle(cx, cy, radius, filled, on, color);
+            AssertPoints(CirclePoints(cx, cy, radius, filled), on, color, multicolor, initial,
+                $"circle ({cx},{cy}) r={radius} filled={filled} on={on} c={color} mc={multicolor}");
+        }
+    }
+
+    [Test]
+    public void SetPixel_Matches_Model_Both_Modes()
+    {
+        var random = new Random(83);
+        foreach (var multicolor in new[] { false, true })
+        {
+            byte initial = (byte)(multicolor ? 0x1B : 0xAA);
+            SetMultiColor(multicolor);
+            for (int i = 0; i < 300; i++)
+            {
+                int x = random.Next(320), y = random.Next(200);
+                int color = random.Next(4);
+                bool on = random.Next(4) != 0;
+                FillBitmap(initial);
+                RunPixel(x, y, on, color);
+                AssertPoints(new HashSet<(int, int)> { (x, y) }, on, color, multicolor, initial, $"pixel ({x},{y}) on={on} c={color} mc={multicolor}");
+            }
+        }
+    }
+
+    // Graphics_ClearBitmap (SetScreenMode's clear, and Screen.ClearBitmap):
+    // exactly 8000 bytes from the page it is given, nothing before or after
+    // -- the bytes right after the bitmap hold Catacombs' sprite data.
+    [TestCase(0x20)]
+    [TestCase(0x40)]
+    public void ClearBitmap_Clears_Exactly_The_8000_Bytes(int page)
+    {
+        int start = page << 8;
+        emulator.SetMemory(start - 256, Enumerable.Repeat((byte)0xA5, 256 + 8192 + 256).ToArray());
+        emulator.SetMemory(Label("Harness_ClearPage"), (byte)page);
+        emulator.SetProgramCounter(Label("Harness_Clear"));
+        var result = emulator.RunUntil(new HashSet<int>(), 5_000_000, out _, out _);
+        Assert.That(result, Is.EqualTo(RunResult.Halted));
+        for (int a = start - 256; a < start + 8192 + 256; a++)
+        {
+            byte expected = a >= start && a < start + 8000 ? (byte)0 : (byte)0xA5;
+            if (emulator.GetMemory(a) != expected)
+                Assert.Fail($"byte ${a:X4} is ${emulator.GetMemory(a):X2}, expected ${expected:X2}");
+        }
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public void Report_Cycles_For_The_Other_Routines(bool multicolor)
+    {
+        string mode = multicolor ? "multicolor" : "hi-res";
+        void Report(string name, string entry, Action setup, int pixels)
+        {
+            FillBitmap(0);
+            SetMultiColor(multicolor);
+            setup();
+            long cycles = TraceCycles(entry);
+            TestContext.WriteLine($"{mode,-10} {name,-28} {cycles,8} cycles  {(pixels > 0 ? (double)cycles / pixels : 0),7:F1}/px");
+        }
+        Report("pixel", "Harness_SetPixel", () => SetupPixel(100, 50, true, 3), 1);
+        Report("diagonal 45deg 150px", "Harness_Line", () => SetupRect(10, 10, 159, 159, true, 3), 150);
+        Report("shallow 200x40", "Harness_Line", () => SetupRect(10, 10, 209, 49, true, 3), 200);
+        Report("shallow 250x60 (up-left)", "Harness_Line", () => SetupRect(260, 90, 10, 30, true, 3), 251);
+        Report("steep 40x180", "Harness_Line", () => SetupRect(10, 10, 49, 189, true, 3), 180);
+        Report("steep 30x150 (up-right)", "Harness_Line", () => SetupRect(20, 180, 49, 31, true, 3), 150);
+        Report("wall diagonal 46x22", "Harness_Line", () => SetupRect(4, 4, 50, 26, true, 3), 47);
+        Report("vertical 148px", "Harness_Line", () => SetupRect(50, 26, 50, 173, true, 3), 148);
+        Report("wide 300x100", "Harness_Line", () => SetupRect(5, 5, 304, 104, true, 3), 300);
+        Report("outline 220x148", "Harness_Outline", () => SetupRect(50, 26, 269, 173, true, 3), 0);
+        Report("clear bitmap (8000 bytes)", "Harness_Clear", () => emulator.SetMemory(Label("Harness_ClearPage"), 0x20), 8000);
+        Report("circle outline r=40", "Harness_Circle", () => SetupCircle(160, 100, 40, false, true, 3), 0);
+        Report("circle filled r=40", "Harness_Circle", () => SetupCircle(160, 100, 40, true, true, 3), 0);
     }
 }

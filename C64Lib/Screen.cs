@@ -128,6 +128,14 @@ namespace C64Lib
             public static void SetDrawBuffer(uint buffer) { }
             public static void SwapBuffers() { }
 
+            // Erases the bitmap of the current draw target (buffer 0, or
+            // whichever buffer SetDrawBuffer/SwapBuffers last made the draw
+            // target) to the background: what to call before redrawing a
+            // frame into a hidden buffer. One call, about 45,000 cycles --
+            // clearing with C64.FillMemory in a loop takes several times as
+            // long. Leaves the color matrix alone.
+            public static void ClearBitmap() { }
+
             // Fills every cell of the color matrix (both buffers' when
             // double buffering) with one byte: high nibble = foreground,
             // low nibble = background. Without this, buffer 1's matrix would

@@ -23,6 +23,7 @@ Flag_Screen_SetDrawBuffer = 0
 Flag_Screen_SwapBuffers = 0
 Flag_Screen_SetBitmapColors = 0
 Flag_Screen_WaitForVBlank = 0
+Flag_Screen_ClearBitmap = 0
 ; 1 when the program uses double buffering (Screen.SetDrawBuffer/SwapBuffers):
 ; the entry file then also reserves Graphics_Bitmap2/Graphics_ColorMatrix2 in
 ; VIC bank 1 (see ProgramEntry.asm). Defined there as a strong symbol;
@@ -105,23 +106,26 @@ bitmap_cellrow_high
 bitmap_bit_table .byte $80,$40,$20,$10,$08,$04,$02,$01
 
 ; Multicolor: two bits per pixel (pairs 76/54/32/10, MSB-first), so x and
-; x+1 always share a pair -- pairIndex = (x&6)>>1, 0-3, falls out of the
-; same bit math the hi-res table above uses, just grouped by 2 instead of
-; by 1. mc_pair_clear_mask[pairIndex] ANDs a byte down to every bit EXCEPT
-; that pair; mc_pair_value_table[pairIndex*4 + colorSource] is the
-; already-shifted 2-bit value (BitmapColorSource, 0-3) to OR back in, one
-; 4-entry group per pairIndex -- table-driven, like the hi-res mask, so no
-; runtime shift is needed either.
-mc_pair_clear_mask .byte %00111111,%11001111,%11110011,%11111100
-mc_pair_value_table
-    .byte $00,%01000000,%10000000,%11000000    ; pairIndex 0 (shift 6)
-    .byte $00,%00010000,%00100000,%00110000    ; pairIndex 1 (shift 4)
-    .byte $00,%00000100,%00001000,%00001100    ; pairIndex 2 (shift 2)
-    .byte $00,%00000001,%00000010,%00000011    ; pairIndex 3 (shift 0)
+; x+1 always share a pair. Both tables are indexed by the column within the
+; byte (x&7): mc_col_clear ANDs a byte down to every bit EXCEPT that column's
+; pair, mc_col_set is the pair's own two bits (a color's repeated pattern from
+; mc_fill_pattern ANDed with it is that color's value for the pair) --
+; table-driven, so no runtime shift is needed.
+mc_col_clear .byte $3F,$3F,$CF,$CF,$F3,$F3,$FC,$FC
+mc_col_set   .byte $C0,$C0,$30,$30,$0C,$0C,$03,$03
+
+; Multicolor: repeated 2-bit color pattern for a FULLY covered byte (all 4
+; pixel-pairs the same color) -- index by colorSource (0-3).
+mc_fill_pattern .byte $00,$55,$AA,$FF
 
 ; In: zp_gfx_x_low/high (0-319), zp_gfx_y (0-199).
 ; Out: zp_gfx_ptr_low/high (byte address). Destroys A, X. Shared by both
 ; bitmap formats -- see the comment on bitmap_cellrow_low/high above.
+; The bitmap and every 8x8 cell are 8-byte aligned, so (x&~7) + the cell
+; row's offset has its low three bits clear and y&7 can simply be OR'ed in
+; (no carry) -- which also means the pointer's low three bits are always y&7
+; (DrawLine and the fill routines step the pointer relying on that).
+.cerror (Graphics_Bitmap & 7) != 0, "Graphics_Bitmap must be 8-byte aligned"
 Graphics_ComputePixelPointer:
     lda zp_gfx_y
     lsr
@@ -142,75 +146,81 @@ Graphics_ComputePixelPointer:
     sta zp_gfx_ptr_high
     lda zp_gfx_y
     and #$07                     ; y&7 -- scanline within the cell
-    clc
-    adc zp_gfx_ptr_low
+    ora zp_gfx_ptr_low
     sta zp_gfx_ptr_low
-    bcc +
-    inc zp_gfx_ptr_high
-+   rts
+    rts
 
-; In: zp_gfx_x_low/high, zp_gfx_y. Out: zp_gfx_ptr_low/high (byte address),
-; plus, depending on graphics_multicolor_active: hi-res -- zp_gfx_mask (bit
-; within byte); multicolor -- zp_gfx_mask (AND-mask that clears this
-; pixel's 2-bit pair) and zp_gfx_mc_pair_x4 (pairIndex*4, an offset into
-; mc_pair_value_table). Destroys A, X.
+; Hi-res only (multicolor works per column, see Graphics_SetPixel_Core and
+; Graphics_DrawLine_MC_Setup). In: zp_gfx_x_low/high, zp_gfx_y.
+; Out: zp_gfx_ptr_low/high (byte address), zp_gfx_mask (the pixel's bit).
+; Destroys A, X.
 Graphics_ComputePixelAddress:
     jsr Graphics_ComputePixelPointer
-    lda graphics_multicolor_active
-    bne Graphics_ComputePixelAddress_MC
     lda zp_gfx_x_low
     and #$07
     tax
     lda bitmap_bit_table,x
     sta zp_gfx_mask
     rts
-Graphics_ComputePixelAddress_MC:
-    lda zp_gfx_x_low
-    and #$06
-    lsr                          ; A = pairIndex (0-3) = (x&6)>>1
-    tax
-    lda mc_pair_clear_mask,x
-    sta zp_gfx_mask
-    txa
-    asl
-    asl                          ; A = pairIndex*4
-    sta zp_gfx_mc_pair_x4
-    rts
 
 ; In: zp_gfx_x_low/high, zp_gfx_y, zp_gfx_on (nonzero=set/0=clear),
 ; zp_gfx_color (multicolor mode only -- BitmapColorSource, 0-3).
-; Destroys A, X, Y.
+; Destroys A, X, Y. Graphics_ComputePixelPointer is written out in line (one
+; call and one return less per pixel -- this is the per-point cost of circle
+; outlines and of dx>255 lines).
 Graphics_SetPixel_Core:
-    jsr Graphics_ComputePixelAddress
+    lda zp_gfx_y
+    lsr
+    lsr
+    lsr
+    tax
+    lda zp_gfx_x_low
+    and #$F8
+    clc
+    adc bitmap_cellrow_low,x
+    sta zp_gfx_ptr_low
+    lda bitmap_cellrow_high,x
+    adc zp_gfx_x_high
+.if GRAPHICS_DOUBLE_BUFFER
+    clc
+    adc graphics_draw_delta
+.endif
+    sta zp_gfx_ptr_high
+    lda zp_gfx_y
+    and #$07
+    ora zp_gfx_ptr_low
+    sta zp_gfx_ptr_low
+    lda zp_gfx_x_low
+    and #$07
+    tax                          ; X = column within the byte
     ldy #0
     lda graphics_multicolor_active
     bne Graphics_SetPixel_Core_MC
     lda zp_gfx_on
     beq Graphics_SetPixel_Core_Clear
-    lda (zp_gfx_ptr_low),y
-    ora zp_gfx_mask
+    lda bitmap_bit_table,x
+    ora (zp_gfx_ptr_low),y
     sta (zp_gfx_ptr_low),y
     rts
 Graphics_SetPixel_Core_Clear:
-    lda zp_gfx_mask
+    lda bitmap_bit_table,x
     eor #$FF
     and (zp_gfx_ptr_low),y
     sta (zp_gfx_ptr_low),y
     rts
 Graphics_SetPixel_Core_MC:
     lda (zp_gfx_ptr_low),y
-    and zp_gfx_mask               ; clear this pixel's pair (to Background)
+    and mc_col_clear,x            ; clear this pixel's pair (to Background)
+    ldy zp_gfx_on
+    beq Graphics_SetPixel_Core_MC_Store   ; clearing: leave it at Background (Y is 0)
+    sta zp_gfx_mask
+    ldy zp_gfx_color
+    lda mc_fill_pattern,y
+    and mc_col_set,x              ; the color's bits for this pair
+    ora zp_gfx_mask
+    ldy #0
+Graphics_SetPixel_Core_MC_Store:
     sta (zp_gfx_ptr_low),y
-    lda zp_gfx_on
-    beq Graphics_SetPixel_Core_MC_Done   ; clearing: leave it at Background
-    lda zp_gfx_color
-    clc
-    adc zp_gfx_mc_pair_x4
-    tax
-    lda mc_pair_value_table,x
-    ora (zp_gfx_ptr_low),y
-    sta (zp_gfx_ptr_low),y
-Graphics_SetPixel_Core_MC_Done:
     rts
 .endif
 
@@ -247,44 +257,82 @@ graphics_saved_d018 .byte 0
 graphics_saved_d016 .byte 0
 .endif
 
-.if Flag_Screen_SetScreenMode
+.if Flag_Screen_SetScreenMode | Flag_Screen_ClearBitmap
 
-; Zeroes Graphics_Bitmap's 8000 bytes / Graphics_ColorMatrix's 1000 bytes at
-; RUNTIME -- confirmed empirically (via vice-verify) that the assembled
-; .prg does NOT guarantee these addresses start zeroed: 64tass's listing
-; reports a .fill'd-then-jumped-past region the same way as a genuinely
-; untouched one ("Gap"), and real C64 RAM has non-zero content before this
-; program's own code runs, which showed up as visible speckled noise in an
-; unplotted part of the bitmap. Same reasoning #initHeap already applies to
-; the object/GC tables (asm/helper/heap.asm) -- don't trust the loaded
-; file's content for a scratch region, clear it explicitly on first use.
-; Both bases are page-aligned ($2000/$0c00 both have a zero low byte), so
-; the low byte of the pointer never needs to change -- only Y (0-255,
-; wrapping) sweeps each page and the pointer's high byte advances between
-; pages.
-; In: A = high byte of the bitmap's base address ($20 or $40; low byte is 0).
+; Zeroes a bitmap's 8000 bytes at RUNTIME -- confirmed empirically (via
+; vice-verify) that the assembled .prg does NOT guarantee these addresses
+; start zeroed: 64tass's listing reports a .fill'd-then-jumped-past region
+; the same way as a genuinely untouched one ("Gap"), and real C64 RAM has
+; non-zero content before this program's own code runs, which showed up as
+; visible speckled noise in an unplotted part of the bitmap. Same reasoning
+; #initHeap already applies to the object/GC tables (asm/helper/heap.asm) --
+; don't trust the loaded file's content for a scratch region, clear it
+; explicitly on first use.
+;
+; Built for speed, since Screen.ClearBitmap runs once per frame in a
+; double-buffered program: 8000 = 32 chunks of 250 bytes, cleared 8 chunks at
+; a time by one loop of eight `sta abs,y` (5 cycles a byte, against 11 for a
+; `sta (zp),y` sweep). Y counts 250..1 and each store's operand is the chunk's
+; address minus 1, so all eight chunks are covered by the same Y; the eight
+; operands are patched (self-modifying code -- program code is RAM, as in
+; Graphics_DrawLine_Patch) for each of the 4 groups.
+; In: A = high byte of the bitmap's base address (low byte is 0: $20 or $40).
+; Destroys A, X, Y, zp_gfx_ptr_*, zp_gfx_dx_low.
 Graphics_ClearBitmap:
     sta zp_gfx_ptr_high
-    lda #0
+    dec zp_gfx_ptr_high           ; ptr = base - 1 = $xxFF, one page down
+    lda #$FF
     sta zp_gfx_ptr_low
-    ldx #31                       ; 31 full 256-byte pages (31*256=7936)
+    lda #4
+    sta zp_gfx_dx_low             ; groups left
+Graphics_ClearBitmap_Group:
+    ldx #0
+Graphics_ClearBitmap_Patch:
+    lda zp_gfx_ptr_low
+    sta Graphics_ClearBitmap_Store+1,x
+    clc
+    adc #250
+    sta zp_gfx_ptr_low
+    lda zp_gfx_ptr_high
+    sta Graphics_ClearBitmap_Store+2,x
+    adc #0
+    sta zp_gfx_ptr_high
+    inx
+    inx
+    inx
+    cpx #24
+    bne Graphics_ClearBitmap_Patch
+    ldy #250
     lda #0
-Graphics_ClearBitmap_PageLoop:
-    ldy #0
-Graphics_ClearBitmap_ByteLoop:
-    sta (zp_gfx_ptr_low),y
-    iny
-    bne Graphics_ClearBitmap_ByteLoop
-    inc zp_gfx_ptr_high
-    dex
-    bne Graphics_ClearBitmap_PageLoop
-    ldy #0                        ; final partial page: 8000-7936=64 bytes
-Graphics_ClearBitmap_TailLoop:
-    sta (zp_gfx_ptr_low),y
-    iny
-    cpy #64
-    bne Graphics_ClearBitmap_TailLoop
+Graphics_ClearBitmap_Store:
+    sta Graphics_Bitmap,y
+    sta Graphics_Bitmap,y
+    sta Graphics_Bitmap,y
+    sta Graphics_Bitmap,y
+    sta Graphics_Bitmap,y
+    sta Graphics_Bitmap,y
+    sta Graphics_Bitmap,y
+    sta Graphics_Bitmap,y
+    dey
+    bne Graphics_ClearBitmap_Store
+    dec zp_gfx_dx_low
+    bne Graphics_ClearBitmap_Group
     rts
+.endif
+
+; Screen.ClearBitmap: clears the bitmap of the current draw target (buffer 0,
+; or buffer 1 after Screen.SetDrawBuffer(1)/the last SwapBuffers). The color
+; matrix is left alone.
+.if Flag_Screen_ClearBitmap
+Screen_ClearBitmap:
+    #stack_save_return_adress zp_tmp1_low
+    lda #>Graphics_Bitmap
+.if GRAPHICS_DOUBLE_BUFFER
+    clc
+    adc graphics_draw_delta       ; 0 = buffer 0, else buffer 1's page offset
+.endif
+    jsr Graphics_ClearBitmap
+    #stack_return_to_saved_address zp_tmp1_low
 .endif
 
 .if Flag_Screen_SetScreenMode | Flag_Screen_SetBitmapColors
@@ -490,11 +538,6 @@ Screen_SetBitmapColors:
 ; ===========================================================================
 .if Flag_Screen_DrawLine | Flag_Screen_DrawRectangle | Flag_Screen_DrawCircle
 
-; Multicolor: repeated 2-bit color pattern for a FULLY covered byte (all 4
-; pixel-pairs the same color) -- index by colorSource (0-3). A single pixel
-; still goes through Graphics_SetPixel_Core_MC's own mc_pair_value_table.
-mc_fill_pattern .byte $00,$55,$AA,$FF
-
 ; Which bits of a byte a span touches in its first / last byte. The first
 ; byte is covered from a column to its right edge (span_left_mask, indexed
 ; by x&7); the last from its left edge through a column (span_right_mask).
@@ -696,14 +739,52 @@ Graphics_FillRect_Core_Done:
     rts
 
 ; Plots pixels (zp_gfx_x_low/high, zp_gfx_y .. zp_gfx_endy) inclusive.
-; Caller must ensure start <= end. Destroys zp_gfx_y.
+; Caller must ensure start <= end. Destroys x, y, the zp_gfx_span_* scratch,
+; zp_gfx_mask, zp_gfx_ptr_*, A, X, Y.
+;
+; A vertical run is one column, so it is a span whose first and last byte are
+; the same one: Graphics_SpanSetup (with the end column = the start column)
+; leaves the single byte's AND/OR masks in zp_gfx_span_notHead/fillHead --
+; the same masks for every row -- and each row is then one read-modify-write.
+; Within an 8x8 cell the 8 scanlines are consecutive bytes, so the pointer
+; is kept at the cell's first byte and Y walks the scanline; leaving a cell
+; moves the pointer down one cell row (320 bytes) and Y back to 0.
 Graphics_VLine_Core:
+    lda zp_gfx_x_low
+    sta zp_gfx_endx_low
+    lda zp_gfx_x_high
+    sta zp_gfx_endx_high
+    jsr Graphics_SpanSetup
+    jsr Graphics_ComputePixelPointer
+    lda zp_gfx_ptr_low
+    and #7
+    tay                                ; Y = scanline within the cell
+    lda zp_gfx_ptr_low
+    and #$F8
+    sta zp_gfx_ptr_low                 ; pointer at the cell's first byte
+    lda zp_gfx_endy
+    sec
+    sbc zp_gfx_y
+    tax
+    inx                                ; X = number of rows (1-200)
 Graphics_VLine_Core_Loop:
-    jsr Graphics_SetPixel_Core
-    lda zp_gfx_y
-    cmp zp_gfx_endy
+    lda (zp_gfx_ptr_low),y
+    and zp_gfx_span_notHead
+    ora zp_gfx_span_fillHead
+    sta (zp_gfx_ptr_low),y
+    dex
     beq Graphics_VLine_Core_Done
-    inc zp_gfx_y
+    iny
+    cpy #8
+    bne Graphics_VLine_Core_Loop
+    ldy #0                             ; next cell row: +320
+    lda zp_gfx_ptr_low
+    clc
+    adc #<320
+    sta zp_gfx_ptr_low
+    lda zp_gfx_ptr_high
+    adc #>320
+    sta zp_gfx_ptr_high
     jmp Graphics_VLine_Core_Loop
 Graphics_VLine_Core_Done:
     rts
@@ -762,21 +843,20 @@ Graphics_RectOutline_Core:
     lda zp_gfx_endy
     sta zp_gfx_y
     jsr Graphics_HLine_Core         ; bottom edge: y1, x0..x1
+    lda zp_gfx_endx_low             ; right edge first: Graphics_VLine_Core
+    sta zp_gfx_x_low                ; overwrites zp_gfx_endx with its own x
+    lda zp_gfx_endx_high
+    sta zp_gfx_x_high
+    lda zp_gfx_rect_y0
+    sta zp_gfx_y
+    jsr Graphics_VLine_Core         ; right edge: x1, y0..y1
     lda zp_gfx_rect_x0_low
     sta zp_gfx_x_low
     lda zp_gfx_rect_x0_high
     sta zp_gfx_x_high
     lda zp_gfx_rect_y0
     sta zp_gfx_y
-    jsr Graphics_VLine_Core         ; left edge: x0, y0..y1
-    lda zp_gfx_endx_low
-    sta zp_gfx_x_low
-    lda zp_gfx_endx_high
-    sta zp_gfx_x_high
-    lda zp_gfx_rect_y0
-    sta zp_gfx_y
-    jsr Graphics_VLine_Core         ; right edge: x1, y0..y1
-    rts
+    jmp Graphics_VLine_Core         ; left edge: x0, y0..y1
 
 Screen_DrawRectangle:
     #stack_save_return_adress zp_tmp1_low
@@ -976,15 +1056,11 @@ Graphics_DrawLine_HorizontalOrdered:
     jmp Graphics_HLine_Core
 Graphics_DrawLine_NotHorizontal:
 
-    ; A vertical line is a rectangle one column wide: Graphics_FillRect_Core
-    ; sets the column's mask up once and steps the pointer a scanline at a
-    ; time, instead of recomputing a full pixel address per pixel. It wants
-    ; y0 <= y1 (sy says which way this line runs) and x1 == x0 (dx is 0).
-    ; Multicolor only: hi-res already has its own fast vertical loop below
-    ; (~56 cycles/pixel), which beats the rectangle path (~80); multicolor
-    ; has nothing but the per-pixel fallback (~200).
-    lda graphics_multicolor_active
-    beq Graphics_DrawLine_NotVertical
+    ; A vertical line (dx is 0) is a one-column span, in either mode:
+    ; Graphics_VLine_Core sets the column's masks up once and then makes one
+    ; read-modify-write per row (~30 cycles/pixel, against ~56 for the
+    ; hi-res Y-major loop below). It wants y0 <= y1 (sy says which way this
+    ; line runs).
     lda zp_gfx_dx_low
     ora zp_gfx_dx_high
     bne Graphics_DrawLine_NotVertical
@@ -995,18 +1071,15 @@ Graphics_DrawLine_NotHorizontal:
     stx zp_gfx_y
     sta zp_gfx_endy
 Graphics_DrawLine_VerticalOrdered:
-    jmp Graphics_FillRect_Core
+    jmp Graphics_VLine_Core
 Graphics_DrawLine_NotVertical:
 
     ; X-major if dx>=dy (unsigned 16-bit compare, same SBC/carry idiom as
-    ; Graphics_NormalizeRectCoords). Multicolor lines can't use the fast
-    ; inline hi-res paths below (the self-modified bit/eor plotting and
-    ; incremental mask-shift stepping both assume a single-bit mask) --
-    ; graphics_multicolor_active instead routes them to
-    ; Graphics_DrawLine_XMajor_Wide (already a complete, self-contained
-    ; per-pixel X-major loop via Graphics_SetPixel_Core -- previously only
-    ; reached for dx>255, reused unconditionally for multicolor too) or the
-    ; analogous Graphics_DrawLine_YMajor_Simple below.
+    ; Graphics_NormalizeRectCoords). Multicolor lines can't use the hi-res
+    ; loops below (the self-modified bit/eor plotting and the mask-shift
+    ; stepping both assume a single-bit mask) -- graphics_multicolor_active
+    ; routes them to Graphics_DrawLine_MC_XMajor / _YMajor instead, which
+    ; are the same Bresenham stepping with a per-column pair plot.
     sec
     lda zp_gfx_dx_low
     sbc zp_gfx_dy
@@ -1017,12 +1090,12 @@ Graphics_DrawLine_NotVertical:
 
 Graphics_DrawLine_XMajorSelect:
     lda graphics_multicolor_active
-    bne Graphics_DrawLine_XMajor_Wide
+    bne Graphics_DrawLine_MC_XMajor
     jmp Graphics_DrawLine_XMajor
 
 Graphics_DrawLine_YMajorSelect:
     lda graphics_multicolor_active
-    bne Graphics_DrawLine_YMajor_Simple
+    bne Graphics_DrawLine_MC_YMajor
     jmp Graphics_DrawLine_YMajor
 
 ; ---------------------------------------------------------------------------
@@ -1165,13 +1238,11 @@ Graphics_DrawLine_Done:
 
 ; ---------------------------------------------------------------------------
 ; X-major, plotting per-pixel through Graphics_SetPixel_Core with a 16-bit
-; error term, from zp_gfx_x/y -- instead of the fast loops above, which
-; assume a single-bit mask. Reached two ways: dx > 255 (up to 319, where
-; the fast loops' 8-bit error term would overflow) for EITHER bitmap
-; format, or ANY X-major multicolor line regardless of width (see
-; Graphics_DrawLine_Core's graphics_multicolor_active dispatch) -- already
-; fully general (termination is "x reached endx", not tied to a byte-sized
-; error term), so no separate multicolor-only copy is needed.
+; error term, from zp_gfx_x/y -- for dx > 255 (up to 319), where the fast
+; loops' 8-bit error term would overflow, in either bitmap format. A full
+; SetPixel per pixel, so much slower than the loops above, but such wide
+; non-horizontal lines are rare; fully general (termination is "x reached
+; endx", not tied to a byte-sized error term).
 ; ---------------------------------------------------------------------------
 Graphics_DrawLine_XMajor_Wide:
     lda zp_gfx_dx_high              ; err = dx >> 1 (unsigned)
@@ -1227,58 +1298,196 @@ Graphics_DrawLine_Wide_AfterY:
     jmp Graphics_DrawLine_Wide_Loop
 
 ; ---------------------------------------------------------------------------
-; Y-major, multicolor only -- the analogous per-pixel fallback to
-; Graphics_DrawLine_XMajor_Wide above, for when dy > dx (so termination is
-; "y reached endy" instead). dy <= 199 always fits an 8-bit error term, so
-; unlike the X-major case there's no separate "wide" reason to reach this
-; for hi-res lines -- hi-res Y-major always uses the fast YD/YU loops.
+; Multicolor lines. The same Bresenham stepping (and the same pixels) as the
+; hi-res loops above, with a different plot: a pixel is two bits shared with
+; its x-neighbour, so instead of a single-bit mask the loops keep the pixel's
+; column x&7 in X and plot through two 8-entry tables --
+;   byte = (byte AND mc_col_clear[X]) OR mc_line_value[X]
+; where mc_line_value is built once per line (Graphics_DrawLine_MC_Setup) as
+; the color's repeated 2-bit pattern ANDed with each column's pair mask
+; (0 when clearing, so the pair goes back to Background). An X step is inx
+; (or dex), moving to the neighbouring byte, 8 bytes away, when it leaves
+; 0-7; Y steps are the same gfx_ystep_* macros as hi-res (they only touch
+; the pointer). Y stays 0 for the indirect access, the pixel count is in
+; zp_gfx_line_count.
 ; ---------------------------------------------------------------------------
-Graphics_DrawLine_YMajor_Simple:
+gfx_xstep_right_mc .macro
+    inx
+    cpx #8
+    bne +
+    ldx #0
+    lda zp_gfx_ptr_low
+    clc
+    adc #8
+    sta zp_gfx_ptr_low
+    bcc +
+    inc zp_gfx_ptr_high
++
+.endm
+
+gfx_xstep_left_mc .macro
+    dex
+    bpl +
+    ldx #7
+    lda zp_gfx_ptr_low
+    sec
+    sbc #8
+    sta zp_gfx_ptr_low
+    bcs +
+    dec zp_gfx_ptr_high
++
+.endm
+
+mc_line_value .fill 8, 0
+
+; In: zp_gfx_x_low/high, zp_gfx_y (start), zp_gfx_on, zp_gfx_color.
+; Out: mc_line_value filled, zp_gfx_ptr_low/high = the start pixel's byte,
+; X = its column (x&7), Y = 0. Destroys A, zp_gfx_mask.
+Graphics_DrawLine_MC_Setup:
+    lda #0
+    ldx zp_gfx_on
+    beq +
+    ldx zp_gfx_color
+    lda mc_fill_pattern,x
++   sta zp_gfx_mask
+    ldx #7
+-   lda zp_gfx_mask
+    and mc_col_set,x
+    sta mc_line_value,x
+    dex
+    bpl -
+    jsr Graphics_ComputePixelPointer
+    lda zp_gfx_x_low
+    and #$07
+    tax
+    ldy #0
+    rts
+
+; X-major (dx >= dy). dx > 255 takes the 16-bit per-pixel loop above.
+Graphics_DrawLine_MC_XMajor:
+    lda zp_gfx_dx_high
+    beq +
+    jmp Graphics_DrawLine_XMajor_Wide
++   jsr Graphics_DrawLine_MC_Setup
+    lda zp_gfx_dx_low               ; err = dx >> 1
+    lsr
+    sta zp_gfx_err_low
+    lda zp_gfx_dx_low               ; pixel count dx+1 (256 wraps to 0, which
+    clc                             ; the dec/beq below counts as 256)
+    adc #1
+    sta zp_gfx_line_count
+    lda zp_gfx_sx
+    beq Graphics_DrawLine_MCXL_Loop
+
+Graphics_DrawLine_MCXR_Loop:
+    lda (zp_gfx_ptr_low),y
+    and mc_col_clear,x
+    ora mc_line_value,x
+    sta (zp_gfx_ptr_low),y
+    dec zp_gfx_line_count
+    beq Graphics_DrawLine_MC_Done
+    #gfx_xstep_right_mc
+    lda zp_gfx_err_low              ; err -= dy; borrow = went negative
+    sec
+    sbc zp_gfx_dy
+    sta zp_gfx_err_low
+    bcs Graphics_DrawLine_MCXR_Loop
+    clc                             ; err += dx, and step Y
+    adc zp_gfx_dx_low
+    sta zp_gfx_err_low
+    lda zp_gfx_sy
+    beq Graphics_DrawLine_MCXR_Up
+    #gfx_ystep_down Graphics_DrawLine_MCXR_Loop
+Graphics_DrawLine_MCXR_Up:
+    #gfx_ystep_up Graphics_DrawLine_MCXR_Loop
+
+Graphics_DrawLine_MCXL_Loop:
+    lda (zp_gfx_ptr_low),y
+    and mc_col_clear,x
+    ora mc_line_value,x
+    sta (zp_gfx_ptr_low),y
+    dec zp_gfx_line_count
+    beq Graphics_DrawLine_MC_Done
+    #gfx_xstep_left_mc
+    lda zp_gfx_err_low
+    sec
+    sbc zp_gfx_dy
+    sta zp_gfx_err_low
+    bcs Graphics_DrawLine_MCXL_Loop
+    clc
+    adc zp_gfx_dx_low
+    sta zp_gfx_err_low
+    lda zp_gfx_sy
+    beq Graphics_DrawLine_MCXL_Up
+    #gfx_ystep_down Graphics_DrawLine_MCXL_Loop
+Graphics_DrawLine_MCXL_Up:
+    #gfx_ystep_up Graphics_DrawLine_MCXL_Loop
+
+; Y-major (dy > dx, so dx <= 198 and the 8-bit error always fits).
+Graphics_DrawLine_MC_YMajor:
+    jsr Graphics_DrawLine_MC_Setup
     lda zp_gfx_dy                   ; err = dy >> 1
     lsr
     sta zp_gfx_err_low
-Graphics_DrawLine_YMajor_Simple_Loop:
-    jsr Graphics_SetPixel_Core
-    lda zp_gfx_y
-    cmp zp_gfx_endy
-    bne Graphics_DrawLine_YMajor_Simple_Step
-    lda zp_gfx_x_low
-    cmp zp_gfx_endx_low
-    bne Graphics_DrawLine_YMajor_Simple_Step
-    lda zp_gfx_x_high
-    cmp zp_gfx_endx_high
-    beq Graphics_DrawLine_Done
-Graphics_DrawLine_YMajor_Simple_Step:
-    lda zp_gfx_sy                   ; y += sy
-    beq Graphics_DrawLine_YMajor_Simple_DecY
-    inc zp_gfx_y
-    jmp Graphics_DrawLine_YMajor_Simple_AfterY
-Graphics_DrawLine_YMajor_Simple_DecY:
-    dec zp_gfx_y
-Graphics_DrawLine_YMajor_Simple_AfterY:
-    sec                              ; err -= dx (dx <= dy <= 199, fits 8 bits)
-    lda zp_gfx_err_low
+    lda zp_gfx_dy                   ; pixel count dy+1 (<= 200)
+    clc
+    adc #1
+    sta zp_gfx_line_count
+    lda zp_gfx_sy
+    beq Graphics_DrawLine_MCYU_Loop
+
+Graphics_DrawLine_MCYD_Loop:
+    lda (zp_gfx_ptr_low),y
+    and mc_col_clear,x
+    ora mc_line_value,x
+    sta (zp_gfx_ptr_low),y
+    dec zp_gfx_line_count
+    beq Graphics_DrawLine_MC_Done
+    #gfx_ystep_down Graphics_DrawLine_MCYD_Err
+Graphics_DrawLine_MCYD_Err:
+    lda zp_gfx_err_low              ; err -= dx; borrow = went negative
+    sec
     sbc zp_gfx_dx_low
     sta zp_gfx_err_low
-    bpl Graphics_DrawLine_YMajor_Simple_Loop
-    lda zp_gfx_sx                    ; err < 0: x += sx (16-bit)
-    beq Graphics_DrawLine_YMajor_Simple_DecX
-    inc zp_gfx_x_low
-    bne Graphics_DrawLine_YMajor_Simple_AfterX
-    inc zp_gfx_x_high
-    jmp Graphics_DrawLine_YMajor_Simple_AfterX
-Graphics_DrawLine_YMajor_Simple_DecX:
-    lda zp_gfx_x_low
-    bne Graphics_DrawLine_YMajor_Simple_DecX_NoBorrow
-    dec zp_gfx_x_high
-Graphics_DrawLine_YMajor_Simple_DecX_NoBorrow:
-    dec zp_gfx_x_low
-Graphics_DrawLine_YMajor_Simple_AfterX:
-    lda zp_gfx_err_low               ; err += dy
+    bcs Graphics_DrawLine_MCYD_Loop
+    clc                             ; err += dy, and step X
+    adc zp_gfx_dy
+    sta zp_gfx_err_low
+    lda zp_gfx_sx
+    beq Graphics_DrawLine_MCYD_Left
+    #gfx_xstep_right_mc
+    jmp Graphics_DrawLine_MCYD_Loop
+Graphics_DrawLine_MCYD_Left:
+    #gfx_xstep_left_mc
+    jmp Graphics_DrawLine_MCYD_Loop
+
+Graphics_DrawLine_MCYU_Loop:
+    lda (zp_gfx_ptr_low),y
+    and mc_col_clear,x
+    ora mc_line_value,x
+    sta (zp_gfx_ptr_low),y
+    dec zp_gfx_line_count
+    beq Graphics_DrawLine_MC_Done
+    #gfx_ystep_up Graphics_DrawLine_MCYU_Err
+Graphics_DrawLine_MCYU_Err:
+    lda zp_gfx_err_low
+    sec
+    sbc zp_gfx_dx_low
+    sta zp_gfx_err_low
+    bcs Graphics_DrawLine_MCYU_Loop
     clc
     adc zp_gfx_dy
     sta zp_gfx_err_low
-    jmp Graphics_DrawLine_YMajor_Simple_Loop
+    lda zp_gfx_sx
+    beq Graphics_DrawLine_MCYU_Left
+    #gfx_xstep_right_mc
+    jmp Graphics_DrawLine_MCYU_Loop
+Graphics_DrawLine_MCYU_Left:
+    #gfx_xstep_left_mc
+    jmp Graphics_DrawLine_MCYU_Loop
+
+Graphics_DrawLine_MC_Done:
+    rts
 
 Screen_DrawLine:
     #stack_save_return_adress zp_tmp1_low
@@ -1399,6 +1608,17 @@ Graphics_DrawCircle_Plot:
     lda zp_gfx_circle_y
     sta zp_gfx_dy
     jsr Graphics_Circle_RowPair
+    ; The second pair of rows (cy+-x, spanning cx+-y) only needs drawing when
+    ; it is the widest span those rows will get: while x stays the same, every
+    ; following y widens it (the spans are nested), so it is skipped unless x
+    ; is about to step (d >= 0) or this is the last iteration (y >= x, since
+    ; d < 0 keeps x).
+    lda zp_gfx_circle_d_high
+    bpl Graphics_DrawCircle_SecondPair
+    lda zp_gfx_circle_y
+    cmp zp_gfx_circle_x
+    bcc Graphics_DrawCircle_Step
+Graphics_DrawCircle_SecondPair:
     lda zp_gfx_circle_y
     sta zp_gfx_dx_low
     lda zp_gfx_circle_x
@@ -1427,6 +1647,8 @@ Graphics_DrawCircle_Step:
     ; subtraction result into a real signed 16-bit value (standard 6502
     ; idiom: "lda #0 / sbc #0" turns the SBC's borrow/no-borrow into a
     ; $00/$ff high byte), not zero-extend it like the d<0 case below does.
+    lda zp_gfx_circle_x                ; radius 0: x would wrap below 0
+    beq Graphics_DrawCircle_Done
     dec zp_gfx_circle_x
     sec
     lda zp_gfx_circle_y

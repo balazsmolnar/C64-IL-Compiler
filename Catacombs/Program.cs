@@ -5,7 +5,6 @@ namespace Catacombs;
 class Program
 {
     static uint px_, py_, dir_;    // dir: 0=N, 1=E, 2=S, 3=W (see Maze)
-    static bool drawBuffer1_;      // which buffer Screen.SetDrawBuffer currently targets
 
     static void Main()
     {
@@ -30,7 +29,6 @@ class Program
         for (ulong offset = 0; offset < 1000UL; offset += 250UL)
             C64.FillMemory(colorRam + offset, (uint)Colors.Brown, 250);
         C64.Screen.SetDrawBuffer(1);
-        drawBuffer1_ = true;
         Bats.Init();
         Bats.SetRoomColor(Maze.RoomColorValue(px_, py_));
 
@@ -38,16 +36,17 @@ class Program
         // so the very first draw needs no explicit clear first.
         DungeonView.Render(px_, py_, dir_);
         C64.Screen.SwapBuffers();
-        drawBuffer1_ = false;
 
         for (;;)
         {
             if (HandleInput())
             {
-                ClearDrawBuffer();
+                // The buffer SwapBuffers just showed still holds the view from
+                // two moves ago -- clear it before drawing the new one on
+                // top, or the old lines would show through.
+                C64.Screen.ClearBitmap();
                 DungeonView.Render(px_, py_, dir_);
                 C64.Screen.SwapBuffers();
-                drawBuffer1_ = !drawBuffer1_;
                 // After the swap, not before: background/border are single
                 // global registers, not per buffer, so changing them while
                 // the new view is still being drawn would recolor the OLD
@@ -64,19 +63,6 @@ class Program
         C64.Screen.SetBorderColor(c);
         C64.Screen.SetBackgroundColor(c);
         Bats.SetRoomColor(Maze.RoomColorValue(px_, py_));
-    }
-
-    // The buffer SwapBuffers just showed still holds the view from two
-    // moves ago -- clear it before drawing the new one on top, or the old
-    // lines would show through. drawBuffer1_ is kept in sync with
-    // SwapBuffers' own internal toggle (see its comment in
-    // asm/C64Graphics.asm) purely in C#, since there's no "which buffer is
-    // the draw target" query.
-    static void ClearDrawBuffer()
-    {
-        ulong bitmap = drawBuffer1_ ? C64Address.FromLabel("Graphics_Bitmap2") : C64Address.FromLabel("Graphics_Bitmap");
-        for (ulong offset = 0; offset < 8000UL; offset += 250UL)
-            C64.FillMemory(bitmap + offset, 0, 250);
     }
 
     // Blocks until W/A/S/D is pressed, applies it, and waits for release
@@ -145,10 +131,9 @@ class Program
         C64.Screen.SetBitmapColors(0x10 + Maze.RoomColorValue(nx, ny));
         for (uint i = 0; i < 5; i++)
         {
-            ClearDrawBuffer();
+            C64.Screen.ClearBitmap();
             DungeonView.RenderOpening(px_, py_, dir_, DoorOpenPanelRight[i]);
             C64.Screen.SwapBuffers();
-            drawBuffer1_ = !drawBuffer1_;
             Bats.Animate();
         }
     }

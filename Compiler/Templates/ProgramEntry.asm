@@ -96,7 +96,7 @@ rts
 ; color matrix in VIC bank 1, below; Screen.SetBitmapColors alone just needs
 ; the normal single buffer.
 GRAPHICS_DOUBLE_BUFFER = Flag_Screen_SetDrawBuffer | Flag_Screen_SwapBuffers
-GRAPHICS_USED = Flag_Screen_SetScreenMode | Flag_Screen_SetPixel | Flag_Screen_DrawLine | Flag_Screen_DrawRectangle | Flag_Screen_DrawCircle | Flag_Screen_SetBitmapColors | GRAPHICS_DOUBLE_BUFFER
+GRAPHICS_USED = Flag_Screen_SetScreenMode | Flag_Screen_SetPixel | Flag_Screen_DrawLine | Flag_Screen_DrawRectangle | Flag_Screen_DrawCircle | Flag_Screen_SetBitmapColors | Flag_Screen_ClearBitmap | GRAPHICS_DOUBLE_BUFFER
 .if GRAPHICS_USED
 ; Color matrix: 1000 bytes (one per 8x8 cell, hi nibble=foreground/lo
 ; nibble=background), must be 1K-aligned within VIC bank 0. $0c00 sits in

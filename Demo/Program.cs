@@ -47,7 +47,7 @@ class Program
         // reads a sprite's data pointer from (video-matrix-base + $3F8),
         // NOT a fixed address -- c64sprite.asm's spriteData=$07F8 only
         // works while $D018 points at the normal $0400 text screen.
-        // SetScreenMode(Bitmap) moves the video matrix to
+        // SetScreenMode(MultiColor) moves the video matrix to
         // Graphics_ColorMatrix ($0C00), so that lookup would land on $0FF8
         // instead -- unrelated, uninitialized memory, not the real pointer
         // this program set up -- and render as a garbled sprite. Confirmed
@@ -56,28 +56,30 @@ class Program
         // (e.g. relocating or duplicating the pointer table) is out of
         // scope for this graphics feature; sidestepped here by simply not
         // showing a sprite during the bitmap demo.
+        //
+        // MultiColor (not plain Bitmap) so the cube's 3 axis-pair face
+        // colors (RotatingCube.ColorX/Y/Z) show up distinctly -- White
+        // (MatrixHigh) for the X faces, Red (MatrixLow) for Y, Green
+        // (ColorRam) for Z. Background stays the same light blue as the
+        // rest of this scene (hi-res DrawLine/DrawRectangle/etc. are
+        // already covered thoroughly by SimpleEmulator.Test's own suite,
+        // not just this manual demo, so trading that manual hi-res check
+        // here for a multicolor one is not a coverage loss).
         ball.Visible = false;
-        C64.Screen.SetScreenMode(ScreenMode.Bitmap);
-        // Color matrix: one byte per 8x8 cell, high nibble = foreground
-        // (shown where a bit is set), low nibble = background. FillMemory
-        // maxes at 256 bytes/call, so the 1000-byte matrix needs 4 calls.
-        // Note: C64_FillMemory's dey/bne loop never touches offset 0 of its
-        // target (see C64LibTest.FillMemory_Nonzero_Size_Starts_At_Offset_
-        // One) -- so cell (0,0) keeps the 0/0 (black/black) from
-        // Graphics_ClearColorMatrix, visible in VICE as one small black
-        // square in the screen's top-left corner. That's this demo's own
-        // fill pattern leaving a gap, not a graphics-library bug.
-        var colorMatrix = C64Address.FromLabel("Graphics_ColorMatrix");
-        C64.FillMemory(colorMatrix, 0x1E, 250);
-        C64.FillMemory(colorMatrix + 250UL, 0x1E, 250);
-        C64.FillMemory(colorMatrix + 500UL, 0x1E, 250);
-        C64.FillMemory(colorMatrix + 750UL, 0x1E, 250);
+        C64.Screen.SetScreenMode(ScreenMode.MultiColor);
+        C64.Screen.SetBackgroundColor(Colors.LightBlue);
+        C64.Screen.SetBitmapColors(0x12); // MatrixHigh=White(1), MatrixLow=Red(2)
+        // ColorRam ($D800, 1000 cells, one nibble each; FillMemory maxes at
+        // 256 bytes/call, hence 4 calls) -- LightGreen for the Z faces.
+        C64.FillMemory(0xD800UL, 0x0D, 250);
+        C64.FillMemory(0xD800UL + 250UL, 0x0D, 250);
+        C64.FillMemory(0xD800UL + 500UL, 0x0D, 250);
+        C64.FillMemory(0xD800UL + 750UL, 0x0D, 250);
 
         // See RotatingCube.cs. Created with a plain `new` (no constructor
         // body -- not supported, see OpNewObj) and set up via Init(). Run
         // for a fixed number of steps (not forever, unlike before) -- this
-        // now leads into a multicolor scene below, and a finite run here
-        // still proves hi-res DrawLine works before that switch happens.
+        // now leads into the multicolor shapes scene below.
         var cube = new RotatingCube();
         cube.Init();
         for (uint step = 0; step < 60; step = step + 1)
@@ -85,11 +87,11 @@ class Program
             cube.Step();
         }
 
-        // Multicolor bitmap scene: SetScreenMode(MultiColor) reuses the
-        // exact same bitmap/color-matrix memory the hi-res scene above
-        // just used, so no separate mode-specific setup beyond the color
-        // sources below. All four BitmapColorSource values are set to
-        // different colors and drawn side by side, so each renders
+        // A second multicolor scene: SetScreenMode(MultiColor) re-clears
+        // and reuses the exact same bitmap/color-matrix memory the cube
+        // above just used, so no separate mode-specific setup beyond the
+        // color sources below. All four BitmapColorSource values are set
+        // to different colors and drawn side by side, so each renders
         // visibly distinct from the others -- Background is set to a
         // color no other source uses, so its rectangle shows as a plain
         // background-colored gap rather than invisible/blank.

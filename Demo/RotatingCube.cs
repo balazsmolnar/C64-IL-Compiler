@@ -54,10 +54,6 @@ class RotatingCube
     const float CubeSize = 20f;      // half-edge length
     const float CubeCamDist = 150f;  // pseudo-perspective "camera" distance
     const float FaceTolerance = CubeSize * CubeSize / CubeCamDist;  // see UpdateEdges
-    // Colors for both bitmaps' color matrices in double-buffered mode (high
-    // nibble foreground, low background): the same white-on-light-blue as
-    // Program.cs, which only fills buffer 0's matrix.
-    const uint BitmapColors = 0x1E;
     // Byte in the free gap under the color matrix ($0fe8-$0fff): the demo
     // runs double-buffered while it is 0 (the normal case: nothing else
     // ever writes there, and the assembled .prg has zeros in that gap) and
@@ -72,6 +68,13 @@ class RotatingCube
     const float MaxCenterX = 200f;
     const float MinCenterY = 54f;
     const float MaxCenterY = 145f;
+
+    // One color per axis pair of faces -- Background is deliberately not
+    // used here (see Program.cs): a face fill using the same color as the
+    // screen's own background would be invisible.
+    const BitmapColorSource ColorX = BitmapColorSource.MatrixHigh;
+    const BitmapColorSource ColorY = BitmapColorSource.MatrixLow;
+    const BitmapColorSource ColorZ = BitmapColorSource.ColorRam;
 
     public void Init()
     {
@@ -91,8 +94,12 @@ class RotatingCube
         doubleBuffered_ = C64.GetMemory(ModeByteAddress, 0) == 0;
         if (doubleBuffered_)
         {
-            // Buffer 0 is being shown; draw into the hidden buffer 1.
-            C64.Screen.SetBitmapColors(BitmapColors);
+            // Buffer 0 is being shown; draw into the hidden buffer 1. Both
+            // buffers' color matrices already have the 3 face colors --
+            // Program.cs's own SetBitmapColors (called before Init) fills
+            // both whenever double buffering is compiled in (which it is,
+            // via the SetDrawBuffer call right below), so nothing further
+            // is needed here.
             C64.Screen.SetDrawBuffer(1);
         }
     }
@@ -218,30 +225,30 @@ class RotatingCube
                      uint nx4, uint ny4, uint nx5, uint ny5, uint nx6, uint ny6, uint nx7, uint ny7)
     {
         // Compares go through bool locals, see Step.
-        bool xp = az_ < -FaceTolerance;   // +X face (v1,v2,v5,v6)
-        bool xn = az_ > FaceTolerance;    // -X face (v0,v3,v4,v7)
-        bool yp = bz_ < -FaceTolerance;   // +Y face (v2,v3,v6,v7)
-        bool yn = bz_ > FaceTolerance;    // -Y face (v0,v1,v4,v5)
+        bool xp = az_ < -FaceTolerance;   // +X face (v1,v2,v6,v5)
+        bool xn = az_ > FaceTolerance;    // -X face (v3,v0,v4,v7)
+        bool yp = bz_ < -FaceTolerance;   // +Y face (v2,v3,v7,v6)
+        bool yn = bz_ > FaceTolerance;    // -Y face (v0,v1,v5,v4)
         bool zp = cz_ < -FaceTolerance;   // +Z face (v4,v5,v6,v7)
         bool zn = cz_ > FaceTolerance;    // -Z face (v0,v1,v2,v3)
 
-        if (visZn_) FillFace(pvx0_, pvy0_, pvx1_, pvy1_, pvx2_, pvy2_, pvx3_, pvy3_, false);
-        if (zn) FillFace(nx0, ny0, nx1, ny1, nx2, ny2, nx3, ny3, true);
+        if (visZn_) FillFace(pvx0_, pvy0_, pvx1_, pvy1_, pvx2_, pvy2_, pvx3_, pvy3_, false, ColorZ);
+        if (zn) FillFace(nx0, ny0, nx1, ny1, nx2, ny2, nx3, ny3, true, ColorZ);
         visZn_ = zn;
-        if (visZp_) FillFace(pvx4_, pvy4_, pvx5_, pvy5_, pvx6_, pvy6_, pvx7_, pvy7_, false);
-        if (zp) FillFace(nx4, ny4, nx5, ny5, nx6, ny6, nx7, ny7, true);
+        if (visZp_) FillFace(pvx4_, pvy4_, pvx5_, pvy5_, pvx6_, pvy6_, pvx7_, pvy7_, false, ColorZ);
+        if (zp) FillFace(nx4, ny4, nx5, ny5, nx6, ny6, nx7, ny7, true, ColorZ);
         visZp_ = zp;
-        if (visYn_) FillFace(pvx0_, pvy0_, pvx1_, pvy1_, pvx4_, pvy4_, pvx5_, pvy5_, false);
-        if (yn) FillFace(nx0, ny0, nx1, ny1, nx4, ny4, nx5, ny5, true);
+        if (visYn_) FillFace(pvx0_, pvy0_, pvx1_, pvy1_, pvx5_, pvy5_, pvx4_, pvy4_, false, ColorY);
+        if (yn) FillFace(nx0, ny0, nx1, ny1, nx5, ny5, nx4, ny4, true, ColorY);
         visYn_ = yn;
-        if (visYp_) FillFace(pvx2_, pvy2_, pvx3_, pvy3_, pvx6_, pvy6_, pvx7_, pvy7_, false);
-        if (yp) FillFace(nx2, ny2, nx3, ny3, nx6, ny6, nx7, ny7, true);
+        if (visYp_) FillFace(pvx2_, pvy2_, pvx3_, pvy3_, pvx7_, pvy7_, pvx6_, pvy6_, false, ColorY);
+        if (yp) FillFace(nx2, ny2, nx3, ny3, nx7, ny7, nx6, ny6, true, ColorY);
         visYp_ = yp;
-        if (visXp_) FillFace(pvx1_, pvy1_, pvx2_, pvy2_, pvx5_, pvy5_, pvx6_, pvy6_, false);
-        if (xp) FillFace(nx1, ny1, nx2, ny2, nx5, ny5, nx6, ny6, true);
+        if (visXp_) FillFace(pvx1_, pvy1_, pvx2_, pvy2_, pvx6_, pvy6_, pvx5_, pvy5_, false, ColorX);
+        if (xp) FillFace(nx1, ny1, nx2, ny2, nx6, ny6, nx5, ny5, true, ColorX);
         visXp_ = xp;
-        if (visXn_) FillFace(pvx0_, pvy0_, pvx3_, pvy3_, pvx4_, pvy4_, pvx7_, pvy7_, false);
-        if (xn) FillFace(nx0, ny0, nx3, ny3, nx4, ny4, nx7, ny7, true);
+        if (visXn_) FillFace(pvx3_, pvy3_, pvx0_, pvy0_, pvx4_, pvy4_, pvx7_, pvy7_, false, ColorX);
+        if (xn) FillFace(nx3, ny3, nx0, ny0, nx4, ny4, nx7, ny7, true, ColorX);
         visXn_ = xn;
     }
 
@@ -262,20 +269,20 @@ class RotatingCube
         bool zn = cz_ > FaceTolerance;
 
         // Erase the frame this buffer still holds.
-        if (pvisZn_) FillFace(ppvx0_, ppvy0_, ppvx1_, ppvy1_, ppvx2_, ppvy2_, ppvx3_, ppvy3_, false);
-        if (pvisZp_) FillFace(ppvx4_, ppvy4_, ppvx5_, ppvy5_, ppvx6_, ppvy6_, ppvx7_, ppvy7_, false);
-        if (pvisYn_) FillFace(ppvx0_, ppvy0_, ppvx1_, ppvy1_, ppvx4_, ppvy4_, ppvx5_, ppvy5_, false);
-        if (pvisYp_) FillFace(ppvx2_, ppvy2_, ppvx3_, ppvy3_, ppvx6_, ppvy6_, ppvx7_, ppvy7_, false);
-        if (pvisXp_) FillFace(ppvx1_, ppvy1_, ppvx2_, ppvy2_, ppvx5_, ppvy5_, ppvx6_, ppvy6_, false);
-        if (pvisXn_) FillFace(ppvx0_, ppvy0_, ppvx3_, ppvy3_, ppvx4_, ppvy4_, ppvx7_, ppvy7_, false);
+        if (pvisZn_) FillFace(ppvx0_, ppvy0_, ppvx1_, ppvy1_, ppvx2_, ppvy2_, ppvx3_, ppvy3_, false, ColorZ);
+        if (pvisZp_) FillFace(ppvx4_, ppvy4_, ppvx5_, ppvy5_, ppvx6_, ppvy6_, ppvx7_, ppvy7_, false, ColorZ);
+        if (pvisYn_) FillFace(ppvx0_, ppvy0_, ppvx1_, ppvy1_, ppvx5_, ppvy5_, ppvx4_, ppvy4_, false, ColorY);
+        if (pvisYp_) FillFace(ppvx2_, ppvy2_, ppvx3_, ppvy3_, ppvx7_, ppvy7_, ppvx6_, ppvy6_, false, ColorY);
+        if (pvisXp_) FillFace(ppvx1_, ppvy1_, ppvx2_, ppvy2_, ppvx6_, ppvy6_, ppvx5_, ppvy5_, false, ColorX);
+        if (pvisXn_) FillFace(ppvx3_, ppvy3_, ppvx0_, ppvy0_, ppvx4_, ppvy4_, ppvx7_, ppvy7_, false, ColorX);
 
         // Draw the new frame.
-        if (zn) FillFace(nx0, ny0, nx1, ny1, nx2, ny2, nx3, ny3, true);
-        if (zp) FillFace(nx4, ny4, nx5, ny5, nx6, ny6, nx7, ny7, true);
-        if (yn) FillFace(nx0, ny0, nx1, ny1, nx4, ny4, nx5, ny5, true);
-        if (yp) FillFace(nx2, ny2, nx3, ny3, nx6, ny6, nx7, ny7, true);
-        if (xp) FillFace(nx1, ny1, nx2, ny2, nx5, ny5, nx6, ny6, true);
-        if (xn) FillFace(nx0, ny0, nx3, ny3, nx4, ny4, nx7, ny7, true);
+        if (zn) FillFace(nx0, ny0, nx1, ny1, nx2, ny2, nx3, ny3, true, ColorZ);
+        if (zp) FillFace(nx4, ny4, nx5, ny5, nx6, ny6, nx7, ny7, true, ColorZ);
+        if (yn) FillFace(nx0, ny0, nx1, ny1, nx5, ny5, nx4, ny4, true, ColorY);
+        if (yp) FillFace(nx2, ny2, nx3, ny3, nx7, ny7, nx6, ny6, true, ColorY);
+        if (xp) FillFace(nx1, ny1, nx2, ny2, nx6, ny6, nx5, ny5, true, ColorX);
+        if (xn) FillFace(nx3, ny3, nx0, ny0, nx4, ny4, nx7, ny7, true, ColorX);
 
         // History: what was one frame back is now two back.
         ppvx0_ = pvx0_; ppvy0_ = pvy0_;
@@ -295,38 +302,27 @@ class RotatingCube
     }
 
     // ---------------------------------------------------------------------
-    // Solid face fill: a cube face projects to a convex quadrilateral (4
-    // vertices, order doesn't matter -- see SortQuadByY), filled as 2-3
-    // horizontal-banded trapezoids via Screen.DrawTrapezoid (on=false
-    // erases, matching DrawLine/DrawRectangle's own convention).
+    // Solid face fill: a cube face projects to a convex quadrilateral,
+    // filled as 2-3 horizontal-banded trapezoids via Screen.DrawTrapezoid
+    // (on=false erases, matching DrawLine/DrawRectangle's own convention).
+    //
+    // The 4 vertices MUST be given in the face's own real cyclic order
+    // (consecutive parameters, and the last back to the first, are true
+    // polygon edges -- see each UpdateFaces*/UpdateFacesBuffered* call
+    // site's own comment for each face's order). An earlier version sorted
+    // the 4 vertices by y outright and assumed the top and bottom
+    // (min/max-y) vertices were always the quad's two OPPOSITE corners --
+    // true for a "roughly square" projection, but false whenever a face
+    // rotates through a near-edge-on view (which every face does twice per
+    // rotation): there, the projected quad becomes long and thin, and the
+    // top/bottom vertices can end up ADJACENT (sharing a real edge)
+    // instead. Sorting-by-y doesn't know the difference and produced a
+    // wrong shape whose erase call (computed the same wrong way, but from
+    // a slightly different rotation) didn't fully cover its own draw call,
+    // leaving permanent stripes behind as the cube kept turning -- this
+    // version instead finds the real top/bottom via the given order, so it
+    // always knows which case it's in.
     // ---------------------------------------------------------------------
-
-    // SortQuadByY's own output: the 4 vertices sorted by y ascending, each
-    // x kept paired with its own y. This compiler has neither tuples nor
-    // out params (see Project's own comment), so -- like Project/
-    // ProjectNeg -- results come back through fields, not a return value.
-    uint qx0_, qy0_, qx1_, qy1_, qx2_, qy2_, qx3_, qy3_;
-
-    // Sorts 4 (x,y) pairs by y using the standard 5-comparator optimal
-    // sorting network for 4 elements (compare 0-1, 2-3, 0-2, 1-3, then
-    // 1-2). For a convex quadrilateral this also happens to identify its
-    // shape correctly for FillFace below: the min-y and max-y vertices of
-    // a convex quad are its two opposite corners, so BOTH remaining
-    // (middle-y) vertices connect to the top corner and to the bottom
-    // corner by a real edge of the quad -- which edge specifically doesn't
-    // matter, only their (x,y) values do, so sorting by y alone (without
-    // tracking the original connectivity order) is enough.
-    void SortQuadByY(uint px0, uint py0, uint px1, uint py1, uint px2, uint py2, uint px3, uint py3)
-    {
-        uint x0 = px0, y0 = py0, x1 = px1, y1 = py1, x2 = px2, y2 = py2, x3 = px3, y3 = py3;
-        uint tx, ty;
-        if (y0 > y1) { tx = x0; ty = y0; x0 = x1; y0 = y1; x1 = tx; y1 = ty; }
-        if (y2 > y3) { tx = x2; ty = y2; x2 = x3; y2 = y3; x3 = tx; y3 = ty; }
-        if (y0 > y2) { tx = x0; ty = y0; x0 = x2; y0 = y2; x2 = tx; y2 = ty; }
-        if (y1 > y3) { tx = x1; ty = y1; x1 = x3; y1 = y3; x3 = tx; y3 = ty; }
-        if (y1 > y2) { tx = x1; ty = y1; x1 = x2; y1 = y2; x2 = tx; y2 = ty; }
-        qx0_ = x0; qy0_ = y0; qx1_ = x1; qy1_ = y1; qx2_ = x2; qy2_ = y2; qx3_ = x3; qy3_ = y3;
-    }
 
     // The x of the line from (x0,y0) to (x1,y1) at row y (y0<=y<=y1 or
     // y1<=y<=y0). Written with only non-negative subtractions (no signed
@@ -341,6 +337,18 @@ class RotatingCube
         ulong hiY = y0 < y1 ? y1 : y0;
         ulong loX = y0 < y1 ? x0 : x1;
         ulong hiX = y0 < y1 ? x1 : x0;
+        // Callers expect y within [loY,hiY] (a real convex polygon's chain
+        // is y-monotonic between its top and bottom), but this compiler's
+        // ulong is unsigned: a caller-side rounding slip that puts y even
+        // 1 outside that range would make (y-loY) underflow to a huge
+        // value instead of going negative, producing a wild x -- and from
+        // there a wild bitmap pointer that scribbles far past the bitmap
+        // (confirmed: this, not just the left>right span DrawTrapezoidSafe
+        // already guards against, is what actually produced the all-white
+        // hung screen/UNDEF-opcode crash before this clamp existed -- see
+        // git history). Clamping here costs nothing in the normal case and
+        // makes the function's own contract hold unconditionally.
+        y = y < loY ? loY : y > hiY ? hiY : y;   // reuse the parameter slot, not a new local
         ulong dy = hiY - loY;
         bool rising = loX < hiX;
         ulong dx = rising ? hiX - loX : loX - hiX;
@@ -348,46 +356,158 @@ class RotatingCube
         return rising ? loX + offset : loX - offset;
     }
 
-    // Fills (on=true) or erases (on=false) one convex quad face, given its
-    // 4 vertices in ANY order. Sorts them by y (SortQuadByY) into a top
-    // corner, two middle vertices and a bottom corner, decides which
-    // middle is geometrically on the left (smaller x) vs right, then
-    // covers the shape with 2 trapezoids (if both middles share a row) or
-    // 3 (the usual case: down to the earlier middle, between the two
-    // middles -- where the earlier-ending side has switched to its
-    // mid->bottom edge while the other is still interpolated along its
-    // top->mid edge -- and down to the bottom corner), the same "one side
-    // constant, other side bends partway down" shape DungeonView's own
-    // wall/door panels use, just with the bend point found at runtime
-    // instead of known ahead of time.
-    void FillFace(uint px0, uint py0, uint px1, uint py1, uint px2, uint py2, uint px3, uint py3, bool on)
+    // Screen.DrawTrapezoid does NOT sort x0Left/x0Right or x1Left/x1Right
+    // itself (see its own doc comment -- they're directional, unlike
+    // DrawRectangle's symmetric corners), so a caller must guarantee
+    // left<=right at each row. FillFace below determines which side is
+    // left/right from the real geometry, but a
+    // face viewed near edge-on (twice per rotation) can make the shape
+    // thin enough that this compiler's truncating integer interpolation,
+    // computed independently at two different split rows, occasionally
+    // disagrees by a pixel on which side is which right at the crossover
+    // -- rare, but a real x0Left>x0Right there would make Graphics_
+    // SpanRow's row-byte-count computation wrap to a huge value and write
+    // far past the bitmap (confirmed: this is what an all-white, hung
+    // screen turned out to be before this wrapper existed -- see git
+    // history). Independently swapping each row's own pair here is always
+    // safe (it can only ever narrow-then-correct a wrong span, never
+    // change a valid one) and costs a handful of cycles next to
+    // DrawTrapezoid's own division-based setup.
+    static void DrawTrapezoidSafe(ulong x0Left, ulong x0Right, ulong y0, ulong x1Left, ulong x1Right, ulong y1, bool on, BitmapColorSource color)
     {
-        SortQuadByY(px0, py0, px1, py1, px2, py2, px3, py3);
-        uint topX = qx0_, topY = qy0_, botX = qx3_, botY = qy3_;
-        uint leftX, leftY, rightX, rightY;
-        if (qx1_ <= qx2_) { leftX = qx1_; leftY = qy1_; rightX = qx2_; rightY = qy2_; }
-        else { leftX = qx2_; leftY = qy2_; rightX = qx1_; rightY = qy1_; }
+        ulong lo0 = x0Left < x0Right ? x0Left : x0Right;
+        ulong hi0 = x0Left < x0Right ? x0Right : x0Left;
+        ulong lo1 = x1Left < x1Right ? x1Left : x1Right;
+        ulong hi1 = x1Left < x1Right ? x1Right : x1Left;
+        C64.Screen.DrawTrapezoid(lo0, hi0, y0, lo1, hi1, y1, on, color);
+    }
 
-        if (leftY == rightY)
+    // Fills (on=true) or erases (on=false) one convex quad face, given its
+    // 4 vertices in real cyclic order p0-p1-p2-p3-p0 (see the section
+    // comment above). Everything here is ulong, not uint -- this
+    // compiler's uint is only 8 bits (fine for the cube's own vertices,
+    // deliberately kept under 256, but NOT safe to mix with ulong in a
+    // comparison, per this codebase's own established caution around
+    // mixed uint/ulong arithmetic), so InterpolateX's ulong results never
+    // need converting back.
+    //
+    // Finds whichever of p0..p3 has the minimum y (ties broken by lowest
+    // index) and relabels starting there (t0=that vertex, t1/t2/t3 = 1/2/3
+    // steps further around the SAME cycle) -- a pure relabeling, not a
+    // sort, so t0's two real polygon neighbors are always t1 and t3, and
+    // t2 is always the opposite corner. Comparing t1.y/t2.y/t3.y against
+    // each other then finds the bottom (max y) among exactly those three
+    // real possibilities and picks one of two shapes:
+    //
+    //  - opposite (the usual case): bottom is t2, the corner opposite the
+    //    top; the other two (t1,t3, renamed left/right by an x-compare)
+    //    each connect to both top and bottom via one real edge -- 2
+    //    trapezoids if they share a row, 3 otherwise (down to the earlier
+    //    one, between the two -- where the earlier-ending side has
+    //    switched to its mid->bottom edge while the other is still
+    //    interpolated along its top->mid edge -- and down to the bottom).
+    //  - adjacent: bottom is t1 or t3, directly adjacent to the top (a
+    //    real edge connects them straight); the OTHER two vertices bend
+    //    through the long way around. Splits into up to 3 bands at the
+    //    two bend points, interpolating the direct edge's x at each.
+    //
+    // This is the same "one side constant/straight, other side bends
+    // partway down" shape DungeonView's own wall/door panels use, just
+    // with the bend points found at runtime instead of known ahead of
+    // time. Deliberately kept as ONE method (with the opposite/adjacent
+    // logic inline below, not split into separate FillFaceOpposite/
+    // FillFaceAdjacent helpers the way an early version had it) and
+    // reusing p0..p3 in place instead of separate t0..t3 locals: this
+    // compiler gives every program a fixed 256-byte locals stack (asm/
+    // helper/objectTables.asm), and the earlier, more deeply-nested
+    // shape (three custom-method frames deep, under Step's own already
+    // substantial 123-byte frame, each with its own copy of every
+    // coordinate as a separate parameter) silently overflowed it
+    // (confirmed: this, not a geometry bug, is what the all-white hung
+    // screen/UNDEF-opcode crash actually was -- see git history). Every
+    // DrawTrapezoid call still goes through the DrawTrapezoidSafe helper
+    // below -- ONE level deep, not nested under another custom frame --
+    // for its left<=right clamp.
+    void FillFace(ulong p0x, ulong p0y, ulong p1x, ulong p1y, ulong p2x, ulong p2y, ulong p3x, ulong p3y, bool on, BitmapColorSource color)
+    {
+        // Rotates p0..p3 IN PLACE (reusing FillFace's own parameter slots,
+        // not new locals -- see the section comment on why every byte of
+        // this method's locals-stack frame matters) so p0 ends up holding
+        // whichever vertex has the minimum y; only a 2-ulong scratch pair
+        // (tx,ty) is needed regardless of which rotation applies.
+        ulong tx, ty;
+        if (p0y <= p1y && p0y <= p2y && p0y <= p3y)
         {
-            C64.Screen.DrawTrapezoid(topX, topX, topY, leftX, rightX, leftY, on);
-            C64.Screen.DrawTrapezoid(leftX, rightX, leftY, botX, botX, botY, on);
+            // Already in order.
         }
-        else if (leftY < rightY)
+        else if (p1y <= p2y && p1y <= p3y)
         {
-            ulong splitTop = InterpolateX(topX, topY, rightX, rightY, leftY);
-            ulong splitBot = InterpolateX(leftX, leftY, botX, botY, rightY);
-            C64.Screen.DrawTrapezoid(topX, topX, topY, leftX, splitTop, leftY, on);
-            C64.Screen.DrawTrapezoid(leftX, splitTop, leftY, splitBot, rightX, rightY, on);
-            C64.Screen.DrawTrapezoid(splitBot, rightX, rightY, botX, botX, botY, on);
+            tx = p0x; ty = p0y;
+            p0x = p1x; p0y = p1y; p1x = p2x; p1y = p2y; p2x = p3x; p2y = p3y; p3x = tx; p3y = ty;
+        }
+        else if (p2y <= p3y)
+        {
+            tx = p0x; ty = p0y; p0x = p2x; p0y = p2y; p2x = tx; p2y = ty;
+            tx = p1x; ty = p1y; p1x = p3x; p1y = p3y; p3x = tx; p3y = ty;
         }
         else
         {
-            ulong splitTop = InterpolateX(topX, topY, leftX, leftY, rightY);
-            ulong splitBot = InterpolateX(rightX, rightY, botX, botY, leftY);
-            C64.Screen.DrawTrapezoid(topX, topX, topY, splitTop, rightX, rightY, on);
-            C64.Screen.DrawTrapezoid(splitTop, rightX, rightY, leftX, splitBot, leftY, on);
-            C64.Screen.DrawTrapezoid(leftX, splitBot, leftY, botX, botX, botY, on);
+            tx = p3x; ty = p3y;
+            p3x = p2x; p3y = p2y; p2x = p1x; p2y = p1y; p1x = p0x; p1y = p0y; p0x = tx; p0y = ty;
+        }
+
+        if (p2y >= p1y && p2y >= p3y)
+        {
+            // Opposite case: top=p0, bottom=p2, mids=p1/p3.
+            ulong leftX, leftY, rightX, rightY;
+            if (p1x <= p3x) { leftX = p1x; leftY = p1y; rightX = p3x; rightY = p3y; }
+            else { leftX = p3x; leftY = p3y; rightX = p1x; rightY = p1y; }
+
+            if (leftY == rightY)
+            {
+                DrawTrapezoidSafe(p0x, p0x, p0y, leftX, rightX, leftY, on, color);
+                DrawTrapezoidSafe(leftX, rightX, leftY, p2x, p2x, p2y, on, color);
+            }
+            else if (leftY < rightY)
+            {
+                ulong splitTop = InterpolateX(p0x, p0y, rightX, rightY, leftY);
+                ulong splitBot = InterpolateX(leftX, leftY, p2x, p2y, rightY);
+                DrawTrapezoidSafe(p0x, p0x, p0y, leftX, splitTop, leftY, on, color);
+                DrawTrapezoidSafe(leftX, splitTop, leftY, splitBot, rightX, rightY, on, color);
+                DrawTrapezoidSafe(splitBot, rightX, rightY, p2x, p2x, p2y, on, color);
+            }
+            else
+            {
+                ulong splitTop = InterpolateX(p0x, p0y, leftX, leftY, rightY);
+                ulong splitBot = InterpolateX(rightX, rightY, p2x, p2y, leftY);
+                DrawTrapezoidSafe(p0x, p0x, p0y, splitTop, rightX, rightY, on, color);
+                DrawTrapezoidSafe(splitTop, rightX, rightY, leftX, splitBot, leftY, on, color);
+                DrawTrapezoidSafe(leftX, splitBot, leftY, p2x, p2x, p2y, on, color);
+            }
+            return;
+        }
+
+        // Adjacent case: top=p0, bottom+direct-edge-partner = whichever of
+        // p1/p3 has the larger y, the other two (the opposite corner and
+        // the remaining neighbor) are the bend chain, nearer-first.
+        ulong botX, botY, midAX, midAY, midBX, midBY;
+        if (p1y >= p3y) { botX = p1x; botY = p1y; midAX = p3x; midAY = p3y; midBX = p2x; midBY = p2y; }
+        else { botX = p3x; botY = p3y; midAX = p1x; midAY = p1y; midBX = p2x; midBY = p2y; }
+
+        ulong directAtA = InterpolateX(p0x, p0y, botX, botY, midAY);
+        ulong directAtB = InterpolateX(p0x, p0y, botX, botY, midBY);
+
+        if (directAtA <= midAX)
+        {
+            DrawTrapezoidSafe(p0x, p0x, p0y, directAtA, midAX, midAY, on, color);
+            DrawTrapezoidSafe(directAtA, midAX, midAY, directAtB, midBX, midBY, on, color);
+            DrawTrapezoidSafe(directAtB, midBX, midBY, botX, botX, botY, on, color);
+        }
+        else
+        {
+            DrawTrapezoidSafe(p0x, p0x, p0y, midAX, directAtA, midAY, on, color);
+            DrawTrapezoidSafe(midAX, directAtA, midAY, midBX, directAtB, midBY, on, color);
+            DrawTrapezoidSafe(midBX, directAtB, midBY, botX, botX, botY, on, color);
         }
     }
 }

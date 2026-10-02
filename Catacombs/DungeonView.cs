@@ -2,24 +2,37 @@ using C64Lib;
 
 namespace Catacombs;
 
-// First-person view of the single cell (room) the player is standing in,
-// as if actually standing inside it: no outline is drawn at the near
-// (screen-edge) frame -- that's where the player's own view cuts off, not
-// a real surface -- only the far frame (one step ahead) gets its own
-// 4-sided outline. A room has 3 visible walls -- left, right, front --
-// each either solid or, where the maze actually has an opening, a filled
-// door. The side doors are perspective quads (vertical sides, the bottom
-// edge running along the floor line, the top edge converging like the
-// wall itself); the front door, faced head-on, is a plain rectangle.
+// Fixed compass orientation: every room is always drawn the same way --
+// north is always the far wall, south the near (screen-edge) one, west the
+// left wall, east the right wall -- regardless of which wall the player
+// actually walked in through to get here. Walking through a door no longer
+// rotates the view (there's no "facing" left to rotate -- see Maze.cs's own
+// comment): crossing a room's east door and entering the next room's west
+// wall always means arriving at ITS left edge, crossing its west door
+// always means arriving at its right edge, and so on (Program.cs's own
+// TryCrossDoor picks the matching entry edge for whichever wall was
+// crossed).
+//
+// No outline is drawn at the near (screen-edge, south) frame -- that's
+// where the player's own view cuts off, not a real surface -- only the far
+// (north) frame gets its own 4-sided outline. A room has 4 possible doors
+// -- north, south, east, west -- each either solid or, where the maze
+// actually has an opening, a filled door (south's is a small marker at the
+// bottom edge rather than a full panel, since there's no wall surface
+// there to draw one on).
+//
+// Rendered ONCE per room entry, not per frame: Program.cs moves the player
+// via a hardware sprite (PlayerSprite.cs) that repositions with plain VIC-II
+// register pokes, no bitmap redraw needed for movement at all -- redrawing
+// this whole vector scene (a dozen+ DrawLine/DrawTrapezoid calls) every
+// single frame while double-buffered would mean a full clear+redraw every
+// frame just to avoid stale walls, which measured far too slow for smooth
+// movement (see conversation history -- this replaces an earlier per-frame
+// continuous-depth version that made exactly that mistake).
 //
 // Walls, floor, ceiling and the screen background are all the current
 // room's own color (Maze.RoomColor, applied in Program.cs), so nothing is
-// filled: the room is just its lines and its doors on that one color. (An
-// earlier version filled each surface in its own color, which needed
-// hundreds of per-row DrawRectangle calls per redraw -- see git history if
-// distinct surface shades are ever wanted back.) No back wall and no depth
-// beyond the far frame either: this used to recede several cells into the
-// distance; this is deliberately less shape.
+// filled: the room is just its lines and its doors on that one color.
 static class DungeonView
 {
     const ulong FX0Near = 4, FY0Near = 4, FX1Near = 315, FY1Near = 195;
@@ -33,62 +46,60 @@ static class DungeonView
     // Side door, given for the LEFT wall (mirrored for the right). Two
     // vertical sides at x=29 (nearer the viewer) and x=43 (nearer the far
     // frame, leaving a gap before the far frame's own edge at x=50). Both
-    // edges of the door follow the wall's own perspective, worked out as
-    // fractions of the wall panel: the bottom edge is on the floor line
-    // (y=183 at x=29, rising to 176 at x=43), the top edge is 70% of the
-    // local wall height above it (y=66 at x=29, 69 at x=43) -- so the door
-    // is taller at its near side than its far side, like the wall.
-    //
-    // Filled as 3 DrawTrapezoid calls -- a shape whose left edge is the
-    // constant column x=29 for the door's full height, and whose right
-    // edge is 3-banded (taper in from a point, a flat run at x=43, taper
-    // back out to a point): top taper (a triangle, x0Left=x0Right=29
-    // degenerating to a point at the top), the flat middle band (a plain
-    // rectangle, still expressed as a trapezoid with matching top/bottom
-    // x's), and the bottom taper (a triangle again). Each trapezoid does
-    // its own row interpolation in asm (Graphics_Trapezoid_Core), so this
-    // no longer hand-computes a per-row endpoint in C#.
+    // edges of the door follow the wall's own perspective: the bottom edge
+    // is on the floor line (y=183 at x=29, rising to 176 at x=43), the top
+    // edge is 70% of the local wall height above it (y=66 at x=29, 69 at
+    // x=43) -- so the door is taller at its near side than its far side,
+    // like the wall.
     const ulong DoorXNear = 29, DoorXFar = 43;
     const ulong DoorTopFirstRow = 66, DoorFullFirstRow = 69, DoorFullLastRow = 176, DoorBottomLastRow = 183;
 
-    const ulong FrontDoorLeft = 131;
-    const ulong FrontDoorRight = 187;
-    const ulong FrontDoorTop = 92;
+    const ulong NorthDoorLeft = 131;
+    const ulong NorthDoorRight = 187;
+    const ulong NorthDoorTop = 92;
 
-    public static void Render(uint px, uint py, uint dir)
+    // South has no wall surface to draw a panel on (see this file's own
+    // header comment) -- just a short bar at the very bottom-center of the
+    // screen signalling "there's an exit behind you." Centered on the same
+    // axis the near/far frames themselves are symmetric about (4+315 =
+    // MirrorSum = 319, center 159.5).
+    const ulong SouthDoorLeft = 140, SouthDoorRight = 180;
+    const ulong SouthDoorTop = 194, SouthDoorBottom = 199;
+
+    // Where the player's/monster's/item's room-space position actually
+    // ends up on screen is RoomProjection.cs's job, not this file's --
+    // it mirrors this class's own FX0Near/FX1Near/FX0Far/FX1Far by hand
+    // (see its own comment for why a shared constant isn't worth it).
+
+    public static void Render(uint px, uint py)
     {
-        RenderRoom(px, py, dir, FrontDoorRight, FrontDoorTop, FY1Far);
+        RenderRoom(px, py, NorthDoorRight, NorthDoorTop, FY1Far);
     }
 
-    // EXPERIMENT: the front door used to open as a flat rectangle sliding
-    // its right edge toward the hinge -- a uniform shrink, no sense of
-    // swinging in 3D. Now it opens with the same "constant near edge,
-    // shorter far edge, tapered top/bottom bands" shape DrawSideDoor
-    // already uses (see DrawTaperedPanel) -- the far (right) edge's x
-    // recedes toward the hinge AND its top/bottom span shrinks toward the
-    // door's own vertical center, symmetrically, so the two right corners
-    // trace inward AND toward the middle as the door swings away, instead
-    // of a flat edge just sliding sideways. farTopRow==FrontDoorTop and
-    // farBottomRow==FY1Far (the closed-door state Render() passes) leaves
-    // the top/bottom tapers degenerate (zero height) and the whole panel
-    // is just the closed flat rectangle, same as before. The doorway
-    // behind it is filled with MatrixLow -- Program.cs sets that to the
-    // NEXT room's color for the animation, so you see into the room
-    // you're about to enter -- drawn as a plain rectangle first, so the
-    // panel (any shape) just needs drawing on top of it; wherever the
-    // panel doesn't reach, the doorway fill already shows through.
-    // panelFarX == FrontDoorLeft leaves no panel at all (fully open). Has
-    // no effect on a room with no front door.
-    public static void RenderOpening(uint px, uint py, uint dir, ulong panelFarX, ulong panelFarTopRow, ulong panelFarBottomRow)
+    // The north door opening: hinged at its LEFT edge (NorthDoorLeft,
+    // fixed), its right edge given per-frame by the caller (Program.cs's
+    // own AnimateNorthDoorOpening) -- an x (receding from the closed
+    // door's right edge, NorthDoorRight, toward the hinge) AND a top/bottom
+    // row pair, shrinking symmetrically in from the door's own top/bottom
+    // toward its vertical center as the x recedes. The two right corners
+    // trace inward AND toward the middle together -- a real 3D swing, not
+    // a flat edge sliding sideways -- collapsing onto the hinge when fully
+    // open. Passing the closed-door values (NorthDoorRight, NorthDoorTop,
+    // FY1Far) reproduces Render's own plain rectangle exactly (see
+    // DrawTaperedPanel's own comment on how those degenerate the tapers to
+    // zero height) -- this is a strict generalization of it, not a
+    // separate code path.
+    public static void RenderNorthDoorOpening(uint px, uint py, ulong panelFarX, ulong panelFarTopRow, ulong panelFarBottomRow)
     {
-        RenderRoom(px, py, dir, panelFarX, panelFarTopRow, panelFarBottomRow);
+        RenderRoom(px, py, panelFarX, panelFarTopRow, panelFarBottomRow);
     }
 
-    static void RenderRoom(uint px, uint py, uint dir, ulong panelFarX, ulong panelFarTopRow, ulong panelFarBottomRow)
+    static void RenderRoom(uint px, uint py, ulong northFarX, ulong northFarTopRow, ulong northFarBottomRow)
     {
-        bool leftOpen = !Maze.LeftIsWall(px, py, dir, 0);
-        bool rightOpen = !Maze.RightIsWall(px, py, dir, 0);
-        bool frontOpen = !Maze.AheadIsWall(px, py, dir, 1);
+        bool westOpen = !Maze.WestIsWall(px, py);
+        bool eastOpen = !Maze.EastIsWall(px, py);
+        bool northOpen = !Maze.NorthIsWall(px, py);
+        bool southOpen = !Maze.SouthIsWall(px, py);
 
         // The two diagonal lines per side wall, always drawn.
         DrawWallLines(FX0Near, FX0Far);
@@ -101,16 +112,14 @@ static class DungeonView
         // line on.
         DrawFrameOutline(FX0Far, FY0Far, FX1Far, FY1Far);
 
-        if (leftOpen)
+        if (westOpen)
             DrawSideDoor(false);
-        if (rightOpen)
+        if (eastOpen)
             DrawSideDoor(true);
-        if (frontOpen)
-        {
-            if (panelFarX < FrontDoorRight)
-                C64.Screen.DrawRectangle(FrontDoorLeft, FrontDoorTop, FrontDoorRight, FY1Far, true, true, BitmapColorSource.MatrixLow);
-            DrawTaperedPanel(FrontDoorLeft, FrontDoorTop, panelFarX, panelFarTopRow, panelFarBottomRow, FY1Far, BitmapColorSource.ColorRam);
-        }
+        if (northOpen)
+            DrawTaperedPanel(NorthDoorLeft, NorthDoorTop, northFarX, northFarTopRow, northFarBottomRow, FY1Far, BitmapColorSource.ColorRam);
+        if (southOpen)
+            C64.Screen.DrawRectangle(SouthDoorLeft, SouthDoorTop, SouthDoorRight, SouthDoorBottom, true, true, BitmapColorSource.ColorRam);
     }
 
     static void DrawFrameOutline(ulong x0, ulong y0, ulong x1, ulong y1)
@@ -146,20 +155,15 @@ static class DungeonView
         DrawTaperedPanel(X(DoorXNear, mirrored), DoorTopFirstRow, X(DoorXFar, mirrored), DoorFullFirstRow, DoorFullLastRow, DoorBottomLastRow, BitmapColorSource.ColorRam);
     }
 
-    // The shared shape behind both the side doors and the front door's
-    // opening animation: a "near" edge at constant x, spanning the full
-    // [topRow,bottomRow] height, and a "far" edge at constant x, spanning
-    // a SHORTER, vertically-centered [farTopRow,farBottomRow] sub-range --
-    // connected by a triangular taper above and below the far edge's own
-    // span. 3 calls: the top taper (a point at (nearX,topRow) widening to
-    // the far edge's span by farTopRow), the flat middle band (a plain
-    // rectangle from farTopRow to farBottomRow), and the bottom taper
-    // (narrowing back to a point at (nearX,bottomRow)). farTopRow==topRow
-    // and/or farBottomRow==bottomRow degenerate that taper to zero height
-    // (nothing drawn there), so farTopRow=topRow/farBottomRow=bottomRow
-    // together is just a plain rectangle nearX..farX. nearX/farX don't
-    // need nearX<farX -- sorted into left/right here, once, since both
-    // tapers and the middle band share the same two x's.
+    // The shared shape behind the side doors: a "near" edge at constant x,
+    // spanning the full [topRow,bottomRow] height, and a "far" edge at
+    // constant x, spanning a SHORTER, vertically-centered
+    // [farTopRow,farBottomRow] sub-range -- connected by a triangular
+    // taper above and below the far edge's own span. 3 calls: the top
+    // taper (a point at (nearX,topRow) widening to the far edge's span by
+    // farTopRow), the flat middle band (a plain rectangle from farTopRow
+    // to farBottomRow), and the bottom taper (narrowing back to a point at
+    // (nearX,bottomRow)).
     static void DrawTaperedPanel(ulong nearX, ulong topRow, ulong farX, ulong farTopRow, ulong farBottomRow, ulong bottomRow, BitmapColorSource color)
     {
         ulong left = nearX < farX ? nearX : farX;

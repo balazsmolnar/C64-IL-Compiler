@@ -1,103 +1,117 @@
 using C64Lib;
 
-// Bat sprite art: 3 wing poses (mid / up / down), 24x21, hi-res sprites.
+// Spider sprite art: 1 static pose, generated programmatically (a filled
+// body/head ellipse plus 8 bent legs as ray-cast lines, not hand-drawn --
+// see git history for the generator script) rather than transcribed from
+// an existing asset the way the bat art originally was. Only 1 pose (see
+// the earlier ""TRIED AND REVERTED"-style lesson here: a 2nd pose was once
+// placed at a hand-picked address ($1700) that LOOKED free in one build's
+// segment-size report, but the assembler not erroring on that placement
+// is not the same as it actually being safe -- confirmed empirically via
+// VICE, that pose rendered as garbage/garbled pixels, not a real bat
+// shape. Unlike the $3F40 block below, which asm/Templates/ProgramEntry.asm's
+// own structure GUARANTEES is free (compiled code always resumes at
+// $4000, right after it), $1700 had no such guarantee behind it, just an
+// observation from a single measure.bat run -- not something to build on
+// again without first finding an address this compiler's own template
+// actually commits to leaving alone). Player sprite art: copied byte-for-byte from
+// Hunchback's own sprHunchback.spt (SpritePad project file, indices
+// 40/42 = "player_right_0"/"player_right_2"), converted to raw .byte
+// triples by hand from the .spt's <data> row values (row = 24-bit int,
+// byte0=bits23-16/byte1=bits15-8/byte2=bits7-0) rather than pulling in
+// Hunchback's whole RawSprite/SpritePad-resource pipeline for 2 frames.
+// This is a MULTICOLOR sprite (see Hunchback's own <multi>True</multi>)
+// -- PlayerSprite.cs sets Sprite2.MultiColor=true and pokes the shared
+// $D025/$D026 palette registers to match the original's mcolour1=6(Blue)/
+// mcolour2=7(Yellow).
 //
-// Placed at FIXED addresses, once per VIC bank, because with double
-// buffering the two bitmaps live in different banks and a sprite's data is
-// fetched from whichever bank the VIC-II is showing:
-//   bank 0 (buffer 0): $3F40, $3F80, $3FC0 -- the 192 free bytes right
-//     after Graphics_Bitmap ($2000-$3F3F), pointer values $FD, $FE, $FF;
-//   bank 1 (buffer 1): $5F40, $5F80, $5FC0 -- the same gap after
-//     Graphics_Bitmap2 ($4000-$5F3F), pointer values $7D, $7E, $7F
-//     (address within the bank / 64).
-// Nothing else writes there (Graphics_ClearBitmap only clears 8000 bytes).
-// Program.cs sets the pointer bytes, which in bitmap mode live at
-// (color matrix + $3F8), not the text screen's $07F8.
+// All 3 frames fit exactly in the one guaranteed-free 192-byte gap right
+// after the (single, now) bitmap -- see below.
+//
+// Placed at a FIXED address because the VIC-II reads a sprite's data
+// pointer from (video matrix + $3F8), not the text screen's $07F8, in
+// bitmap mode -- Program.cs sets those pointer bytes.
 //
 // The `* =` jumps are the same trick ProgramEntry.asm uses for the bitmap
 // and matrix reservations: emit at a fixed address, then resume where the
 // assembler was.
 [assembly: RawAssembly(Order = 0, Asm = @"
-bat_mid .macro
+spider_pose .macro
     .byte $00,$00,$00
     .byte $00,$00,$00
     .byte $00,$00,$00
-    .byte $00,$00,$00
-    .byte $00,$24,$00
-    .byte $00,$3C,$00
-    .byte $00,$7E,$00
-    .byte $01,$FF,$80
-    .byte $0F,$FF,$F0
-    .byte $7F,$FF,$FE
+    .byte $40,$00,$02
+    .byte $30,$1C,$0C
+    .byte $0C,$3E,$10
+    .byte $03,$7F,$60
+    .byte $00,$3E,$00
     .byte $FF,$FF,$FF
-    .byte $FB,$7E,$DF
-    .byte $C3,$FF,$C3
-    .byte $01,$FF,$80
-    .byte $00,$FF,$00
-    .byte $00,$7E,$00
-    .byte $00,$3C,$00
-    .byte $00,$18,$00
+    .byte $01,$FF,$C0
+    .byte $01,$FF,$C0
+    .byte $01,$FF,$C0
+    .byte $1F,$FF,$FC
+    .byte $E0,$3E,$03
     .byte $00,$00,$00
+    .byte $03,$00,$60
+    .byte $0C,$00,$18
+    .byte $30,$00,$04
+    .byte $40,$00,$02
     .byte $00,$00,$00
     .byte $00,$00,$00
     .byte $00
 .endm
-bat_up .macro
-    .byte $00,$00,$00
-    .byte $80,$00,$01
-    .byte $C0,$00,$03
-    .byte $E0,$24,$07
-    .byte $F0,$3C,$0F
-    .byte $F8,$7E,$1F
-    .byte $F8,$FF,$1F
-    .byte $FD,$FF,$BF
-    .byte $7F,$FF,$FE
-    .byte $3F,$FF,$FC
-    .byte $1F,$FF,$F8
-    .byte $0F,$FF,$F0
-    .byte $07,$FF,$E0
-    .byte $03,$FF,$C0
-    .byte $01,$FF,$80
-    .byte $00,$FF,$00
-    .byte $00,$7E,$00
-    .byte $00,$3C,$00
-    .byte $00,$18,$00
-    .byte $00,$00,$00
-    .byte $00,$00,$00
+player_right_0 .macro
+    .byte $00,$10,$00
+    .byte $00,$54,$00
+    .byte $00,$5C,$00
+    .byte $00,$7C,$00
+    .byte $02,$7C,$00
+    .byte $02,$B0,$00
+    .byte $01,$A0,$00
+    .byte $01,$A8,$00
+    .byte $01,$A8,$00
+    .byte $01,$A8,$00
+    .byte $01,$A8,$00
+    .byte $03,$A8,$00
+    .byte $03,$54,$00
+    .byte $02,$A8,$00
+    .byte $02,$A8,$00
+    .byte $00,$A0,$00
+    .byte $00,$A0,$00
+    .byte $00,$80,$00
+    .byte $00,$80,$00
+    .byte $00,$C0,$00
+    .byte $00,$A0,$00
     .byte $00
 .endm
-bat_down .macro
-    .byte $00,$00,$00
-    .byte $00,$00,$00
-    .byte $00,$00,$00
-    .byte $00,$00,$00
-    .byte $00,$24,$00
-    .byte $00,$3C,$00
-    .byte $00,$FF,$00
-    .byte $07,$FF,$E0
-    .byte $3F,$FF,$FC
-    .byte $7F,$FF,$FE
-    .byte $FF,$FF,$FF
-    .byte $FF,$FF,$FF
-    .byte $F7,$FF,$EF
-    .byte $E1,$FF,$87
-    .byte $C1,$FF,$83
-    .byte $80,$FF,$01
-    .byte $80,$7E,$01
-    .byte $00,$3C,$00
-    .byte $00,$18,$00
-    .byte $00,$00,$00
-    .byte $00,$00,$00
+player_right_2 .macro
+    .byte $00,$10,$00
+    .byte $00,$54,$00
+    .byte $00,$5C,$00
+    .byte $00,$7C,$00
+    .byte $02,$7C,$00
+    .byte $02,$B0,$00
+    .byte $01,$A0,$00
+    .byte $01,$A8,$00
+    .byte $01,$A9,$00
+    .byte $01,$A9,$00
+    .byte $01,$A9,$C0
+    .byte $01,$E8,$C0
+    .byte $02,$D4,$00
+    .byte $02,$A8,$00
+    .byte $00,$A8,$00
+    .byte $02,$A0,$00
+    .byte $0A,$20,$00
+    .byte $0C,$20,$00
+    .byte $08,$20,$00
+    .byte $08,$30,$00
+    .byte $00,$28,$00
     .byte $00
 .endm
-bat_sprites_resume = *
+sprites_resume = *
 * = $3F40
-    #bat_mid
-    #bat_up
-    #bat_down
-* = $5F40
-    #bat_mid
-    #bat_up
-    #bat_down
-* = bat_sprites_resume
+    #spider_pose
+    #player_right_0
+    #player_right_2
+* = sprites_resume
 ")]

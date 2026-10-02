@@ -78,32 +78,28 @@ static class Maze
         return Grid[y * Width + x] == 0;
     }
 
-    // The cell 'dist' steps ahead of (x,y) facing dir (dist 0 = the cell the
-    // viewer is standing in).
-    public static bool AheadIsWall(uint x, uint y, uint dir, uint dist)
+    // Absolute compass neighbors of (x,y) -- rooms are always rendered
+    // north-up (see DungeonView's own comment), so there's no more
+    // "facing"-relative left/right/ahead: north is always the far wall,
+    // south the near one, west/east the left/right walls, regardless of
+    // which wall the player actually walked in through.
+    public static bool NorthIsWall(uint x, uint y)
     {
-        if (dir == 0) return IsWall(x, y - dist);
-        if (dir == 1) return IsWall(x + dist, y);
-        if (dir == 2) return IsWall(x, y + dist);
-        return IsWall(x - dist, y);
+        return IsWall(x, y - 1);
     }
 
-    // The cell to the LEFT of the cell 'dist' steps ahead -- "left" meaning
-    // the forward vector rotated 90 degrees so a walker facing that way has
-    // it on their left hand, e.g. facing north (-Y), left is west (-X).
-    public static bool LeftIsWall(uint x, uint y, uint dir, uint dist)
+    public static bool SouthIsWall(uint x, uint y)
     {
-        if (dir == 0) return IsWall(x - 1, y - dist);
-        if (dir == 1) return IsWall(x + dist, y - 1);
-        if (dir == 2) return IsWall(x + 1, y + dist);
-        return IsWall(x - dist, y + 1);
+        return IsWall(x, y + 1);
     }
 
-    public static bool RightIsWall(uint x, uint y, uint dir, uint dist)
+    public static bool WestIsWall(uint x, uint y)
     {
-        if (dir == 0) return IsWall(x + 1, y - dist);
-        if (dir == 1) return IsWall(x + dist, y + 1);
-        if (dir == 2) return IsWall(x - 1, y + dist);
-        return IsWall(x - dist, y - 1);
+        return IsWall(x - 1, y);
+    }
+
+    public static bool EastIsWall(uint x, uint y)
+    {
+        return IsWall(x + 1, y);
     }
 }

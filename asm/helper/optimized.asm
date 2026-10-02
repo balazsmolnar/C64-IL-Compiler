@@ -17,6 +17,23 @@ init_var .macro  rel_pos, value
   sta localsStack-\rel_pos,y
 .endm
 
+; PROTOTYPE (see zp_local0's comment in zeropage.asm): zp-addressed twins of
+; inc_var/dec_var/init_var above, for a promoted local -- same fusion, same
+; guards (single-byte only), just a flat zero-page address instead of
+; `localsStack-rel_pos,x/y`, so no stackPointer load at all.
+inc_var_zp .macro addr
+  inc \addr
+.endm
+
+dec_var_zp .macro addr
+  dec \addr
+.endm
+
+init_var_zp .macro addr, value
+  lda #\value
+  sta \addr
+.endm
+
 ; Direct local/param-to-local copy, skipping the push/pop round trip
 ; through the hardware stack the unfused path (locals_push_value8 +
 ; locals_pull_value8) would use. 8-bit only, and only ever emitted for a

@@ -119,6 +119,24 @@ locals_push_value8 .macro rel_pos
   #stack_push_int_a
 .endm
 
+; PROTOTYPE (see zp_local0's own comment in zeropage.asm): the same shape as
+; locals_push_value8/locals_pull_value8 above, but \addr is a fixed
+; zero-page byte instead of an index into localsStack -- no Y, no
+; stackPointer, no GC ref-tracking (a promoted local is never
+; reference-counted by construction). Only ever used for a LOCAL variable's
+; own ldloc/stloc -- never a parameter, never `this`, never the
+; return-address handling method entry/exit do -- see the pool's own
+; comment for why that scoping matters.
+zp_push_value8 .macro addr
+  lda \addr
+  #stack_push_int_a
+.endm
+
+zp_pull_value8 .macro addr
+  #stack_pull_int_a
+  sta \addr
+.endm
+
 locals_push_value16 .macro rel_pos
   ldy stackPointer
   lda localsStack-\rel_pos+1,y

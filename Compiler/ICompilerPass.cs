@@ -186,6 +186,20 @@ class CompilerMethodContext
             size += variables[i].LocalType.GetStorageBytes();
         return size;
     }
+
+    // PROTOTYPE: set by ILMethodPromoteLocalsPass once per method, before
+    // anything reads it (a setup pass, see Compiler/Program.cs's pass
+    // ordering) -- see zp_local0's own comment in asm/helper/zeropage.asm
+    // for what "qualifies" means and why. Maps a LOCAL VARIABLE's index
+    // (never a parameter, never `this` -- see that pass) to the zero-page
+    // symbol (e.g. "zp_local2") its ldloc/stloc should use instead of the
+    // localsStack-relative #locals_push_value8/#locals_pull_value8 macros.
+    // A local not in this map (the common case, including in every
+    // non-leaf method) is untouched -- normal locals-stack addressing.
+    public Dictionary<int, string> PromotedLocals { get; } = new Dictionary<int, string>();
+
+    public string PromotedLocalSlot(int varIndex) =>
+        PromotedLocals.TryGetValue(varIndex, out var slot) ? slot : null;
 }
 
 interface ICompilerPass

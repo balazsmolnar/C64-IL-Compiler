@@ -69,6 +69,13 @@ class Program
                     },
                     new ICompilerMethodPass[] {
                         new ILMethodCodePass(),
+                        // PROTOTYPE: promotes eligible locals of leaf methods into
+                        // zero-page bytes -- see ILMethodPromoteLocalsPass and
+                        // zp_local0's comment in asm/helper/zeropage.asm. Narrower
+                        // and safer than the earlier whole-method "fast locals"
+                        // prototype it replaces: never touches parameters, `this`,
+                        // or the prologue/epilogue return-address handling.
+                        new ILMethodPromoteLocalsPass(),
                         new ILLibraryUsagePass(),
                         new ILMethodLabelPass(),
                         new ILMethodDebugLabelPass(),

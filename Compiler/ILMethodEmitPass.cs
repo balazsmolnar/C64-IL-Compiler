@@ -35,6 +35,7 @@ class ILMethodEmitPass : ICompilerMethodPass
             return;
         }
 
+        string outputLine;
         var ref_params = new List<string>();
         foreach (var param in context.Method.GetParameters().Reverse())
         {
@@ -58,7 +59,7 @@ class ILMethodEmitPass : ICompilerMethodPass
             ref_params.Add("0");
         }
 
-        string outputLine = $"    #init_locals_pull_parameters {context.GetLocalsSize()}, [{string.Join(',', ref_params)}]";
+        outputLine = $"    #init_locals_pull_parameters {context.GetLocalsSize()}, [{string.Join(',', ref_params)}]";
         output.WriteLine(outputLine);
 
         foreach (var line in context.Lines)

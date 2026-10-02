@@ -435,3 +435,68 @@ zp_flt_saved_interrupt_high = $48
 ; is sequential reuse of zp_flt_a's own bytes, not a second concurrent role.
 zp_flt_int_lo = zp_flt_a
 zp_flt_int_hi = zp_flt_a + 1
+
+; ---------------------------------------------------------------------------
+; PROTOTYPE: promoted-locals pool (Compiler/ILMethodPromoteLocalsPass.cs) --
+; a *local variable* (never a parameter or `this`, see that pass for why)
+; that's a single byte, never reference-counted, never address-taken
+; (no ldloca), and whose whole first-store..last-use span in a LEAF method
+; (no Call/Callvirt/Newobj anywhere in the method at all -- not even a
+; library call; see the pass) gets its ldloc/stloc pointed at one of these
+; instead of a `localsStack-N,y` slot. Unlike the earlier (reverted)
+; whole-method "fast locals" prototype, this never touches parameter
+; passing, `this`, or the prologue/epilogue's return-address relocation --
+; only individual local accesses mid-body change, so it can't repeat that
+; prototype's bug (the fast prologue pulling params before lifting the jsr
+; return address off the hardware stack; see git history / session notes).
+;
+; Only 4 bytes, not 8: this pool is deliberately restricted to addresses
+; inside zp_interrupt_save_start's saved/restored range ($20-$48, see
+; below) so OnInterrupt protects a resident value transparently -- "a
+; future claim inside this range is automatically protected" is that
+; comment's own words. Every candidate byte was checked three ways, not
+; just grepped for a same-named equate:
+;   1. Not claimed by any other equate in this file (checked).
+;   2. Inside $20-$48 (checked) -- so OnInterrupt's save/restore covers it.
+;   3. NOT in the BASIC ROM float-routine "touched set" ($22/$23/$24/$26/
+;      $61/$62/$65/$66/$69/$6a/$6e/$6f, see zp_flt_saved_interrupt's
+;      comment) -- $24 looked free by check 1 alone but is actually FCOMP
+;      scratch; excluded for exactly that reason. A leaf method (no calls
+;      at all, so no ROM float call can run during it) wouldn't strictly
+;      need this check, but it's kept as a second independent safety net
+;      rather than relying on "leaf" alone.
+; That leaves exactly 4: $25, $29 (shares its numeric value with
+; zp_interrupt_save_len, a length constant used only as `#zp_interrupt_
+; save_len`/immediate, never dereferenced as an address -- confirmed, no
+; actual collision), $2a, $2b.
+;
+; Since a leaf method (by this pass's definition) calls nothing at all,
+; two promoted-local windows can never be concurrently active except via
+; interrupt preemption -- already covered above. Reused freely across every
+; leaf method in the whole program; if a method has more eligible locals
+; than 4, the rest simply stay on the locals stack as before (a size/speed
+; miss, never a correctness issue).
+zp_local0 = $25
+zp_local1 = $29
+zp_local2 = $2a
+zp_local3 = $2b
+
+; TRIED AND REVERTED: a one-entry row-pointer cache for C64_Set_Screen_Ptr
+; (asm/C64.asm), keyed on (y, base) at $49/$4a/$4c/$4d, meant to skip the
+; y*40 multiply for consecutive same-row SetChar/GetChar calls (confirmed
+; every real loop in this codebase -- Wall.cs/PlayerStats.cs/LevelPlay.cs --
+; holds y fixed across many calls). Implemented, correctness-verified via
+; SimpleEmulator (Test.Runtime), and then hand-counted cycle by cycle:
+; the multiply itself is 25 cycles, but a SAFE check-and-copy (interrupt-
+; protected -- an unprotected version has a real race: an interrupt firing
+; between validating the key and copying the cached pointer could let the
+; handler's own SetChar call overwrite the cache first, so mainline copies
+; out a pointer for the WRONG row) costs ~30 cycles minimum on its own, so
+; even a cache HIT (54 cycles measured) came out slower than never caching
+; at all (44 cycles). The operation being memoized was cheaper than the
+; safe way to memoize it. Reverted rather than ship a correctness-clean
+; but net-negative "optimization" -- see conversation history for the full
+; cycle count. Left as a documented dead end so it isn't tried again
+; without this number in hand: the real lever for SetChar-in-a-loop code
+; is fewer, bigger calls (a batch primitive amortizing the WHOLE ~100+
+; cycle call, not memoizing one 25-cycle piece of it), not caching.

@@ -8,9 +8,18 @@ class ILMethodIncOptimizer : PeepholeOptimizerPass
 {
     protected override IEnumerable<PeepholeRule> Rules => new[]
     {
-        // "x++;" / "++x;" as a bare statement -- result discarded.
+        // "x++;" / "++x;" as a bare statement -- result discarded. Zp-aware:
+        // if x is a promoted local (see zp_local0's comment in
+        // zeropage.asm), fuse into #inc_var_zp instead of #inc_var -- same
+        // fusion, just addressed against its zero-page slot instead of a
+        // localsStack-relative position.
         new PeepholeRule(
-            (ctx, w) => new OpIncVar(((OpStloc)w[3].Operation).VarIndex),
+            (ctx, w) =>
+            {
+                var varIndex = ((OpStloc)w[3].Operation).VarIndex;
+                var slot = ctx.PromotedLocalSlot(varIndex);
+                return slot != null ? new OpIncVarZp(slot) : new OpIncVar(varIndex);
+            },
             l => l.Operation is OpLdloc,
             l => l.OpCode == ILOpCode.Ldc_i4_1,
             l => l.OpCode == ILOpCode.Add,
@@ -23,7 +32,11 @@ class ILMethodIncOptimizer : PeepholeOptimizerPass
         // first store really does target the same variable that was
         // loaded (ruling out an unrelated lookalike like "y = x + 1;
         // z = y;", where dup also precedes two stlocs but x itself isn't
-        // being reassigned).
+        // being reassigned). Not zp-aware yet -- OpIncOrDecVarExpr builds
+        // raw localsStack-addressed macro text directly, so this rule is
+        // guarded off for a promoted x below rather than fused wrong; the
+        // unfused IL still gets x's own ldloc/stloc routed to zp by
+        // OpLdloc/OpStloc, just without this extra fusion.
         new PeepholeRule(
             (ctx, w) => new OpIncOrDecVarExpr("#inc_var", ((OpLdloc)w[0].Operation).VarIndex, ((OpStloc)w[5].Operation).VarIndex, isPostfix: false),
             l => l.Operation is OpLdloc,
@@ -34,7 +47,8 @@ class ILMethodIncOptimizer : PeepholeOptimizerPass
             l => l.Operation is OpStloc)
             .WithGuard((ctx, w) =>
                 !((OpLdloc)w[0].Operation).Is16Bit(ctx, w[0]) &&
-                ((OpLdloc)w[0].Operation).VarIndex == ((OpStloc)w[4].Operation).VarIndex),
+                ((OpLdloc)w[0].Operation).VarIndex == ((OpStloc)w[4].Operation).VarIndex &&
+                ctx.PromotedLocalSlot(((OpLdloc)w[0].Operation).VarIndex) == null),
 
         // "return x++;" / "y = x++;" -- same idea, but postfix dups the OLD
         // value *before* the add (ldloc, dup, ldc.i4.1, add, stloc, stloc),
@@ -49,7 +63,8 @@ class ILMethodIncOptimizer : PeepholeOptimizerPass
             l => l.Operation is OpStloc)
             .WithGuard((ctx, w) =>
                 !((OpLdloc)w[0].Operation).Is16Bit(ctx, w[0]) &&
-                ((OpLdloc)w[0].Operation).VarIndex == ((OpStloc)w[4].Operation).VarIndex),
+                ((OpLdloc)w[0].Operation).VarIndex == ((OpStloc)w[4].Operation).VarIndex &&
+                ctx.PromotedLocalSlot(((OpLdloc)w[0].Operation).VarIndex) == null),
 
         // "arr[x++] = v;" / "Foo(x++)" -- x's old value is consumed directly
         // by whatever follows (no second local), so only one stloc appears
@@ -67,6 +82,7 @@ class ILMethodIncOptimizer : PeepholeOptimizerPass
             l => l.Operation is OpStloc)
             .WithGuard((ctx, w) =>
                 !((OpLdloc)w[0].Operation).Is16Bit(ctx, w[0]) &&
-                ((OpLdloc)w[0].Operation).VarIndex == ((OpStloc)w[4].Operation).VarIndex)
+                ((OpLdloc)w[0].Operation).VarIndex == ((OpStloc)w[4].Operation).VarIndex &&
+                ctx.PromotedLocalSlot(((OpLdloc)w[0].Operation).VarIndex) == null)
     };
 }

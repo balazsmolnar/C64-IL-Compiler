@@ -1054,6 +1054,17 @@ class OpLdloc : OpPushBase
             return "flt";
         return base.SizeSuffix(context, operation);
     }
+
+    // PROTOTYPE (see zp_local0's own comment in asm/helper/zeropage.asm):
+    // a promoted local is always a single byte by eligibility, so this
+    // never needs a 16-bit/float variant the way #locals_push_value* does.
+    public override string Emit(CompilerMethodContext context, ILOperation operation)
+    {
+        var slot = context.PromotedLocalSlot(VarIndex);
+        if (slot != null)
+            return $"#zp_push_value8 {slot}";
+        return base.Emit(context, operation);
+    }
 }
 
 class OpLdloc_s : OpPushBase
@@ -1086,6 +1097,15 @@ class OpLdloc_s : OpPushBase
         if (context.GetLocalVariableType((int)operation.OriginalParameter) == typeof(float))
             return "flt";
         return base.SizeSuffix(context, operation);
+    }
+
+    // PROTOTYPE, see OpLdloc's own copy of this comment.
+    public override string Emit(CompilerMethodContext context, ILOperation operation)
+    {
+        var slot = context.PromotedLocalSlot((int)operation.OriginalParameter);
+        if (slot != null)
+            return $"#zp_push_value8 {slot}";
+        return base.Emit(context, operation);
     }
 }
 
@@ -1414,6 +1434,17 @@ class OpStloc : OpBase
             return "flt";
         return base.SizeSuffix(context, operation);
     }
+
+    // PROTOTYPE (see zp_local0's own comment in asm/helper/zeropage.asm): no
+    // ref-counting parameter needed here (eligibility already excludes
+    // every reference-counted type).
+    public override string Emit(CompilerMethodContext context, ILOperation operation)
+    {
+        var slot = context.PromotedLocalSlot(VarIndex);
+        if (slot != null)
+            return $"#zp_pull_value8 {slot}";
+        return base.Emit(context, operation);
+    }
 }
 
 class OpStsfld : OpBase
@@ -1531,6 +1562,15 @@ class OpStloc_s : OpBase
             return "flt";
         return base.SizeSuffix(context, operation);
     }
+
+    // PROTOTYPE, see OpStloc's own copy of this comment.
+    public override string Emit(CompilerMethodContext context, ILOperation operation)
+    {
+        var slot = context.PromotedLocalSlot((int)operation.OriginalParameter);
+        if (slot != null)
+            return $"#zp_pull_value8 {slot}";
+        return base.Emit(context, operation);
+    }
 }
 
 
@@ -1644,6 +1684,46 @@ class OpDecVar : OpBase
         var refPos = context.GetLocalVariableReferencePosition(_varIndex);
         return $"{refPos}";
     }
+}
+
+// PROTOTYPE (see zp_local0's comment in zeropage.asm): zp-addressed twins
+// of OpIncVar/OpDecVar/OpInitVar, synthesized instead of those by
+// ILMethodIncOptimizer/ILMethodDecOptimizer/ILMethodSetVariableOptimizer
+// when the local involved is a promoted one -- takes the zero-page symbol
+// directly rather than a varIndex, since there's no relPos to compute.
+class OpIncVarZp : OpBase
+{
+    private readonly string _slot;
+    public OpIncVarZp(string slot) : base(0, "#inc_var_zp")
+    {
+        _slot = slot;
+    }
+
+    public override object ConvertParameter(CompilerMethodContext context, ILOperation operation) => _slot;
+}
+
+class OpDecVarZp : OpBase
+{
+    private readonly string _slot;
+    public OpDecVarZp(string slot) : base(0, "#dec_var_zp")
+    {
+        _slot = slot;
+    }
+
+    public override object ConvertParameter(CompilerMethodContext context, ILOperation operation) => _slot;
+}
+
+class OpInitVarZp : OpBase
+{
+    private readonly string _slot;
+    private readonly int _value;
+    public OpInitVarZp(string slot, int value) : base(0, "#init_var_zp")
+    {
+        _slot = slot;
+        _value = value;
+    }
+
+    public override object ConvertParameter(CompilerMethodContext context, ILOperation operation) => $"{_slot}, {_value}";
 }
 
 // "x = ++x;" / "x = --x;" (prefix) or "x = x++;" / "x = x--;" (postfix) used

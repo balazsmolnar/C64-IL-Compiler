@@ -12,9 +12,15 @@ class ILMethodDecOptimizer : PeepholeOptimizerPass
 {
     protected override IEnumerable<PeepholeRule> Rules => new[]
     {
-        // "x--;" / "--x;" as a bare statement -- result discarded.
+        // "x--;" / "--x;" as a bare statement -- result discarded. Zp-aware,
+        // see ILMethodIncOptimizer's own copy of this comment.
         new PeepholeRule(
-            (ctx, w) => new OpDecVar(((OpStloc)w[3].Operation).VarIndex),
+            (ctx, w) =>
+            {
+                var varIndex = ((OpStloc)w[3].Operation).VarIndex;
+                var slot = ctx.PromotedLocalSlot(varIndex);
+                return slot != null ? new OpDecVarZp(slot) : new OpDecVar(varIndex);
+            },
             l => l.Operation is OpLdloc,
             l => l.OpCode == ILOpCode.Ldc_i4_1,
             l => l.OpCode == ILOpCode.Sub,
@@ -31,7 +37,8 @@ class ILMethodDecOptimizer : PeepholeOptimizerPass
             l => l.Operation is OpStloc)
             .WithGuard((ctx, w) =>
                 !((OpLdloc)w[0].Operation).Is16Bit(ctx, w[0]) &&
-                ((OpLdloc)w[0].Operation).VarIndex == ((OpStloc)w[4].Operation).VarIndex),
+                ((OpLdloc)w[0].Operation).VarIndex == ((OpStloc)w[4].Operation).VarIndex &&
+                ctx.PromotedLocalSlot(((OpLdloc)w[0].Operation).VarIndex) == null),
 
         // "return x--;" / "y = x--;" (postfix) -- dup precedes the subtract.
         new PeepholeRule(
@@ -44,7 +51,8 @@ class ILMethodDecOptimizer : PeepholeOptimizerPass
             l => l.Operation is OpStloc)
             .WithGuard((ctx, w) =>
                 !((OpLdloc)w[0].Operation).Is16Bit(ctx, w[0]) &&
-                ((OpLdloc)w[0].Operation).VarIndex == ((OpStloc)w[4].Operation).VarIndex),
+                ((OpLdloc)w[0].Operation).VarIndex == ((OpStloc)w[4].Operation).VarIndex &&
+                ctx.PromotedLocalSlot(((OpLdloc)w[0].Operation).VarIndex) == null),
 
         // "arr[x--] = v;" / "Foo(x--)" -- see ILMethodIncOptimizer's mirror
         // rule. Must stay after the two-stloc rule above for the same
@@ -58,6 +66,7 @@ class ILMethodDecOptimizer : PeepholeOptimizerPass
             l => l.Operation is OpStloc)
             .WithGuard((ctx, w) =>
                 !((OpLdloc)w[0].Operation).Is16Bit(ctx, w[0]) &&
-                ((OpLdloc)w[0].Operation).VarIndex == ((OpStloc)w[4].Operation).VarIndex)
+                ((OpLdloc)w[0].Operation).VarIndex == ((OpStloc)w[4].Operation).VarIndex &&
+                ctx.PromotedLocalSlot(((OpLdloc)w[0].Operation).VarIndex) == null)
     };
 }

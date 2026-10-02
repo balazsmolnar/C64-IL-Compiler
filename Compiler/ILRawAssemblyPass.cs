@@ -8,11 +8,13 @@ using C64Lib;
 namespace Compiler;
 
 // Writes data.asm: the concatenation of every RawAssemblyAttribute (plain
-// hand-written .asm text, either inline or from an embedded resource) and
+// hand-written .asm text, either inline or from an embedded resource),
 // every RawSpriteAttribute (one sprite converted out of an embedded
-// SpritePad XML project file) on the assembly, in a single Order-sorted
-// sequence -- both attribute kinds ultimately just contribute text to the
-// same output file, so they share one ordering rather than being two
+// SpritePad XML project file), and every RawBitmapAttribute (one stencil
+// bitmap cut out of an embedded Advanced Art Studio .aas picture file,
+// RLE-compressed) on the assembly, in a single Order-sorted sequence --
+// all three attribute kinds ultimately just contribute text to the same
+// output file, so they share one ordering rather than being three
 // independent, unordered-relative-to-each-other passes.
 class ILRawAssemblyPass : ICompilerPass
 {
@@ -24,13 +26,16 @@ class ILRawAssemblyPass : ICompilerPass
             .OfType<RawAssemblyAttribute>().Select(a => (object)a);
         var spriteAttributes = context.Assembly.GetCustomAttributes(typeof(RawSpriteAttribute), false)
             .OfType<RawSpriteAttribute>().Select(a => (object)a);
-        var entries = asmAttributes.Concat(spriteAttributes).OrderBy(GetOrder);
+        var bitmapAttributes = context.Assembly.GetCustomAttributes(typeof(RawBitmapAttribute), false)
+            .OfType<RawBitmapAttribute>().Select(a => (object)a);
+        var entries = asmAttributes.Concat(spriteAttributes).Concat(bitmapAttributes).OrderBy(GetOrder);
 
-        // Parsed once per distinct Resource, not once per RawSpriteAttribute
-        // -- a single .spt file is typically the source for dozens of
-        // sprites (see Hunchback's data.cs), and re-parsing the same XML
-        // document that many times would be wasted work.
+        // Parsed/loaded once per distinct Resource, not once per attribute
+        // instance -- a single .spt/.aas file is typically the source for
+        // several sprites/bitmaps (see Hunchback's data.cs), and
+        // re-parsing the same file that many times would be wasted work.
         var spriteDocumentCache = new Dictionary<string, List<SptSprite>>();
+        var bitmapCache = new Dictionary<string, byte[]>();
 
         using (var outputFile = File.CreateText(Path.Combine(context.OutputDirectory, $"data.asm")))
         {
@@ -76,12 +81,77 @@ class ILRawAssemblyPass : ICompilerPass
 
                     WriteSprite(outputFile, sprites[spriteAttr.Index], spriteAttr.Label);
                 }
+                else if (entry is RawBitmapAttribute bitmapAttr)
+                {
+                    WriteBitmapEntry(context, outputFile, bitmapAttr, bitmapCache);
+                }
             }
+        }
+
+        // Bitmap validation errors are collected (unlike RawAssembly/
+        // RawSprite's own immediate-throw error paths above, a pre-existing
+        // wart in this same method not touched here) so a single build
+        // reports every bad bitmap at once, matching this compiler's
+        // general diagnostics philosophy (see CLAUDE.md).
+        context.Diagnostics.ThrowIfErrors();
+    }
+
+    private static void WriteBitmapEntry(CompilerContext context, StreamWriter outputFile, RawBitmapAttribute bitmapAttr, Dictionary<string, byte[]> bitmapCache)
+    {
+        if (string.IsNullOrEmpty(bitmapAttr.Resource) || string.IsNullOrEmpty(bitmapAttr.Label))
+            throw new InvalidOperationException("RawBitmapAttribute requires both Resource and Label.");
+
+        if (!bitmapCache.TryGetValue(bitmapAttr.Resource, out var bitmap))
+        {
+            using (Stream stream = context.Assembly.GetManifestResourceStream(bitmapAttr.Resource))
+            {
+                if (stream == null)
+                {
+                    context.Diagnostics.Add(new CompilerDiagnostic
+                    {
+                        Code = DiagnosticCodes.InvalidAsset,
+                        Message = $"Bitmap resource '{bitmapAttr.Resource}' not found.",
+                    });
+                    return;
+                }
+                bitmap = AasFile.Load(stream, bitmapAttr.Resource, context.Diagnostics);
+            }
+            bitmapCache[bitmapAttr.Resource] = bitmap;
+        }
+        if (bitmap == null)
+            return; // Load already reported a diagnostic.
+
+        byte[] mask = AasFile.ExtractSubRectangle(bitmap, bitmapAttr.X, bitmapAttr.Y, bitmapAttr.Width, bitmapAttr.Height, bitmapAttr.Label, context.Diagnostics);
+        if (mask == null)
+            return; // ExtractSubRectangle already reported a diagnostic.
+
+        byte[] compressed = PackBits.Encode(mask);
+        WriteBitmap(outputFile, compressed, bitmapAttr.Width, bitmapAttr.Height / 8, bitmapAttr.Label);
+    }
+
+    private static void WriteBitmap(StreamWriter outputFile, byte[] compressed, int width, int heightCells, string label)
+    {
+        int rowJump = 320 - width;
+        int totalBytes = width * heightCells;
+        outputFile.WriteLine($"bmp_{label}:");
+        outputFile.WriteLine($".word {width}, {rowJump}, {totalBytes}");
+        for (int i = 0; i < compressed.Length; i += 16)
+        {
+            int count = Math.Min(16, compressed.Length - i);
+            var row = new string[count];
+            for (int j = 0; j < count; j++)
+                row[j] = $"${compressed[i + j]:X2}";
+            outputFile.WriteLine($".byte {string.Join(", ", row)}");
         }
     }
 
-    private static object GetOrder(object entry) =>
-        entry is RawAssemblyAttribute a ? a.Order : ((RawSpriteAttribute)entry).Order;
+    private static object GetOrder(object entry) => entry switch
+    {
+        RawAssemblyAttribute a => a.Order,
+        RawSpriteAttribute s => s.Order,
+        RawBitmapAttribute b => b.Order,
+        _ => throw new InvalidOperationException($"Unexpected raw-asset entry type {entry.GetType()}."),
+    };
 
     private static void WriteSprite(StreamWriter outputFile, SptSprite sprite, string label)
     {

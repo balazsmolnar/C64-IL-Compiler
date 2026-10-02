@@ -171,6 +171,23 @@ namespace C64Lib
             // filled mode per row -- see asm/C64Graphics.asm's
             // Graphics_Trapezoid_Core for the DDA this runs.
             public static void DrawTrapezoid(ulong x0Left, ulong x0Right, ulong y0, ulong x1Left, ulong x1Right, ulong y1, bool on = true, BitmapColorSource colorSource = BitmapColorSource.ColorRam) { }
+
+            // Decompresses and blits a stencil bitmap imported via
+            // [assembly: RawBitmap(...)] -- a single-color (1 bit/pixel)
+            // stencil: "on" pixels are painted in colorSource (same
+            // BitmapColorSource convention as SetPixel/DrawLine/
+            // DrawRectangle), "off" pixels are left COMPLETELY untouched --
+            // whatever was already on the bitmap at that position (walls,
+            // floor, another bitmap) shows through, unlike DrawRectangle/
+            // DrawLine's `on: false`, which clears to Background. X and Y
+            // must both be multiples of 8 (bitmaps are cell-aligned) -- a
+            // caller contract, not checked at runtime, same as every other
+            // coordinate this API takes.
+            //
+            // bitmap is the asset's generated data-block address --
+            // C64Address.FromLabel("bmp_<Label>"), the same way a sprite's
+            // art is referenced via C64Address.FromLabel("spt_<Label>").
+            public static void DrawBitmap(ulong x, ulong y, ulong bitmap, BitmapColorSource colorSource = BitmapColorSource.ColorRam) { }
         }
     }
 }

@@ -2,10 +2,12 @@
 
   <ItemGroup>
     <None Remove="SpriteData.asm" />
+    <None Remove="TestDecoration.aas" />
   </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="SpriteData.asm" />
+    <EmbeddedResource Include="TestDecoration.aas" />
   </ItemGroup>
 
   <ItemGroup>

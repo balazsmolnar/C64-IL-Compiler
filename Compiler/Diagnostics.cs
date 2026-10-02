@@ -15,6 +15,7 @@ static class DiagnosticCodes
     public const string UnsupportedCall = "C64002";        // a call into the .NET class library (or similar) with no C64 implementation
     public const string UnsupportedType = "C64003";        // a type we can't represent
     public const string UnsupportedDeclaration = "C64004"; // e.g. generics, interface dispatch
+    public const string InvalidAsset = "C64005";            // a RawBitmap/RawSprite/RawAssembly resource is missing or malformed
     public const string InternalError = "C64900";          // the compiler itself failed on this method
 }
 

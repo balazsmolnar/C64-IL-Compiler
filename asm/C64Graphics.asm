@@ -25,6 +25,7 @@ Flag_Screen_SwapBuffers = 0
 Flag_Screen_SetBitmapColors = 0
 Flag_Screen_WaitForVBlank = 0
 Flag_Screen_ClearBitmap = 0
+Flag_Screen_DrawBitmap = 0
 ; 1 when the program uses double buffering (Screen.SetDrawBuffer/SwapBuffers):
 ; the entry file then also reserves Graphics_Bitmap2/Graphics_ColorMatrix2 in
 ; VIC bank 1 (see ProgramEntry.asm). Defined there as a strong symbol;
@@ -76,14 +77,20 @@ Screen_WaitForVBlank:
 ; line) to pick which pixel format to plot. Declared here, gated broadly
 ; (writer OR every reader), so it exists whenever any of them are compiled,
 ; matching graphics_saved_d018's own pattern below.
-.if Flag_Screen_SetScreenMode | Flag_Screen_SetPixel | Flag_Screen_DrawLine | Flag_Screen_DrawRectangle | Flag_Screen_DrawTrapezoid | Flag_Screen_DrawCircle
+.if Flag_Screen_SetScreenMode | Flag_Screen_SetPixel | Flag_Screen_DrawLine | Flag_Screen_DrawRectangle | Flag_Screen_DrawTrapezoid | Flag_Screen_DrawCircle | Flag_Screen_DrawBitmap
 graphics_multicolor_active .byte 0
 .endif
 
 ; ===========================================================================
-; Shared pixel addressing -- used by SetPixel and every shape routine.
+; Shared pixel addressing -- Graphics_ComputePixelPointer/bitmap_cellrow_*/
+; mc_fill_pattern are needed by every shape routine AND by DrawBitmap
+; (which only ever needs the START byte of a cell-aligned rectangle, never
+; per-pixel masking) -- gated separately from the per-pixel hi-res/
+; multicolor column tables and SetPixel itself below, which DrawBitmap
+; never needs, so a program using ONLY DrawBitmap doesn't pay for
+; SetPixel's own code.
 ; ===========================================================================
-.if Flag_Screen_SetPixel | Flag_Screen_DrawLine | Flag_Screen_DrawRectangle | Flag_Screen_DrawTrapezoid | Flag_Screen_DrawCircle
+.if Flag_Screen_SetPixel | Flag_Screen_DrawLine | Flag_Screen_DrawRectangle | Flag_Screen_DrawTrapezoid | Flag_Screen_DrawCircle | Flag_Screen_DrawBitmap
 
 ; Bitmap memory is organized in 8x8 cells (8 consecutive scanline bytes per
 ; cell, cells in the same row-major 40x25 order as the text screen/
@@ -102,21 +109,10 @@ bitmap_cellrow_high
     .byte >(Graphics_Bitmap + i * 320)
 .next
 
-; Hi-res: MSB-first, one bit per pixel (bit 7 of a bitmap byte is the
-; leftmost pixel of its column).
-bitmap_bit_table .byte $80,$40,$20,$10,$08,$04,$02,$01
-
-; Multicolor: two bits per pixel (pairs 76/54/32/10, MSB-first), so x and
-; x+1 always share a pair. Both tables are indexed by the column within the
-; byte (x&7): mc_col_clear ANDs a byte down to every bit EXCEPT that column's
-; pair, mc_col_set is the pair's own two bits (a color's repeated pattern from
-; mc_fill_pattern ANDed with it is that color's value for the pair) --
-; table-driven, so no runtime shift is needed.
-mc_col_clear .byte $3F,$3F,$CF,$CF,$F3,$F3,$FC,$FC
-mc_col_set   .byte $C0,$C0,$30,$30,$0C,$0C,$03,$03
-
 ; Multicolor: repeated 2-bit color pattern for a FULLY covered byte (all 4
-; pixel-pairs the same color) -- index by colorSource (0-3).
+; pixel-pairs the same color) -- index by colorSource (0-3). Used by
+; Graphics_SetPixel_Core_MC/Graphics_SpanSetup below, and by
+; Bitmap_ComputePattern.
 mc_fill_pattern .byte $00,$55,$AA,$FF
 
 ; In: zp_gfx_x_low/high (0-319), zp_gfx_y (0-199).
@@ -150,6 +146,28 @@ Graphics_ComputePixelPointer:
     ora zp_gfx_ptr_low
     sta zp_gfx_ptr_low
     rts
+.endif
+
+; ===========================================================================
+; Per-pixel addressing/plotting -- SetPixel and the hi-res/multicolor
+; column tables it needs. Separate from the block above (which
+; DrawBitmap also needs) so DrawBitmap-only programs don't pull
+; this in -- whole-byte blits never mask a single pixel's column.
+; ===========================================================================
+.if Flag_Screen_SetPixel | Flag_Screen_DrawLine | Flag_Screen_DrawRectangle | Flag_Screen_DrawTrapezoid | Flag_Screen_DrawCircle
+
+; Hi-res: MSB-first, one bit per pixel (bit 7 of a bitmap byte is the
+; leftmost pixel of its column).
+bitmap_bit_table .byte $80,$40,$20,$10,$08,$04,$02,$01
+
+; Multicolor: two bits per pixel (pairs 76/54/32/10, MSB-first), so x and
+; x+1 always share a pair. Both tables are indexed by the column within the
+; byte (x&7): mc_col_clear ANDs a byte down to every bit EXCEPT that column's
+; pair, mc_col_set is the pair's own two bits (a color's repeated pattern from
+; mc_fill_pattern ANDed with it is that color's value for the pair) --
+; table-driven, so no runtime shift is needed.
+mc_col_clear .byte $3F,$3F,$CF,$CF,$F3,$F3,$FC,$FC
+mc_col_set   .byte $C0,$C0,$30,$30,$0C,$0C,$03,$03
 
 ; Hi-res only (multicolor works per column, see Graphics_SetPixel_Core and
 ; Graphics_DrawLine_MC_Setup). In: zp_gfx_x_low/high, zp_gfx_y.
@@ -1983,5 +2001,207 @@ Screen_DrawCircle:
     lda zp_gfx_dy
     sta zp_gfx_cy
     jsr Graphics_DrawCircle_Core
+    #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+; ===========================================================================
+; Screen.DrawBitmap -- decompresses+blits a cell-aligned stencil
+; bitmap (see RawBitmapAttribute/Compiler/AasFile.cs/ILRawAssemblyPass).
+; One shared routine serves every bitmap in a program; each bitmap's own
+; width/row-jump/byte-count live in its own 6-byte data header (see
+; ILRawAssemblyPass.WriteBitmap), not baked into generated code, so this
+; costs nothing per bitmap beyond its own compressed data.
+; ===========================================================================
+.if Flag_Screen_DrawBitmap
+
+; In: zp_gfx_color = BitmapColorSource.
+; Out: zp_bmp_pattern = the fill pattern for "on" stencil bits -- $FF
+; under hi-res (any set bit always means "paint," matching
+; Graphics_SpanSetup's own hi-res fill=$FF convention: there's no "which
+; color" choice outside multicolor), or mc_fill_pattern[colorSource] under
+; multicolor (the SAME table Graphics_SpanSetup/Graphics_SetPixel_Core_MC
+; already use). Computed ONCE per DrawBitmap call, not once per byte.
+; Destroys A, X.
+Bitmap_ComputePattern:
+    lda graphics_multicolor_active
+    bne Bitmap_ComputePattern_MC
+    lda #$FF
+    sta zp_bmp_pattern
+    rts
+Bitmap_ComputePattern_MC:
+    ldx zp_gfx_color
+    lda mc_fill_pattern,x
+    sta zp_bmp_pattern
+    rts
+
+; Decompresses+blits one bitmap. In: zp_bmp_src_low/high = pointer to the
+; bitmap's own 6-byte header (.word bandBytes, rowJump, totalBytes -- see
+; WriteBitmap), zp_gfx_ptr_low/high = target bitmap address of the
+; stencil's top-left byte (Graphics_ComputePixelPointer's result --
+; caller's X/Y are both multiples of 8, so this is already exactly right),
+; zp_bmp_pattern set by Bitmap_ComputePattern above. Writes straight
+; to the final bitmap, no scratch buffer. Destroys A, X, Y and every
+; zp_bmp_* byte.
+Bitmap_Blit_Core:
+    ldy #0
+    lda (zp_bmp_src_low),y
+    sta zp_bmp_bandBytes_low
+    sta zp_bmp_band_remaining_low
+    iny
+    lda (zp_bmp_src_low),y
+    sta zp_bmp_bandBytes_high
+    sta zp_bmp_band_remaining_high
+    iny
+    lda (zp_bmp_src_low),y
+    sta zp_bmp_jump_low
+    iny
+    lda (zp_bmp_src_low),y
+    sta zp_bmp_jump_high
+    iny
+    lda (zp_bmp_src_low),y
+    sta zp_bmp_bytesLeft_low
+    iny
+    lda (zp_bmp_src_low),y
+    sta zp_bmp_bytesLeft_high
+    lda zp_bmp_src_low            ; skip the 6-byte header
+    clc
+    adc #6
+    sta zp_bmp_src_low
+    bcc Bitmap_Blit_Core_Loop
+    inc zp_bmp_src_high
+
+Bitmap_Blit_Core_Loop:
+    ldy #0
+    lda (zp_bmp_src_low),y        ; control byte
+    bmi Bitmap_Blit_Core_Repeat ; test its sign bit BEFORE advancing the
+                                     ; pointer below -- Bitmap_AdvanceSrc's
+                                     ; own inc/bne clobber N/Z, so checking
+                                     ; AFTER calling it tests the advanced
+                                     ; pointer's own flags, not the control
+                                     ; byte's (confirmed via a SimpleEmulator
+                                     ; register trace: A correctly held $86
+                                     ; -- bit 7 set -- right before the old
+                                     ; jsr/bmi order, yet bmi didn't branch).
+    jsr Bitmap_AdvanceSrc        ; A (the control byte) survives this --
+                                     ; AdvanceSrc only touches the src
+                                     ; pointer and flags, never A.
+
+    tax                             ; literal run: control+1 distinct bytes
+    inx
+Bitmap_Blit_Core_LiteralLoop:
+    ldy #0
+    lda (zp_bmp_src_low),y
+    jsr Bitmap_AdvanceSrc
+    jsr Bitmap_WriteMaskByte
+    dex
+    bne Bitmap_Blit_Core_LiteralLoop
+    jmp Bitmap_Blit_Core_Next
+
+Bitmap_Blit_Core_Repeat:        ; (control&$7F)+1 copies of one byte
+    jsr Bitmap_AdvanceSrc
+    and #$7F
+    tax
+    inx
+    ldy #0
+    lda (zp_bmp_src_low),y
+    jsr Bitmap_AdvanceSrc
+    sta zp_bmp_mask                ; stash the repeated byte -- WriteMaskByte's
+                                     ; own first act is "sta zp_bmp_mask" with
+                                     ; whatever's in A, so reloading from here
+                                     ; each iteration (below) keeps both in sync
+Bitmap_Blit_Core_RepeatLoop:
+    lda zp_bmp_mask                ; A must hold the mask byte on EVERY call,
+                                     ; not just the first -- WriteMaskByte
+                                     ; doesn't preserve A across its own return
+    jsr Bitmap_WriteMaskByte
+    dex
+    bne Bitmap_Blit_Core_RepeatLoop
+
+Bitmap_Blit_Core_Next:
+    lda zp_bmp_bytesLeft_low
+    ora zp_bmp_bytesLeft_high
+    bne Bitmap_Blit_Core_Loop
+    rts
+
+Bitmap_AdvanceSrc:
+    inc zp_bmp_src_low
+    bne Bitmap_AdvanceSrc_Done
+    inc zp_bmp_src_high
+Bitmap_AdvanceSrc_Done:
+    rts
+
+; In: A = one decompressed mask byte. Transparent merge -- the same
+; technique Graphics_SpanSetup already documents and uses for a partial
+; span byte: byte = (byte AND notMask) OR (fill AND mask). Every "off" bit
+; is left exactly as it was (whatever's already drawn underneath shows
+; through); only "on" bits change, to zp_bmp_pattern. Then advances
+; zp_gfx_ptr to the next target byte, jumping by zp_bmp_jump at a
+; row-band boundary (crossing from one cell-row-band's cells into the
+; next skips over the OTHER cells in that row, which aren't part of this
+; bitmap -- see AasFile.ExtractSubRectangle's own comment for why the
+; source and target share this same per-row-band layout). Destroys A, Y.
+Bitmap_WriteMaskByte:
+    ldy #0
+    sta zp_bmp_mask
+    eor #$FF
+    and (zp_gfx_ptr_low),y
+    sta zp_bmp_scratch
+    lda zp_bmp_mask
+    and zp_bmp_pattern
+    ora zp_bmp_scratch
+    sta (zp_gfx_ptr_low),y
+
+    lda zp_bmp_bytesLeft_low
+    bne Bitmap_WriteMaskByte_BL
+    dec zp_bmp_bytesLeft_high
+Bitmap_WriteMaskByte_BL:
+    dec zp_bmp_bytesLeft_low
+
+    ; Always step past the byte just written FIRST -- the row-band jump
+    ; below (when this was the band's last byte) is then simply added ON
+    ; TOP of that, not used in place of it. (A version that instead added
+    ; zp_bmp_jump directly to the just-written byte's own address, without
+    ; this +1 first, landed one byte short of the next row-band's start on
+    ; every boundary crossing -- confirmed via a SimpleEmulator trace that
+    ; dumped the written bitmap bytes and found band 2+ starting one byte
+    ; early.)
+    inc zp_gfx_ptr_low
+    bne Bitmap_WriteMaskByte_NoCarry
+    inc zp_gfx_ptr_high
+Bitmap_WriteMaskByte_NoCarry:
+
+    lda zp_bmp_band_remaining_low
+    bne Bitmap_WriteMaskByte_BR
+    dec zp_bmp_band_remaining_high
+Bitmap_WriteMaskByte_BR:
+    dec zp_bmp_band_remaining_low
+    lda zp_bmp_band_remaining_low
+    ora zp_bmp_band_remaining_high
+    bne Bitmap_WriteMaskByte_Done
+
+    lda zp_bmp_bandBytes_low       ; row-band done: reload the counter...
+    sta zp_bmp_band_remaining_low
+    lda zp_bmp_bandBytes_high
+    sta zp_bmp_band_remaining_high
+    lda zp_gfx_ptr_low              ; ...and jump over the rest of this row
+    clc
+    adc zp_bmp_jump_low
+    sta zp_gfx_ptr_low
+    lda zp_gfx_ptr_high
+    adc zp_bmp_jump_high
+    sta zp_gfx_ptr_high
+
+Bitmap_WriteMaskByte_Done:
+    rts
+
+Screen_DrawBitmap:
+    #stack_save_return_adress zp_tmp1_low
+    #stack_pull_int zp_gfx_color
+    #stack_pull_int16 zp_bmp_src_low
+    #stack_pull_int16 zp_gfx_y
+    #stack_pull_int16 zp_gfx_x_low
+    jsr Graphics_ComputePixelPointer
+    jsr Bitmap_ComputePattern
+    jsr Bitmap_Blit_Core
     #stack_return_to_saved_address zp_tmp1_low
 .endif

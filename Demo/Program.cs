@@ -57,44 +57,30 @@ class Program
         // scope for this graphics feature; sidestepped here by simply not
         // showing a sprite during the bitmap demo.
         //
-        // MultiColor (not plain Bitmap) so the cube's 3 axis-pair face
-        // colors (RotatingCube.ColorX/Y/Z) show up distinctly -- White
-        // (MatrixHigh) for the X faces, Red (MatrixLow) for Y, Green
-        // (ColorRam) for Z. Background stays the same light blue as the
-        // rest of this scene (hi-res DrawLine/DrawRectangle/etc. are
-        // already covered thoroughly by SimpleEmulator.Test's own suite,
-        // not just this manual demo, so trading that manual hi-res check
-        // here for a multicolor one is not a coverage loss).
+        // RotatingCube's own spinning-cube demo (see RotatingCube.cs) used
+        // to run here, between the text demo and the shapes scene below --
+        // dropped from this particular build: its single heap allocation
+        // was competing with Screen.DrawBitmap's own new asm (~216
+        // bytes) for the same fixed, narrow budget between wherever
+        // compiled code ends and OBJ_TABLES_MAX_START/HEAP_LIMIT (asm/
+        // helper/objectTables.asm/fault.asm) -- confirmed via measure.bat
+        // (compiled code's own end address moved from $c6cc to $c7a4, so
+        // the object tables + heap's available room before the fixed
+        // $d000 ceiling shrank by that same ~216 bytes) and reproduced via
+        // VICE (a FAULT_OUT_OF_MEMORY crash, red border, right at `new
+        // RotatingCube()`, invisible on screen only because the fault
+        // message prints through the real KERNAL CHROUT while the VIC is
+        // still reading from the bitmap's own color matrix, not the text
+        // screen). Not a bug in DrawBitmap's own code -- just this
+        // scene's pre-existing heap pressure, resolved by not paying for
+        // both demos' heap needs in the same build.
         ball.Visible = false;
-        C64.Screen.SetScreenMode(ScreenMode.MultiColor);
-        C64.Screen.SetBackgroundColor(Colors.LightBlue);
-        C64.Screen.SetBitmapColors(0x12); // MatrixHigh=White(1), MatrixLow=Red(2)
-        // ColorRam ($D800, 1000 cells, one nibble each; FillMemory maxes at
-        // 256 bytes/call, hence 4 calls) -- LightGreen for the Z faces.
-        C64.FillMemory(0xD800UL, 0x0D, 250);
-        C64.FillMemory(0xD800UL + 250UL, 0x0D, 250);
-        C64.FillMemory(0xD800UL + 500UL, 0x0D, 250);
-        C64.FillMemory(0xD800UL + 750UL, 0x0D, 250);
 
-        // See RotatingCube.cs. Created with a plain `new` (no constructor
-        // body -- not supported, see OpNewObj) and set up via Init(). Run
-        // for a fixed number of steps (not forever, unlike before) -- this
-        // now leads into the multicolor shapes scene below.
-        var cube = new RotatingCube();
-        cube.Init();
-        for (uint step = 0; step < 60; step = step + 1)
-        {
-            cube.Step();
-        }
-
-        // A second multicolor scene: SetScreenMode(MultiColor) re-clears
-        // and reuses the exact same bitmap/color-matrix memory the cube
-        // above just used, so no separate mode-specific setup beyond the
-        // color sources below. All four BitmapColorSource values are set
-        // to different colors and drawn side by side, so each renders
-        // visibly distinct from the others -- Background is set to a
-        // color no other source uses, so its rectangle shows as a plain
-        // background-colored gap rather than invisible/blank.
+        // All four BitmapColorSource values are set to different colors
+        // and drawn side by side, so each renders visibly distinct from
+        // the others -- Background is set to a color no other source
+        // uses, so its rectangle shows as a plain background-colored gap
+        // rather than invisible/blank.
         C64.Screen.SetScreenMode(ScreenMode.MultiColor);
         C64.Screen.SetBackgroundColor(Colors.Black);
         // Video matrix: high nibble = MatrixHigh source, low nibble =
@@ -120,6 +106,16 @@ class Program
 
         C64.Screen.DrawLine(10, 100, 310, 140, true, BitmapColorSource.MatrixHigh);
         C64.Screen.DrawCircle(160, 160, 30, true, true, BitmapColorSource.ColorRam);
+
+        // Bitmap pipeline smoke test: a 16x16 hollow-square stencil
+        // (see Bitmaps.cs), drawn deliberately overlapping the solid
+        // white MatrixHigh rectangle above (90,20)-(150,80) -- if
+        // transparency were broken (the ring's "off" pixels clearing to
+        // Background instead of leaving the rectangle's fill alone), the
+        // ring's hole would render as a black square; if it works, the
+        // white fill shows through the hole and around the ring's edges,
+        // with only the ring's own outline drawn (in ColorRam -- green).
+        C64.Screen.DrawBitmap(104, 32, C64Address.FromLabel("bmp_Ring"), BitmapColorSource.ColorRam);
 
         for (;;)
         {

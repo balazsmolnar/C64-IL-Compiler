@@ -146,6 +146,27 @@ zp_gfx_trap_right_rem       = zp_gfx_cx_high       ; $17
 zp_gfx_trap_right_error     = zp_gfx_circle_d_low  ; $1C
 zp_gfx_trap_height          = zp_gfx_circle_d_high ; $1D  (y1-y0, cached before either division or the row loop)
 
+; Bitmap blit scratch (Bitmap_Blit_Core/Bitmap_WriteMaskByte in
+; asm/C64Graphics.asm): DrawLine's/DrawCircle's registers reused under new
+; names, same reasoning as the span/trapezoid scratch above -- Graphics_
+; ComputePixelPointer (the only thing Screen_DrawBitmap calls before
+; these take over) only touches zp_gfx_x_low/high/zp_gfx_y/zp_gfx_ptr_*,
+; none of which this block aliases, so there's no handoff conflict even
+; while that call is still in flight.
+zp_bmp_src_low             = zp_gfx_endx_low   ; $0A  compressed-stream read pointer
+zp_bmp_src_high            = zp_gfx_endx_high  ; $0B
+zp_bmp_bandBytes_low       = zp_gfx_endy       ; $0C  row-band reload value (= bitmap width, bytes)
+zp_bmp_bandBytes_high      = zp_gfx_endy_high  ; $0D
+zp_bmp_band_remaining_low  = zp_gfx_dx_low     ; $0E  bytes left in the current row-band
+zp_bmp_band_remaining_high = zp_gfx_dx_high    ; $0F
+zp_bmp_jump_low            = zp_gfx_dy         ; $10  320 - width (pointer step crossing a row-band)
+zp_bmp_jump_high           = zp_gfx_dy_high    ; $11
+zp_bmp_bytesLeft_low       = zp_gfx_sx         ; $12  total output bytes remaining (loop terminator)
+zp_bmp_bytesLeft_high      = zp_gfx_sy         ; $13
+zp_bmp_pattern             = zp_gfx_err_low    ; $14  mc_fill_pattern[colorSource], or $FF under hi-res
+zp_bmp_mask                = zp_gfx_err_high   ; $15  scratch: this byte's decompressed mask
+zp_bmp_scratch             = zp_gfx_cx_low     ; $16  scratch: (target AND NOT mask)
+
 ; NOT aliased to zp_gfx_radius: DrawCircle needs radius and filled live at
 ; the same time (unlike DrawRectangle, which has no radius), so this gets
 ; its own byte out of the $1e-$1f spare pair.

@@ -1,6 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <None Remove="Torch.aas" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Torch.aas" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\C64Lib\C64Lib.csproj" />
   </ItemGroup>
 

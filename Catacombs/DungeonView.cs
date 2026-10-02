@@ -66,6 +66,13 @@ static class DungeonView
     const ulong SouthDoorLeft = 140, SouthDoorRight = 180;
     const ulong SouthDoorTop = 194, SouthDoorBottom = 199;
 
+    // Two wall-mounted torches (see Bitmaps.cs/Torch.aas), flanking the
+    // north door on the far wall -- cell-aligned (both multiples of 8, per
+    // Screen.DrawBitmap's own caller contract) and positioned left of
+    // NorthDoorLeft (131) / right of NorthDoorRight (187) so they never
+    // overlap the door panel regardless of whether it's open or closed.
+    const ulong TorchLeftX = 96, TorchRightX = 216, TorchY = 56;
+
     // Where the player's/monster's/item's room-space position actually
     // ends up on screen is RoomProjection.cs's job, not this file's --
     // it mirrors this class's own FX0Near/FX1Near/FX0Far/FX1Far by hand
@@ -111,6 +118,10 @@ static class DungeonView
         // them; standing inside the room, there's nothing there to draw a
         // line on.
         DrawFrameOutline(FX0Far, FY0Far, FX1Far, FY1Far);
+
+        ulong torch = C64Address.FromLabel("bmp_Torch");
+        C64.Screen.DrawBitmap(TorchLeftX, TorchY, torch, BitmapColorSource.ColorRam);
+        C64.Screen.DrawBitmap(TorchRightX, TorchY, torch, BitmapColorSource.ColorRam);
 
         if (westOpen)
             DrawSideDoor(false);

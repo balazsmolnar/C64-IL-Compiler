@@ -64,6 +64,16 @@
             "program": "Demo"
         },
         {
+            // Same as "Debug Demo on VICE" above, but builds/debugs
+            // Hunchback/*.cs instead (asm/hunchback_debug/, prg/hunchback_debug.*
+            // -- a separate debug build from the normal asm/hunchback +
+            // prg/hunchback.prg, so this never touches that one).
+            "name": "Debug Hunchback on VICE",
+            "type": "c64vice",
+            "request": "launch",
+            "program": "Hunchback"
+        },
+        {
             // Runs every test in turn (fresh emulator per test, same as the
             // real suite), pausing only when one of them hits a breakpoint
             // you've set -- see vscode-extension/README.md.

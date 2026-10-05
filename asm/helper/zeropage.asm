@@ -383,6 +383,12 @@ PARTITION_HIGH_INDEX = zp_param3_high           ; quicksort/partition: scan-from
 PIVOT_LOW = zp_param4_high                      ; quicksort/partition: pivot object's heap address (low)
 PIVOT_HIGH = $3a                                ; quicksort/partition: pivot object's heap address (high) -- not part of the param bank, unclaimed elsewhere
 
+; The actual non-termination bug a zero-page-relocation test was run against
+; here (confirmed PIVOT_LOW/HIGH innocent -- moving them to $49/$4a changed
+; nothing) turned out to be in asm/helper/objectTables.asm: the object/GC
+; tables silently overlapping real VIC-II/SID/CIA I/O space ($d000-$dfff),
+; not zero-page sharing. See that file's own comment and commit history.
+
 HEAP_POINTER_COMPACTED_LOW = zp_param2_low      ; sweepAndCompact: running write cursor into the compacted heap
 HEAP_POINTER_COMPACTED_HIGH = zp_param2_high
 TMP = zp_param3_low                             ; sweepAndCompact: kept object's size, during its copy loop

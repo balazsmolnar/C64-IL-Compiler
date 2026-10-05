@@ -66,6 +66,18 @@ class PeepholeRule
         for (int k = 0; k < _matchers.Length; k++)
             window[k] = lines[i + k];
 
+        // Never synthesize a new operation out of a window that touches an
+        // inlined callee's own instructions (ILMethodInliningPass marks
+        // those via SourceMethod): whatever gets built here would resolve
+        // ConvertParameter/VarIndex against context.Method (the CALLER), not
+        // the callee the window's instructions actually belong to -- see
+        // ILMethodInliningPass's "VarIndex hazard" comment. Centralizing the
+        // check here, once, protects every PeepholeOptimizerPass subclass
+        // without each one needing its own guard.
+        for (int k = 0; k < window.Length; k++)
+            if (window[k].SourceMethod != null)
+                return false;
+
         if (_guard != null && !_guard(context, window))
             return false;
 

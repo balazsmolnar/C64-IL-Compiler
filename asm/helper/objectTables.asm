@@ -48,7 +48,25 @@
 ; asm/helper/floatBanking.asm's bank_out_basic_rom using $06, not a value
 ; that also clears HIRAM), but the real fix, once available headroom is
 ; gone, is to shrink the compiled program.
-.cerror * >= OBJ_TABLES_MAX_START, "Compiled program is too large: the object/GC tables (2048 bytes) plus tostring_buffer/stringops_buffer/heap can no longer fit before OBJ_TABLES_MAX_START without silently aliasing already-assembled code. Raise OBJ_TABLES_MAX_START/OBJ_TABLES_FALLBACK in the entry template (checking headroom against the next fixed boundary), or shrink the program."
+;
+; The check itself moved below (see the one right before .endv): checking
+; `*` HERE only verifies the block's own STARTING address, never where it
+; ENDS -- and this block is 2104 bytes wide (every .fill below, not just
+; the "2048 bytes" the message names), while OBJ_TABLES_MAX_START ($d000)
+; is the floor of real VIC-II/SID/CIA I/O space, not a soft "probably fine"
+; marker. A block that starts safely below $d000 can -- and, once
+; Test/*.cs's unittest.asm grew enough, routinely does -- still run past
+; it: with objTableLow starting at $ce8b (just 365 bytes of headroom) and
+; this block needing 2104, every table here already overlaps $d000-$dfff
+; by construction, regardless of program size elsewhere. On real hardware
+; (CHAREN is always 1 in this project) that range is never plain RAM --
+; it's live VIC-II/SID/CIA registers -- so any object id whose table
+; entry lands past $d000 (id >= ~117 here) reads/writes a HARDWARE
+; REGISTER instead of its own data. Confirmed via SimpleEmulator's own
+; (accurate) raster-line simulation at $d012 making a GC quicksort compare
+; a value against itself and get "not equal" -- not a quicksort bug, not
+; an emulator bug: objTableHigh[135] really is $d012 in this build, and
+; reads of it never return the same thing twice.
 
 .virtual *
 objTableLow         .fill 256
@@ -87,4 +105,11 @@ tostring_buffer     .fill 16
 stringops_buffer    .fill 40
 
 heap
+; THE real check: `heap`'s own address is exactly "where this virtual
+; block ends" (every .fill above it, in order), so checking IT against
+; OBJ_TABLES_MAX_START verifies the block's full 2104-byte extent, not
+; just its starting point -- see this file's own top-of-file comment for
+; why checking `*` before `.virtual` instead (the original version of this
+; check) missed exactly the failure this exists to catch.
+.cerror heap >= OBJ_TABLES_MAX_START, "Compiled program is too large: the object/GC tables + localsStack + tostring_buffer/stringops_buffer (2104 bytes) can no longer fit before OBJ_TABLES_MAX_START without overlapping real VIC-II/SID/CIA I/O space ($d000-$dfff on real hardware, CHAREN=1). Raise OBJ_TABLES_MAX_START/OBJ_TABLES_FALLBACK in the entry template (checking headroom against the next fixed boundary), or shrink the program."
 .endv

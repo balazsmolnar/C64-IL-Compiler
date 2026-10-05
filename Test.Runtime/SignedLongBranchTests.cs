@@ -1,7 +1,7 @@
 using NUnit.Framework;
 using Assert = C64TestFramework.Assert;
 
-namespace Compiler.Test;
+namespace Compiler.RuntimeTest;
 
 // Exercises the 16-bit SIGNED relational branch macros just added to
 // asm/helper/branch.asm (branch_less16/branch_less_equal16/
@@ -14,6 +14,9 @@ namespace Compiler.Test;
 // Every case uses `if (a OP b) ... else Assert.Fail();` (or the reverse),
 // same style as BranchTest.cs, rather than TestCase/ExpectedResult, since
 // what's under test is which way the branch goes, not a computed value.
+// Moved here (from Test/) to make room in Test's own program, which was
+// already past its $d000 headroom ceiling before this -- see the
+// objectTables.asm boundary-check fix and commit history around it.
 [TestFixture]
 public class SignedLongBranchTests
 {

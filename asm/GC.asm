@@ -125,20 +125,47 @@ start:                 ; start main loop
     jsr partition       ; partition, partition index in X
     ; if parition_index > low_index
     ; push (low_index, partition_index)
+    ;
+    ; partition_index (X) can legitimately come back as LOW_INDEX-1, not
+    ; just LOW_INDEX -- that's what "everything in this range already
+    ; belongs on or after the pivot" looks like (e.g. the pivot itself was
+    ; the smallest element seen). The original `cpx LOW_INDEX; beq +` only
+    ; skipped the push on EXACT equality, so that X==LOW_INDEX-1 case fell
+    ; through and pushed the INVERTED, empty range [LOW_INDEX, LOW_INDEX-1]
+    ; -- start: would later pull that same range back off the stack, call
+    ; partition on it again, and (partition's own pivot-index math having
+    ; no defined behavior for LOW>HIGH) typically get the same degenerate
+    ; X back, re-pushing the identical invalid range forever: an infinite
+    ; loop with no progress, confirmed via SimpleEmulator (stuck cycling
+    ; LOW_INDEX=2/HIGH_INDEX=1 for 30M+ steps, found while root-causing a
+    ; hang in Test/GCTest.cs's Sustained_Allocate_And_Collect_Reclaims_Slots
+    ; -- that test doesn't even touch this file, it just happened to be the
+    ; first live-object/address combination that hit this latent bug).
+    ; `bcc` (branch if X < LOW_INDEX, i.e. the comparison borrowed) added
+    ; right after the existing equality check closes the gap: skip the push
+    ; whenever X <= LOW_INDEX, matching the comment's own intent ("> low_index").
     cpx LOW_INDEX
     beq +
+    bcc +
     lda LOW_INDEX
     pha
     txa
     pha
 +
-    ; if parition_index+1 < high_index 
+    ; if parition_index+1 < high_index
     ; push (partition_index+1, high_index)
+    ;
+    ; Symmetric case: partition_index (X) can legitimately come back as
+    ; HIGH_INDEX (everything already belongs on or before the pivot), making
+    ; X+1 == HIGH_INDEX+1, i.e. ONE PAST high_index -- the mirror image of
+    ; the left-side bug above, same reasoning, same fix shape (`bcs`, branch
+    ; if X+1 >= HIGH_INDEX, right after the existing equality check).
     inx
     txa
     beq start
     cmp HIGH_INDEX
     beq start
+    bcs start
     pha
     lda HIGH_INDEX
     pha

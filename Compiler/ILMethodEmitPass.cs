@@ -20,6 +20,16 @@ class ILMethodEmitPass : ICompilerMethodPass
         if (context.Method.DeclaringType != context.TypeContext.Type)
             return;
 
+        // ILCallSiteCountPass already decided every reference to this
+        // method got spliced in directly (ILMethodInliningPass did that
+        // splicing back in the setup group) and that nothing else needs the
+        // real subroutine (MandatoryStandalone doesn't apply) -- nothing
+        // jsr's into a standalone copy of it anymore, so emitting one here
+        // would just silently DUPLICATE its code instead of relocating it.
+        // See DeleteStandaloneDefinition's own comment.
+        if (context.CompilerContext.DeleteStandaloneDefinition.Contains(context.Method))
+            return;
+
         var output = context.TypeContext.OutputFile;
         output.WriteLine("");
         output.WriteLine("");
@@ -36,28 +46,7 @@ class ILMethodEmitPass : ICompilerMethodPass
         }
 
         string outputLine;
-        var ref_params = new List<string>();
-        foreach (var param in context.Method.GetParameters().Reverse())
-        {
-            if (param.ParameterType.IsReferenceCounted())
-            {
-                // A reference is always a single 1-byte object-table handle,
-                // regardless of the referenced object's own size.
-                ref_params.Add("1");
-            }
-            else
-            {
-                // One "not a ref" marker per storage byte -- generalizes the
-                // old 1-byte/2-byte-only "0" / "0, 0" split to any width
-                // (needed for float's 5-byte MFLPT storage; every byte of a
-                // value type is equally never GC-tracked).
-                ref_params.Add(string.Join(", ", Enumerable.Repeat("0", param.ParameterType.GetStorageBytes())));
-            }
-        }
-        if (!context.Method.IsStatic)
-        {
-            ref_params.Add("0");
-        }
+        var ref_params = context.Method.GetParameterRefList();
 
         outputLine = $"    #init_locals_pull_parameters {context.GetLocalsSize()}, [{string.Join(',', ref_params)}]";
         output.WriteLine(outputLine);

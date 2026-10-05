@@ -62,6 +62,14 @@ class Program
             };
             var passes = new List<ICompilerPass> {
                 new ILRawAssemblyPass(),
+                // Whole-program pre-pass, must run before ILCodePass's own
+                // method loop starts: ILMethodInliningPass (inside that loop)
+                // needs a COMPLETE per-callee call-site count while still
+                // processing the very first caller, and ILCodePass's own
+                // method-enumeration order doesn't guarantee every caller is
+                // visited before a method it calls -- see
+                // ILCallSiteCountPass's own comment.
+                new ILCallSiteCountPass(),
                 new ILCodePass(
                     new ICompilerTypePass[] {
                         new ILTypeStaticFieldInitPass(),
@@ -69,6 +77,15 @@ class Program
                     },
                     new ICompilerMethodPass[] {
                         new ILMethodCodePass(),
+                        // PROTOTYPE, Phase 1 (see the approved plan): splices a
+                        // single-call-site leaf callee's own body directly into
+                        // its one Call site, in place of jsr/rts. Must run
+                        // before ILMethodPromoteLocalsPass -- a caller that
+                        // loses its only Call to inlining can retroactively
+                        // qualify as a leaf for that pass too. See
+                        // ILMethodInliningPass's own comment for the full
+                        // eligibility/splicing story.
+                        new ILMethodInliningPass(),
                         // PROTOTYPE: promotes eligible locals of leaf methods into
                         // zero-page bytes -- see ILMethodPromoteLocalsPass and
                         // zp_local0's comment in asm/helper/zeropage.asm. Narrower

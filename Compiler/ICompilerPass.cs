@@ -16,6 +16,55 @@ class CompilerContext
 
     public string OutputDirectory { get; set; }
 
+    // Populated once, by ILCallSiteCountPass, before ILCodePass even starts
+    // (a real whole-program pre-pass, not a per-method setup pass -- see its
+    // own comment for why: ILMethodInliningPass needs a COMPLETE count while
+    // still processing the very first caller, and ILCodePass's own
+    // method-enumeration order isn't guaranteed to visit every caller of a
+    // given method before that method itself gets processed).
+    //
+    // Call sites PLUS Callvirt sites where MethodBaseExtension.
+    // IsDevirtualizable is true -- both are mechanically identical once
+    // devirtualized (OpCallVirt.Emit already falls through to a plain `jsr`
+    // for exactly these, see that method), so they're counted together as
+    // "could this call site be inlined". A Callvirt site that is NOT
+    // devirtualizable (real dynamic dispatch) never enters this count at
+    // all -- see MandatoryStandalone below, which is where that distinction
+    // actually matters.
+    public Dictionary<MethodBase, int> InlinableSiteCounts { get; } = new Dictionary<MethodBase, int>();
+
+    // Methods whose standalone definition can NEVER be deleted, regardless
+    // of InlinableSiteCounts -- something else needs the real, jsr-able
+    // subroutine to keep existing:
+    //   - any Ldftn reference anywhere (a delegate target -- construction
+    //     needs a real function pointer);
+    //   - any Callvirt reference that is NOT devirtualizable (genuine
+    //     dynamic dispatch through a vtable slot).
+    // A method here can still have its OTHER (inlinable) call sites
+    // spliced via InlineCandidates below -- this only blocks deleting the
+    // original, never blocks inlining elsewhere.
+    public HashSet<MethodBase> MandatoryStandalone { get; } = new HashSet<MethodBase>();
+
+    // Decided by ILCallSiteCountPass: a method is a key here iff its call
+    // sites should be spliced in -- either because the size/count math in
+    // that pass says the aggregate is a net win, or because
+    // [MethodImpl(MethodImplOptions.AggressiveInlining)] forces it
+    // regardless. ILMethodInliningPass splices the already-decoded
+    // List<ILOperation> value in here into EVERY one of the method's
+    // inlinable (Call or devirtualizable-Callvirt) sites -- cloned fresh
+    // per site, never the same ILOperation instances reused twice, since
+    // (unlike single-call-site Phase 1) the same cached body can now be
+    // spliced more than once.
+    public Dictionary<MethodBase, List<ILOperation>> InlineCandidates { get; } = new Dictionary<MethodBase, List<ILOperation>>();
+
+    // Subset of InlineCandidates.Keys: methods whose standalone definition
+    // ILMethodEmitPass should actually skip emitting (every one of its
+    // references got inlined, and MandatoryStandalone doesn't apply) --
+    // see InlineCandidates above for why those two questions are no longer
+    // the same question now that a method can have some call sites
+    // inlined while others still need the real subroutine.
+    public HashSet<MethodBase> DeleteStandaloneDefinition { get; } = new HashSet<MethodBase>();
+
     // Every "this C# construct isn't supported" problem found while compiling,
     // collected per method (ILCodePass) so one build reports all of them, with
     // source lines from the PDB when there is one.
@@ -117,9 +166,19 @@ class CompilerMethodContext
         return relPos;
     }
 
-    public Type GetLocalVariableType(int index)
+    public Type GetLocalVariableType(int index) => GetLocalVariableType(Method, index);
+
+    // sourceMethod: the method that actually declares local #index --
+    // defaults to Method (this context's own method, the normal case for
+    // every line that isn't part of an ILMethodInliningPass splice). Needed
+    // because this is called again, after decode, by SetStackContent/
+    // Is16Bit/SizeSuffix (OpLdloc/OpLdloc_s) against the one shared
+    // (caller's) context -- an inlined callee's local #index must resolve
+    // against the CALLEE's own locals, never the caller's (see
+    // ILMethodInliningPass's "VarIndex hazard" comment).
+    public Type GetLocalVariableType(MethodBase sourceMethod, int index)
     {
-        var body = Method.GetMethodBody();
+        var body = sourceMethod.GetMethodBody();
         var variables = body.LocalVariables;
         return variables[index].LocalType;
     }
@@ -144,10 +203,15 @@ class CompilerMethodContext
         return relPos;
     }
 
-    public Type GetParameterType(int index)
+    public Type GetParameterType(int index) => GetParameterType(Method, index);
+
+    // sourceMethod: see GetLocalVariableType's own comment -- same reason,
+    // consulted again after decode (SetStackContent/Is16Bit/SizeSuffix on
+    // OpLdarg/OpLdarg_s/OpStarg_s) against the shared caller context.
+    public Type GetParameterType(MethodBase sourceMethod, int index)
     {
-        var parameters = Method.GetParameters();
-        bool isInstance = !Method.IsStatic;
+        var parameters = sourceMethod.GetParameters();
+        bool isInstance = !sourceMethod.IsStatic;
 
         if (isInstance && index == 0)
             return typeof(object);
@@ -166,10 +230,13 @@ class CompilerMethodContext
         return relPos + 2;
     }
 
-    public int GetParameterSize(int index)
+    public int GetParameterSize(int index) => GetParameterSize(Method, index);
+
+    // sourceMethod: see GetLocalVariableType's own comment.
+    public int GetParameterSize(MethodBase sourceMethod, int index)
     {
-        var parameters = Method.GetParameters();
-        bool isInstance = !Method.IsStatic;
+        var parameters = sourceMethod.GetParameters();
+        bool isInstance = !sourceMethod.IsStatic;
 
         if (isInstance && index == 0)
             return 1;
@@ -200,6 +267,15 @@ class CompilerMethodContext
 
     public string PromotedLocalSlot(int varIndex) =>
         PromotedLocals.TryGetValue(varIndex, out var slot) ? slot : null;
+
+    // sourceMethod: null means "this line belongs to the method actually
+    // being compiled" (the normal case) -- non-null means it was spliced in
+    // by ILMethodInliningPass, in which case varIndex is the CALLEE's own
+    // local index, never this (the caller's) PromotedLocals map's. An
+    // inlined local is never promoted in this phase, full stop -- see
+    // ILMethodInliningPass's "VarIndex hazard" comment.
+    public string PromotedLocalSlot(MethodBase sourceMethod, int varIndex) =>
+        sourceMethod == null ? PromotedLocalSlot(varIndex) : null;
 }
 
 interface ICompilerPass

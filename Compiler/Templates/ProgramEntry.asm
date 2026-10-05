@@ -19,11 +19,17 @@
 ; Banks out BASIC ROM -- safe here since the BASIC stub's SYS line has
 ; already done its one job of jumping into machine code, and gives
 ; objectTables.asm real RAM all the way to $d000 (I/O) instead of
-; stopping at BASIC ROM ($a000). $c800 = $d000-$0800, exactly enough
-; headroom for the full 2048-byte table block.
+; stopping at BASIC ROM ($a000). $d000 is the real floor itself --
+; objectTables.asm's own .cerror checks the table block's END against
+; this value directly, so no pre-baked headroom subtraction belongs here
+; (a stale $c800 = "$d000 minus the 2048-byte block" value used to be
+; correct back when the check only looked at the block's START; once it
+; moved to checking the END, leaving this at $c800 silently cost every
+; program built from this template ~2048 bytes of perfectly safe RAM it
+; never needed to give up -- matches what UnitTestEntry.asm already does).
 #disable_basic_rom
-OBJ_TABLES_MAX_START = $c800
-OBJ_TABLES_FALLBACK = $c800
+OBJ_TABLES_MAX_START = $d000
+OBJ_TABLES_FALLBACK = $d000
 
 ; Object allocation must stay below $d000 (I/O) -- see asm/helper/fault.asm's
 ; Runtime_CheckHeapRoom.

@@ -13,7 +13,23 @@ class ILMethodCodePass : ICompilerMethodPass
             return;
 
         CheckDeclaration(context);
+        Decode(context);
+    }
 
+    // Decodes context.Method's raw IL into context.Lines. Factored out of
+    // Execute so ILMethodInliningPass can decode a CANDIDATE CALLEE in
+    // isolation (via its own throwaway CompilerMethodContext, Method = that
+    // callee) independent of ILCodePass's own method-enumeration order --
+    // see that pass's own comment for why it can't just read another
+    // method's context.Lines off CompilerContext.Methods. Every opcode's
+    // ConvertParameter (called below) either only touches
+    // context.CompilerContext.Assembly or stores a raw index/offset -- never
+    // anything that depends on where the resulting ILOperation ends up
+    // later -- so this produces a correct, self-contained List<ILOperation>
+    // for whatever Method the passed-in context names, regardless of
+    // whether that method is the one actually being compiled right now.
+    public static void Decode(CompilerMethodContext context)
+    {
         var body = context.Method.GetMethodBody();
         var input = body.GetILAsByteArray();
         var lines = new List<ILOperation>();

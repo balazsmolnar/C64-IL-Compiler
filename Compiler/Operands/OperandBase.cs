@@ -249,20 +249,12 @@ class OpCall : OpBase
 
 class OpCallVirt : OpCall
 {
-    // Keyed by (call site's static receiver type, method name) -- this compiler's
-    // own vtable (TypeExtensions.GetVirtualMethodIndex/GetVirtualMethods) already
-    // resolves overrides by name only, not full signature, so this check matches
-    // that same (name-only) notion of "override" for consistency, rather than a
-    // stricter one that could disagree with it.
-    private readonly Dictionary<(Type, string), bool> _overriddenAnywhereCache = new();
-
     public OpCallVirt()
     {
     }
 
     public override string Emit(CompilerMethodContext context, ILOperation operation)
     {
-        bool normalCall = false;
         var methodInfo = context.CompilerContext.Assembly.ManifestModule.ResolveMethod((int)operation.OriginalParameter);
 
         // The vtable slot below is looked up by the method's position among
@@ -282,21 +274,13 @@ class OpCallVirt : OpCall
             throw new UnsupportedFeatureException(DiagnosticCodes.UnsupportedCall,
                 $"Invoking the delegate type '{methodInfo.DeclaringType.Name}' is not supported.",
                 "Only Func<TResult> (no parameters) can be invoked. Other delegate types can only be assigned to C64.Interrupt.");
-        // for Func<>
-        if (!methodInfo.IsVirtual || methodInfo.ReflectedType.Name.StartsWith("Func"))
-            normalCall = true;
-        else if (!methodInfo.IsAbstract && !IsOverriddenAnywhere(context.CompilerContext.Assembly, methodInfo.ReflectedType, methodInfo.Name))
-            // Closed-world devirtualization: a general JIT has to stay conservative
-            // here, since code can still load dynamically after it decides. This
-            // compiler never has that problem -- the entire program is one already-
-            // fully-loaded assembly by the time any of it is compiled, so "nothing
-            // anywhere overrides this" is a permanent fact, not just true so far.
-            // (methodInfo.IsAbstract is excluded because it never has a body of its
-            // own to jump to -- true regardless of overrides, and if it somehow had
-            // none, the vtable slot it'd otherwise use would be equally meaningless.)
-            normalCall = true;
 
-        if (normalCall)
+        // IsDevirtualizable (MethodBaseExtensions.cs) re-derives the same two
+        // checks above (returning false, not true, for either) plus the real
+        // devirtualization question -- ILCallSiteCountPass calls the exact
+        // same method to decide whether this call site is also inlinable,
+        // so this has to stay the single source of truth for both.
+        if (methodInfo.IsDevirtualizable(context.CompilerContext.Assembly))
             return base.Emit(context, operation);
 
         var index = methodInfo.ReflectedType.GetVirtualMethodIndex(methodInfo);
@@ -304,30 +288,6 @@ class OpCallVirt : OpCall
         if (index == -1)
             throw new InvalidOperationException($"Virtual method not found: {methodInfo.Name}. Type: {methodInfo.ReflectedType.Name}");
         return $"#callVirt {index}, {stackPosition}";
-    }
-
-    private bool IsOverriddenAnywhere(Assembly assembly, Type declaringType, string methodName)
-    {
-        var key = (declaringType, methodName);
-        if (_overriddenAnywhereCache.TryGetValue(key, out var cached))
-            return cached;
-
-        bool overridden = false;
-        foreach (var candidateType in assembly.GetTypes())
-        {
-            if (candidateType == declaringType || !declaringType.IsAssignableFrom(candidateType))
-                continue;
-
-            var methods = candidateType.GetMethods(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.DeclaredOnly);
-            if (methods.Any(m => m.IsVirtual && m.Name == methodName))
-            {
-                overridden = true;
-                break;
-            }
-        }
-
-        _overriddenAnywhereCache[key] = overridden;
-        return overridden;
     }
 }
 
@@ -1038,19 +998,19 @@ class OpLdloc : OpPushBase
 
     public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
     {
-        operation.StackContent.Add(context.GetLocalVariableType(VarIndex));
+        operation.StackContent.Add(context.GetLocalVariableType(operation.SourceMethod ?? context.Method, VarIndex));
     }
 
     public override bool Is16BitSupported => true;
 
     public override bool Is16Bit(CompilerMethodContext context, ILOperation operation)
     {
-        return context.GetLocalVariableType(VarIndex).GetStorageBytes() == 2;
+        return context.GetLocalVariableType(operation.SourceMethod ?? context.Method, VarIndex).GetStorageBytes() == 2;
     }
 
     protected override string SizeSuffix(CompilerMethodContext context, ILOperation operation)
     {
-        if (context.GetLocalVariableType(VarIndex) == typeof(float))
+        if (context.GetLocalVariableType(operation.SourceMethod ?? context.Method, VarIndex) == typeof(float))
             return "flt";
         return base.SizeSuffix(context, operation);
     }
@@ -1060,7 +1020,7 @@ class OpLdloc : OpPushBase
     // never needs a 16-bit/float variant the way #locals_push_value* does.
     public override string Emit(CompilerMethodContext context, ILOperation operation)
     {
-        var slot = context.PromotedLocalSlot(VarIndex);
+        var slot = context.PromotedLocalSlot(operation.SourceMethod, VarIndex);
         if (slot != null)
             return $"#zp_push_value8 {slot}";
         return base.Emit(context, operation);
@@ -1082,19 +1042,19 @@ class OpLdloc_s : OpPushBase
 
     public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
     {
-        operation.StackContent.Add(context.GetLocalVariableType((int)operation.OriginalParameter));
+        operation.StackContent.Add(context.GetLocalVariableType(operation.SourceMethod ?? context.Method, (int)operation.OriginalParameter));
     }
 
     public override bool Is16BitSupported => true;
 
     public override bool Is16Bit(CompilerMethodContext context, ILOperation operation)
     {
-        return context.GetLocalVariableType((int)operation.OriginalParameter).GetStorageBytes() == 2;
+        return context.GetLocalVariableType(operation.SourceMethod ?? context.Method, (int)operation.OriginalParameter).GetStorageBytes() == 2;
     }
 
     protected override string SizeSuffix(CompilerMethodContext context, ILOperation operation)
     {
-        if (context.GetLocalVariableType((int)operation.OriginalParameter) == typeof(float))
+        if (context.GetLocalVariableType(operation.SourceMethod ?? context.Method, (int)operation.OriginalParameter) == typeof(float))
             return "flt";
         return base.SizeSuffix(context, operation);
     }
@@ -1102,7 +1062,7 @@ class OpLdloc_s : OpPushBase
     // PROTOTYPE, see OpLdloc's own copy of this comment.
     public override string Emit(CompilerMethodContext context, ILOperation operation)
     {
-        var slot = context.PromotedLocalSlot((int)operation.OriginalParameter);
+        var slot = context.PromotedLocalSlot(operation.SourceMethod, (int)operation.OriginalParameter);
         if (slot != null)
             return $"#zp_push_value8 {slot}";
         return base.Emit(context, operation);
@@ -1125,7 +1085,7 @@ class OpLdarg : OpPushBase
 
     public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
     {
-        operation.StackContent.Add(context.GetParameterType((int)_argIndex));
+        operation.StackContent.Add(context.GetParameterType(operation.SourceMethod ?? context.Method, (int)_argIndex));
     }
 
 
@@ -1133,12 +1093,12 @@ class OpLdarg : OpPushBase
 
     public override bool Is16Bit(CompilerMethodContext context, ILOperation operation)
     {
-        return context.GetParameterSize(_argIndex) == 2;
+        return context.GetParameterSize(operation.SourceMethod ?? context.Method, _argIndex) == 2;
     }
 
     protected override string SizeSuffix(CompilerMethodContext context, ILOperation operation)
     {
-        if (context.GetParameterType(_argIndex) == typeof(float))
+        if (context.GetParameterType(operation.SourceMethod ?? context.Method, _argIndex) == typeof(float))
             return "flt";
         return base.SizeSuffix(context, operation);
     }
@@ -1168,19 +1128,19 @@ class OpLdarg_s : OpPushBase
 
     public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
     {
-        operation.StackContent.Add(context.GetParameterType(ArgIndex(operation)));
+        operation.StackContent.Add(context.GetParameterType(operation.SourceMethod ?? context.Method, ArgIndex(operation)));
     }
 
     public override bool Is16BitSupported => true;
 
     public override bool Is16Bit(CompilerMethodContext context, ILOperation operation)
     {
-        return context.GetParameterSize(ArgIndex(operation)) == 2;
+        return context.GetParameterSize(operation.SourceMethod ?? context.Method, ArgIndex(operation)) == 2;
     }
 
     protected override string SizeSuffix(CompilerMethodContext context, ILOperation operation)
     {
-        if (context.GetParameterType(ArgIndex(operation)) == typeof(float))
+        if (context.GetParameterType(operation.SourceMethod ?? context.Method, ArgIndex(operation)) == typeof(float))
             return "flt";
         return base.SizeSuffix(context, operation);
     }
@@ -1305,11 +1265,11 @@ class OpLdnull : OpPushBase
                 // exactly that width, regardless of what follows Ldftn.
                 return 1;
             case OpStloc stloc:
-                return context.GetLocalVariableType(stloc.VarIndex).GetStorageBytes();
+                return context.GetLocalVariableType(next.SourceMethod ?? context.Method, stloc.VarIndex).GetStorageBytes();
             case OpStloc_s:
-                return context.GetLocalVariableType((int)next.OriginalParameter).GetStorageBytes();
+                return context.GetLocalVariableType(next.SourceMethod ?? context.Method, (int)next.OriginalParameter).GetStorageBytes();
             case OpStarg_s:
-                return context.GetParameterType((int)next.OriginalParameter).GetStorageBytes();
+                return context.GetParameterType(next.SourceMethod ?? context.Method, (int)next.OriginalParameter).GetStorageBytes();
             case OpStfld:
                 {
                     var field = context.CompilerContext.Assembly.ManifestModule.ResolveField((int)next.OriginalParameter);
@@ -1417,7 +1377,7 @@ class OpStloc : OpBase
     public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
     {
         var last = operation.StackContent.Last();
-        last.CheckCompatible(context.GetLocalVariableType(VarIndex));
+        last.CheckCompatible(context.GetLocalVariableType(operation.SourceMethod ?? context.Method, VarIndex));
         operation.StackContent.RemoveLast(1);
     }
 
@@ -1425,12 +1385,12 @@ class OpStloc : OpBase
 
     public override bool Is16Bit(CompilerMethodContext context, ILOperation operation)
     {
-        return context.GetLocalVariableType(VarIndex).GetStorageBytes() == 2;
+        return context.GetLocalVariableType(operation.SourceMethod ?? context.Method, VarIndex).GetStorageBytes() == 2;
     }
 
     protected override string SizeSuffix(CompilerMethodContext context, ILOperation operation)
     {
-        if (context.GetLocalVariableType(VarIndex) == typeof(float))
+        if (context.GetLocalVariableType(operation.SourceMethod ?? context.Method, VarIndex) == typeof(float))
             return "flt";
         return base.SizeSuffix(context, operation);
     }
@@ -1440,7 +1400,7 @@ class OpStloc : OpBase
     // every reference-counted type).
     public override string Emit(CompilerMethodContext context, ILOperation operation)
     {
-        var slot = context.PromotedLocalSlot(VarIndex);
+        var slot = context.PromotedLocalSlot(operation.SourceMethod, VarIndex);
         if (slot != null)
             return $"#zp_pull_value8 {slot}";
         return base.Emit(context, operation);
@@ -1510,7 +1470,7 @@ class OpStarg_s : OpBase
 
     public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
     {
-        operation.StackContent.Last().CheckCompatible(context.GetParameterType(ArgIndex(operation)));
+        operation.StackContent.Last().CheckCompatible(context.GetParameterType(operation.SourceMethod ?? context.Method, ArgIndex(operation)));
         operation.StackContent.RemoveLast(1);
     }
 
@@ -1518,12 +1478,12 @@ class OpStarg_s : OpBase
 
     public override bool Is16Bit(CompilerMethodContext context, ILOperation operation)
     {
-        return context.GetParameterSize(ArgIndex(operation)) == 2;
+        return context.GetParameterSize(operation.SourceMethod ?? context.Method, ArgIndex(operation)) == 2;
     }
 
     protected override string SizeSuffix(CompilerMethodContext context, ILOperation operation)
     {
-        if (context.GetParameterType(ArgIndex(operation)) == typeof(float))
+        if (context.GetParameterType(operation.SourceMethod ?? context.Method, ArgIndex(operation)) == typeof(float))
             return "flt";
         return base.SizeSuffix(context, operation);
     }
@@ -1553,12 +1513,12 @@ class OpStloc_s : OpBase
 
     public override bool Is16Bit(CompilerMethodContext context, ILOperation operation)
     {
-        return context.GetLocalVariableType((int)operation.OriginalParameter).GetStorageBytes() == 2;
+        return context.GetLocalVariableType(operation.SourceMethod ?? context.Method, (int)operation.OriginalParameter).GetStorageBytes() == 2;
     }
 
     protected override string SizeSuffix(CompilerMethodContext context, ILOperation operation)
     {
-        if (context.GetLocalVariableType((int)operation.OriginalParameter) == typeof(float))
+        if (context.GetLocalVariableType(operation.SourceMethod ?? context.Method, (int)operation.OriginalParameter) == typeof(float))
             return "flt";
         return base.SizeSuffix(context, operation);
     }
@@ -1566,7 +1526,7 @@ class OpStloc_s : OpBase
     // PROTOTYPE, see OpStloc's own copy of this comment.
     public override string Emit(CompilerMethodContext context, ILOperation operation)
     {
-        var slot = context.PromotedLocalSlot((int)operation.OriginalParameter);
+        var slot = context.PromotedLocalSlot(operation.SourceMethod, (int)operation.OriginalParameter);
         if (slot != null)
             return $"#zp_pull_value8 {slot}";
         return base.Emit(context, operation);

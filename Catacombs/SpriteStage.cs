@@ -48,7 +48,9 @@ static class SpriteStage
             return C64.Sprites.Sprite0;
         if (slot == 1)
             return C64.Sprites.Sprite1;
-        return C64.Sprites.Sprite2;
+        if (slot == 2)
+            return C64.Sprites.Sprite2;
+        return C64.Sprites.Sprite3; // slot 3: Monster's patrol sprite (see Monster.Animate) -- not part of the 0/1/2 z-order rotation above
     }
 
     // FillMemory writes offsets 1..size of its target (its loop never

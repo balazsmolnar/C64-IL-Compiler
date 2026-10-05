@@ -17,14 +17,16 @@ class Program
     // this code ever computing that drift itself).
     static uint roomX_, roomDepth_;
     static uint playerHp_;
+    static uint playerDamage_; // set in Main()/PlayerDied(), raised by Weapon.DamageAt on pickup
     const uint PlayerMaxHp = 100;
+    const uint UnarmedDamage = 6;
     const uint Speed = 4;
 
     // Cached once per room entry (EnterRoom) instead of recomputed every
     // frame -- HandleInput just reads these. Compass-absolute, matching
     // DungeonView's own fixed north-up orientation.
     static bool westOpen_, eastOpen_, northOpen_, southOpen_;
-    static bool monsterHere_, itemHere_;
+    static bool monsterHere_, itemHere_, weaponHere_;
 
     // The current room's own color (set by ApplyRoomColor) -- kept around
     // so UpdateCollision can restore the border to it after a collision
@@ -42,6 +44,7 @@ class Program
         px_ = 1;
         py_ = 1;
         playerHp_ = PlayerMaxHp;
+        playerDamage_ = UnarmedDamage;
 
         // MultiColor (not plain Bitmap) so doors can be a color distinct
         // from the lines: MatrixHigh=White (wall/outline lines),
@@ -62,6 +65,7 @@ class Program
         Spider.SetRoomColor(Maze.RoomColorValue(px_, py_));
         Monster.Init();
         Item.Init();
+        Weapon.Init();
         SpriteStage.Init();
 
         roomX_ = RoomProjection.Center;
@@ -74,8 +78,9 @@ class Program
         {
             C64.Screen.WaitForVBlank();
             Spider.Animate();
+            Monster.Animate(px_, py_);
             UpdateZOrder();
-            UpdateCollision();
+            UpdateBorderCue();
             HandleInput();
         }
     }
@@ -89,16 +94,24 @@ class Program
         Spider.SetRoomColor(Maze.RoomColorValue(px_, py_));
     }
 
-    // Player-vs-spider collision, checked every frame regardless of
-    // whether the player moved this frame (the spiders move on their own).
-    // See Spider.IsCollidingWith's own comment for why this is calculated
-    // in screen-space rather than trusting VIC-II hardware sprite
-    // collision. The border is the feedback channel: red while touching a
-    // spider, back to the room's own color the instant it isn't.
-    static void UpdateCollision()
+    // Border is the feedback channel for two things, checked every frame
+    // regardless of whether the player moved this frame (the spiders move
+    // on their own, and standing still at a door should still show the
+    // cue): red while touching a spider (danger -- see Spider.
+    // IsCollidingWith's own comment for why this is calculated in
+    // screen-space rather than trusting VIC-II hardware sprite collision),
+    // green while standing at an open door (AtDoor -- "press SPACE"),
+    // back to the room's own color otherwise. Collision takes priority
+    // over the door cue if somehow both were ever true at once.
+    static void UpdateBorderCue()
     {
         bool colliding = Spider.IsCollidingWith(PlayerSprite.X, PlayerSprite.BitmapY, SpiderCollisionRadius);
-        C64.Screen.SetBorderColor(colliding ? Colors.Red : roomColor_);
+        if (colliding)
+            C64.Screen.SetBorderColor(Colors.Red);
+        else if (AtDoor())
+            C64.Screen.SetBorderColor(Colors.Green);
+        else
+            C64.Screen.SetBorderColor(roomColor_);
     }
 
     // Re-ranks the 3 moving creatures (player + 2 spiders) by depth (larger
@@ -171,14 +184,18 @@ class Program
         southOpen_ = !Maze.SouthIsWall(px_, py_);
         monsterHere_ = Monster.IsAliveAt(px_, py_);
         itemHere_ = Item.IsPresentAt(px_, py_);
+        weaponHere_ = Weapon.IsPresentAt(px_, py_);
 
         C64.Screen.ClearBitmap();
         DungeonView.Render(px_, py_);
-        if (monsterHere_)
-            Monster.RenderInRoom();
         if (itemHere_)
             Item.Render();
+        if (weaponHere_)
+            Weapon.Render();
+        Hud.Render(Item.CollectedCount, playerDamage_);
+        Minimap.Render(px_, py_);
 
+        Monster.Animate(px_, py_); // shows/hides/positions sprite 3 for this room immediately, rather than waiting a frame
         UpdateSpritePosition();
         UpdateZOrder();
     }
@@ -220,16 +237,27 @@ class Program
             moved = true;
         }
 
+        if (moved)
+        {
+            roomX_ = nx;
+            roomDepth_ = nd;
+        }
+
+        // Checked every frame, not just when moved: the player can stop
+        // right at a door (see the green border cue from UpdateBorderCue)
+        // and press SPACE separately, same as how Combat's own SPACE
+        // press works independently of movement.
+        if (TryCrossDoor())
+        {
+            while (C64.IsKeyPressed(Keys.Space))
+                Delay.Wait(100);
+            return; // Step already redrew/repositioned for the new room
+        }
+
         if (!moved)
             return;
 
-        roomX_ = nx;
-        roomDepth_ = nd;
-
-        if (TryCrossDoor())
-            return; // Step already redrew/repositioned for the new room
-
-        if (monsterHere_ && Touching(Monster.RoomX, Monster.RoomDepth, Monster.RoomRadius))
+        if (monsterHere_ && Touching(Monster.CurrentRoomX(px_, py_), Monster.RoomDepth, Monster.RoomRadius))
         {
             if (!Combat())
                 return; // player died -- PlayerDied already reset everything
@@ -238,6 +266,14 @@ class Program
         {
             Item.CollectAt(px_, py_);
             itemHere_ = false;
+            Hud.Render(Item.CollectedCount, playerDamage_);
+        }
+        else if (weaponHere_ && Touching(Weapon.RoomX, Weapon.RoomDepth, Weapon.RoomRadius))
+        {
+            playerDamage_ = Weapon.DamageAt(px_, py_);
+            Weapon.CollectAt(px_, py_);
+            weaponHere_ = false;
+            Hud.Render(Item.CollectedCount, playerDamage_);
         }
 
         UpdateSpritePosition();
@@ -258,16 +294,37 @@ class Program
         return dx < radius && dy < radius;
     }
 
-    // Reaching an open door's edge crosses into the next cell. Fixed
-    // orientation (see DungeonView's own comment) means crossing any given
-    // wall always lands at the SAME edge of the next room -- the one
-    // opposite the wall just crossed, since that's the wall the player is
-    // now standing just inside of: north exit -> arrive at the new room's
-    // south edge, south exit -> its north edge, west exit -> its east
-    // edge, east exit -> its west edge (the common "enter from the left"
-    // case).
+    // True while standing right at an open door's crossing edge -- the
+    // same position checks TryCrossDoor itself uses, split out so
+    // UpdateBorderCue can show the "press SPACE" cue without actually
+    // crossing.
+    static bool AtDoor()
+    {
+        if (roomDepth_ >= RoomProjection.DepthMax && northOpen_ && NearCenterX())
+            return true;
+        if (roomDepth_ == 0 && southOpen_ && NearCenterX())
+            return true;
+        if (roomX_ == 0 && westOpen_)
+            return true;
+        if (roomX_ >= RoomProjection.Width && eastOpen_)
+            return true;
+        return false;
+    }
+
+    // Crossing is now a deliberate action (SPACE), not automatic on
+    // reaching the edge -- UpdateBorderCue's green flash is the signal
+    // that SPACE will do something here. Fixed orientation (see
+    // DungeonView's own comment) means crossing any given wall always
+    // lands at the SAME edge of the next room -- the one opposite the
+    // wall just crossed, since that's the wall the player is now standing
+    // just inside of: north exit -> arrive at the new room's south edge,
+    // south exit -> its north edge, west exit -> its east edge, east exit
+    // -> its west edge (the common "enter from the left" case).
     static bool TryCrossDoor()
     {
+        if (!C64.IsKeyPressed(Keys.Space))
+            return false;
+
         if (roomDepth_ >= RoomProjection.DepthMax && northOpen_ && NearCenterX())
         {
             AnimateNorthDoorOpening();
@@ -356,6 +413,7 @@ class Program
         // order over a loop with more than one exit edge).
         bool monsterDied = false;
         bool playerDied = false;
+        C64.Sprites.Sprite3.Visible = false; // the small patrol sprite -- Render() below draws its own, unrelated full-screen face
         while (!monsterDied && !playerDied)
         {
             C64.Screen.ClearBitmap();
@@ -372,7 +430,7 @@ class Program
             while (C64.IsKeyPressed(Keys.Space))
                 Delay.Wait(500);
 
-            Monster.DamageAt(px_, py_, Monster.PlayerDamage);
+            Monster.DamageAt(px_, py_, playerDamage_);
             if (!Monster.IsAliveAt(px_, py_))
             {
                 monsterDied = true;
@@ -409,6 +467,7 @@ class Program
             Delay.Wait(80);
         }
         playerHp_ = PlayerMaxHp;
+        playerDamage_ = UnarmedDamage;
         px_ = 1;
         py_ = 1;
         roomX_ = RoomProjection.Center;

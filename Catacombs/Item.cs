@@ -13,7 +13,7 @@ static class Item
     public const uint RoomX = 25, RoomDepth = 75;
     public const ulong RoomRadius = 10; // screen-space, not perspective-scaled
 
-    const uint Count = 3;
+    public const uint Count = 3; // exposed for Hud.cs's pip row
 
     // Maze cells (see Maze.cs's Grid) confirmed as floor, distinct from
     // Monster's own spawn cells.

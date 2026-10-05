@@ -2,10 +2,11 @@ using C64Lib;
 
 namespace Catacombs;
 
-// A handful of stationary monsters guarding specific rooms -- unlike Bats
-// (pure ambient decoration, no player interaction at all), these block the
-// player's path: MoveForward (Program.cs) diverts into Combat instead of
-// just walking in, and the room stays blocked until its monster is killed.
+// A handful of monsters guarding specific rooms, patrolling side to side
+// within them -- unlike Spider (pure ambient decoration, no player
+// interaction at all), these block the player's path: HandleInput
+// (Program.cs) diverts into Combat instead of just walking in, and the
+// room stays blocked until its monster is killed.
 //
 // Rendered as an overlay on top of DungeonView's own corridor/room render,
 // not integrated into its perspective depth scaling -- an encounter always
@@ -15,7 +16,6 @@ namespace Catacombs;
 static class Monster
 {
     public const uint MaxHp = 30;
-    public const uint PlayerDamage = 6;
     public const uint MonsterDamage = 4;
 
     const uint Count = 4;
@@ -28,14 +28,27 @@ static class Monster
     static bool[] alive_;
     static uint[] hp_;
 
+    // Per-monster patrol position within its room (room-space X, see
+    // RoomProjection.cs) -- bounces between PatrolMin/PatrolMax, same
+    // "flip direction at the edge" shape Spider.Animate uses. Depth stays
+    // fixed (see RoomDepth below), so this only ever drifts sideways,
+    // roughly guarding its spot rather than wandering to a door.
+    const uint PatrolCenter = 50, PatrolMin = 30, PatrolMax = 70;
+    static uint[] roomX_;
+    static bool[] movingRight_;
+
     public static void Init()
     {
         alive_ = new bool[Count];
         hp_ = new uint[Count];
+        roomX_ = new uint[Count];
+        movingRight_ = new bool[Count];
         for (uint i = 0; i < Count; i++)
         {
             alive_[i] = true;
             hp_[i] = MaxHp;
+            roomX_[i] = PatrolCenter;
+            movingRight_[i] = true;
         }
     }
 
@@ -78,13 +91,68 @@ static class Monster
         }
     }
 
-    // Fixed spot within a room, in ROOM-space (see RoomProjection.cs) --
-    // Program.cs compares the player's own room-space position against
-    // this directly (cheap, no projection needed just to detect touching);
-    // RenderInRoom below projects it to screen-space only when actually
-    // drawing. Center-ish X, partway toward the far wall.
-    public const uint RoomX = RoomProjection.Center, RoomDepth = 50;
+    // Fixed depth within a room, in ROOM-space (see RoomProjection.cs) --
+    // only X patrols (above); Program.cs compares the player's own
+    // room-space position against CurrentRoomX(px,py)/RoomDepth to detect
+    // touching. Partway toward the far wall.
+    public const uint RoomDepth = 50;
     public const ulong RoomRadius = 20; // screen-space, not perspective-scaled (a simplification)
+
+    // Valid any time -- callers that don't already know a monster is here
+    // just get PatrolCenter back (harmless, since Program.cs only ever
+    // uses this guarded by monsterHere_, same precondition HpAt/DamageAt
+    // already have).
+    public static uint CurrentRoomX(uint px, uint py)
+    {
+        uint i = FindAt(px, py);
+        return i < Count ? roomX_[i] : PatrolCenter;
+    }
+
+    // One animation tick: steps the room's own monster (if any) one frame
+    // of patrol, and reflects that onto hardware sprite 3 -- the ONLY
+    // physical sprite this ever uses (unlike the player/spiders, it's
+    // never rotated through SpriteStage's 0/1/2 z-order ranking, since at
+    // most one monster is ever active at a time and it doesn't need
+    // depth-sorting against them). Reuses Spider's own pose art
+    // (Spider.Pointer) rather than authoring new sprite pixel art at a
+    // hand-picked address -- see Sprites.cs's own comment on the $1700
+    // bat-pose that rendered as garbage when that was tried before.
+    // Called once per frame from Program.cs's main loop (and once more,
+    // directly, from EnterRoom, so a fresh room shows/hides it
+    // immediately rather than waiting a frame) -- cheap no-op (just hides
+    // the sprite) when no monster is in the current room.
+    public static void Animate(uint px, uint py)
+    {
+        uint i = FindAt(px, py);
+        if (i >= Count)
+        {
+            C64.Sprites.Sprite3.Visible = false;
+            return;
+        }
+
+        if (movingRight_[i])
+        {
+            roomX_[i] = roomX_[i] + 1;
+            if (roomX_[i] > PatrolMax)
+                movingRight_[i] = false;
+        }
+        else
+        {
+            roomX_[i] = roomX_[i] - 1;
+            if (roomX_[i] < PatrolMin)
+                movingRight_[i] = true;
+        }
+
+        ulong x = RoomProjection.ScreenX(roomX_[i], RoomDepth);
+        uint y = (uint)RoomProjection.ScreenY(RoomDepth);
+        SpriteStage.Place(3, x, y + SpriteYOffset, Spider.Pointer, Colors.Red, false, false, false);
+    }
+
+    // Floor-level positioning, same "feet at ScreenY" idea Spider/
+    // PlayerSprite already use -- Spider.Pointer's own pose art is
+    // SpriteHeight (21px, unexpanded) tall.
+    const uint SpriteHeight = 21;
+    const uint SpriteYOffset = 50 - SpriteHeight;
 
     // Simple silhouette: a body and two eyes. MatrixLow is a fixed color
     // (LightRed) set once in Program.Main and never changed, so it's
@@ -95,19 +163,6 @@ static class Monster
         C64.Screen.DrawCircle(160, 95, 35, true, true, BitmapColorSource.MatrixLow);
         C64.Screen.DrawCircle(148, 85, 5, true, true, BitmapColorSource.ColorRam);
         C64.Screen.DrawCircle(172, 85, 5, true, true, BitmapColorSource.ColorRam);
-    }
-
-    // The smaller, static-scene version -- drawn once as part of
-    // DungeonView's own one-time room render, not full-screen like Render()
-    // (which is only used for the Combat overlay once the player actually
-    // reaches it).
-    public static void RenderInRoom()
-    {
-        ulong x = RoomProjection.ScreenX(RoomX, RoomDepth);
-        ulong y = RoomProjection.ScreenY(RoomDepth);
-        C64.Screen.DrawCircle(x, y, RoomRadius, true, true, BitmapColorSource.MatrixLow);
-        C64.Screen.DrawCircle(x - 7, y - 6, 3, true, true, BitmapColorSource.ColorRam);
-        C64.Screen.DrawCircle(x + 7, y - 6, 3, true, true, BitmapColorSource.ColorRam);
     }
 
     // ulong, not uint: this compiler's uint/int are 8-bit (see CLAUDE.md),

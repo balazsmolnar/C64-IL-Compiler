@@ -33,6 +33,20 @@ class CompilerContext
     // actually matters.
     public Dictionary<MethodBase, int> InlinableSiteCounts { get; } = new Dictionary<MethodBase, int>();
 
+    // Subset of InlinableSiteCounts' own count, per method: how many of
+    // those sites ALSO pass ILMethodInliningPass's trivial-argument-
+    // substitution shape (every argument, including `this`, is a bare
+    // Ldarg_N/Ldloc_N at that specific call site -- see
+    // ILMethodInliningPass.IsTrivialArgumentProducer). This is a property
+    // of the CALL SITE (the caller's own code), computed here because only
+    // this pass's first loop walks every caller's lines; whether the
+    // callee itself actually qualifies (no locals of its own, never
+    // writes back to the substituted parameter -- see
+    // ILMethodInliningPass.CalleeQualifiesForTrivialSubstitution) is a
+    // separate, callee-level question ShouldInline checks before trusting
+    // this count for anything.
+    public Dictionary<MethodBase, int> TrivialSiteCounts { get; } = new Dictionary<MethodBase, int>();
+
     // Methods whose standalone definition can NEVER be deleted, regardless
     // of InlinableSiteCounts -- something else needs the real, jsr-able
     // subroutine to keep existing:

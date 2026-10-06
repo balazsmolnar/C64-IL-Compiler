@@ -137,7 +137,70 @@ pushfldflt .macro pos
 
 .endm
 
-incfld .macro pos 
+; Same three macros as pushfld8/pushfld16/pushfldflt above, but for
+; ILMethodInliningPass's trivial-argument substitution (see
+; Operands/OperandInline.cs's OpPushFldAt): the object being read isn't
+; always `this` (always at a fixed rel_pos of 1), it's whichever caller
+; slot the substituted argument came from, at an arbitrary compile-time
+; constant \relpos. `ldx localsStack-\relpos,y` generalizes the unfused
+; macros' own `dey; ldx localsStack,y` (exactly equivalent when
+; \relpos == 1 -- localsStack[y-1] == (localsStack-1)[y] -- but, unlike
+; `dey`, also correct for any other compile-time constant without needing
+; N separate dey's): both bake a constant into the LDX instruction's own
+; address operand, which 6502 can index by Y directly, so there's no
+; runtime cost to generalizing this beyond \relpos == 1.
+pushfld8_at .macro relpos, pos
+
+  ldy stackPointer
+  ldx localsStack-\relpos,y
+  jsr resolveObjPtr
+
+  ldy #\pos
+  lda (tmpPointer),y
+  pha
+
+.endm
+
+pushfld16_at .macro relpos, pos
+
+  ldy stackPointer
+  ldx localsStack-\relpos,y
+  jsr resolveObjPtr
+
+  ldy #\pos+1
+  lda (tmpPointer),y
+  pha
+  dey
+  lda (tmpPointer),y
+  pha
+
+.endm
+
+pushfldflt_at .macro relpos, pos
+
+  ldy stackPointer
+  ldx localsStack-\relpos,y
+  jsr resolveObjPtr
+
+  ldy #\pos
+  lda (tmpPointer),y
+  pha
+  iny
+  lda (tmpPointer),y
+  pha
+  iny
+  lda (tmpPointer),y
+  pha
+  iny
+  lda (tmpPointer),y
+  pha
+  iny
+  lda (tmpPointer),y
+  pha
+
+.endm
+
+incfld .macro pos
 
   ldy stackPointer
   ldx localsStack-1,y

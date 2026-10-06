@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -146,8 +147,9 @@ class ILCallSiteCountPass : ICompilerPass
 
             decodedBodies[method] = lines;
 
-            foreach (var line in lines)
+            for (int i = 0; i < lines.Count; i++)
             {
+                var line = lines[i];
                 if (line.OpCode == ILOpCode.Call)
                 {
                     var target = context.Assembly.ManifestModule.ResolveMethod((int)line.OriginalParameter) as MethodBase;
@@ -155,6 +157,7 @@ class ILCallSiteCountPass : ICompilerPass
                         continue;
                     context.InlinableSiteCounts.TryGetValue(target, out var count);
                     context.InlinableSiteCounts[target] = count + 1;
+                    CountIfTrivialSite(context, target, lines, i);
                 }
                 else if (line.OpCode == ILOpCode.Callvirt)
                 {
@@ -165,6 +168,7 @@ class ILCallSiteCountPass : ICompilerPass
                     {
                         context.InlinableSiteCounts.TryGetValue(target, out var count);
                         context.InlinableSiteCounts[target] = count + 1;
+                        CountIfTrivialSite(context, target, lines, i);
                     }
                     else
                     {
@@ -200,7 +204,31 @@ class ILCallSiteCountPass : ICompilerPass
             bool forceInline = (method.MethodImplementationFlags & MethodImplAttributes.AggressiveInlining) != 0;
             bool mandatoryStandalone = context.MandatoryStandalone.Contains(method);
 
-            if (!forceInline && !ShouldInline(n, lines, mandatoryStandalone))
+            // TrivialSiteCounts was tallied per CALL SITE above (a
+            // property of each caller's own code), but whether that tally
+            // is even usable is a CALLEE-level question: if this method
+            // has its own locals, or reassigns one of its own parameters,
+            // ILMethodInliningPass.CalleeQualifiesForTrivialSubstitution
+            // rejects every one of its sites regardless of how trivial
+            // their arguments are, so none of this method's sites will
+            // actually get the cheaper splice -- treat the count as 0, not
+            // whatever the (irrelevant) per-site tally says.
+            int trivialSites = ILMethodInliningPass.CalleeQualifiesForTrivialSubstitution(method, lines)
+                ? Math.Min(n, context.TrivialSiteCounts.TryGetValue(method, out var tcount) ? tcount : 0)
+                : 0;
+
+            // A trivial property getter (ILMethodInliningPass.
+            // IsTrivialPropertyGetterShape -- see its own comment for the
+            // measured break-even this deliberately ignores) with every
+            // one of its call sites trivially substitutable, and not
+            // mandatoryStandalone (the definition really does go away, so
+            // the one-time deletion saving is real, not forfeited): treat
+            // as an unconditional win, the same way forceInline bypasses
+            // the general byte-cost model.
+            bool isTrivialGetter = !mandatoryStandalone && trivialSites == n
+                && ILMethodInliningPass.IsTrivialPropertyGetterShape(lines);
+
+            if (!forceInline && !isTrivialGetter && !ShouldInline(n, trivialSites, lines, mandatoryStandalone))
                 continue;
 
             context.InlineCandidates[method] = lines;
@@ -208,6 +236,26 @@ class ILCallSiteCountPass : ICompilerPass
                 context.DeleteStandaloneDefinition.Add(method);
         }
     }
+
+    // Per-site byte savings a TRIVIAL-ARGUMENT-SUBSTITUTED splice gets over
+    // an ordinary materializing one (ILMethodInliningPass.
+    // TryBuildTrivialSubstitution): no inline prologue at all (saves the
+    // materializing prologue's own 9 bytes, InlineOverheadTrailingRet/
+    // WithJmp's shared "9 +" term), and the epilogue either disappears
+    // entirely (trailing Ret: was 7, now 0) or shrinks to a bare jmp
+    // (early Ret: was 7+3=10, now just the 3-byte jmp). Both shapes save
+    // exactly 9+7=16 -- the "+3 for jmp" on the materializing side and the
+    // "3-byte jmp" on the trivial side are the same 3 bytes, so it cancels
+    // out of the difference either way. Derived algebraically from the
+    // SAME measured constants below, re-deriving the whole savings formula
+    // with two overhead constants instead of one: this (MOH-TOH) term
+    // falls out identically in both the mandatoryStandalone and the
+    // deletable case. Deliberately conservative -- it does NOT also credit
+    // the caller's own now-dead argument-push instructions (blanked to
+    // no-ops at a trivial site, per ArgumentLinesToBlank), which are a
+    // real but separate, unmeasured saving; leaving them out only makes
+    // this UNDER-estimate the true benefit, never over-promise it.
+    private const int TrivialOverheadSavingsPerSite = 16;
 
     // No N == 1 shortcut: Phase 1's "a single inlinable site is always a
     // win" claim is only true when the standalone definition also gets
@@ -219,7 +267,17 @@ class ILCallSiteCountPass : ICompilerPass
     // InlineOverhead+body to save only JsrRemoved (3 bytes) -- almost
     // always a net loss, so this has to run through the real formula too,
     // not bypass it.
-    private static bool ShouldInline(int n, List<ILOperation> calleeLines, bool mandatoryStandalone)
+    //
+    // trivialSites (new): how many of the n sites will actually get the
+    // cheaper trivial-substitution splice instead of the materializing
+    // one -- see TrivialOverheadSavingsPerSite above. The rest of the
+    // formula is unchanged from the materializing-only model; this is a
+    // pure additive correction (derived in ILCallSiteCountPass's own
+    // commit, by re-deriving the savings formula with two overhead
+    // constants instead of one and simplifying -- the (MOH-TOH) term that
+    // falls out is this same constant regardless of trailingRet/jmp
+    // shape, in BOTH the mandatoryStandalone and deletable cases).
+    private static bool ShouldInline(int n, int trivialSites, List<ILOperation> calleeLines, bool mandatoryStandalone)
     {
         bool trailingRet = HasOnlyATrailingRet(calleeLines);
         int inlineOverhead = trailingRet ? InlineOverheadTrailingRet : InlineOverheadWithJmp;
@@ -245,7 +303,35 @@ class ILCallSiteCountPass : ICompilerPass
             savings = (1 - n) * (estimatedBodySize + inlineOverhead) + deletionBonus + n * JsrRemoved;
         }
 
+        savings += trivialSites * TrivialOverheadSavingsPerSite;
+
         return savings > 0;
+    }
+
+    // Tallies context.TrivialSiteCounts[target] when the call at lines[i]
+    // feeds EVERY one of target's parameters (including `this`) from a
+    // bare Ldarg_N/Ldloc_N immediately before it -- the same shape
+    // ILMethodInliningPass.TryBuildTrivialSubstitution itself requires,
+    // checked here using only target's PARAMETER SIGNATURE (reflection,
+    // always available regardless of decode order) and the CALLER's own
+    // already-decoded lines, never target's own body -- see
+    // ILMethodInliningPass.IsTrivialArgumentProducer's own comment for why
+    // a fixed-offset window here is sound without StackContent.
+    private static void CountIfTrivialSite(CompilerContext context, MethodBase target, List<ILOperation> lines, int callIndex)
+    {
+        bool isInstance = !target.IsStatic;
+        int paramCount = target.GetParameters().Length + (isInstance ? 1 : 0);
+        if (callIndex < paramCount)
+            return;
+
+        for (int p = 0; p < paramCount; p++)
+        {
+            if (!ILMethodInliningPass.IsTrivialArgumentProducer(lines[callIndex - paramCount + p].OpCode))
+                return;
+        }
+
+        context.TrivialSiteCounts.TryGetValue(target, out var count);
+        context.TrivialSiteCounts[target] = count + 1;
     }
 
     private static bool HasOnlyATrailingRet(List<ILOperation> calleeLines)

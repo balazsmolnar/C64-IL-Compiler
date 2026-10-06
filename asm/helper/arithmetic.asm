@@ -142,6 +142,41 @@ mul_shift_const16 .macro shift
     #stack_push_var zp_param1_low
 .endm
 
+; Compile-time-constant UNSIGNED divide by a power of two
+; (ILMethodDivConstOptimizer only ever emits shift=0/1/2, for
+; x/1, x/2, x/4), as a fixed, unrolled logical right shift -- same
+; mirrored-direction idea as mul_shift_const8/16 above, but ONLY valid
+; for unsigned operands: lsr/ror zero-fill from the top regardless of
+; the operand's own sign bit, which matches truncating division exactly
+; for an unsigned value (no sign to get wrong), but silently corrupts a
+; negative signed one into an unrelated large positive number instead
+; (not merely a rounding difference). ILMethodDivConstOptimizer's own
+; comment is the single source of truth for why it only ever matches
+; Div_un, never the signed Div, for exactly this reason.
+div_shift_const8 .macro shift
+    #stack_pull_int_a
+    .if \shift > 0
+    .rept \shift
+        lsr
+    .next
+    .endif
+    #stack_push_int_a
+.endm
+
+div_shift_const16 .macro shift
+    #stack_pull_int zp_param1_low
+    #stack_pull_int zp_param1_high
+    .if \shift > 0
+    .rept \shift
+        lsr zp_param1_high
+        ror zp_param1_low
+    .next
+    .endif
+    lda zp_param1_high
+    #stack_push_int_a
+    #stack_push_var zp_param1_low
+.endm
+
 negate16 .macro
 
     ; 16-bit pull/push (stack_pull_int/stack_push_var are the 8-bit ones: with

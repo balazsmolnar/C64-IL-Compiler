@@ -130,13 +130,22 @@ class Program
                         new ILMethodCompareConstOptimizer(),
                         new ILMethodBranchConstOptimizer(),
                         new ILMethodMulConstOptimizer(),
+                        // Same reasoning, same ordering requirement as
+                        // ILMethodMulConstOptimizer immediately above: its
+                        // own second rule matches a 3-line Ldc-Conv_u8-Div_un
+                        // window, which must get first claim before
+                        // ILMethodWiden8To16Optimizer's broader "[any
+                        // 1-byte-producing op]; Conv_u8/Conv_i8" rule below
+                        // can also match that same Ldc-Conv_u8 prefix.
+                        new ILMethodDivConstOptimizer(),
                         // Last: broadly matches "[any 1-byte-producing op];
                         // Conv_u8/Conv_i8", so it must run after
-                        // ILMethodMulConstOptimizer's own, more specific
-                        // Ldc-Conv-Mul rule gets first claim on any window
-                        // it would otherwise also match (moot in practice --
-                        // see ILMethodWiden8To16Optimizer's own comment for
-                        // why a constant producer never reaches this rule at
+                        // ILMethodMulConstOptimizer's/ILMethodDivConstOptimizer's
+                        // own, more specific Ldc-Conv-Mul/Div rules get first
+                        // claim on any window they would otherwise also
+                        // match (moot in practice -- see
+                        // ILMethodWiden8To16Optimizer's own comment for why
+                        // a constant producer never reaches this rule at
                         // all -- but the ordering is the correct, safe
                         // default regardless).
                         new ILMethodWiden8To16Optimizer(),

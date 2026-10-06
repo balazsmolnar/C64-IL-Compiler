@@ -664,10 +664,12 @@ class OpLdfld : OpBase
     }
 }
 
-class OpIncfld : OpBase
+class OpIncfld : OpBase, IObjectRootOperation
 {
     private readonly string thisVar;
     private readonly string pos;
+
+    public string RelPos => thisVar;
 
     // Unlike Setfld/Pushfld, the "incfld" asm macro (asm/helper/optimized.asm)
     // has no 16-bit variant -- only a single byte-sized "incfld". Is16BitSupported
@@ -688,12 +690,14 @@ class OpIncfld : OpBase
     }
 }
 
-class OpSetfld : OpBase
+class OpSetfld : OpBase, IObjectRootOperation
 {
     private readonly string pos;
     private readonly bool _is16Bit;
     private readonly string objRelPos;
     private readonly string valueRelPos;
+
+    public string RelPos => objRelPos;
 
     public OpSetfld(string objRelPos, string valueRelPos, string pos, bool Is16Bit) : base(0, "#setfld")
     {
@@ -786,9 +790,19 @@ class OpNewArrInit : OpBase
 // second one's own resolveObjPtr call, regardless of which of the two
 // concrete classes either side is (this, a trivially-substituted local,
 // ...). See that pass's own comment for the full reasoning.
-interface IPushFldOperation
+// Any operation that resolves a specific, statically-known object (by
+// its compile-time-constant relpos) via resolveObjPtr -- read (
+// IPushFldOperation) or write (OpSetfld/OpIncfld). ILMethodCachedFieldAccessPass
+// uses this uniformly to track "which relpos is currently resolved into
+// tmpPointer" across a method's whole CFG, regardless of whether the
+// access that established it was a read or a write.
+interface IObjectRootOperation
 {
     string RelPos { get; }
+}
+
+interface IPushFldOperation : IObjectRootOperation
+{
     string Pos { get; }
     bool IsFloat { get; }
     bool Is16BitField { get; }

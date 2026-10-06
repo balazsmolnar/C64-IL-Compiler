@@ -7,23 +7,27 @@ using NUnit.Framework;
 
 namespace Compiler.UnitTests;
 
-// Structural tests for ILMethodCachedFieldAccessPass: reading two fields
-// off the SAME object back to back should only call resolveObjPtr once,
-// reusing the already-resolved tmpPointer for the second read -- safe
-// because this GC only ever moves an object via an explicit GC.Collect()
-// call (Runtime_CheckHeapRoom's own comment: allocation alone just
-// hard-faults on insufficient room, never compacts). Found while
-// investigating how often resolveObjPtr actually gets called in a real
-// build (494 times in Hunchback) -- 156 of those were a provably-
-// redundant re-resolve within a few lines of the one right before it.
+// Structural tests for ILMethodCachedFieldAccessPass: reading the SAME
+// object's fields more than once anywhere in a method should only call
+// resolveObjPtr once, reusing the already-resolved tmpPointer for every
+// later read, correctly across arithmetic/branches/loop back-edges
+// (a real forward dataflow over the method's CFG), but never across a
+// real call or an access to a DIFFERENT object (both of which can
+// overwrite the shared tmpPointer for real) -- safe because this GC
+// only ever moves an object via an explicit GC.Collect() call, never
+// implicitly on allocation.
 //
-// Covers both of the two places a chain of IPushFldOperation reads can
-// come from: ILMethodInliningPass's trivial-argument-substitution fusion
-// (OpPushFldAt, built early) and ILPropertyGettterOptimizer's own
-// `this.field` fusion (OpPushFld, built later via a PeepholeRule, whose
-// freshly-inserted operation never gets real PreviousInstructions -- see
-// ILMethodCachedFieldAccessPass's own comment for why that needed a
-// different safety check than the splice-marker case).
+// This generalizes an earlier version of the pass that only ever
+// collapsed STRICTLY, PHYSICALLY adjacent reads -- found, while
+// measuring how often resolveObjPtr is actually called in Hunchback,
+// that real hot methods (Player.SetFrame, Player.Move, ...) read the
+// same object's fields repeatedly across arithmetic/branches that don't
+// themselves touch tmpPointer at all, which the narrower pass couldn't
+// see through. See ILMethodCachedFieldAccessPass's own comment for the
+// full derivation, including why crossing a real call was deliberately
+// never pursued (measured directly: in the hottest real methods, a call
+// almost always sits between two reads anyway, resolving some OTHER
+// object internally).
 [TestFixture]
 public class CachedFieldAccessTests
 {
@@ -128,62 +132,206 @@ class Program
     }
 
     [Test]
-    public void Different_Objects_Each_Get_Their_Own_Resolve()
+    public void Different_Object_In_Between_Gets_Its_Own_Resolve_And_Invalidates_This()
     {
-        // Guard: p1 and p2 are DIFFERENT objects -- even though both
-        // reads are still "trivial" and adjacent, neither should be
-        // treated as cached, since tmpPointer would hold the wrong
-        // object's pointer by the second read.
+        // Guard: `this` is read, then a DIFFERENT object (a parameter --
+        // also a this-shaped fusion target, via ldarg.1 instead of
+        // ldarg.0) is read, then `this` again. Both the `other` read and
+        // the SECOND `this` read must be real resolves: tmpPointer holds
+        // `other`'s address after the middle read, so the final `this`
+        // read can't trust it either.
         var source = @"
 class Player
 {
     public uint a_;
+    public uint Mix(Player other)
+    {
+        uint x = a_;
+        uint y = other.a_;
+        uint z = a_;
+        return x + y + z;
+    }
 }
 class Program
 {
     static void Main()
     {
-        var p1 = new Player { a_ = 3 };
-        var p2 = new Player { a_ = 5 };
-        uint r = p1.a_ + p2.a_;
+        var p1 = new Player();
+        var p2 = new Player();
+        var p3 = new Player();
+        uint r = p1.Mix(p2) + p3.Mix(p1);
         C64Lib.C64.FillMemory(0x0900UL, r, 1);
     }
 }";
         var asmDir = CompileAndGetAsmDir(source);
-        var programAsm = ReadType(asmDir, "Program");
+        var playerAsm = ReadType(asmDir, "Player");
 
-        Assert.That(programAsm, Does.Not.Contain("pushfld8_cached"), "different objects must never share a resolve:\n" + programAsm);
+        Assert.That(playerAsm, Does.Not.Contain("pushfld8_cached"),
+            "a different object's read in between must prevent caching on either side of it:\n" + playerAsm);
     }
 
     [Test]
-    public void Intervening_Statement_Prevents_Caching()
+    public void Intervening_Static_Write_Does_Not_Prevent_Caching()
     {
-        // Guard: a real statement (writing to a static field) sits
-        // between the two reads of the same object -- the narrow,
-        // first-cut scope deliberately only trusts DIRECTLY adjacent
-        // reads, so this must NOT be collapsed even though nothing about
-        // the intervening statement actually touches tmpPointer.
+        // A static field write between two `this` reads never touches
+        // tmpPointer at all (static fields have a fixed address, no
+        // resolveObjPtr involved) -- the dataflow should see straight
+        // through it, unlike the narrower, physically-adjacent-only pass
+        // this generalizes.
         var source = @"
 class Player
 {
     public uint a_;
     public uint b_;
+    static uint s_sideEffect;
+    public uint Sum()
+    {
+        uint x = a_;
+        s_sideEffect = 1;
+        uint y = b_;
+        return x + y;
+    }
 }
 class Program
 {
-    static uint s_sideEffect;
     static void Main()
     {
-        var player = new Player { a_ = 3, b_ = 4 };
-        uint x = player.a_;
-        s_sideEffect = 1;
-        uint y = player.b_;
-        C64Lib.C64.FillMemory(0x0900UL, x + y, 1);
+        var p1 = new Player();
+        var p2 = new Player();
+        uint r = p1.Sum() + p2.Sum();
+        C64Lib.C64.FillMemory(0x0900UL, r, 1);
     }
 }";
         var asmDir = CompileAndGetAsmDir(source);
-        var programAsm = ReadType(asmDir, "Program");
+        var playerAsm = ReadType(asmDir, "Player");
 
-        Assert.That(programAsm, Does.Not.Contain("pushfld8_cached"), "an intervening statement must block caching in this narrow first cut:\n" + programAsm);
+        Assert.That(playerAsm, Does.Contain("pushfld8_cached"),
+            "a static field write doesn't touch tmpPointer, so the second `this` read should still be cached:\n" + playerAsm);
+    }
+
+    [Test]
+    public void Intervening_Call_Prevents_Caching()
+    {
+        // Guard: a real call sits between two `this` reads. The callee
+        // might resolve any object internally (it reads ITS OWN `this`,
+        // a different object from the caller's), so the cache must not
+        // survive it.
+        var source = @"
+class Helper
+{
+    public uint v_;
+    public uint GetV() => v_;
+}
+class Player
+{
+    public uint a_;
+    public uint Sum(Helper h)
+    {
+        uint x = a_;
+        uint mid = h.GetV();
+        uint y = a_;
+        return x + mid + y;
+    }
+}
+class Program
+{
+    static void Main()
+    {
+        var p1 = new Player();
+        var p2 = new Player();
+        var h = new Helper();
+        uint r = p1.Sum(h) + p2.Sum(h);
+        C64Lib.C64.FillMemory(0x0900UL, r, 1);
+    }
+}";
+        var asmDir = CompileAndGetAsmDir(source);
+        var playerAsm = ReadType(asmDir, "Player");
+
+        Assert.That(playerAsm, Does.Not.Contain("pushfld8_cached"),
+            "a real call in between must prevent caching -- the callee may resolve anything internally:\n" + playerAsm);
+    }
+
+    [Test]
+    public void Loop_Caches_Second_Access_Within_Each_Iteration()
+    {
+        // The user's own "consider loop too" case: a loop body reading
+        // the same object's two fields every iteration. The loop
+        // header's own merge point (entered both from before the loop,
+        // where nothing is cached yet, and from the back edge) can't
+        // assume caching survives across iterations, so the FIRST access
+        // each iteration still re-resolves -- but the SECOND access
+        // within the SAME iteration, with nothing but arithmetic between
+        // it and the first, is still a real, sound win.
+        var source = @"
+class Player
+{
+    public uint a_;
+    public uint b_;
+    public uint Sum(uint n)
+    {
+        uint sum = 0;
+        for (uint i = 0; i < n; i++)
+        {
+            sum = sum + a_ + b_;
+        }
+        return sum;
+    }
+}
+class Program
+{
+    static void Main()
+    {
+        var p1 = new Player();
+        var p2 = new Player();
+        uint r = p1.Sum(5) + p2.Sum(3);
+        C64Lib.C64.FillMemory(0x0900UL, r, 1);
+    }
+}";
+        var asmDir = CompileAndGetAsmDir(source);
+        var playerAsm = ReadType(asmDir, "Player");
+
+        Assert.That(playerAsm, Does.Contain("pushfld8_cached"),
+            "the second field read within one loop iteration should be cached:\n" + playerAsm);
+    }
+
+    [Test]
+    public void Branch_Merge_Where_Both_Paths_Resolve_Same_Object_Still_Caches()
+    {
+        // Both the `if` and `else` branches read `this` before merging,
+        // so the dataflow's meet at the merge point correctly agrees on
+        // "this is cached" either way -- the read right after the merge
+        // should still be a cache hit.
+        var source = @"
+class Player
+{
+    public uint a_;
+    public uint b_;
+    public uint c_;
+    public uint Pick(bool flag)
+    {
+        uint mid;
+        if (flag)
+            mid = a_;
+        else
+            mid = b_;
+        uint z = c_;
+        return mid + z;
+    }
+}
+class Program
+{
+    static void Main()
+    {
+        var p1 = new Player();
+        var p2 = new Player();
+        uint r = p1.Pick(true) + p2.Pick(false);
+        C64Lib.C64.FillMemory(0x0900UL, r, 1);
+    }
+}";
+        var asmDir = CompileAndGetAsmDir(source);
+        var playerAsm = ReadType(asmDir, "Player");
+
+        Assert.That(playerAsm, Does.Contain("pushfld8_cached"),
+            "both branches resolve `this` before the merge, so the read right after should be a cache hit:\n" + playerAsm);
     }
 }

@@ -47,8 +47,15 @@ class ILMethodEmitPass : ICompilerMethodPass
 
         string outputLine;
         var ref_params = context.Method.GetParameterRefList();
+        // Zeroes every reference-typed LOCAL's own slot at method entry --
+        // see CompilerMethodContext.GetLocalRefPositions's own comment for
+        // why this is load-bearing, not cosmetic: without it, a local's
+        // first write decrements whatever handle happens to still be
+        // sitting in that shared, never-re-zeroed localsStack position
+        // from some earlier, unrelated call.
+        var local_refs = context.GetLocalRefPositions();
 
-        outputLine = $"    #init_locals_pull_parameters {context.GetLocalsSize()}, [{string.Join(',', ref_params)}]";
+        outputLine = $"    #init_locals_pull_parameters {context.GetLocalsSize()}, [{string.Join(',', ref_params)}], [{string.Join(',', local_refs)}]";
         output.WriteLine(outputLine);
 
         foreach (var line in context.Lines)

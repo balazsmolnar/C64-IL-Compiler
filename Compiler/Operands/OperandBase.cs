@@ -1667,13 +1667,7 @@ class OpRet : OpBase
                 refList.Add(context.GetParameterReferencePosition(i + (isInstance ? 1 : 0)).ToString());
         }
 
-        var body = context.Method.GetMethodBody();
-        var variables = body.LocalVariables;
-        for (int i = 0; i < variables.Count; i++)
-        {
-            if (variables[i].LocalType.IsReferenceCounted())
-                refList.Add(context.GetLocalVariableReferencePosition(i).ToString());
-        }
+        refList.AddRange(context.GetLocalRefPositions());
 
         return $"{context.GetLocalStackSize()}, [{string.Join(',', refList)}]";
     }

@@ -559,7 +559,12 @@ class ILMethodInliningPass : ICompilerMethodPass
 
         var result = new List<ILOperation>(calleeLines.Count + 2);
 
-        var prologueOperation = new OpInlinePrologue(calleeContext.GetLocalsSize(), target.GetParameterRefList(), target);
+        // local_ref_list (zeroed by the prologue, not just decremented at
+        // exit): see CompilerMethodContext.GetLocalRefPositions's own
+        // comment -- a materializing splice's callee can have its own
+        // local variables, reserving a fresh slice of the same shared,
+        // never-re-zeroed localsStack region any real call would.
+        var prologueOperation = new OpInlinePrologue(calleeContext.GetLocalsSize(), target.GetParameterRefList(), calleeContext.GetLocalRefPositions(), target);
         var prologue = new ILOperation
         {
             OpCode = ILOpCode.Nop,

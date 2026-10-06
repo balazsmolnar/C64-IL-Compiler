@@ -18,6 +18,46 @@ resolveObjPtr
   sta tmpPointer+1
   rts
 
+; Decrements objTableRootCount for handle X, but ONLY if that slot is
+; currently allocated (objTableHigh[X] != 0) -- guards every "release
+; whatever used to be here" site (localsStack.asm's locals_pull_value8
+; "dec old" step, and method_exit/method_exit_inline/
+; method_exit_inline_fallthrough's own ref_list decrement loop) against
+; misreading a STALE byte as a live handle.
+;
+; localsStack (asm/helper/objectTables.asm's `.fill 256`) is one shared,
+; reused region across every call at every depth -- zero-filled once at
+; program load, but NEVER re-zeroed between calls. Once a program has
+; run long enough for two unrelated calls to share the same physical
+; stack depth, a local's "old" byte before its OWN first real write (or
+; before an early-return method_exit, if it was never assigned on that
+; particular path) is just whatever the slot's PREVIOUS, unrelated
+; occupant left behind -- not necessarily 0/null. Unconditionally
+; decrementing objTableRootCount at that stale value corrupts a
+; CURRENTLY LIVE, unrelated object's refcount if its handle number
+; happens to have been recycled (findEmptySlot, asm/helper/object.asm,
+; always reuses the lowest-numbered free slot, making recycling the
+; common case, not a rare one) -- the next GC.Collect() then frees that
+; object while something else still legitimately references it.
+;
+; Confirmed as a real, reproducible bug (not just a theoretical one)
+; via Test.Runtime: call a method with a ref-typed local that gets
+; allocated+dropped, GC.Collect() to free its handle, allocate and hold
+; a DIFFERENT object (which reuses that same recycled handle number),
+; then call a second, unrelated method whose own ref-typed local's
+; first write lands on the same physical stack depth -- the held
+; object was observably freed by the following GC.Collect() despite
+; still being referenced, before this fix.
+;
+; Input: X = handle to maybe decrement. Preserves A/X/Y.
+DecRefCountIfAllocated
+  pha
+  lda objTableHigh,x
+  beq +
+  dec objTableRootCount,x
++ pla
+  rts
+
 ;
 ; Creates a new object on the heap
 ; Inputs:

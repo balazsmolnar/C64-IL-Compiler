@@ -180,6 +180,40 @@ class CompilerMethodContext
         return relPos;
     }
 
+    // The rel_pos of every reference-typed LOCAL variable (never a
+    // parameter, never `this`) -- the exact same positions OpRet's own
+    // ref_list decrements at method exit, but needed separately, at
+    // PROLOGUE time, to zero them: a local's own localsStack byte is
+    // otherwise left as whatever the previous, unrelated call that
+    // happened to reuse this same physical stack depth left behind
+    // (localsStack is one shared, reused 256-byte region across every
+    // call at every depth -- asm/helper/objectTables.asm's `.fill 256`
+    // zero-fills it once at program load, never again). Without this,
+    // that local's own first Stloc ("dec old" in locals_pull_value8)
+    // decrements whatever handle number is physically still sitting
+    // there -- and since findEmptySlot (asm/helper/object.asm) always
+    // recycles the lowest-numbered free handle, that stale number is
+    // very likely to have been reassigned to some OTHER, currently-live
+    // object by the time this local's first write runs, corrupting its
+    // refcount. Confirmed as a real, reproducible bug via
+    // Test.Runtime (see ILMethodEmitPass's own comment for the fix this
+    // feeds, and DecRefCountIfAllocated in asm/helper/object.asm for a
+    // second, narrower defense this doesn't make redundant: handle 0,
+    // which is never a real allocated slot, per findEmptySlot's own
+    // `inx` before its first check).
+    public List<string> GetLocalRefPositions()
+    {
+        var refPositions = new List<string>();
+        var body = Method.GetMethodBody();
+        var variables = body.LocalVariables;
+        for (int i = 0; i < variables.Count; i++)
+        {
+            if (variables[i].LocalType.IsReferenceCounted())
+                refPositions.Add(GetLocalVariableReferencePosition(i).ToString());
+        }
+        return refPositions;
+    }
+
     public Type GetLocalVariableType(int index) => GetLocalVariableType(Method, index);
 
     // sourceMethod: the method that actually declares local #index --

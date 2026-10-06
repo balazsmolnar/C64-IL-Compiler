@@ -23,18 +23,20 @@ class OpInlinePrologue : OpBase
 {
     private readonly int _localsSize;
     private readonly List<string> _refList;
+    private readonly List<string> _localRefList;
     private readonly MethodBase _callee;
 
-    public OpInlinePrologue(int localsSize, List<string> refList, MethodBase callee)
+    public OpInlinePrologue(int localsSize, List<string> refList, List<string> localRefList, MethodBase callee)
         : base(0, "#init_locals_pull_parameters_inline")
     {
         _localsSize = localsSize;
         _refList = refList;
+        _localRefList = localRefList;
         _callee = callee;
     }
 
     public override object ConvertParameter(CompilerMethodContext context, ILOperation operation) =>
-        $"{_localsSize}, [{string.Join(",", _refList)}]";
+        $"{_localsSize}, [{string.Join(",", _refList)}], [{string.Join(",", _localRefList)}]";
 
     // Mirrors OpCall.SetStackContent's own argument removal (never its
     // return-type Add -- the callee's own body pushes that, via whatever

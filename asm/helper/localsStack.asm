@@ -18,7 +18,16 @@ locals_pull_param_8 .macro ref
   .endif
 .endm
 
-init_locals_pull_parameters .macro localsSize, ref_list
+; local_ref_list: rel_pos of every reference-typed LOCAL (never a
+; parameter) -- zeroed here, after the parameter-pulling loop (so Y is
+; already at its final stackPointer value, matching the addressing
+; every other rel_pos-indexed macro assumes), so a local's own first
+; real write never "dec old"s whatever stale, possibly-now-reassigned
+; handle happened to still be sitting in that shared localsStack
+; position from an unrelated earlier call -- see
+; CompilerMethodContext.GetLocalRefPositions's own comment for the
+; real, reproduced bug this fixes.
+init_locals_pull_parameters .macro localsSize, ref_list, local_ref_list
 
   #init_locals \localsSize
   .if len(\ref_list) > 0
@@ -26,10 +35,16 @@ init_locals_pull_parameters .macro localsSize, ref_list
       #stack_pull_int_a
       sta localsStack,y
       iny
-      .if ref == 1 
+      .if ref == 1
         tax
         inc objTableRootCount, x
       .endif
+    .next
+  .endif
+  .if len(\local_ref_list) > 0
+    lda #0
+    .for pos in \local_ref_list
+      sta localsStack-pos,y
     .next
   .endif
   sty stackPointer
@@ -74,7 +89,7 @@ method_exit .macro stackSize, ref_list
     ldy stackPointer
     .for ref in \ref_list
       ldx localsStack-ref,y
-      dec objTableRootCount, x
+      jsr DecRefCountIfAllocated
     .next
     ; Y still holds stackPointer's value (the loop above never touches
     ; Y), so grab it from there instead of a redundant zero-page reload.
@@ -100,9 +115,9 @@ locals_pull_value8 .macro rel_pos, ref
   ldy stackPointer
 
   ; deref
-  .if \ref == 1 
+  .if \ref == 1
     ldx localsStack-\rel_pos,y
-    dec objTableRootCount, x
+    jsr DecRefCountIfAllocated
   .endif
   #stack_pull_int_a
   sta localsStack-\rel_pos,y
@@ -168,8 +183,12 @@ init_locals_inline .macro localsSize
 ; own locals space via init_locals_inline (no return-address handling, no
 ; +2), then pulls its parameters/this off the evaluation stack exactly the
 ; same way init_locals_pull_parameters does -- see that macro's own comment
-; for the ref_list shape and pull order.
-init_locals_pull_parameters_inline .macro localsSize, ref_list
+; for the ref_list shape and pull order, and for local_ref_list's own
+; zeroing (same reason, same reproduced bug -- a materializing splice's
+; callee can have its own local variables too, reserving a fresh slice
+; of the same shared, never-re-zeroed localsStack region as any other
+; call).
+init_locals_pull_parameters_inline .macro localsSize, ref_list, local_ref_list
   #init_locals_inline \localsSize
   .if len(\ref_list) > 0
     .for ref in \ref_list
@@ -180,6 +199,12 @@ init_locals_pull_parameters_inline .macro localsSize, ref_list
         tax
         inc objTableRootCount, x
       .endif
+    .next
+  .endif
+  .if len(\local_ref_list) > 0
+    lda #0
+    .for pos in \local_ref_list
+      sta localsStack-pos,y
     .next
   .endif
   sty stackPointer
@@ -195,7 +220,7 @@ method_exit_inline .macro stackSize, ref_list, continueLabel
     ldy stackPointer
     .for ref in \ref_list
       ldx localsStack-ref,y
-      dec objTableRootCount, x
+      jsr DecRefCountIfAllocated
     .next
     tya
   .else
@@ -218,7 +243,7 @@ method_exit_inline_fallthrough .macro stackSize, ref_list
     ldy stackPointer
     .for ref in \ref_list
       ldx localsStack-ref,y
-      dec objTableRootCount, x
+      jsr DecRefCountIfAllocated
     .next
     tya
   .else

@@ -58,14 +58,14 @@ Object_x_ctor:
 
 Func_1_x_ctor:
 
-        #init_locals_pull_parameters 0, [0, 0, 0,0]
+        #init_locals_pull_parameters 0, [0, 0, 0,0], []
         #setfld16 4, 3, 1 ; address to field at 1
         #setfld8 4, 1, 0 ; object to field at 0
         #method_exit 6, [] ; Ret
 
 Func_1_Invoke:
 
-        #init_locals_pull_parameters 0, [0]
+        #init_locals_pull_parameters 0, [0], []
         ; nop ; Nop
         ; OPT   #locals_push_value8 1 ; Ldarg_0
         ; OPT   #ldfld16 1 ; Ldfld

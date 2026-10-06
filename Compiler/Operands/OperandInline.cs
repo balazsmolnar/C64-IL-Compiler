@@ -159,11 +159,16 @@ class OpInlineContinue : OpBase
 // resolves against -- a non-issue here, since this fusion is decided with
 // full knowledge of both the caller's substituted position and the
 // callee's own field access, before either one is spliced into anything.
-class OpPushFldAt : OpBase
+class OpPushFldAt : OpBase, IPushFldOperation
 {
     private readonly string _relPos;
     private readonly string _pos;
     private readonly Type _fieldType;
+
+    public string RelPos => _relPos;
+    public string Pos => _pos;
+    bool IPushFldOperation.IsFloat => _fieldType == typeof(float);
+    bool IPushFldOperation.Is16BitField => _fieldType.GetStorageBytes() == 2;
 
     public OpPushFldAt(string relPos, string pos, Type fieldType) : base(0, "#pushfld")
     {

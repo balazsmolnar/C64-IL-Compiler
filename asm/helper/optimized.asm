@@ -200,6 +200,56 @@ pushfldflt_at .macro relpos, pos
 
 .endm
 
+; Same three again, but for ILMethodCachedFieldAccessPass: the object was
+; ALREADY resolved by an immediately preceding pushfld*/pushfld*_at, so
+; tmpPointer is already correct -- skip ldy/ldx/jsr resolveObjPtr (8 bytes)
+; entirely and go straight to reading the field. Safe only because this
+; GC never moves an object except via an explicit GC.Collect() call (see
+; Runtime_CheckHeapRoom's own comment -- allocation alone just hard-faults
+; on insufficient room, never compacts): as long as nothing between the
+; two field reads calls resolveObjPtr again (which would overwrite this
+; same shared zero-page slot) or GC.Collect() (which could move the
+; object out from under the cached pointer), the cached tmpPointer is
+; still exactly right.
+pushfld8_cached .macro pos
+
+  ldy #\pos
+  lda (tmpPointer),y
+  pha
+
+.endm
+
+pushfld16_cached .macro pos
+
+  ldy #\pos+1
+  lda (tmpPointer),y
+  pha
+  dey
+  lda (tmpPointer),y
+  pha
+
+.endm
+
+pushfldflt_cached .macro pos
+
+  ldy #\pos
+  lda (tmpPointer),y
+  pha
+  iny
+  lda (tmpPointer),y
+  pha
+  iny
+  lda (tmpPointer),y
+  pha
+  iny
+  lda (tmpPointer),y
+  pha
+  iny
+  lda (tmpPointer),y
+  pha
+
+.endm
+
 incfld .macro pos
 
   ldy stackPointer

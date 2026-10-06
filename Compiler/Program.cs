@@ -140,6 +140,14 @@ class Program
                         // all -- but the ordering is the correct, safe
                         // default regardless).
                         new ILMethodWiden8To16Optimizer(),
+                        // Last of all: needs to see every OpPushFld
+                        // ILPropertyGettterOptimizer's own rules in this
+                        // same sweep already fused, so it can collapse a
+                        // chain of them (plus any OpPushFldAt
+                        // ILMethodInliningPass built earlier) that read
+                        // the same object back to back -- see its own
+                        // comment for why it's not a PeepholeRule.
+                        new ILMethodCachedFieldAccessPass(),
                     },
                     new ICompilerMethodPass[] {
                         new ILMethodEmitPass(),

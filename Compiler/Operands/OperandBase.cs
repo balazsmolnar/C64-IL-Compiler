@@ -779,12 +779,32 @@ class OpNewArrInit : OpBase
     }
 }
 
-class OpPushFld : OpBase
+// Shared by every "resolve an object's heap pointer, then read one field
+// off it" operation (OpPushFld here; OpPushFldAt in Operands/
+// OperandInline.cs) -- lets ILMethodCachedFieldAccessPass recognize two
+// such operations reading the SAME object back to back and collapse the
+// second one's own resolveObjPtr call, regardless of which of the two
+// concrete classes either side is (this, a trivially-substituted local,
+// ...). See that pass's own comment for the full reasoning.
+interface IPushFldOperation
+{
+    string RelPos { get; }
+    string Pos { get; }
+    bool IsFloat { get; }
+    bool Is16BitField { get; }
+}
+
+class OpPushFld : OpBase, IPushFldOperation
 {
     private readonly string thisVar;
     private readonly string pos;
     private readonly bool is16Bit;
     private readonly bool isFloat;
+
+    public string RelPos => thisVar;
+    public string Pos => pos;
+    bool IPushFldOperation.IsFloat => isFloat;
+    bool IPushFldOperation.Is16BitField => is16Bit;
 
     // isFloat is passed in rather than read from StackContent: the
     // ILPropertyGettterOptimizer's shorter rule deliberately leaves
@@ -815,6 +835,55 @@ class OpPushFld : OpBase
 
     public override bool Is16Bit(CompilerMethodContext context, ILOperation operation) => is16Bit;
 
+}
+
+// Built by ILMethodCachedFieldAccessPass, replacing a second (or third,
+// ...) IPushFldOperation that reads a field off an object ALREADY
+// resolved by an immediately preceding one -- skips resolveObjPtr
+// entirely and reads straight out of the already-populated tmpPointer.
+// Implements IPushFldOperation itself (reporting the SAME relPos it was
+// built from, even though it never resolves anything on its own) so a
+// THIRD consecutive read of the same object chains onto this one exactly
+// like it would onto a real resolve.
+class OpPushFldCached : OpBase, IPushFldOperation
+{
+    private readonly string _relPos;
+    private readonly string _pos;
+    private readonly bool _is16Bit;
+    private readonly bool _isFloat;
+
+    public string RelPos => _relPos;
+    public string Pos => _pos;
+    bool IPushFldOperation.IsFloat => _isFloat;
+    bool IPushFldOperation.Is16BitField => _is16Bit;
+
+    public OpPushFldCached(string relPos, string pos, bool is16Bit, bool isFloat) : base(0, "#pushfld")
+    {
+        _relPos = relPos;
+        _pos = pos;
+        _is16Bit = is16Bit;
+        _isFloat = isFloat;
+    }
+
+    public override object ConvertParameter(CompilerMethodContext context, ILOperation operation) =>
+        $"{_pos}";
+
+    protected override string SizeSuffix(CompilerMethodContext context, ILOperation operation)
+    {
+        if (_isFloat)
+            return "flt_cached";
+        return _is16Bit ? "16_cached" : "8_cached";
+    }
+
+    // No SetStackContent override, deliberately: this pass runs AFTER
+    // ILMethodBuildEvaluationStackPass, replacing Operation in place on
+    // the SAME ILOperation whose StackContent that earlier pass already
+    // set correctly (from whichever real IPushFldOperation used to sit
+    // here, before being replaced). Nothing re-invokes SetStackContent on
+    // an existing line after that point, so there's nothing to recompute
+    // -- and no field Type to (mis)derive from the IsFloat/Is16BitField
+    // booleans alone, which this class deliberately keeps instead of a
+    // Type specifically to avoid needing one.
 }
 
 class OpDup : OpBase

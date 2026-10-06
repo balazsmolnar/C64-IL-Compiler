@@ -197,14 +197,23 @@ class ILMethodInliningPass : ICompilerMethodPass
         if (callLineIndex < paramCount)
             return null;
 
-        var callerRelPos = new int[paramCount];
+        var callerRelPos = new int?[paramCount];
+        var callerConstant = new ILOperation[paramCount];
         for (int p = 0; p < paramCount; p++)
         {
             var producer = context.Lines[callLineIndex - paramCount + p];
             int? relPos = ProducerRelPos(context, producer);
-            if (relPos == null)
-                return null;
-            callerRelPos[p] = relPos.Value;
+            if (relPos != null)
+            {
+                callerRelPos[p] = relPos;
+                continue;
+            }
+            if (IsTrivialConstantProducer(producer.OpCode) && ConstantProducerFitsParameter(target, isInstance, p, producer.OpCode))
+            {
+                callerConstant[p] = producer;
+                continue;
+            }
+            return null;
         }
 
         int siteId = _inlineSiteCounter++;
@@ -229,11 +238,11 @@ class ILMethodInliningPass : ICompilerMethodPass
             // own push is necessarily what it consumes -- nothing else
             // could be between them without breaking IL's own stack
             // balance.
-            if (paramIndex != null && k + 1 < calleeLines.Count && calleeLines[k + 1].OpCode == ILOpCode.Ldfld)
+            if (paramIndex != null && callerRelPos[paramIndex.Value] != null && k + 1 < calleeLines.Count && calleeLines[k + 1].OpCode == ILOpCode.Ldfld)
             {
                 var fieldLine = calleeLines[k + 1];
                 var field = context.CompilerContext.Assembly.ManifestModule.ResolveField((int)fieldLine.OriginalParameter);
-                var fusedOperation = new OpPushFldAt(callerRelPos[paramIndex.Value].ToString(), fieldLine.RawParameter.ToString(), field.FieldType);
+                var fusedOperation = new OpPushFldAt(callerRelPos[paramIndex.Value].Value.ToString(), fieldLine.RawParameter.ToString(), field.FieldType);
                 var fusedLine = new ILOperation
                 {
                     OpCode = ILOpCode.Nop,
@@ -284,6 +293,24 @@ class ILMethodInliningPass : ICompilerMethodPass
                     calleeLine.RawParameter = null;
                 }
             }
+            else if (paramIndex != null && callerConstant[paramIndex.Value] != null)
+            {
+                // Constant-argument specialization: this parameter's only
+                // use anywhere in the method is as a plain Ldc_* literal at
+                // THIS call site, verified width-compatible with the
+                // parameter's own declared type (ConstantProducerFitsParameter) --
+                // so instead of reading a substituted slot, the callee's
+                // read becomes a direct COPY of the caller's own constant-
+                // push instruction. SourceMethod is deliberately left unset
+                // (unlike the relpos case): a constant doesn't depend on
+                // the callee's type context at all, it's exactly the same
+                // instruction the caller would have executed itself.
+                var constProducer = callerConstant[paramIndex.Value];
+                calleeLine.OpCode = constProducer.OpCode;
+                calleeLine.OriginalParameter = constProducer.OriginalParameter;
+                calleeLine.RawParameter = constProducer.RawParameter;
+                calleeLine.Operation = constProducer.Operation;
+            }
             else if (paramIndex != null)
             {
                 // SourceMethod still needs to point at the callee -- the
@@ -292,7 +319,7 @@ class ILMethodInliningPass : ICompilerMethodPass
                 // which position we point it at); only the POSITION itself
                 // (RawParameter) changes, to the caller's existing slot.
                 calleeLine.SourceMethod = target;
-                calleeLine.RawParameter = callerRelPos[paramIndex.Value].ToString();
+                calleeLine.RawParameter = callerRelPos[paramIndex.Value].Value.ToString();
             }
             else
             {
@@ -331,6 +358,94 @@ class ILMethodInliningPass : ICompilerMethodPass
             or ILOpCode.Ldloc or ILOpCode.Ldloc_s => true,
         _ => false,
     };
+
+    // Constant-argument specialization: when a call site's argument is a
+    // bare integer/float LITERAL (not a variable read), the callee's own
+    // read of that parameter can be replaced with a direct copy of the
+    // literal-push instruction itself, instead of a position redirect --
+    // the same trivial-substitution splice, just a different kind of
+    // "already resident with no side effect" producer. This is the proven
+    // technique behind "constant specialization"/monomorphization in
+    // mainstream inliners (e.g. LLVM's InlineFunction mapping a formal
+    // parameter straight to a ConstantInt via its ValueMap, no alloca) --
+    // same idea TryBuildTrivialSubstitution's own comment already cites
+    // for the variable case, just extended to the other kind of value
+    // that's always "already there" with zero cost to re-materialize.
+    // The proven, verified benefit is the obvious one: no copy into a
+    // fresh locals-stack slot, no prologue/epilogue when combined with
+    // every other parameter also being trivial -- the same
+    // TrivialOverheadSavingsPerSite the variable-producer case already
+    // credits in ILCallSiteCountPass's cost model.
+    //
+    // Does NOT also unlock further const-folding inside the callee's own
+    // spliced body (MulConstOptimizer/ILMethodCompareConstOptimizer
+    // never firing on the specialized read, say) -- checked directly by
+    // inspecting real generated asm rather than assumed, after an
+    // earlier draft of this comment claimed exactly that and was wrong.
+    // PeepholeRule.TryApply's own blanket guard (PeepholeRule.cs: "if
+    // (window[k].SourceMethod != null) reject") rejects a match the
+    // moment ANY line in its window carries SourceMethod -- and every
+    // ordinary spliced-in callee instruction does (see this file's own
+    // "else { calleeLine.SourceMethod = target; }" case), the Mul/compare
+    // instruction included, regardless of whether the OTHER operand
+    // feeding it happens to be a specialized constant. This isn't new to
+    // constant specialization -- it already blocked ILPropertyGettterOptimizer's
+    // own #pushfld fusion inside a materializing splice's body, long
+    // before this change (see ILMethodCachedFieldAccessPass's own
+    // comment for that same guard's effect elsewhere) -- it just also
+    // rules out the specific benefit this comment originally hoped for
+    // here. The real, standalone benefit is materialization avoidance
+    // alone; nothing downstream currently compounds with it.
+    //
+    // Deliberately NOT Ldc_i8/Ldc_r8 (long/double) or Ldstr (string):
+    // Ldc_i8 has no corresponding Op* class in this compiler at all (every
+    // long/ulong literal this compiler's own test suite exercises compiles
+    // via Ldc_i4 + Conv_i8/u8 -- TWO instructions, which the shared
+    // fixed-offset window this reuses from ProducerRelPos already rejects
+    // on its own, consistent with every other multi-instruction producer);
+    // double is unsupported by this compiler's type system; strings are a
+    // heap resource reference, not a value that's safe to re-materialize
+    // by just copying an instruction (deferred, not attempted here).
+    internal static bool IsTrivialConstantProducer(ILOpCode opCode) => opCode switch
+    {
+        ILOpCode.Ldc_i4 or ILOpCode.Ldc_i4_s or ILOpCode.Ldc_i4_m1
+            or ILOpCode.Ldc_i4_0 or ILOpCode.Ldc_i4_1 or ILOpCode.Ldc_i4_2 or ILOpCode.Ldc_i4_3
+            or ILOpCode.Ldc_i4_4 or ILOpCode.Ldc_i4_5 or ILOpCode.Ldc_i4_6 or ILOpCode.Ldc_i4_7
+            or ILOpCode.Ldc_i4_8 or ILOpCode.Ldc_r4 => true,
+        _ => false,
+    };
+
+    // Verifies the constant producer's own natural width (per
+    // TypeExtensions.GetStorageBytes()) actually matches the TARGET
+    // parameter's declared type before allowing the substitution --
+    // belt-and-suspenders on top of the single-instruction-window
+    // argument above, not redundant with it: that argument guarantees
+    // Ldc_i4 is never silently paired with a Conv_i8/u8 this check didn't
+    // see, but says nothing about whether SOME OTHER width mismatch could
+    // sneak through some path neither of us has enumerated. Checked
+    // directly against measured storage widths (TypeExtensions.cs:
+    // byte/sbyte/short/ushort/int/uint/bool all collapse to 1;
+    // long/ulong/string to 2; float alone to 5) rather than assumed --
+    // this project has been burned twice this session already by an
+    // assumed-safe width/type claim that wasn't (the widen-fusion bug,
+    // the float-field caching regression), so this one gets verified
+    // instead of trusted.
+    internal static bool ConstantProducerFitsParameter(MethodBase target, bool isInstance, int paramIndex, ILOpCode producerOpCode)
+    {
+        // paramIndex 0 for an instance method is `this` -- never
+        // constant-producible (an object reference is never a literal),
+        // so this can never legitimately be asked about it, but fail
+        // closed rather than index out of range if it ever is.
+        int realParamIndex = paramIndex - (isInstance ? 1 : 0);
+        if (realParamIndex < 0)
+            return false;
+
+        var parameterType = target.GetParameters()[realParamIndex].ParameterType;
+        if (producerOpCode == ILOpCode.Ldc_r4)
+            return parameterType == typeof(float);
+
+        return parameterType.GetStorageBytes() == typeof(int).GetStorageBytes();
+    }
 
     // Shared with ILCallSiteCountPass for the same reason as
     // IsTrivialArgumentProducer above: a CALLEE-level (not call-site-level)

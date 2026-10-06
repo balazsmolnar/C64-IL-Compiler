@@ -310,8 +310,9 @@ class ILCallSiteCountPass : ICompilerPass
 
     // Tallies context.TrivialSiteCounts[target] when the call at lines[i]
     // feeds EVERY one of target's parameters (including `this`) from a
-    // bare Ldarg_N/Ldloc_N immediately before it -- the same shape
-    // ILMethodInliningPass.TryBuildTrivialSubstitution itself requires,
+    // bare Ldarg_N/Ldloc_N, or a width-compatible constant literal,
+    // immediately before it -- the same two producer shapes
+    // ILMethodInliningPass.TryBuildTrivialSubstitution itself accepts,
     // checked here using only target's PARAMETER SIGNATURE (reflection,
     // always available regardless of decode order) and the CALLER's own
     // already-decoded lines, never target's own body -- see
@@ -326,8 +327,13 @@ class ILCallSiteCountPass : ICompilerPass
 
         for (int p = 0; p < paramCount; p++)
         {
-            if (!ILMethodInliningPass.IsTrivialArgumentProducer(lines[callIndex - paramCount + p].OpCode))
-                return;
+            var producerOpCode = lines[callIndex - paramCount + p].OpCode;
+            if (ILMethodInliningPass.IsTrivialArgumentProducer(producerOpCode))
+                continue;
+            if (ILMethodInliningPass.IsTrivialConstantProducer(producerOpCode)
+                && ILMethodInliningPass.ConstantProducerFitsParameter(target, isInstance, p, producerOpCode))
+                continue;
+            return;
         }
 
         context.TrivialSiteCounts.TryGetValue(target, out var count);

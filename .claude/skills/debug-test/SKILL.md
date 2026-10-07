@@ -73,12 +73,24 @@ run.bat` yourself for this.
      useful when you don't know in advance which test exercises the code
      you're watching. `continue`ing past that test resumes running the rest
      of the queue automatically.
-   - `step` -- run to the next source line (any line, not just breakpoints).
+   - `step` -- run to the next source line, descending into any call made
+     from it (DAP "stepIn"/F11 semantics).
+   - `stepover` (alias `so`) -- run to the next source line WITHOUT
+     descending into a call made from it; a call on the stepped-over line
+     still runs to completion, only its own internal stops are skipped
+     (DAP "next"/F10 semantics).
+   - `stepout` -- run until the current method returns to its caller (DAP
+     "stepOut"/Shift+F11 semantics).
    - `continue` -- run until the next breakpoint hit, or the test finishes.
    - `print <name>` -- print one local variable's current value. For an
      object or array local, this also accepts a dotted/bracketed drill-down
      path: `print obj.Field`, `print arr[3]`, `print obj.Child.Id`,
      `print arr[1].F` -- each segment resolves one field/element at a time.
+   - `set <path> <value>` -- write a new value to a local/parameter or one
+     of its fields (same path syntax as `print`), e.g. `set result 9`,
+     `set obj.Field 100`. Scalars only (int/bool/uint/byte/long/ulong/
+     float) -- no string, no reassigning a reference itself (expand it and
+     set one of ITS fields instead).
    - `locals` -- print every local currently in scope. Objects/arrays show
      a one-line summary only (`TestObject#6`, `uint[5]`, `null`) -- use
      `print` with a path to drill into one.
@@ -96,7 +108,13 @@ run.bat` yourself for this.
 
    `print`'s path resolution (and VS Code's Watch panel/Debug Console/hover)
    all share the same code (`LocalVariableInspector.TryResolvePath`), so
-   they behave identically.
+   they behave identically. Resolves, in order: a real local variable, a
+   real parameter (by name, straight from the assembly's own metadata),
+   `this` (for an instance method), then -- the common case for a bare
+   field reference, since that's how the method's own C# source refers to
+   its own fields -- a field of `this` with no "this." prefix needed, e.g.
+   `print sprite_` while stopped inside an instance method that itself
+   just writes `sprite_.Visible = ...`.
 
 4. **Reading the output:** a stop prints `Stopped at <file>:<line> (in
    <Method>)` -- this means execution is paused *before* that line runs (so

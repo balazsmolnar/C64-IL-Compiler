@@ -44,12 +44,24 @@ Extension Development Host step.
 - Gutter breakpoints on any `Test/*.cs` line with a corresponding source
   line in the compiled method (snaps to the next executable line otherwise,
   same as the CLI).
-- Step (F10), Continue (F5 once stopped).
-- Variables panel shows the current method's locals (same "innermost frame
-  only" limitation as the CLI -- see the `debug-test` skill's notes), and
-  object/array locals are expandable (click the arrow) to drill into
-  fields/elements, recursively -- backed by the same handle/object-table
-  resolution the CLI's `print obj.field`/`print arr[i]` syntax uses.
+- Step over (F10), step into (F11), step out (Shift+F11), Continue (F5 once
+  stopped). F10 runs a call made from the stepped line to completion
+  without stopping inside it; F11 descends into it.
+- Variables panel shows the current method's locals, parameters, and --
+  for an instance method -- `this`'s own fields flattened in directly, no
+  "this." prefix needed, the same way the method's own C# source refers
+  to its own fields bare (same "innermost frame only" limitation as the
+  CLI -- see the `debug-test` skill's notes). Object/array locals are
+  expandable (click the arrow) to drill into fields/elements, recursively
+  -- backed by the same handle/object-table resolution the CLI's
+  `print obj.field`/`print arr[i]` syntax uses. An
+  auto-property (`public int Foo { get; set; }`) shows as `Foo`, not its
+  compiled backing-field name.
+- **Editing a value**: double-click a scalar (int/bool/uint/byte/long/
+  ulong/float) in the Variables or Watch panel to edit it in place -- same
+  write path as the CLI's `set` command, in either test mode or a live
+  VICE session. Not supported for a string, or for reassigning a
+  reference itself (expand it and edit one of its own fields instead).
 - Debug Console shows `PASSED`/`FAILED: <message>` when the test finishes.
 - **Debug all tests**: run the "C64 Test Debugger: Debug All Tests" command
   (or the "Debug All C64 Tests" launch config), and it runs every test in
@@ -64,10 +76,10 @@ Extension Development Host step.
   Disassembly View" for real 6502 mnemonics with symbolic operands and the
   *original* macro-call source comments preserved (this is 64tass's own
   `--list` output for the debug build, not a from-scratch decoder). Step
-  (F10)/Continue (F5) switch to single-instruction granularity automatically
-  while the Disassembly View has focus, and back to source-line granularity
-  when the source editor has focus -- no separate toggle, just whichever
-  tab you're on. Setting a breakpoint directly in the Disassembly View
+  (F10/F11)/Continue (F5) switch to single-instruction granularity
+  automatically while the Disassembly View has focus, and back to
+  source-line granularity when the source editor has focus -- no separate
+  toggle, just whichever tab you're on. Setting a breakpoint directly in the Disassembly View
   (gutter click on an instruction row) isn't supported yet -- only source-line
   breakpoints.
 - **Watch panel, Debug Console, and hover tooltips**: type any `print`-style
@@ -116,15 +128,17 @@ Runtime faults (out of memory, too many objects, float overflow / division by ze
 see `asm/helper/fault.asm`) stop the debugger as an exception ("Runtime fault: Out of
 memory"), with the stack frame on the C# line that triggered it.
 
-Works: breakpoints, continue, step (F10/F11, line or instruction), pause,
-locals and object/array inspection, registers, disassembly, watch/hover,
+Works: breakpoints, continue, step over/into/out (F10/F11/Shift+F11, line
+or instruction), pause, locals and object/array inspection, registers,
+disassembly, watch/hover, editing a value from the Variables/Watch panel,
 closing the session (kills VICE).
 
 Limits: locals are only resolved for the innermost method (no call-stack
 walking); breakpoints added while the program is running take effect at the
-next stop; while the program runs, memory-inspecting requests are refused
-(reading memory would stop the machine); VICE reads use the RAM bank, so
-the CPU port at `$01` isn't visible.
+next stop; while the program runs, memory-inspecting (and -editing)
+requests are refused (that would need to stop the machine); VICE reads
+and writes use the RAM bank, so the CPU port at `$01` isn't visible or
+editable.
 
 `TestDebugger.dll vice-probe <port> [<labels> <label>...]` attaches to an
 already running VICE (`x64sc -binarymonitor -binarymonitoraddress

@@ -25,6 +25,17 @@ static class ViceProbe
         Console.WriteLine("$0801: " + string.Join(" ", Enumerable.Range(0x0801, 8).Select(a => target.GetMemory(a).ToString("X2"))));
         Console.WriteLine("$0001: " + target.GetMemory(1).ToString("X2"));
 
+        // SetMemory round-trip -- the debugger's own "set"/setVariable
+        // write path (ObjectInspector.TryWrite), confirming VICE's binary
+        // monitor MemSet command actually lands and that ViceTarget's own
+        // read cache doesn't serve a stale value back afterward.
+        const int probeAddr = 0xC000;
+        var probeBefore = target.GetMemory(probeAddr);
+        target.SetMemory(probeAddr, (byte)0x42);
+        var probeAfter = target.GetMemory(probeAddr);
+        Console.WriteLine($"SetMemory round-trip at ${probeAddr:X4}: wrote 0x42, read back 0x{probeAfter:X2} ({(probeAfter == 0x42 ? "OK" : "MISMATCH")})");
+        target.SetMemory(probeAddr, probeBefore);
+
         if (labelsFile == null)
             return 0;
 

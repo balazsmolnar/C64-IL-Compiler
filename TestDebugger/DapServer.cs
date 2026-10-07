@@ -135,6 +135,7 @@ class DapServer
                     supportsDisassembleRequest = true,
                     supportsEvaluateForHovers = true,
                     supportsTerminateRequest = true,
+                    supportsSetVariable = true,
                 });
                 return true;
 
@@ -181,6 +182,10 @@ class DapServer
                 HandleVariables(msg);
                 return true;
 
+            case "setVariable":
+                HandleSetVariable(msg);
+                return true;
+
             case "next":
             case "stepIn":
             case "stepOut":
@@ -190,12 +195,11 @@ class DapServer
                     if (_running)
                         return true;
                     SyncBreakpoints();
-                    var instruction = IsInstructionGranularity(msg);
-                    RunAsync(() => instruction ? _session.StepInstruction() : _session.Step());
+                    RunAsync(() => StepFunctionFor(msg)());
                 }
                 else
                 {
-                    ReportStop(IsInstructionGranularity(msg) ? _session.StepInstruction() : _session.Step());
+                    ReportStop(StepFunctionFor(msg)());
                 }
                 return true;
 
@@ -400,6 +404,69 @@ class DapServer
         _io.WriteResponse(msg.Seq, msg.Command, true, new { variables });
     }
 
+    // Edits a value in place from the Variables/Watch panel -- either a
+    // top-level local/parameter (variablesReference == LocalsVariablesReference)
+    // or one field/element of an already-expanded object/array
+    // (variablesReference is whatever ToDapVariable minted for that
+    // parent, looked up the same way HandleVariables itself resolves an
+    // expansion). Scalars only, and test mode (SimpleEmulator) only for
+    // now -- see ObjectInspector.TryWrite's own comment for why; both
+    // limits surface as an ordinary DAP error response, not a crash.
+    private void HandleSetVariable(DapIncomingMessage msg)
+    {
+        var variablesReference = msg.Arguments.GetProperty("variablesReference").GetInt32();
+        var name = msg.Arguments.GetProperty("name").GetString();
+        var newText = msg.Arguments.GetProperty("value").GetString();
+
+        var locals = _running ? null : _session?.Locals;
+        if (locals == null)
+        {
+            _io.WriteResponse(msg.Seq, msg.Command, false, null, _running ? "The program is running." : "No active session.");
+            return;
+        }
+
+        InspectedValue value;
+        if (variablesReference == LocalsVariablesReference)
+        {
+            if (!locals.TryGetLocalValue(name, out value, out var notFoundError))
+            {
+                _io.WriteResponse(msg.Seq, msg.Command, false, null, notFoundError);
+                return;
+            }
+        }
+        else if (_variableRefs.TryGetValue(variablesReference, out var parent))
+        {
+            var match = locals.Inspector.Expand(parent).FirstOrDefault(c => c.Name == name);
+            if (match.Value == null)
+            {
+                _io.WriteResponse(msg.Seq, msg.Command, false, null, $"no member \"{name}\".");
+                return;
+            }
+            value = match.Value;
+        }
+        else
+        {
+            _io.WriteResponse(msg.Seq, msg.Command, false, null, "can't edit this value.");
+            return;
+        }
+
+        if (!locals.Inspector.TryWrite(value, newText, out var writeError))
+        {
+            _io.WriteResponse(msg.Seq, msg.Command, false, null, writeError);
+            return;
+        }
+
+        // Re-read rather than echo the typed text back -- the write may
+        // have clamped/reinterpreted it (e.g. "300" for a byte).
+        var updated = locals.Inspector.Read(value.StaticType, value.Address);
+        _io.WriteResponse(msg.Seq, msg.Command, true, new
+        {
+            value = updated.Summary,
+            type = ObjectInspector.FriendlyTypeName(updated.StaticType),
+            variablesReference = 0,
+        });
+    }
+
     // Powers the Debug Console REPL and the Watch panel -- both send
     // "evaluate" for whatever expression the user typed. Reuses the exact
     // same path-walking logic ReplLoop's `print` command uses
@@ -543,6 +610,25 @@ class DapServer
         msg.Arguments.ValueKind != JsonValueKind.Undefined
         && msg.Arguments.TryGetProperty("granularity", out var g)
         && g.GetString() == "instruction";
+
+    // "next" (F10) must not descend into a call -- IDebugSession.StepOver
+    // exists specifically because Step() alone can't tell the difference
+    // (see that interface's own comment). "stepIn" (F11) keeps the old,
+    // already-correct descend-into-calls behavior; "stepOut" (Shift+F11)
+    // gets the same stack-pointer-depth treatment in the other direction.
+    // Instruction granularity bypasses all of this uniformly, same as
+    // before, for any of the three commands.
+    private Func<SessionStop> StepFunctionFor(DapIncomingMessage msg)
+    {
+        if (IsInstructionGranularity(msg))
+            return _session.StepInstruction;
+        return msg.Command switch
+        {
+            "next" => _session.StepOver,
+            "stepOut" => _session.StepOut,
+            _ => _session.Step,
+        };
+    }
 
     private void HandleDisassemble(DapIncomingMessage msg)
     {

@@ -76,6 +76,45 @@ class ProgramSession : IDebugSession
     public SessionStop Step() =>
         Advance(_model.AllSequencePointAddresses().Concat(_userBreakpoints).ToHashSet(), SessionStopKind.Step);
 
+    public SessionStop StepOver() => AdvanceToDepth(strictlyShallower: false);
+
+    public SessionStop StepOut() => AdvanceToDepth(strictlyShallower: true);
+
+    // Shared by StepOver/StepOut -- see IDebugSession's own comment for
+    // the semantics each one selects, and TestSession.AdvanceToDepth's
+    // own comment for why the SOFTWARE stack pointer (zero page $4b),
+    // not the hardware one, is what actually tracks call depth here --
+    // init_locals relocates the jsr return address off the hardware
+    // stack into localsStack as the first thing a callee's prologue
+    // does, so the hardware SP alone doesn't reflect "still inside a
+    // call" by the time any of the callee's own code runs.
+    private const int SoftwareStackPointerZp = 0x4b;
+
+    private SessionStop AdvanceToDepth(bool strictlyShallower)
+    {
+        var startSp = _target.GetMemory(SoftwareStackPointerZp);
+        var stopAt = _model.AllSequencePointAddresses().Concat(_userBreakpoints).ToHashSet();
+        while (true)
+        {
+            var stop = Advance(stopAt, SessionStopKind.Step, out var stoppedAt);
+            // Halted/faulted/exited, or the user hit Pause mid-skip --
+            // any of these must surface immediately, at any depth, same
+            // as a real debugger.
+            if (stop.Kind != SessionStopKind.Step)
+                return stop;
+            if (_userBreakpoints.Contains(stoppedAt))
+                return stop;
+
+            var currentSp = _target.GetMemory(SoftwareStackPointerZp);
+            bool farEnough = strictlyShallower ? currentSp < startSp : currentSp <= startSp;
+            if (farEnough)
+                return stop;
+            // else: landed on a sequence point strictly deeper than where
+            // this step began (inside a call made from that line) --
+            // keep going.
+        }
+    }
+
     public SessionStop StepInstruction()
     {
         try
@@ -94,14 +133,18 @@ class ProgramSession : IDebugSession
     // then returns a Pause stop.
     public void Pause() => _target.Pause();
 
-    private SessionStop Advance(HashSet<int> stopAt, SessionStopKind hitKind)
+    private SessionStop Advance(HashSet<int> stopAt, SessionStopKind hitKind) => Advance(stopAt, hitKind, out _);
+
+    private SessionStop Advance(HashSet<int> stopAt, SessionStopKind hitKind, out int stoppedAtAddress)
     {
+        stoppedAtAddress = -1;
         try
         {
             _faultSourcePc = null;
             if (_faultAddress >= 0)
                 stopAt = stopAt.Concat(new[] { _faultAddress }).ToHashSet();
             var result = _target.RunUntil(stopAt, 0, out var stoppedAt, out _);
+            stoppedAtAddress = stoppedAt;
             if (result == RunResult.Halted)
                 return Jammed();
             if (stoppedAt == _faultAddress)

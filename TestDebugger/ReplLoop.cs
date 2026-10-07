@@ -94,11 +94,21 @@ class ReplLoop
                     case "step":
                         Report(_session.Step());
                         break;
+                    case "stepover":
+                    case "so":
+                        Report(_session.StepOver());
+                        break;
+                    case "stepout":
+                        Report(_session.StepOut());
+                        break;
                     case "continue":
                         Report(_session.Continue());
                         break;
                     case "print":
                         PrintLocal(rest);
+                        break;
+                    case "set":
+                        SetLocal(rest);
                         break;
                     case "locals":
                         PrintAllLocals();
@@ -117,7 +127,7 @@ class ReplLoop
                         return;
                     default:
                         Console.WriteLine("Unknown command: " + command +
-                            " (break/run [TestClass.TestMethod|all]/step/stepi/continue/print [name|name.field|name[i]]/locals/regs/disasm [count]/quit)");
+                            " (break/run [TestClass.TestMethod|all]/step/stepover (so)/stepout/stepi/continue/print [name|name.field|name[i]]/set <path> <value>/locals/regs/disasm [count]/quit)");
                         break;
                 }
             }
@@ -150,6 +160,45 @@ class ReplLoop
         }
 
         Console.WriteLine($"{path} = {value.Summary}");
+    }
+
+    // CLI counterpart of DapServer's "setVariable" (the Watch panel's
+    // in-place edit) -- same path resolution as PrintLocal, then writes
+    // through ObjectInspector.TryWrite. "set path value", where value is
+    // everything after the first space (so this doesn't itself need to
+    // handle quoting for a value with spaces -- none of the supported
+    // scalar types ever have any).
+    private void SetLocal(string args)
+    {
+        var locals = _session.Locals;
+        if (locals == null)
+        {
+            Console.WriteLine("No active session.");
+            return;
+        }
+
+        var spaceIndex = args.IndexOf(' ');
+        if (spaceIndex < 0)
+        {
+            Console.WriteLine("usage: set <path> <value>");
+            return;
+        }
+        var path = args.Substring(0, spaceIndex);
+        var newText = args.Substring(spaceIndex + 1).Trim();
+
+        if (!locals.TryResolvePath(path, out var value, out var error))
+        {
+            Console.WriteLine($"{path}: {error}");
+            return;
+        }
+        if (!locals.Inspector.TryWrite(value, newText, out var writeError))
+        {
+            Console.WriteLine($"{path}: {writeError}");
+            return;
+        }
+
+        var updated = locals.Inspector.Read(value.StaticType, value.Address);
+        Console.WriteLine($"{path} = {updated.Summary}");
     }
 
     private void PrintAllLocals()

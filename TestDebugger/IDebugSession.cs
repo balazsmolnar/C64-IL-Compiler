@@ -26,6 +26,20 @@ interface IDebugSession
     void ReplaceBreakpoints(IEnumerable<int> addresses);
 
     SessionStop Continue();
+
+    // Steps to the next source line ANYWHERE, including descending into a
+    // called method -- DAP "stepIn" (F11)'s own semantics.
     SessionStop Step();
+
+    // Steps to the next source line WITHOUT descending into a called
+    // method -- DAP "next" (F10)'s own semantics. A call made from the
+    // stepped-over line still runs to completion; only its own internal
+    // stops are skipped.
+    SessionStop StepOver();
+
+    // Runs until the current method returns to its caller -- DAP
+    // "stepOut" (Shift+F11)'s own semantics.
+    SessionStop StepOut();
+
     SessionStop StepInstruction();
 }

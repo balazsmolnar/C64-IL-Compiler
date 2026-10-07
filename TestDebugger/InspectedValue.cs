@@ -11,4 +11,12 @@ class InspectedValue
     public bool IsReference; // true for object/array, even when IsNull
     public bool IsNull;      // handle == 0, or objTableHigh[handle] == 0 (never allocated)
     public int Handle;       // valid only when IsReference && !IsNull
+
+    // Where this value's own byte(s) live -- a localsStack offset for a
+    // local/parameter, or a heap offset for a field/array element (see
+    // ObjectInspector.Read, the only place this gets set). Needed so a
+    // SCALAR value can be written back in place (DapServer's
+    // "setVariable" handling); never meaningful for IsReference (editing
+    // which object a reference points to isn't supported).
+    public int Address;
 }

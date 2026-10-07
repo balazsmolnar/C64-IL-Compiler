@@ -154,4 +154,70 @@ public static class EmulatorArgumentMarshaling
         }
         return null;
     }
+
+    // The inverse of ReadLocal: encodes a value PARSED FROM TEXT (a
+    // debugger Watch/Variables edit) into localsStack (or a heap field)
+    // at `address`, using the exact same per-type layout ReadLocal reads
+    // back. Deliberately narrower than ReadLocal: no string (writing a
+    // new string means allocating heap space for it, not just poking
+    // bytes) and no reference type at all (changing which object a
+    // handle points to isn't attempted here -- editing a referenced
+    // object's OWN fields, by expanding it first, still works, since
+    // that's just another scalar/field write one level down).
+    public static bool TryWriteLocal(IDebugTarget emulator, Type type, int address, string text, out string error)
+    {
+        error = null;
+        text = text?.Trim();
+
+        if (type == typeof(int))
+        {
+            if (!sbyte.TryParse(text, out var v)) { error = "expected an integer from -128 to 127"; return false; }
+            emulator.SetMemory(address, (byte)v);
+            return true;
+        }
+        if (type == typeof(bool))
+        {
+            if (!bool.TryParse(text, out var v)) { error = "expected true or false"; return false; }
+            emulator.SetMemory(address, v ? (byte)1 : (byte)0);
+            return true;
+        }
+        if (type == typeof(uint) || type == typeof(byte))
+        {
+            if (!byte.TryParse(text, out var v)) { error = "expected an integer from 0 to 255"; return false; }
+            emulator.SetMemory(address, v);
+            return true;
+        }
+        if (type == typeof(long))
+        {
+            if (!short.TryParse(text, out var v)) { error = "expected an integer from -32768 to 32767"; return false; }
+            var bytes = BitConverter.GetBytes(v);
+            emulator.SetMemory(address, bytes[0]);
+            emulator.SetMemory(address + 1, bytes[1]);
+            return true;
+        }
+        if (type == typeof(ulong))
+        {
+            if (!ushort.TryParse(text, out var v)) { error = "expected an integer from 0 to 65535"; return false; }
+            var bytes = BitConverter.GetBytes(v);
+            emulator.SetMemory(address, bytes[0]);
+            emulator.SetMemory(address + 1, bytes[1]);
+            return true;
+        }
+        if (type == typeof(float))
+        {
+            if (!float.TryParse(text, out var v)) { error = "expected a number"; return false; }
+            // ReadLocal reads address+4..address (reversed) as mflpt
+            // byte[0..4] -- writing inverts that same mapping.
+            var mflpt = Compiler.Mflpt.ToBytes(v);
+            emulator.SetMemory(address + 4, mflpt[0]);
+            emulator.SetMemory(address + 3, mflpt[1]);
+            emulator.SetMemory(address + 2, mflpt[2]);
+            emulator.SetMemory(address + 1, mflpt[3]);
+            emulator.SetMemory(address, mflpt[4]);
+            return true;
+        }
+
+        error = $"editing a {type.Name} isn't supported.";
+        return false;
+    }
 }

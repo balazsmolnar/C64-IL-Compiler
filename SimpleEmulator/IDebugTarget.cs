@@ -24,5 +24,11 @@ namespace SimpleEmulator
 
         // Executes exactly one instruction; false if the machine halted.
         bool StepOne();
+
+        // Pokes raw bytes directly into memory -- an uncontrolled, no-undo
+        // write, unlike running real compiled code. Used by the debugger's
+        // own "set"/setVariable (edit-a-value-in-the-Watch-panel) feature;
+        // nothing else needs a target to ever write to itself.
+        void SetMemory(int address, params byte[] value);
     }
 }

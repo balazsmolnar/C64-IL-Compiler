@@ -27,13 +27,13 @@ namespace TestDebugger;
 // to interpret a handle.
 class ObjectInspector
 {
-    private readonly IMemoryReader _emulator;
+    private readonly IDebugTarget _emulator;
     private readonly CompilerContext _compilerContext = new();
     private readonly int _objTableLow;
     private readonly int _objTableHigh;
     private readonly int _objTableSize;
 
-    public ObjectInspector(IMemoryReader emulator, DebugMapModel model)
+    public ObjectInspector(IDebugTarget emulator, DebugMapModel model)
     {
         _emulator = emulator;
         _objTableLow = model.ResolveLabelAddress("objTableLow");
@@ -58,11 +58,12 @@ class ObjectInspector
                 StaticType = type,
                 IsReference = false,
                 Summary = scalar?.ToString() ?? "null",
+                Address = address,
             };
         }
 
         var handle = _emulator.GetMemory(address);
-        var value = new InspectedValue { StaticType = type, IsReference = true, Handle = handle };
+        var value = new InspectedValue { StaticType = type, IsReference = true, Handle = handle, Address = address };
         if (!TryResolveHeapAddress(handle, out _))
         {
             value.IsNull = true;
@@ -71,6 +72,26 @@ class ObjectInspector
         }
         value.Summary = Summarize(type, handle);
         return value;
+    }
+
+    // Writes a new value, parsed from text, back to where `value` was
+    // itself read from (value.Address) -- powers DapServer's
+    // "setVariable" handling (editing a local, or a field one level into
+    // an expanded object, from the Variables/Watch panel). Scalars only:
+    // never attempted for a reference (which object a handle points to
+    // isn't editable here, only the OWN fields of whatever it already
+    // points to, by expanding it first and writing one of ITS scalar
+    // fields instead). Works in both test mode (SimpleEmulator.Emulator)
+    // and program/VICE mode (ViceTarget) -- both implement IDebugTarget
+    // .SetMemory, so no mode check is needed here at all.
+    public bool TryWrite(InspectedValue value, string text, out string error)
+    {
+        if (value.IsReference)
+        {
+            error = "editing a reference isn't supported -- expand it and edit one of its own fields instead.";
+            return false;
+        }
+        return EmulatorArgumentMarshaling.TryWriteLocal(_emulator, value.StaticType, value.Address, text, out error);
     }
 
     // Expands exactly one level of an already-resolved, non-null
@@ -141,8 +162,27 @@ class ObjectInspector
         var fields = type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
             .Where(f => !f.IsLiteral);
         foreach (var field in fields)
-            result.Add((field.Name, Read(field.FieldType, heapAddress + _compilerContext.GetFieldPosition(field))));
+            result.Add((FriendlyFieldName(field.Name), Read(field.FieldType, heapAddress + _compilerContext.GetFieldPosition(field))));
         return result;
+    }
+
+    // An auto-property ("public int Foo { get; set; }") compiles to a
+    // backing field named "<Foo>k__BackingField" (Roslyn's own, stable
+    // naming convention) -- shown here as plain "Foo" instead, matching
+    // what the user actually wrote and would type in a Watch expression
+    // (TryResolvePath matches against this same name, so "obj.Foo"
+    // resolves correctly too, not just the display label). A field the
+    // user wrote by hand is never shaped like this, so it passes through
+    // unchanged.
+    private static string FriendlyFieldName(string fieldName)
+    {
+        if (fieldName.Length > 2 && fieldName[0] == '<' && fieldName.EndsWith("k__BackingField", StringComparison.Ordinal))
+        {
+            var close = fieldName.IndexOf('>');
+            if (close > 1)
+                return fieldName.Substring(1, close - 1);
+        }
+        return fieldName;
     }
 
     private List<(string, InspectedValue)> ExpandArray(Type elementType, int heapAddress, int handle)

@@ -64,6 +64,18 @@ class ViceTarget : IDebugTarget, IDisposable
         return page[address & 0xff];
     }
 
+    // Invalidates every page the write touches (not just the start page --
+    // a multi-byte write can cross a 256-byte boundary) so a later
+    // GetMemory re-fetches from VICE instead of serving a stale cached
+    // read.
+    public void SetMemory(int address, params byte[] value)
+    {
+        address &= 0xffff;
+        _client.WriteMemory(address, value, _ramBank);
+        for (int a = address; a < address + value.Length; a++)
+            _pages[(a & 0xffff) >> 8] = null;
+    }
+
     public int ProgramCounter => _client.Pc;
 
     public byte HardwareStackPointer => (byte)Registers16()[_regSp];

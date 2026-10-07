@@ -142,6 +142,52 @@ class TestSession : IDebugSession
         return Advance(_model.AllSequencePointAddresses().ToHashSet());
     }
 
+    public SessionStop StepOver() => AdvanceToDepth(strictlyShallower: false);
+
+    public SessionStop StepOut() => AdvanceToDepth(strictlyShallower: true);
+
+    // Shared by StepOver/StepOut -- see IDebugSession's own comment for
+    // the semantics each one selects. Deliberately does NOT use the
+    // hardware stack pointer: init_locals (asm/helper/localsStack.asm)
+    // immediately pulls the jsr return address back OFF the hardware
+    // stack and relocates it into localsStack as the very first thing a
+    // callee's prologue does, so by the time execution reaches the
+    // callee's own first sequence point, the hardware SP is usually
+    // already back at (or above) its pre-call value -- confirmed
+    // directly, an earlier version of this method used
+    // HardwareStackPointer and didn't actually skip the call at all.
+    // The SOFTWARE stack pointer (zero page $4b, "stackPointer" in that
+    // same file) is what genuinely grows for the duration of a call and
+    // shrinks back on return -- same address LocalVariableInspector's
+    // own local-address arithmetic already relies on.
+    private const int SoftwareStackPointerZp = 0x4b;
+
+    private SessionStop AdvanceToDepth(bool strictlyShallower)
+    {
+        RequireActiveSession();
+        var startSp = _emulator.GetMemory(SoftwareStackPointerZp);
+        var breakpoints = _model.AllSequencePointAddresses().ToHashSet();
+        while (true)
+        {
+            var stop = Advance(breakpoints, out var stoppedAt);
+            if (_halted)
+                return stop;
+            // A real user breakpoint always wins, at any depth -- same as
+            // any mainstream debugger: a breakpoint set INSIDE a call
+            // being stepped over must still stop there.
+            if (_userBreakpoints.Contains(stoppedAt))
+                return stop;
+
+            var currentSp = _emulator.GetMemory(SoftwareStackPointerZp);
+            bool farEnough = strictlyShallower ? currentSp < startSp : currentSp <= startSp;
+            if (farEnough)
+                return stop;
+            // else: landed on a sequence point strictly deeper than where
+            // this step began (inside a call made from that line) --
+            // keep going.
+        }
+    }
+
     // Raw single-instruction step (instruction-granularity debugging) --
     // bypasses RunUntil entirely (there's no "run until" happening, just
     // one instruction), unlike Step()/Continue() above.
@@ -261,9 +307,12 @@ class TestSession : IDebugSession
         return result;
     }
 
-    private SessionStop Advance(HashSet<int> breakpoints)
+    private SessionStop Advance(HashSet<int> breakpoints) => Advance(breakpoints, out _);
+
+    private SessionStop Advance(HashSet<int> breakpoints, out int stoppedAtAddress)
     {
         var result = _emulator.RunUntil(breakpoints, 50_000_000, out var stoppedAt, out _);
+        stoppedAtAddress = stoppedAt;
 
         if (result == RunResult.Halted)
         {

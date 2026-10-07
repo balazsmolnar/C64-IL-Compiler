@@ -81,5 +81,22 @@
         // now-existing % operator for a bounded range, e.g.
         // `C64.Random() % 5` for 0..4.
         public static uint Random() => 0;
+
+        // Waits until the KERNAL jiffy clock (asm/C64.asm's C64_Delay) has
+        // advanced at least s50 ticks (50ths of a second on PAL) past
+        // wherever it was at the end of the PREVIOUS Delay call -- if
+        // that many ticks (or more) have already passed, e.g. because
+        // other code ran a while between calls, this returns immediately
+        // rather than waiting an extra s50 on top. The very first call
+        // ever seeds that starting point from the real jiffy clock at
+        // that moment (not a fixed 0), so whatever setup work ran before
+        // it doesn't make that first call return instantly too.
+        //
+        // One shared timer across every call site in the whole program --
+        // "the previous Delay call" means the previous call to Delay from
+        // ANYWHERE, not just this call site's own last call. Calling it
+        // from two unrelated places that both expect their own
+        // independent pacing will make them interfere with each other.
+        public static void Delay(uint s50) { }
     }
 }

@@ -115,6 +115,51 @@ public class C64LibTest
         Assert.AreEqual(C64.GetMemory(0x0700UL, 3), 42u);
     }
 
+    // SimpleEmulator has no IRQ simulation at all (Emulator.cs's own
+    // Interrupt() is a deliberate no-op -- see its comment), so the KERNAL
+    // jiffy clock ($A0-$A2) C64_Delay polls never advances on its own
+    // here: only the "deadline already passed" branch is testable this
+    // way. The actual-waiting behavior (the poll loop really exits once
+    // the clock reaches the target, and not before), and that
+    // c64_delay_last really is set to the literal jiffy value at each
+    // return (not some other computed value), were both verified
+    // manually via TestDebugger instead -- stepping through a real call
+    // and reading c64_delay_init/c64_delay_last directly, plus a
+    // breakpoint inside the poll loop with `set` to advance $a2 mid-wait
+    // and confirm it exits at exactly the right tick.
+    //
+    // FillMemory(dest, value, 1) writes to dest+1, never dest itself (see
+    // CopyMemory_Copies_Source_To_Dest's own "offsets 1..3" comment above
+    // for the same quirk) -- 0x00A1, not 0x00A2, pokes the jiffy clock's
+    // own low byte.
+    [Test]
+    public void Delay_Returns_Immediately_When_Enough_Time_Already_Elapsed_Since_Last_Call()
+    {
+        C64.Delay(0); // first call ever: seeds c64_delay_last from "now" (0 in a fresh emulator); s50=0 always returns immediately
+        C64.FillMemory(0x00A1UL, 10, 1); // pretend 10 jiffies have passed since that first call
+        C64.Delay(5); // elapsed (10-0=10) already >= 5 -- must not hang
+        Assert.IsTrue(true); // reaching here (no emulator step-limit timeout) is the pass condition
+    }
+
+    // Exercises the high byte ($A1) specifically: a gap of exactly 256
+    // ticks (middle byte 1, low byte 0) wraps the low byte alone back to
+    // 0, which an 8-bit-only elapsed calculation would misread as "no
+    // time has passed at all" -- confirmed as a real source of felt
+    // non-determinism (the ball's own pacing getting coupled to an
+    // unrelated, shared-timer call site elsewhere that can itself run
+    // for several seconds), not just a theoretical risk. The high byte
+    // being nonzero must be enough on its own to recognize "already far
+    // more than s50 have passed," regardless of what the low byte reads.
+    [Test]
+    public void Delay_Returns_Immediately_Across_A_256_Tick_Gap()
+    {
+        C64.Delay(0); // seeds c64_delay_last = (hi=0, lo=0)
+        C64.FillMemory(0x00A0UL, 1, 1); // middle byte ($A1) = 1
+        C64.FillMemory(0x00A1UL, 0, 1); // low byte ($A2) = 0 -- now = 256 ticks since last
+        C64.Delay(5); // elapsed (256-0=256) already >= 5 -- must not hang
+        Assert.IsTrue(true);
+    }
+
     [Test]
     public void SetBorderColor_GetBorderColor_RoundTrip()
     {

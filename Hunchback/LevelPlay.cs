@@ -185,14 +185,14 @@ class LevelPlay
                 else
                 {
                     for (int i = 0; i < 30; i++)
-                        Delay.Wait(255);
+                        C64.Delay(8);
                 }
                 return true;
             }
             foreach (var go in gameObjects)
                 go?.Move();
 
-            Delay.Wait(100);
+            C64.Delay(3);
             // Debug/testing cheat: force the level complete instead of playing
             // it out. Sets Complete rather than returning true directly so it
             // still goes through the normal bonus/fanfare handling above.
@@ -218,7 +218,7 @@ class LevelPlay
 
         C64.Screen.Write(16, 6, "GET READY", Colors.White);
         for (int i = 0; i < 40; i++)
-            Delay.Wait(100);
+            C64.Delay(3);
 
         // Grey2 matches the only decoration that can be here today (the
         // row-of-bells rope); harmless elsewhere since a space's color
@@ -344,7 +344,7 @@ class LevelPlay
             C64.Sprites.Sprite5.ExpandX = expanded; C64.Sprites.Sprite5.ExpandY = expanded;
             C64.Sprites.Sprite6.ExpandX = expanded; C64.Sprites.Sprite6.ExpandY = expanded;
             C64.Sprites.Sprite7.ExpandX = expanded; C64.Sprites.Sprite7.ExpandY = expanded;
-            Delay.Wait(150);
+            C64.Delay(5);
         }
 
         // Matches the original's own rescue-bonus award exactly
@@ -355,7 +355,7 @@ class LevelPlay
         playerStats.Score += 200;
         playerStats.DrawScore();
         for (int i = 0; i < 10; i++)
-            Delay.Wait(255);
+            C64.Delay(8);
 
         // Leave every sprite in a clean state -- the next level's
         // Screen.Clear() (Game.RunGame) doesn't touch sprite hardware
@@ -386,7 +386,7 @@ class LevelPlay
     // find how many game-loop ticks the level took: fewer ticks (faster
     // completion) means a higher multiplier. Recalibrated for this port's
     // own tick granularity (one increment per LevelPlay.Play() main-loop
-    // iteration, each already paced by a Delay.Wait(100)) rather than the
+    // iteration, each already paced by a C64.Delay(3)) rather than the
     // original's raw knight-animation-frame count, since the two aren't the
     // same unit -- the original's exact threshold values wouldn't mean the
     // same thing here.
@@ -488,7 +488,7 @@ class LevelPlay
         for (uint i = 0; i < 5; i++)
         {
             C64.Sound.PlayEffectReg2(WaveForm.Triangle, 0x2864UL, 0x1000UL, 0x0a, 0x00, false);
-            Delay.Wait(150);
+            C64.Delay(5);
         }
     }
 }

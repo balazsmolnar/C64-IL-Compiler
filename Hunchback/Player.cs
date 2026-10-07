@@ -243,7 +243,7 @@ class Player
         while (Y < 250)
         {
             Y++;
-            Delay.Wait(2);
+            C64.Delay(0);
         }
         Dead = true;
         sprite_.Visible = false;

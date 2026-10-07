@@ -296,6 +296,84 @@ C64_Random
 .endif
 
 .weak
+Flag_C64_Delay = 0
+.endweak
+.if Flag_C64_Delay
+
+; The jiffy tick (c64_delay_last_lo/hi) Delay() returned at -- NOT a
+; computed future target. Each call just measures real ticks elapsed
+; since this fixed, already-past point and waits for at least s50 of
+; them, then stores the real "now" back here for next time -- no
+; accumulating schedule, so a call that overshoots (other code ran long
+; between Delay calls) never leaves anything to "catch up" on afterward.
+;
+; Seeded from the REAL jiffy clock on the first call ever (c64_delay_init
+; below), not a fixed 0: a real program always does some real work (title
+; screen, setup) before its first Delay call, so by then the jiffy clock
+; is already well past 0 -- confirmed as a real, reproduced bug, not
+; theorized: Hunchback's enemy ball ran with no pacing at all right after
+; a level start, then suddenly correct. A fixed-0 start, even with this
+; same elapsed-since-last design, would still make that very first call
+; return immediately (elapsed looks huge) -- seeding avoids even that.
+;
+; 16-bit (the jiffy clock's middle and low bytes, $A1:$A2), not just the
+; low byte: C64.Delay is ONE shared timer across every call site in the
+; whole program (the ball's own pacing, a level-transition fade loop,
+; title-screen pacing, ...), so "how long ago did the clock last get
+; stored" can easily exceed several seconds -- e.g. a 30-iteration fade
+; loop elsewhere calling Delay(8) runs for ~4.8s on its own. With only
+; the 8-bit low byte, elapsed wraps every ~5.1s, so a stale last from a
+; different call site could occasionally read back smaller than the true
+; gap, delaying "already passed" detection by up to s50 extra ticks
+; (confirmed as a real source of felt non-determinism, not just a
+; theoretical concern -- the ball's first wait after a level transition
+; varied depending on exactly where some unrelated pacing loop had left
+; the shared clock). 16 bits (65536 ticks, ~21 minutes) makes elapsed
+; exact for any realistic real-world gap between call sites, removing
+; that residual coupling entirely rather than merely bounding it.
+c64_delay_init .byte 0
+c64_delay_last_lo .byte 0
+c64_delay_last_hi .byte 0
+c64_delay_s50 .byte 0
+
+C64_Delay
+    #stack_save_return_adress zp_tmp1_low
+    #stack_pull_int_x              ; X = s50
+    stx c64_delay_s50
+
+    lda c64_delay_init
+    bne +
+    lda $a2                      ; KERNAL jiffy clock low byte -- alive
+                                  ; since this codebase never issues a
+                                  ; blanket SEI (see zeropage.asm's own
+                                  ; comment on $90-$ff)
+    sta c64_delay_last_lo
+    lda $a1                      ; jiffy clock middle byte
+    sta c64_delay_last_hi
+    lda #1
+    sta c64_delay_init
++
+
+-   lda $a2
+    sec
+    sbc c64_delay_last_lo
+    tay                           ; stash elapsed's low byte
+    lda $a1
+    sbc c64_delay_last_hi         ; elapsed's high byte (16-bit subtract, borrow propagated)
+    bne +                         ; high byte != 0 -> elapsed >= 256, always >= any s50 (max 255) -> done
+    tya
+    cmp c64_delay_s50
+    bcc -                         ; high byte == 0 and low byte < s50 -> not yet, keep polling
++
+    lda $a2
+    sta c64_delay_last_lo         ; last = now, for next call
+    lda $a1
+    sta c64_delay_last_hi
+
+    #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+.weak
 Flag_Screen_SetMultiColor = 0
 .endweak
 .if Flag_Screen_SetMultiColor

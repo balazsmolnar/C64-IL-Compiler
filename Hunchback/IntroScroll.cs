@@ -120,7 +120,7 @@ class IntroScroll
             for (uint k = 0; k < 8; k++)
                 s_player.Move();
             TickMusic();
-            Delay.Wait(2);
+            C64.Delay(0);
         }
     }
 
@@ -186,7 +186,7 @@ class IntroScroll
                 s_player.Move();
 
             TickMusic();
-            Delay.Wait(2);
+            C64.Delay(0);
         }
 
         // The live screen now shows exactly what s_nextChar/Color holds --

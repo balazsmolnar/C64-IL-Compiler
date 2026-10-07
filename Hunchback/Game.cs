@@ -28,7 +28,7 @@ class Game
             if (levelPlay.Play(levels[currentLevel], playerStats, (uint)currentLevel))
             {
                 currentLevel++;
-                Delay.Wait(100);
+                C64.Delay(3);
             }
             else if (playerStats.Lives == 0)
             {
@@ -43,7 +43,7 @@ class Game
     {
         C64.Screen.Write(15, 12, "GAME OVER", Colors.Red);
         for (int i = 0; i < 60; i++)
-            Delay.Wait(100);
+            C64.Delay(3);
     }
 
     private void Init()

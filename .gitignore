@@ -34,3 +34,4 @@ asm/*_debug.asm
 # Second unit-test project (Test.Runtime)
 asm/unittest_runtime/**
 asm/unittest_runtime.asm
+/C64.slnLaunch.user

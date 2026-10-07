@@ -160,6 +160,22 @@ public class C64LibTest
         Assert.IsTrue(true);
     }
 
+    // SimpleEmulator doesn't model CIA timers actually counting down at
+    // all (confirmed: no $DD0x handling in Emulator.cs, so they behave as
+    // plain RAM here) -- this only confirms the call compiles/runs and
+    // returns a small value right after Start(), not real timing
+    // accuracy. The real, cycle-accurate behavior (does it count the
+    // right number of cycles, does the tear-safe read actually matter)
+    // was verified manually against a live VICE instance instead -- see
+    // the conversation this was built from.
+    [Test]
+    public void Stopwatch_Elapsed_Is_Small_Right_After_Start()
+    {
+        C64.Stopwatch.Start();
+        var elapsed = C64.Stopwatch.Elapsed();
+        Assert.IsTrue(elapsed < 100UL);
+    }
+
     [Test]
     public void SetBorderColor_GetBorderColor_RoundTrip()
     {

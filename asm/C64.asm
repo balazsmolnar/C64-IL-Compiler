@@ -373,6 +373,69 @@ C64_Delay
     #stack_return_to_saved_address zp_tmp1_low
 .endif
 
+; CIA2 Timer A ($DD04/$DD05 counter+latch, $DD0E control register) --
+; CIA1's own Timer A is intentionally left alone, since it's already what
+; drives the KERNAL's jiffy-clock IRQ (see C64.Delay's own comment;
+; reconfiguring it would break that). See C64.Stopwatch's own doc comment
+; for the full design (why CIA2, the ~65536-cycle wrap range, when to use
+; this instead of the jiffy clock).
+.weak
+Flag_Stopwatch_Start = 0
+.endweak
+.if Flag_Stopwatch_Start
+
+Stopwatch_Start
+    #stack_save_return_adress zp_tmp1_low
+    lda #$FF
+    sta $dd04                   ; latch low
+    sta $dd05                   ; latch high
+    lda #%00010001               ; START(bit0) + FORCE LOAD(bit4, a one-shot
+                                  ; strobe -- loads the counter from the
+                                  ; latch right now, regardless of prior
+                                  ; state) + CONTINUOUS(bit3=0) + count
+                                  ; phi2/system clock, not CNT(bit5=0)
+    sta $dd0e
+    #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+.weak
+Flag_Stopwatch_Elapsed = 0
+.endweak
+.if Flag_Stopwatch_Elapsed
+
+; Timer A counts DOWN from $FFFF, and the 6526 doesn't latch the high
+; byte when the low byte is read (unlike the VIC-II raster counter), so a
+; read can tear if the pair rolls over between the two byte reads --
+; read high, read low, read high again, retry until two consecutive high
+; reads agree (then the low byte read in between is guaranteed to belong
+; to that same high-byte "epoch").
+Stopwatch_Elapsed
+    #stack_save_return_adress zp_tmp1_low
+    lda $dd05
+-   sta zp_param0_high
+    lda $dd04
+    ldx $dd05
+    cpx zp_param0_high
+    bne -
+    sta zp_param0_low            ; coherent pair: zp_param0_low/high = raw (ticks remaining)
+
+    ; Ascending elapsed-cycles value, not the raw countdown: $FFFF - raw,
+    ; byte-independent (no borrow between bytes needed -- subtracting from
+    ; a byte of all 1-bits is exactly that byte XOR $FF).
+    lda zp_param0_low
+    eor #$FF
+    sta zp_param0_low
+    lda zp_param0_high
+    eor #$FF
+    sta zp_param0_high
+
+    lda zp_param0_high
+    pha
+    lda zp_param0_low
+    pha
+    #stack_return_to_saved_address zp_tmp1_low
+.endif
+
 .weak
 Flag_Screen_SetMultiColor = 0
 .endweak

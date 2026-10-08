@@ -185,4 +185,42 @@ class Program
         Assert.That(programAsm, Does.Not.Contain("\n    #sub16 "),
             "the unfused sub16 macro should not run as real code once fused:\n" + programAsm);
     }
+
+    // Branch-truthiness fusion (ExecuteBranchTruthiness/
+    // OpFusedBranchTruthiness): a bare `if (x)`/`if (!x)` on a simple
+    // leaf loads straight into register A and branches, instead of
+    // round-tripping the value through the hardware stack via
+    // branch_true8/branch_false8's own stack_pull_int_a. Checks both
+    // directions (bne for Brtrue, beq for Brfalse) so a swapped branch
+    // sense would be caught structurally here, not just by the real
+    // correctness tests in Test/BranchTest.cs.
+    [Test]
+    public void Branch_Truthiness_On_Local_Fuses()
+    {
+        var source = @"
+class Program
+{
+    static void Check(bool x)
+    {
+        if (x) C64Lib.C64.FillMemory(0x0900UL, 1, 1);
+        if (!x) C64Lib.C64.FillMemory(0x0900UL, 2, 1);
+    }
+    static void Main()
+    {
+        bool a = true;
+        bool b = false;
+        Check(a);
+        Check(b);
+    }
+}";
+        var asmDir = CompileAndGetAsmDir(source);
+        var programAsm = ReadType(asmDir, "Program");
+
+        Assert.That(programAsm, Does.Not.Contain("\n    #branch_true8"),
+            "the unfused branch_true8 macro should not run as real code once fused:\n" + programAsm);
+        Assert.That(programAsm, Does.Not.Contain("\n    #branch_false8"),
+            "the unfused branch_false8 macro should not run as real code once fused:\n" + programAsm);
+        Assert.That(programAsm, Does.Contain("bne Program_Check"), "Brtrue should fuse into a bne:\n" + programAsm);
+        Assert.That(programAsm, Does.Contain("beq Program_Check"), "Brfalse should fuse into a beq:\n" + programAsm);
+    }
 }

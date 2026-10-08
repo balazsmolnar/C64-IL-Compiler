@@ -33,11 +33,18 @@ namespace Compiler;
 //   - 8-bit mul, and every 16-bit op: both operands -> named zp bytes/
 //     pairs.
 //
-// Deliberately NOT matching Neg/Div/compares, and NOT the output side
-// (a result feeding straight into another op or a Stloc/Setfld) -- same
-// technique would apply to any of those, but none were part of what this
-// pass's own Hunchback investigation measured, and extending to them
-// (particularly the output side, given the register-vs-zp-byte asymmetry
+// Also fuses a bare truthiness branch (Brtrue/Brfalse, i.e. `if (x)`/
+// `if (!x)`) on a simple leaf directly into register A -- see
+// ExecuteBranchTruthiness/OpFusedBranchTruthiness below.
+//
+// Deliberately NOT matching Neg/Div/other compares (Clt/Cgt/Ceq, or the
+// 2-operand branch_less_unsigned8-style comparisons), and NOT the output
+// side (a result feeding straight into another op or a Stloc/Setfld) --
+// same technique would apply to any of those, but none were part of what
+// this pass's own Hunchback investigation measured (the 2-operand branch
+// comparisons specifically: measured and found rare, ~30% simple-leaf-
+// shaped versus the 1-operand truthiness case's 81%), and extending to
+// the output side (particularly given the register-vs-zp-byte asymmetry
 // above) is real additional complexity this pass doesn't attempt. Not a
 // PeepholeRule, for the same reason ILMethodFloatOperandFusionOptimizer
 // isn't one -- see that class's own comment.
@@ -140,6 +147,38 @@ class ILMethodIntOperandFusionOptimizer : ICompilerMethodPass
         var lines = context.Lines;
         Execute8Bit(context, lines);
         Execute16Bit(lines);
+        ExecuteBranchTruthiness(context, lines);
+    }
+
+    // [leaf] [Brtrue/Brfalse] -- a bare `if (x)`/`if (!x)` truthiness
+    // test (branch_true8/branch_false8, asm/helper/branch.asm: both just
+    // pull one value into register A then branch) on a simple leaf.
+    // Measured in Hunchback's own generated asm: 81% of these are
+    // already exactly this shape. 8-bit only -- IsFusableInt8Leaf's own
+    // width check already excludes a 2-byte value (a string reference,
+    // the one case OpJump's own comment calls out as needing real 16-bit
+    // truthiness handling) from matching here at all, and there were no
+    // branch_true16/branch_false16 uses anywhere in Hunchback to justify
+    // handling that width too.
+    private void ExecuteBranchTruthiness(CompilerMethodContext context, List<ILOperation> lines)
+    {
+        for (int i = 0; i < lines.Count; i++)
+        {
+            if (lines[i].Optimized || !IsFusableInt8Leaf(context, lines[i]))
+                continue;
+
+            int j = NextEffective(lines, i);
+            if (j < 0 || lines[j].SourceMethod != null || !string.IsNullOrEmpty(lines[j].Label))
+                continue;
+
+            bool isTrue = lines[j].OpCode == ILOpCode.Brtrue_s || lines[j].OpCode == ILOpCode.Brtrue;
+            bool isFalse = lines[j].OpCode == ILOpCode.Brfalse_s || lines[j].OpCode == ILOpCode.Brfalse;
+            if (!isTrue && !isFalse)
+                continue;
+
+            var fused = new OpFusedBranchTruthiness(lines[i], isTrue, lines[j].RawParameter.ToString());
+            InsertFused(lines, fused, j, i, j);
+        }
     }
 
     private void Execute8Bit(CompilerMethodContext context, List<ILOperation> lines)

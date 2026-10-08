@@ -255,6 +255,72 @@ class BranchTest
         }
     }
 
+    // Real correctness coverage for ILMethodIntOperandFusionOptimizer's
+    // branch-truthiness fusion (Compiler/ILMethodIntOperandFusionOptimizer.cs):
+    // a bare `if (x)`/`if (!x)` on a simple leaf (local, field, or
+    // parameter) now loads straight into register A instead of round-
+    // tripping through the hardware stack via branch_true8/branch_false8's
+    // own stack_pull_int_a. Each checked both ways (condition true and
+    // false) so a wrong branch direction (bne vs beq swapped) would fail
+    // exactly one of the pair, not silently pass by accident.
+    bool field_;
+
+    [Test]
+    public void Branch_Truthiness_Local_True()
+    {
+        bool a = true;
+        if (!a)
+            Assert.Fail();
+    }
+
+    [Test]
+    public void Branch_Truthiness_Local_False()
+    {
+        bool a = false;
+        if (a)
+            Assert.Fail();
+    }
+
+    [Test]
+    public void Branch_Truthiness_Field_True()
+    {
+        field_ = true;
+        if (!field_)
+            Assert.Fail();
+    }
+
+    [Test]
+    public void Branch_Truthiness_Field_False()
+    {
+        field_ = false;
+        if (field_)
+            Assert.Fail();
+    }
+
+    static void AssertParamTrue(bool p)
+    {
+        if (!p)
+            Assert.Fail();
+    }
+
+    static void AssertParamFalse(bool p)
+    {
+        if (p)
+            Assert.Fail();
+    }
+
+    [Test]
+    public void Branch_Truthiness_Param_True()
+    {
+        AssertParamTrue(true);
+    }
+
+    [Test]
+    public void Branch_Truthiness_Param_False()
+    {
+        AssertParamFalse(false);
+    }
+
     [Test]
     public void Test_Tenary_Operator()
     {

@@ -118,3 +118,32 @@ class OpFusedIntBinOp : OpBase
         return string.Join("\n", bCopy, aCopy, _tailMacro);
     }
 }
+
+// Built by ILMethodIntOperandFusionOptimizer, replacing a
+// [int operand] [Brtrue/Brfalse] window -- a bare `if (x)`/`if (!x)`
+// truthiness test on a simple leaf (branch_true8/branch_false8,
+// asm/helper/branch.asm, both just "#stack_pull_int_a" then a single
+// bne/beq). Unlike OpFusedIntBinOp there is no "_tail" macro to reuse --
+// the tail is one instruction, simple enough to inline directly here --
+// so this just loads the operand straight into register A
+// (IntOperandCopy.EmitToRegisterA, the same register-direct convention
+// add8/sub8's own first operand already uses) and branches.
+class OpFusedBranchTruthiness : OpBase
+{
+    private readonly ILOperation _a;
+    private readonly bool _branchIfTrue;
+    private readonly string _label;
+
+    public OpFusedBranchTruthiness(ILOperation a, bool branchIfTrue, string label) : base(0)
+    {
+        _a = a;
+        _branchIfTrue = branchIfTrue;
+        _label = label;
+    }
+
+    public override string Emit(CompilerMethodContext context, ILOperation operation)
+    {
+        var branch = _branchIfTrue ? "bne" : "beq";
+        return string.Join("\n", IntOperandCopy.EmitToRegisterA(_a), $"{branch} {_label}");
+    }
+}

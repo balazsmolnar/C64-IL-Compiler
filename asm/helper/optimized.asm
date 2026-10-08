@@ -250,6 +250,41 @@ pushfldflt_cached .macro pos
 
 .endm
 
+; Direct field-to-zp_flt copy, for ILMethodFloatOperandFusionOptimizer
+; (Compiler/ILMethodFloatOperandFusionOptimizer.cs): skips the push/pull
+; round trip through the hardware stack pushfldflt above would use when a
+; float field read feeds straight into a binary float op. Same
+; resolveObjPtr setup as pushfldflt, storing directly into \target instead
+; of pha'ing -- a plain pos+N -> target+N copy (no reversal needed here,
+; unlike locals_copy_valueflt above: pushfldflt's own push order already
+; runs low-to-high, so paired with stack_pull_mflpt it already nets out
+; straight; see that macro's own comment for the local/param case, where
+; it doesn't).
+pushfldflt_direct .macro pos, target
+
+  ldy stackPointer
+  dey
+  ldx localsStack,y
+  jsr resolveObjPtr
+
+  ldy #\pos
+  lda (tmpPointer),y
+  sta \target
+  iny
+  lda (tmpPointer),y
+  sta \target+1
+  iny
+  lda (tmpPointer),y
+  sta \target+2
+  iny
+  lda (tmpPointer),y
+  sta \target+3
+  iny
+  lda (tmpPointer),y
+  sta \target+4
+
+.endm
+
 incfld .macro pos
 
   ldy stackPointer

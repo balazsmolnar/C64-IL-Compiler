@@ -157,6 +157,14 @@ class Program
                         // the same object back to back -- see its own
                         // comment for why it's not a PeepholeRule.
                         new ILMethodCachedFieldAccessPass(),
+                        // Also wants ILPropertyGettterOptimizer's/
+                        // ILMethodCachedFieldAccessPass's fused field reads
+                        // already in place (a raw, unfused Ldfld isn't
+                        // matched -- see its own comment), so it runs
+                        // after both; this whole optimizer group runs to a
+                        // fixpoint (ILCodePass) regardless, so this mostly
+                        // affects clarity, not correctness.
+                        new ILMethodFloatOperandFusionOptimizer(),
                     },
                     new ICompilerMethodPass[] {
                         new ILMethodEmitPass(),

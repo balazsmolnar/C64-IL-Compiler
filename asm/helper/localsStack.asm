@@ -304,3 +304,32 @@ locals_pull_valueflt .macro rel_pos
   #stack_pull_int_a
   sta localsStack-\rel_pos+4,y
 .endm
+
+; Direct local/param-to-zp_flt copy, for ILMethodFloatOperandFusionOptimizer
+; (Compiler/ILMethodFloatOperandFusionOptimizer.cs): skips the push/pull
+; round trip through the hardware stack that locals_push_valueflt +
+; stack_pull_mflpt (asm/helper/stack.asm) would otherwise use when a float
+; Ldloc/Ldarg feeds straight into a binary float op.
+;
+; NOT a straight byte-for-byte copy -- rel_pos+0 is localsStack's "low"/
+; last-pushed byte (see locals_push_valueflt's own comment above), which is
+; the FIRST byte stack_pull_mflpt would land, landing it at \target+4, not
+; \target+0. Reproducing that same reversal here (rather than the simpler-
+; looking rel_pos+N -> target+N) is what keeps this byte-identical to the
+; unfused push-then-pull path; getting this backwards would silently
+; corrupt every fused float value while still "working" structurally (the
+; same class of bug as the OpPushFld float-width miss documented in
+; Test/InstanceFloatFieldBugTest.cs).
+locals_copy_valueflt .macro rel_pos, target
+  ldy stackPointer
+  lda localsStack-\rel_pos,y
+  sta \target+4
+  lda localsStack-\rel_pos+1,y
+  sta \target+3
+  lda localsStack-\rel_pos+2,y
+  sta \target+2
+  lda localsStack-\rel_pos+3,y
+  sta \target+1
+  lda localsStack-\rel_pos+4,y
+  sta \target
+.endm

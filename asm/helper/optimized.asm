@@ -250,6 +250,39 @@ pushfldflt_cached .macro pos
 
 .endm
 
+; Direct field-to-zp copy, for ILMethodIntOperandFusionOptimizer
+; (Compiler/ILMethodIntOperandFusionOptimizer.cs) -- the 8/16-bit integer
+; counterpart of pushfldflt_direct below. Same resolveObjPtr setup as
+; pushfld8/pushfld16, storing directly into \target instead of pha'ing.
+pushfld8_direct .macro pos, target
+
+  ldy stackPointer
+  dey
+  ldx localsStack,y
+  jsr resolveObjPtr
+
+  ldy #\pos
+  lda (tmpPointer),y
+  sta \target
+
+.endm
+
+pushfld16_direct .macro pos, target
+
+  ldy stackPointer
+  dey
+  ldx localsStack,y
+  jsr resolveObjPtr
+
+  ldy #\pos
+  lda (tmpPointer),y
+  sta \target
+  iny
+  lda (tmpPointer),y
+  sta \target+1
+
+.endm
+
 ; Direct field-to-zp_flt copy, for ILMethodFloatOperandFusionOptimizer
 ; (Compiler/ILMethodFloatOperandFusionOptimizer.cs): skips the push/pull
 ; round trip through the hardware stack pushfldflt above would use when a

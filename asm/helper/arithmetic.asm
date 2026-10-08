@@ -1,11 +1,12 @@
-add16 .macro 
-
-    #stack_pull_int zp_param1_low
-    #stack_pull_int zp_param1_high
-
-    #stack_pull_int zp_param2_low
-    #stack_pull_int zp_param2_high
-
+; "_tail" macros: everything AFTER an op's own operand-pulling, unchanged
+; from the combined macros below -- split out purely so
+; ILMethodIntOperandFusionOptimizer's fused operand classes
+; (Compiler/Operands/OperandIntFusion.cs) can reuse the exact same
+; computation after copying each operand directly into place themselves,
+; without duplicating this logic. A zero-cost refactor: the non-fused
+; macros below still just chain straight into their own "_tail", so their
+; expansion is byte-for-byte identical to before.
+add16_tail .macro
     clc
     lda zp_param2_low
     adc zp_param1_low
@@ -16,27 +17,7 @@ add16 .macro
     #stack_push_var zp_param2_low
 .endm
 
-add8 .macro
-
-    #stack_pull_int zp_param1_low
-    #stack_pull_int_a
-
-    clc
-    adc zp_param1_low
-    #stack_push_int_a
-.endm
-
-sub8 .macro 
-
-    #stack_pull_int zp_param1_low
-    #stack_pull_int_a
-
-    sec
-    sbc zp_param1_low
-    #stack_push_int_a
-.endm
-
-sub16 .macro 
+add16 .macro
 
     #stack_pull_int zp_param1_low
     #stack_pull_int zp_param1_high
@@ -44,6 +25,38 @@ sub16 .macro
     #stack_pull_int zp_param2_low
     #stack_pull_int zp_param2_high
 
+    #add16_tail
+.endm
+
+add8_tail .macro
+    clc
+    adc zp_param1_low
+    #stack_push_int_a
+.endm
+
+add8 .macro
+
+    #stack_pull_int zp_param1_low
+    #stack_pull_int_a
+
+    #add8_tail
+.endm
+
+sub8_tail .macro
+    sec
+    sbc zp_param1_low
+    #stack_push_int_a
+.endm
+
+sub8 .macro
+
+    #stack_pull_int zp_param1_low
+    #stack_pull_int_a
+
+    #sub8_tail
+.endm
+
+sub16_tail .macro
     sec
     lda zp_param2_low
     sbc zp_param1_low
@@ -54,6 +67,17 @@ sub16 .macro
     #stack_push_var zp_param2_low
 .endm
 
+sub16 .macro
+
+    #stack_pull_int zp_param1_low
+    #stack_pull_int zp_param1_high
+
+    #stack_pull_int zp_param2_low
+    #stack_pull_int zp_param2_high
+
+    #sub16_tail
+.endm
+
 ; The 6502 has no hardware multiply -- both of these are the standard
 ; shift-and-add algorithm, unrolled into a counted loop. They only ever
 ; produce the *truncated* low N bits of the product (8 bits for mul8, 16
@@ -62,10 +86,7 @@ sub16 .macro
 ; multiplication is bit-identical for signed and unsigned operands (it's
 ; modular arithmetic mod 2^N either way), so one implementation serves
 ; both int and uint -- no _unsigned variant needed, unlike the compares.
-mul8 .macro
-    #stack_pull_int zp_param1_low  ; one operand, shifted right a bit at a time
-    #stack_pull_int_a
-    sta zp_param2_low              ; other operand, doubled a bit at a time
+mul8_tail .macro
     lda #0                         ; running product
     ldx #8
 -   lsr zp_param1_low
@@ -78,18 +99,20 @@ mul8 .macro
     #stack_push_int_a
 .endm
 
+mul8 .macro
+    #stack_pull_int zp_param1_low  ; one operand, shifted right a bit at a time
+    #stack_pull_int_a
+    sta zp_param2_low              ; other operand, doubled a bit at a time
+    #mul8_tail
+.endm
+
 ; Needs a genuine third register pair for the accumulator: zp_param1 and
 ; zp_param2 both stay busy all the way through the loop (one shifting
 ; right for the next bit, one doubling for the next partial product), so
 ; unlike mul8 the running total can't just live in A. zp_param0 isn't
 ; used anywhere else in arithmetic.asm -- see zeropage.asm's ownership
 ; comment for this macro's entry there.
-mul16 .macro
-    #stack_pull_int zp_param1_low
-    #stack_pull_int zp_param1_high
-    #stack_pull_int zp_param2_low
-    #stack_pull_int zp_param2_high
-
+mul16_tail .macro
     lda #0
     sta zp_param0_low
     sta zp_param0_high
@@ -112,6 +135,15 @@ mul16 .macro
     lda zp_param0_high
     #stack_push_int_a
     #stack_push_var zp_param0_low
+.endm
+
+mul16 .macro
+    #stack_pull_int zp_param1_low
+    #stack_pull_int zp_param1_high
+    #stack_pull_int zp_param2_low
+    #stack_pull_int zp_param2_high
+
+    #mul16_tail
 .endm
 
 ; Compile-time-constant multiply by a power of two (ILMethodMulConstOptimizer

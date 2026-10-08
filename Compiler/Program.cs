@@ -165,6 +165,11 @@ class Program
                         // fixpoint (ILCodePass) regardless, so this mostly
                         // affects clarity, not correctness.
                         new ILMethodFloatOperandFusionOptimizer(),
+                        // Int counterpart of the float pass immediately
+                        // above -- same ordering reasoning (wants fused
+                        // field reads already in place), independent of
+                        // it otherwise (disjoint operand types).
+                        new ILMethodIntOperandFusionOptimizer(),
                     },
                     new ICompilerMethodPass[] {
                         new ILMethodEmitPass(),

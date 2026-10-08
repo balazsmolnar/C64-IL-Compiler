@@ -320,6 +320,26 @@ locals_pull_valueflt .macro rel_pos
 ; corrupt every fused float value while still "working" structurally (the
 ; same class of bug as the OpPushFld float-width miss documented in
 ; Test/InstanceFloatFieldBugTest.cs).
+; Direct local/param-to-zp copy, for ILMethodIntOperandFusionOptimizer
+; (Compiler/ILMethodIntOperandFusionOptimizer.cs) -- the 8/16-bit integer
+; counterpart of locals_copy_valueflt below. No byte reversal here (unlike
+; the float case): locals_push_value16's own rel_pos+0/+1 convention
+; already maps straight onto a pulling consumer's low/high byte order (see
+; that macro's own comment), so a plain copy is correct.
+locals_copy_value8 .macro rel_pos, target
+  ldy stackPointer
+  lda localsStack-\rel_pos,y
+  sta \target
+.endm
+
+locals_copy_value16 .macro rel_pos, target
+  ldy stackPointer
+  lda localsStack-\rel_pos,y
+  sta \target
+  lda localsStack-\rel_pos+1,y
+  sta \target+1
+.endm
+
 locals_copy_valueflt .macro rel_pos, target
   ldy stackPointer
   lda localsStack-\rel_pos,y

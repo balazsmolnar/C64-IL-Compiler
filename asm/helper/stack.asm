@@ -207,6 +207,24 @@ stack_push_mflpt_const .macro b0, b1, b2, b3, b4
   pha
 .endm
 
+; Direct copy of an int literal into a named zp byte/pair, for
+; ILMethodIntOperandFusionOptimizer (Compiler/ILMethodIntOperandFusionOptimizer.cs)
+; -- the integer counterpart of copy_mflpt_const below. Same "<"/">" byte-
+; extraction 64tass itself does the sign/zero-extension math for, exactly
+; as stack_push_int8/stack_push_int16 (asm/helper/stack.asm) already rely
+; on for this same raw value.
+copy_int8_const .macro value, target
+  lda #<\value
+  sta \target
+.endm
+
+copy_int16_const .macro value, target
+  lda #>\value
+  sta \target+1
+  lda #<\value
+  sta \target
+.endm
+
 ; Direct copy of an Ldc_r4 literal's own 5 bytes into zp_flt_a/zp_flt_b,
 ; for ILMethodFloatOperandFusionOptimizer (Compiler/
 ; ILMethodFloatOperandFusionOptimizer.cs): skips the push/pull round trip

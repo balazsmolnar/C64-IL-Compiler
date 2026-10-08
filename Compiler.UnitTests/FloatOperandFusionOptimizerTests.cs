@@ -214,12 +214,11 @@ class Program
             "the unfused compareGreaterflt macro should not run as real code once fused:\n" + programAsm);
     }
 
-    // Guard: a float constant operand must NOT fuse -- Ldc isn't matched
-    // (v1 scope deliberately excludes it, see
-    // ILMethodFloatOperandFusionOptimizer's own comment), so this should
-    // fall through to the general, unfused mulflt macro untouched.
+    // A float literal (Ldc_r4) operand fuses via copy_mflpt_const
+    // (asm/helper/stack.asm), same mechanism as a local/param/field
+    // operand -- see ILMethodFloatOperandFusionOptimizer.IsFusableFloatOperand.
     [Test]
-    public void Param_And_Constant_Operand_Is_Not_Fused()
+    public void Param_And_Constant_Operand_Fuses()
     {
         var source = @"
 class Program
@@ -227,16 +226,104 @@ class Program
     static float Mul(float a) => a * 3f;
     static void Main()
     {
-        float c = Mul(2f);
+        float x = 2f;
+        float y = 5f;
+        float c = Mul(x);
+        c = Mul(y);
+        c = Mul(c);
+        c = Mul(y);
+        c = Mul(c);
         C64Lib.C64.FillMemory(0x0900UL, (uint)c, 1);
     }
 }";
         var asmDir = CompileAndGetAsmDir(source);
         var programAsm = ReadType(asmDir, "Program");
 
-        Assert.That(programAsm, Does.Not.Contain("locals_copy_valueflt"),
-            "a constant operand should never fuse in v1:\n" + programAsm);
-        Assert.That(programAsm, Does.Contain("#mulflt"),
-            "should still compile correctly via the general, unfused macro:\n" + programAsm);
+        Assert.That(programAsm, Does.Contain("copy_mflpt_const"),
+            "a constant operand should fuse via copy_mflpt_const:\n" + programAsm);
+        Assert.That(programAsm, Does.Not.Contain("\n    #mulflt"),
+            "the unfused mulflt macro should not run as real code once fused:\n" + programAsm);
+    }
+
+    // Chained first operand: a*b's own result, left in zp_flt_a instead of
+    // being pushed to the hardware stack, feeds Neg directly -- see
+    // ILMethodFloatOperandFusionOptimizer's IsChainableFloatProducer/
+    // MarkAsChainProducer and OperandFloatFusion.cs's PushResult/
+    // OpFloatProducerNoPush. Two call sites, same reason as the other
+    // field-operand tests: keeps the method from being inlined away.
+    [Test]
+    public void Chain_Negate_Of_Mul_Result_Fuses()
+    {
+        var source = @"
+class Holder
+{
+    public float a_, b_;
+    public float Chain() => -(a_ * b_);
+}
+class Program
+{
+    static void Main()
+    {
+        var h = new Holder { a_ = 2f, b_ = 3f };
+        float c = h.Chain();
+        h.a_ = c;
+        float d = h.Chain();
+        C64Lib.C64.FillMemory(0x0900UL, (uint)d, 1);
+    }
+}";
+        var asmDir = CompileAndGetAsmDir(source);
+        var holderAsm = ReadType(asmDir, "Holder");
+
+        Assert.That(holderAsm, Does.Contain("jsr Float_Mul"), "the mul should still run:\n" + holderAsm);
+        Assert.That(CountOccurrences(holderAsm, "stack_push_var_mflpt"), Is.EqualTo(1),
+            "exactly one push is expected -- Neg's own result, Chain()'s return value; the mul's own intermediate push into Neg should be elided:\n" + holderAsm);
+        Assert.That(holderAsm, Does.Not.Contain("stack_pull_mflpt"),
+            "nothing should pull from the hardware stack -- both the mul's own field operands and its chained result into Neg are fused:\n" + holderAsm);
+    }
+
+    static int CountOccurrences(string haystack, string needle)
+    {
+        int count = 0, index = 0;
+        while ((index = haystack.IndexOf(needle, index)) != -1)
+        {
+            count++;
+            index += needle.Length;
+        }
+        return count;
+    }
+
+    // Chained first operand into a binary op, with a plain leaf as the
+    // second operand: (a*b) + c -- the mul's result stays in zp_flt_a,
+    // c's own field read copies directly into zp_flt_b, same restriction
+    // as the class comment's "second operand must be a plain leaf".
+    [Test]
+    public void Chain_Mul_Then_Add_With_Leaf_Second_Operand_Fuses()
+    {
+        var source = @"
+class Holder
+{
+    public float a_, b_, c_;
+    public float ChainAdd() => a_ * b_ + c_;
+}
+class Program
+{
+    static void Main()
+    {
+        var h = new Holder { a_ = 2f, b_ = 3f, c_ = 4f };
+        float c = h.ChainAdd();
+        h.a_ = c;
+        float d = h.ChainAdd();
+        C64Lib.C64.FillMemory(0x0900UL, (uint)d, 1);
+    }
+}";
+        var asmDir = CompileAndGetAsmDir(source);
+        var holderAsm = ReadType(asmDir, "Holder");
+
+        Assert.That(holderAsm, Does.Contain("jsr Float_Mul"), "the mul should still run:\n" + holderAsm);
+        Assert.That(holderAsm, Does.Contain("jsr Float_Add"), "the add should still run:\n" + holderAsm);
+        Assert.That(CountOccurrences(holderAsm, "stack_push_var_mflpt"), Is.EqualTo(1),
+            "exactly one push is expected -- Add's own result, ChainAdd()'s return value; the mul's own intermediate push into Add should be elided:\n" + holderAsm);
+        Assert.That(holderAsm, Does.Not.Contain("stack_pull_mflpt"),
+            "nothing should pull from the hardware stack -- every operand (both of the mul's and c_ for the add) is fused:\n" + holderAsm);
     }
 }

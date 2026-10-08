@@ -207,3 +207,25 @@ stack_push_mflpt_const .macro b0, b1, b2, b3, b4
   pha
 .endm
 
+; Direct copy of an Ldc_r4 literal's own 5 bytes into zp_flt_a/zp_flt_b,
+; for ILMethodFloatOperandFusionOptimizer (Compiler/
+; ILMethodFloatOperandFusionOptimizer.cs): skips the push/pull round trip
+; through the hardware stack stack_push_mflpt_const above would otherwise
+; use when a float constant feeds straight into a binary float op. Same
+; byte order as stack_push_mflpt_const + stack_pull_mflpt's own net
+; mapping (b0->target+0 ... b4->target+4, a plain copy -- see
+; stack_push_mflpt_const's own "same forward push order as
+; stack_push_var_mflpt" comment above).
+copy_mflpt_const .macro b0, b1, b2, b3, b4, target
+  lda #\b0
+  sta \target
+  lda #\b1
+  sta \target+1
+  lda #\b2
+  sta \target+2
+  lda #\b3
+  sta \target+3
+  lda #\b4
+  sta \target+4
+.endm
+

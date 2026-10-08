@@ -39,6 +39,38 @@ public class FloatTests
         return a / b;
     }
 
+    // Real correctness coverage for ILMethodFloatOperandFusionOptimizer's
+    // chained-first-operand case (Compiler/ILMethodFloatOperandFusionOptimizer.cs):
+    // a*b's own result is left in zp_flt_a instead of round-tripping
+    // through the hardware stack, consumed directly by Neg/Add as their
+    // first operand. Parameters (not locals), same reason TestAdd/TestMul
+    // above use them: a real Ldarg at its use site, not something Roslyn
+    // might otherwise keep sitting on the natural evaluation stack.
+    [TestCase(2f, 3f, ExpectedResult = -6f)]
+    [TestCase(-2f, 3f, ExpectedResult = 6f)]
+    public float TestNegateOfMulChain(float a, float b)
+    {
+        return -(a * b);
+    }
+
+    [TestCase(2f, 3f, 4f, ExpectedResult = 10f)]
+    [TestCase(-2f, 3f, 1f, ExpectedResult = -5f)]
+    public float TestMulThenAddChain(float a, float b, float c)
+    {
+        return a * b + c;
+    }
+
+    // Constant-operand fusion (same pass): a literal feeding a binary op
+    // directly copies its MFLPT bytes into zp_flt_a/zp_flt_b
+    // (copy_mflpt_const, asm/helper/stack.asm) instead of round-tripping
+    // through the hardware stack via stack_push_mflpt_const.
+    [TestCase(2f, ExpectedResult = 6f)]
+    [TestCase(-2f, ExpectedResult = -6f)]
+    public float TestConstantOperandChain(float a)
+    {
+        return a * 3f;
+    }
+
     [TestCase(5f, ExpectedResult = -5f)]
     [TestCase(-5f, ExpectedResult = 5f)]
     [TestCase(0f, ExpectedResult = 0f)]

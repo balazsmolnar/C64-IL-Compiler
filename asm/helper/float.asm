@@ -372,6 +372,52 @@ negateflt .macro
 +   #stack_push_var_mflpt zp_flt_a
 .endm
 
+; "_nopush" variants of the five macros above, for
+; ILMethodFloatOperandFusionOptimizer's chained-operand case
+; (Compiler/ILMethodFloatOperandFusionOptimizer.cs): when this op's result
+; feeds directly into another float op as ITS first operand, with nothing
+; else in between that could also need zp_flt_a as scratch, there is no
+; need to push the result onto the hardware stack only to have the next
+; op immediately pull it straight back into zp_flt_a -- leaving it there
+; (the result's natural resting place after jsr Float_X / the sign flip
+; below) already *is* the next op's first operand. Each one is exactly
+; its normal counterpart with the trailing #stack_push_var_mflpt removed;
+; nothing else changes, in particular the operand-pulling side is
+; untouched -- this only ever elides the OUTPUT half of the round trip.
+addflt_nopush .macro
+    #stack_pull_mflpt zp_flt_b
+    #stack_pull_mflpt zp_flt_a
+    jsr Float_Add
+.endm
+
+subflt_nopush .macro
+    #stack_pull_mflpt zp_flt_b
+    #stack_pull_mflpt zp_flt_a
+    jsr Float_Sub
+.endm
+
+mulflt_nopush .macro
+    #stack_pull_mflpt zp_flt_b
+    #stack_pull_mflpt zp_flt_a
+    jsr Float_Mul
+.endm
+
+divflt_nopush .macro
+    #stack_pull_mflpt zp_flt_b
+    #stack_pull_mflpt zp_flt_a
+    jsr Float_Div
+.endm
+
+negateflt_nopush .macro
+    #stack_pull_mflpt zp_flt_a
+    lda zp_flt_a
+    beq +
+    lda zp_flt_a+1
+    eor #$80
+    sta zp_flt_a+1
++
+.endm
+
 compareEqualflt .macro
     #stack_pull_mflpt zp_flt_b
     #stack_pull_mflpt zp_flt_a

@@ -22,6 +22,7 @@ Flag_Screen_DrawTrapezoid = 0
 Flag_Screen_DrawCircle = 0
 Flag_Screen_SetDrawBuffer = 0
 Flag_Screen_SwapBuffers = 0
+Flag_Screen_DoubleBuffered = 0
 Flag_Screen_SetBitmapColors = 0
 Flag_Screen_WaitForVBlank = 0
 Flag_Screen_ClearBitmap = 0

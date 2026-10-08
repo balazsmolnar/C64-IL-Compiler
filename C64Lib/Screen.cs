@@ -128,6 +128,17 @@ namespace C64Lib
             public static void SetDrawBuffer(uint buffer) { }
             public static void SwapBuffers() { }
 
+            // Whether this program should render double-buffered rather
+            // than a direct, single-buffered erase+redraw path -- true by
+            // default (the byte this reads is never written by anything
+            // in a normal build). Lets one build be compared both ways by
+            // externally patching that byte to nonzero (e.g. in a hex
+            // editor), without the calling program needing to know or
+            // declare any address itself -- see asm/C64Graphics.asm's own
+            // Screen_DoubleBuffered for exactly which byte and why it's
+            // safe to use this way.
+            public static bool DoubleBuffered() => true;
+
             // Erases the bitmap of the current draw target (buffer 0, or
             // whichever buffer SetDrawBuffer/SwapBuffers last made the draw
             // target) to the background: what to call before redrawing a

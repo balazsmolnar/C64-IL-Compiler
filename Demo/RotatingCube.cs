@@ -1,12 +1,16 @@
 using System;
+using System.Runtime.CompilerServices;
 using C64Lib;
 
 namespace Demo;
 
 // Continuously rotating wireframe cube: 8-vertex/12-edge projection.
-// cosAy_/sinAy_ advance every frame via the angle-addition formulas
-// (cos(a+d)=cos(a)cos(d)-sin(a)sin(d), sin(a+d)=sin(a)cos(d)+cos(a)sin(d)) --
-// cheaper than calling MathF.Cos/Sin every frame.
+// cosAy_/sinAy_ and cosAx_/sinAx_ each advance every frame via the
+// angle-addition formulas (cos(a+d)=cos(a)cos(d)-sin(a)sin(d),
+// sin(a+d)=sin(a)cos(d)+cos(a)sin(d)) -- cheaper than calling
+// MathF.Cos/Sin every frame -- at different, unsynchronized rates (0.15
+// vs 0.08 radians/frame) so the combined tumble doesn't repeat on a
+// simple, visually-obvious cycle the way two equal rates would.
 //
 // Initialised through Init(), not a constructor body: this compiler never
 // runs a constructor body for an ordinary class (OpNewObj hardcodes no ctor
@@ -21,12 +25,17 @@ namespace Demo;
 //
 // CubeSize/CamDist/CenterX/Y keep every projected coordinate inside 0-255:
 // this compiler's float->int conversion is 8-bit, so a value reaching 256+
-// would silently wrap.
+// would silently wrap. zOffset_ (see Project/ProjectNeg) also bounces the
+// cube closer to/farther from the camera -- MinCenterX/MaxCenterX/
+// MinCenterY/MaxCenterY are sized for the larger on-screen extent that
+// produces at its closest point, not just the base ~46 pixel extent.
 class RotatingCube
 {
     float cosAy_, sinAy_, cosAx_, sinAx_;
-    float cosStep_, sinStep_;
-    // Rotated cube axes, see BuildBasis (by_/bz_ never change).
+    float cosStepY_, sinStepY_, cosStepX_, sinStepX_;
+    // Rotated cube axes, see BuildBasis -- all 8 of these (not just
+    // ax_/ay_/az_/cx_/cy_/cz_) are recomputed every frame now that both
+    // cosAy_/sinAy_ AND cosAx_/sinAx_ animate.
     float ax_, ay_, az_, cx_, cy_, cz_, by_, bz_;
     uint lastVx_, lastVy_;
 
@@ -46,28 +55,32 @@ class RotatingCube
     // The cube's screen position moves every frame and bounces off the
     // edges. Bounds keep every projected vertex inside 0-255 (8-bit
     // float->int, see class comment) and inside the 200-line screen: the
-    // cube extends ~46 pixels from its center once rotation and
-    // perspective are included.
+    // cube extends ~46 pixels from its center at its BASE distance, but
+    // up to ~60 at its closest (zOffset_ == MinZOffset) once perspective
+    // is included -- see the margin constants below.
     float centerX_, centerY_;
     float velX_, velY_;
+
+    // Distance toward (negative) or away from (positive) the camera, on
+    // top of CubeCamDist itself -- see Project/ProjectNeg. Bounces the
+    // same way centerX_/centerY_ do.
+    float zOffset_, velZ_;
 
     const float CubeSize = 20f;      // half-edge length
     const float CubeCamDist = 150f;  // pseudo-perspective "camera" distance
     const float FaceTolerance = CubeSize * CubeSize / CubeCamDist;  // see UpdateEdges
-    // Byte in the free gap under the color matrix ($0fe8-$0fff): the demo
-    // runs double-buffered while it is 0 (the normal case: nothing else
-    // ever writes there, and the assembled .prg has zeros in that gap) and
-    // falls back to the single-buffered, erase-and-redraw path otherwise, so
-    // one program image serves both: patch this byte to 1 in the .prg file
-    // to see the flicker the double buffer removes (that is how the two ran
-    // side by side in VICE).
-    const ulong ModeByteAddress = 0x0FF0UL;
+    // +-25: keeps CubeCamDist + z + zOffset_ (z as low as -CubeSize*
+    // sqrt(3) =~ -34.6 at a corner) comfortably positive (>= ~90) even at
+    // its closest, so the projection scale never blows up or flips sign.
+    const float MinZOffset = -25f;
+    const float MaxZOffset = 25f;
     // Margins leave room for one frame's overshoot (velocity is applied
-    // before the bounds check) on top of the ~46 pixel extent.
-    const float MinCenterX = 54f;
-    const float MaxCenterX = 200f;
-    const float MinCenterY = 54f;
-    const float MaxCenterY = 145f;
+    // before the bounds check) on top of the worst-case ~60 pixel extent
+    // (at zOffset_ == MinZOffset, the closest/largest-looking point).
+    const float MinCenterX = 65f;
+    const float MaxCenterX = 185f;
+    const float MinCenterY = 65f;
+    const float MaxCenterY = 130f;
 
     // One color per axis pair of faces -- Background is deliberately not
     // used here (see Program.cs): a face fill using the same color as the
@@ -80,18 +93,24 @@ class RotatingCube
     {
         cosAx_ = MathF.Cos(0.4f);
         sinAx_ = MathF.Sin(0.4f);
-        by_ = CubeSize * cosAx_;
-        bz_ = CubeSize * sinAx_;
         cosAy_ = 1f;
         sinAy_ = 0f;
-        cosStep_ = MathF.Cos(0.15f);
-        sinStep_ = MathF.Sin(0.15f);
+        cosStepY_ = MathF.Cos(0.15f);
+        sinStepY_ = MathF.Sin(0.15f);
+        cosStepX_ = MathF.Cos(0.08f);
+        sinStepX_ = MathF.Sin(0.08f);
         centerX_ = 128f;
         centerY_ = 100f;
         velX_ = 4f;
         velY_ = 3f;
+        zOffset_ = 0f;
+        velZ_ = 1.5f;
 
-        doubleBuffered_ = C64.GetMemory(ModeByteAddress, 0) == 0;
+        // C64.Screen.DoubleBuffered lets one build be compared both ways
+        // (patch its own backing byte to see the flicker the double
+        // buffer removes -- see its own doc comment) without this demo
+        // needing to know or declare any address itself.
+        doubleBuffered_ = C64.Screen.DoubleBuffered();
         if (doubleBuffered_)
         {
             // Buffer 0 is being shown; draw into the hidden buffer 1. Both
@@ -152,13 +171,19 @@ class RotatingCube
         pvx4_ = vx4; pvy4_ = vy4; pvx5_ = vx5; pvy5_ = vy5;
         pvx6_ = vx6; pvy6_ = vy6; pvx7_ = vx7; pvy7_ = vy7;
 
-        float newCosAy = cosAy_ * cosStep_ - sinAy_ * sinStep_;
-        float newSinAy = sinAy_ * cosStep_ + cosAy_ * sinStep_;
+        float newCosAy = cosAy_ * cosStepY_ - sinAy_ * sinStepY_;
+        float newSinAy = sinAy_ * cosStepY_ + cosAy_ * sinStepY_;
         cosAy_ = newCosAy;
         sinAy_ = newSinAy;
 
+        float newCosAx = cosAx_ * cosStepX_ - sinAx_ * sinStepX_;
+        float newSinAx = sinAx_ * cosStepX_ + cosAx_ * sinStepX_;
+        cosAx_ = newCosAx;
+        sinAx_ = newSinAx;
+
         centerX_ = centerX_ + velX_;
         centerY_ = centerY_ + velY_;
+        zOffset_ = zOffset_ + velZ_;
         // Comparisons go through bool locals: this compiler has compare
         // macros that produce a value (#compareGreaterflt etc.) but no
         // fused float compare-and-branch (#branch_greaterflt), which
@@ -167,20 +192,31 @@ class RotatingCube
         bool tooLeft = centerX_ < MinCenterX;
         bool tooLow = centerY_ > MaxCenterY;
         bool tooHigh = centerY_ < MinCenterY;
+        bool tooFar = zOffset_ > MaxZOffset;
+        bool tooClose = zOffset_ < MinZOffset;
         if (tooRight || tooLeft)
             velX_ = -velX_;
         if (tooLow || tooHigh)
             velY_ = -velY_;
+        if (tooFar || tooClose)
+            velZ_ = -velZ_;
     }
 
     // The rotated cube axes (X/Y/Z unit vectors after rotating about Y then
-    // X, scaled by CubeSize): 6 float multiplies per frame instead of
+    // X, scaled by CubeSize): 8 float multiplies per frame instead of
     // rotating all 8 vertices separately (~11 multiplies each). B.x is 0.
     //   X axis -> (ax_, ay_, az_)   Y axis -> (0, by_, bz_)   Z axis -> (cx_, cy_, cz_)
+    // by_/bz_ used to be computed once in Init() (cosAx_/sinAx_ were a
+    // fixed initial tilt, never animated) -- now that cosAx_/sinAx_ also
+    // advance every frame (see Step/the class comment), they're folded
+    // back into the result of that rotation here instead, same as
+    // ax_/ay_/az_/cx_/cy_/cz_ already were.
     void BuildBasis()
     {
         float sc = CubeSize * cosAy_;
         float ss = CubeSize * sinAy_;
+        by_ = CubeSize * cosAx_;
+        bz_ = CubeSize * sinAx_;
         ax_ = sc;
         ay_ = ss * sinAx_;
         az_ = -(ss * cosAx_);
@@ -191,18 +227,22 @@ class RotatingCube
 
     // Perspective-projects a rotated point (x, y, z) into lastVx_/lastVy_;
     // two output fields because this compiler supports neither tuples nor
-    // out params.
+    // out params. zOffset_ shifts the whole cube's apparent distance from
+    // the camera (see the class comment and MinZOffset/MaxZOffset) --
+    // added on top of z itself, not folded into CubeCamDist, since it's a
+    // per-frame bounce, not a compile-time constant.
     void Project(float x, float y, float z)
     {
-        float scale = CubeCamDist / (CubeCamDist + z);
+        float scale = CubeCamDist / (CubeCamDist + z + zOffset_);
         lastVx_ = (uint)(centerX_ + x * scale);
         lastVy_ = (uint)(centerY_ - y * scale);
     }
 
-    // Same as Project(-x, -y, -z), without the negations.
+    // Same as Project(-x, -y, -z), without the negations -- so the SAME
+    // zOffset_ sign as Project's own (not negated along with x/y/z).
     void ProjectNeg(float x, float y, float z)
     {
-        float scale = CubeCamDist / (CubeCamDist - z);
+        float scale = CubeCamDist / (CubeCamDist - z + zOffset_);
         lastVx_ = (uint)(centerX_ - x * scale);
         lastVy_ = (uint)(centerY_ + y * scale);
     }
@@ -428,6 +468,7 @@ class RotatingCube
     // DrawTrapezoid call still goes through the DrawTrapezoidSafe helper
     // below -- ONE level deep, not nested under another custom frame --
     // for its left<=right clamp.
+    //[MethodImpl(MethodImplOptions.AggressiveInlining)]
     void FillFace(ulong p0x, ulong p0y, ulong p1x, ulong p1y, ulong p2x, ulong p2y, ulong p3x, ulong p3y, bool on, BitmapColorSource color)
     {
         // Rotates p0..p3 IN PLACE (reusing FillFace's own parameter slots,

@@ -498,6 +498,29 @@ Screen_SetDrawBuffer:
     #stack_return_to_saved_address zp_tmp1_low
 .endif
 
+; $0FF0, in the dead gap between the BASIC boot stub and compiled code
+; (* = $1000) -- genuinely free regardless of whether this build uses
+; graphics mode, same placement reasoning Graphics_ColorMatrix's own
+; $0c00 relies on (see that label's comment). Never written by anything
+; in a normal build, so a freshly assembled .prg always reads 0 here
+; (true/double-buffered) -- an external tool (e.g. a hex editor) can
+; patch it nonzero to force the single-buffered path instead, letting
+; one build be compared both ways without a separate build or the
+; calling program needing to know or declare this address itself
+; (RotatingCube.cs is where this pattern first came from, as a literal
+; hardcoded address -- generalized here into the library instead).
+.if Flag_Screen_DoubleBuffered
+Screen_DoubleBuffered:
+    #stack_save_return_adress zp_tmp1_low
+    lda $0ff0
+    beq +
+    #stack_push_int 0
+    jmp Screen_DoubleBuffered_Done
++   #stack_push_int 1
+Screen_DoubleBuffered_Done:
+    #stack_return_to_saved_address zp_tmp1_low
+.endif
+
 ; Shows the buffer that was just drawn into, then makes the other one the
 ; draw target. The wait puts the beam on line 251, in the bottom border,
 ; where the VIC reads no bitmap data, so the two register writes below

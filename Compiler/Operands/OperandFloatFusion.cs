@@ -63,7 +63,7 @@ static class FloatOperandCopy
             case OpLdarg_s:
                 return $"#locals_copy_valueflt {source.RawParameter}, {target}";
             case IPushFldOperation pushFld:
-                return $"#pushfldflt_direct {pushFld.Pos}, {target}";
+                return $"#pushfldflt_direct {pushFld.RelPos}, {pushFld.Pos}, {target}";
             case OpLdc_r4:
                 return $"#copy_mflpt_const {source.RawParameter}, {target}";
             default:

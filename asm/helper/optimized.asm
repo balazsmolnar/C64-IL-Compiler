@@ -80,6 +80,38 @@ setfld16 .macro objRelPos, objValuePos, pos
 
 .endm
 
+; Same as setfld8/setfld16 above, but for ILSetFieldOptimizer's own
+; const-value rule (Compiler/ILSetFieldOptimizer.cs) -- "obj.field =
+; <literal>;", where the value is a compile-time constant rather than a
+; second local/param, so there's no second localsStack slot to read it
+; from at all; \value is written directly via 64tass's own "<"/">"
+; byte-extraction, same convention copy_int8_const/copy_int16_const
+; (asm/helper/stack.asm) already rely on for this.
+setfld8_const .macro objRelPos, value, pos
+
+  ldy stackPointer
+  ldx localsStack-\objRelPos,y
+  jsr resolveObjPtr
+
+  lda #<\value
+  ldy #\pos
+  sta (tmpPointer),y
+.endm
+
+setfld16_const .macro objRelPos, value, pos
+
+  ldy stackPointer
+  ldx localsStack-\objRelPos,y
+  jsr resolveObjPtr
+
+  lda #<\value
+  ldy #\pos
+  sta (tmpPointer),y
+  lda #>\value
+  iny
+  sta (tmpPointer),y
+.endm
+
 pushfld8 .macro pos 
 
   ldy stackPointer
@@ -254,11 +286,21 @@ pushfldflt_cached .macro pos
 ; (Compiler/ILMethodIntOperandFusionOptimizer.cs) -- the 8/16-bit integer
 ; counterpart of pushfldflt_direct below. Same resolveObjPtr setup as
 ; pushfld8/pushfld16, storing directly into \target instead of pha'ing.
-pushfld8_direct .macro pos, target
+; \relpos, not hardcoded to 1 ("this") -- ILMethodFloatOperandFusionOptimizer/
+; ILMethodIntOperandFusionOptimizer hand this whatever IPushFldOperation.RelPos
+; the matched field read actually reports, which is arbitrary once
+; ILPropertyGettterOptimizer's own generalized rule (beyond just `this`)
+; feeds them an OpPushFldAt-built read -- same addressing pushfld8_at
+; already uses. Hardcoding relpos=1 here used to be safe (every
+; IPushFldOperation these two passes could ever see was `this`-only, back
+; when that generalized rule didn't exist yet); once it did, this
+; silently read the wrong object instead -- found for real via
+; Test/FloatTests.cs's own TestField the moment a float field assigned
+; through a local variable started exercising it.
+pushfld8_direct .macro relpos, pos, target
 
   ldy stackPointer
-  dey
-  ldx localsStack,y
+  ldx localsStack-\relpos,y
   jsr resolveObjPtr
 
   ldy #\pos
@@ -267,11 +309,10 @@ pushfld8_direct .macro pos, target
 
 .endm
 
-pushfld16_direct .macro pos, target
+pushfld16_direct .macro relpos, pos, target
 
   ldy stackPointer
-  dey
-  ldx localsStack,y
+  ldx localsStack-\relpos,y
   jsr resolveObjPtr
 
   ldy #\pos
@@ -293,11 +334,12 @@ pushfld16_direct .macro pos, target
 ; runs low-to-high, so paired with stack_pull_mflpt it already nets out
 ; straight; see that macro's own comment for the local/param case, where
 ; it doesn't).
-pushfldflt_direct .macro pos, target
+; \relpos, not hardcoded to 1 ("this") -- see pushfld8_direct's own
+; comment above (same fix, same reason, same real regression it fixes).
+pushfldflt_direct .macro relpos, pos, target
 
   ldy stackPointer
-  dey
-  ldx localsStack,y
+  ldx localsStack-\relpos,y
   jsr resolveObjPtr
 
   ldy #\pos

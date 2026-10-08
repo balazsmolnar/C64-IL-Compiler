@@ -37,8 +37,8 @@ static class IntOperandCopy
                     : $"#locals_copy_value8 {source.RawParameter}, {target}";
             case IPushFldOperation pushFld:
                 return pushFld.Is16BitField
-                    ? $"#pushfld16_direct {pushFld.Pos}, {target}"
-                    : $"#pushfld8_direct {pushFld.Pos}, {target}";
+                    ? $"#pushfld16_direct {pushFld.RelPos}, {pushFld.Pos}, {target}"
+                    : $"#pushfld8_direct {pushFld.RelPos}, {pushFld.Pos}, {target}";
             case OpLdConst:
                 return Is16(source)
                     ? $"#copy_int16_const {source.RawParameter}, {target}"
@@ -64,7 +64,7 @@ static class IntOperandCopy
             case OpLdarg_s:
                 return $"ldy stackPointer\nlda localsStack-{source.RawParameter},y";
             case IPushFldOperation pushFld:
-                return $"ldy stackPointer\ndey\nldx localsStack,y\njsr resolveObjPtr\nldy #{pushFld.Pos}\nlda (tmpPointer),y";
+                return $"ldy stackPointer\nldx localsStack-{pushFld.RelPos},y\njsr resolveObjPtr\nldy #{pushFld.Pos}\nlda (tmpPointer),y";
             case OpLdConst:
                 return $"lda #<{source.RawParameter}";
             default:

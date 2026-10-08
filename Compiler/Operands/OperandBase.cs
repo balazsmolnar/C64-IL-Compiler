@@ -722,6 +722,55 @@ class OpSetfld : OpBase, IObjectRootOperation
     public override bool Is16Bit(CompilerMethodContext context, ILOperation operation) => _is16Bit;
 }
 
+// OpSetfld's own counterpart for ILSetFieldOptimizer's const-value rule
+// (Compiler/ILSetFieldOptimizer.cs) -- "obj.field = <literal>;": the
+// value has no localsStack slot to read (it was never pushed as a
+// separate operand at all), so this takes the raw value itself instead
+// of a second rel_pos, emitting setfld8_const/setfld16_const (asm/
+// helper/optimized.asm) instead of setfld8/setfld16.
+class OpSetfldConst : OpBase, IObjectRootOperation
+{
+    private readonly string pos;
+    private readonly bool _is16Bit;
+    private readonly string objRelPos;
+    private readonly string value;
+
+    public string RelPos => objRelPos;
+
+    public OpSetfldConst(string objRelPos, string value, string pos, bool Is16Bit) : base(0, "#setfld")
+    {
+        this.objRelPos = objRelPos;
+        this.value = value;
+        this.pos = pos;
+        _is16Bit = Is16Bit;
+    }
+
+    public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
+    {
+        return $"{objRelPos}, {value}, {pos}";
+    }
+
+    // Matches OpSetfld's own SetStackContent exactly (both the object and
+    // the value were conceptually pushed before this fused op), though
+    // same as that class, this is never actually invoked for a
+    // peephole-rule-built operation -- ILMethodBuildEvaluationStackPass
+    // (which calls SetStackContent) runs before any optimizer and never
+    // revisits a newly-inserted line.
+    public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
+    {
+        operation.StackContent.RemoveLast(2);
+    }
+
+    public override bool Is16BitSupported => true;
+
+    protected override string SizeSuffix(CompilerMethodContext context, ILOperation operation)
+    {
+        return (_is16Bit ? "16" : "8") + "_const";
+    }
+
+    public override bool Is16Bit(CompilerMethodContext context, ILOperation operation) => _is16Bit;
+}
+
 class OpNewObjInit : OpBase
 {
     string[] _mem;

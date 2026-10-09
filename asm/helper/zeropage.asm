@@ -492,24 +492,67 @@ zp_flt_int_hi = zp_flt_a + 1
 ;      at all, so no ROM float call can run during it) wouldn't strictly
 ;      need this check, but it's kept as a second independent safety net
 ;      rather than relying on "leaf" alone.
-; That leaves exactly 4: $25, $29 (shares its numeric value with
-; zp_interrupt_save_len, a length constant used only as `#zp_interrupt_
-; save_len`/immediate, never dereferenced as an address -- confirmed, no
-; actual collision), $2a, $2b.
+; That check found 4 candidates: $25, $29, $2a, $2b -- but $29 turned out
+; to be unusable for a DIFFERENT reason than any of the three checks above
+; cover, found only after ILMethodPromoteLocalsPass's own SafeOpCodes
+; later grew to include Ldfld/Stfld: $29 is tmpPointer+1 (heap_tmp_pointer
+; = $28, asm/helper/heap.asm), resolveObjPtr's own output register
+; (asm/helper/object.asm) -- and EVERY field-access macro (pushfld8/16/
+; flt, pushfld*_at, setfld8/16(_const), incfld, all asm/helper/
+; optimized.asm) calls resolveObjPtr internally, overwriting it on every
+; single field read or write. The three checks above only rule out
+; COLLIDING EQUATES and ROM float-routine scratch -- they say nothing
+; about a macro that writes through a *different*-looking name
+; (tmpPointer+1, not "zp_local1") that just happens to resolve to the
+; same numeric address. (The OLD comment here claimed $29 was safe
+; because it "only shares its numeric value with zp_interrupt_save_len,
+; a length constant... never dereferenced as an address" -- true of
+; zp_interrupt_save_len specifically, but it missed tmpPointer+1
+; entirely, a real collision, not a spurious one.) Confirmed via a real
+; reproduction: a method with two promoted locals where the second
+; (assigned $29) survived until after a field write, which silently
+; stomped it with the resolved object's own pointer high byte -- caught
+; via C64Presentation's own Title.Draw() drawing its title's underline
+; rows at the wrong column (visually: a real screenshot regression, not
+; just a test).
+;
+; That leaves exactly 3: $25, $2a, $2b -- zp_local1 (formerly $29) is
+; retired, not reassigned elsewhere; renumbering the remaining 3 to close
+; the gap was considered and rejected (every caller already names them by
+; symbol, never by index, so a gap costs nothing and avoids an silent
+; off-by-one if anything still assumed contiguous numbering).
 ;
 ; Since a leaf method (by this pass's definition) calls nothing at all,
 ; two promoted-local windows can never be concurrently active except via
 ; interrupt preemption -- already covered above. Reused freely across every
 ; leaf method in the whole program; if a method has more eligible locals
-; than 4, the rest simply stay on the locals stack as before (a size/speed
-; miss, never a correctness issue).
+; than the pool size, the rest simply stay on the locals stack as before
+; (a size/speed miss, never a correctness issue).
 zp_local0 = $25
-zp_local1 = $29
 zp_local2 = $2a
 zp_local3 = $2b
 
+; zp_local4-7: a second batch, added later, from $49/$4a/$4c/$4d -- the
+; only other genuinely free bytes in the whole map (confirmed free, not
+; just unaudited: these were previously used for a C64_Set_Screen_Ptr
+; row-pointer cache experiment that was correctness-verified via
+; SimpleEmulator and only reverted for being slower than no caching at
+; all, never for a correctness problem -- see the TRIED AND REVERTED
+; note further down this file). Unlike $25/$2a/$2b, these sit OUTSIDE
+; zp_interrupt_save_start/len's own contiguous block (bounded above by
+; stackPointer at $4b, which that block deliberately never covers
+; either), so OnInterrupt (asm/C64.asm) saves/restores them with their
+; own small, separate push/pop pair instead of extending the main
+; contiguous loop across stackPointer -- see that routine's own comment.
+zp_local4 = $49
+zp_local5 = $4a
+zp_local6 = $4c
+zp_local7 = $4d
+
 ; TRIED AND REVERTED: a one-entry row-pointer cache for C64_Set_Screen_Ptr
-; (asm/C64.asm), keyed on (y, base) at $49/$4a/$4c/$4d, meant to skip the
+; (asm/C64.asm), keyed on (y, base) at $49/$4a/$4c/$4d (now zp_local4-7
+; above -- these bytes are NOT free anymore, this note is kept only for
+; the cycle-count history below), meant to skip the
 ; y*40 multiply for consecutive same-row SetChar/GetChar calls (confirmed
 ; every real loop in this codebase -- Wall.cs/PlayerStats.cs/LevelPlay.cs --
 ; holds y fixed across many calls). Implemented, correctness-verified via

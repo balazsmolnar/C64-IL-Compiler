@@ -528,6 +528,21 @@ C64_add_Interrupt
 OnInterrupt
     lda $01
     pha
+    ; zp_local4-7 ($49/$4a/$4c/$4d) sit just outside the
+    ; zp_interrupt_save_start/len contiguous block above and below
+    ; stackPointer ($4b, deliberately never saved -- see that name's own
+    ; comment), so they get their own small, explicit push/pop pair here
+    ; instead of being folded into the main loop, which would otherwise
+    ; need a mid-loop skip for stackPointer. See zp_local0's own comment
+    ; in zeropage.asm for why these 4 need protecting here at all.
+    lda zp_local4
+    pha
+    lda zp_local5
+    pha
+    lda zp_local6
+    pha
+    lda zp_local7
+    pha
     ldx #0
 -   lda zp_interrupt_save_start,x
     pha
@@ -558,6 +573,14 @@ On_Interrupt_Ret
     sta zp_interrupt_save_start,x
     dex
     bpl -
+    pla
+    sta zp_local7
+    pla
+    sta zp_local6
+    pla
+    sta zp_local5
+    pla
+    sta zp_local4
     pla
     sta $01
     jmp (zp_interrupt_saved_low)

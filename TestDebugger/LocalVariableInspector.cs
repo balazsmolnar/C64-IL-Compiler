@@ -27,7 +27,28 @@ class LocalVariableInspector
         _testMethod = testMethod;
         _localsStackBase = model.ResolveLabelAddress("localsStack");
         _objectInspector = new ObjectInspector(emulator, model);
-        _methodContext = new CompilerMethodContext { Method = testMethod };
+        var compilerContext = new CompilerContext { Assembly = testMethod.DeclaringType.Assembly };
+        _methodContext = new CompilerMethodContext { Method = testMethod, Lines = new List<ILOperation>(), CompilerContext = compilerContext };
+
+        // Populate _methodContext.PromotedLocals the same way the real
+        // compiler does (ILMethodCodePass.Decode then
+        // ILMethodPromoteLocalsPass.Execute), so ReadAtRelPos below can
+        // tell a promoted local (lives at a fixed zp_localN byte, never
+        // written to its nominal localsStack slot at all) from an
+        // ordinary one -- without this, printing a promoted local always
+        // read stale/zeroed localsStack memory instead of its real value.
+        try
+        {
+            ILMethodCodePass.Decode(_methodContext);
+            new ILMethodPromoteLocalsPass().Execute(_methodContext);
+        }
+        catch
+        {
+            // Best-effort: a construct Decode/PromoteLocalsPass doesn't
+            // handle here just means promoted locals won't be detected
+            // for this method -- same as before this fix existed, not a
+            // new failure mode.
+        }
     }
 
     public ObjectInspector Inspector => _objectInspector;
@@ -38,6 +59,32 @@ class LocalVariableInspector
         var address = _localsStackBase + stackPointerZp - relPos;
         return _objectInspector.Read(type, address);
     }
+
+    // A promoted local (ILMethodPromoteLocalsPass) lives at a fixed
+    // zero-page byte instead -- see ReadAtRelPos's own callers, which
+    // check this first for a LOCAL (never a parameter or `this`, same
+    // restriction the real pass itself has). Hardcoded, not resolved via
+    // DebugMapModel.ResolveLabelAddress: zp_local* are `.EQU`-style
+    // constants (`zp_local0 = $25`, asm/helper/zeropage.asm), not real
+    // memory labels, so 64tass's own .labels export never includes them
+    // at all (confirmed empirically -- only genuine labels like
+    // localsStack show up there). Keep in sync with zeropage.asm's own
+    // Pool if that ever changes -- note zp_local1 ($29) is deliberately
+    // NOT here: it's retired (aliases tmpPointer+1, clobbered by every
+    // field access), see that file's own comment.
+    private static readonly Dictionary<string, int> PromotedLocalAddresses = new()
+    {
+        ["zp_local0"] = 0x25,
+        ["zp_local2"] = 0x2a,
+        ["zp_local3"] = 0x2b,
+        ["zp_local4"] = 0x49,
+        ["zp_local5"] = 0x4a,
+        ["zp_local6"] = 0x4c,
+        ["zp_local7"] = 0x4d,
+    };
+
+    private InspectedValue ReadPromotedLocal(Type type, string zpSlot) =>
+        _objectInspector.Read(type, PromotedLocalAddresses[zpSlot]);
 
     // `this` is always rel_pos 1 for any instance method (the very first
     // thing the prologue pulls) -- CompilerMethodContext
@@ -62,9 +109,11 @@ class LocalVariableInspector
         var local = _model.LocalsForMethod(methodLabel).FirstOrDefault(l => l.Name == name);
         if (local != null)
         {
-            var relPos = _methodContext.GetLocalVariableReferencePosition(local.Index);
             var type = _methodContext.GetLocalVariableType(local.Index);
-            value = ReadAtRelPos(type, relPos);
+            var promotedSlot = _methodContext.PromotedLocalSlot(local.Index);
+            value = promotedSlot != null
+                ? ReadPromotedLocal(type, promotedSlot)
+                : ReadAtRelPos(type, _methodContext.GetLocalVariableReferencePosition(local.Index));
             error = null;
             return true;
         }

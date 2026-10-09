@@ -206,6 +206,14 @@ class ILMethodInliningPass : ICompilerMethodPass
             if (relPos != null)
             {
                 callerRelPos[p] = relPos;
+                // This specific local's rel_pos is now permanently baked
+                // into the splice below as a plain localsStack address --
+                // see TrivialSubstitutionSourceLocals's own comment
+                // (ICompilerPass.cs) for why ILMethodPromoteLocalsPass
+                // must never promote it after this.
+                var localVarIndex = TrivialSubstitutionLocalVarIndex(producer);
+                if (localVarIndex != null)
+                    context.TrivialSubstitutionSourceLocals.Add(localVarIndex.Value);
                 continue;
             }
             if (IsTrivialConstantProducer(producer.OpCode) && ConstantProducerFitsParameter(target, isInstance, p, producer.OpCode))
@@ -377,25 +385,25 @@ class ILMethodInliningPass : ICompilerMethodPass
     // TrivialOverheadSavingsPerSite the variable-producer case already
     // credits in ILCallSiteCountPass's cost model.
     //
-    // Does NOT also unlock further const-folding inside the callee's own
-    // spliced body (MulConstOptimizer/ILMethodCompareConstOptimizer
-    // never firing on the specialized read, say) -- checked directly by
-    // inspecting real generated asm rather than assumed, after an
-    // earlier draft of this comment claimed exactly that and was wrong.
-    // PeepholeRule.TryApply's own blanket guard (PeepholeRule.cs: "if
-    // (window[k].SourceMethod != null) reject") rejects a match the
-    // moment ANY line in its window carries SourceMethod -- and every
-    // ordinary spliced-in callee instruction does (see this file's own
-    // "else { calleeLine.SourceMethod = target; }" case), the Mul/compare
-    // instruction included, regardless of whether the OTHER operand
-    // feeding it happens to be a specialized constant. This isn't new to
-    // constant specialization -- it already blocked ILPropertyGettterOptimizer's
-    // own #pushfld fusion inside a materializing splice's body, long
-    // before this change (see ILMethodCachedFieldAccessPass's own
-    // comment for that same guard's effect elsewhere) -- it just also
-    // rules out the specific benefit this comment originally hoped for
-    // here. The real, standalone benefit is materialization avoidance
-    // alone; nothing downstream currently compounds with it.
+    // UPDATE: this USED TO say constant specialization doesn't also
+    // unlock further const-folding inside the callee's own spliced body,
+    // because PeepholeRule.TryApply's blanket SourceMethod guard rejected
+    // a match the moment ANY line in its window came from a splice. That
+    // guard is now an opt-in per rule (PeepholeRule.AllowInlinedWindows) --
+    // every rule whose built operation only ever reuses a matched line's
+    // own already-resolved RawParameter/Pos/RelPos (never re-derives a raw
+    // VarIndex against context.Method) has been individually audited and
+    // marked safe, including ILMethodMulConstOptimizer/
+    // ILMethodCompareConstOptimizer/ILPropertyGettterOptimizer/
+    // ILSetFieldOptimizer and others -- see each one's own call site and
+    // PeepholeRule.AllowInlinedWindows's comment for the full reasoning.
+    // So the claim this paragraph used to make is now FALSE: a specialized
+    // constant feeding a Mul/compare inside a spliced body DOES fuse, the
+    // same as it would unspliced -- confirmed via
+    // Compiler.UnitTests.ConstantArgumentSpecializationTests's own
+    // Specialized_Constant_Unlocks_MulConst_Fusion (renamed from
+    // "...Does_Not_Unlock_..." to match). The benefit below (materialization
+    // avoidance) still stands on its own regardless.
     //
     // Deliberately NOT Ldc_i8/Ldc_r8 (long/double) or Ldstr (string):
     // Ldc_i8 has no corresponding Op* class in this compiler at all (every
@@ -518,6 +526,26 @@ class ILMethodInliningPass : ICompilerMethodPass
             _ => null,
         };
     }
+
+    // The CALLER's own local variable index a trivial argument-producing
+    // instruction reads, or null for an Ldarg* producer (a parameter,
+    // never promoted by ILMethodPromoteLocalsPass in the first place, so
+    // nothing to protect here) or any non-trivial producer. Deliberately
+    // mirrors ProducerRelPos's own opcode set above rather than sharing
+    // code with it: that function returns a RESOLVED REL_POS (the thing
+    // TryBuildTrivialSubstitution needs to splice), this one returns the
+    // RAW INDEX (the thing TrivialSubstitutionSourceLocals needs to key
+    // on) -- different callers, different shape, same switch.
+    private static int? TrivialSubstitutionLocalVarIndex(ILOperation producer) => producer.OpCode switch
+    {
+        ILOpCode.Ldloc_0 => 0,
+        ILOpCode.Ldloc_1 => 1,
+        ILOpCode.Ldloc_2 => 2,
+        ILOpCode.Ldloc_3 => 3,
+        ILOpCode.Ldloc => (int)producer.OriginalParameter,
+        ILOpCode.Ldloc_s => (int)producer.OriginalParameter,
+        _ => null,
+    };
 
     // Which parameter index (within the CALLEE's own body) this operation
     // reads, or null if it isn't an argument read at all.

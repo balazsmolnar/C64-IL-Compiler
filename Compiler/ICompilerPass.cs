@@ -313,6 +313,21 @@ class CompilerMethodContext
     // non-leaf method) is untouched -- normal locals-stack addressing.
     public Dictionary<int, string> PromotedLocals { get; } = new Dictionary<int, string>();
 
+    // Set by ILMethodInliningPass (which runs BEFORE this pass -- see
+    // Program.cs's ordering), for every one of THIS method's own local
+    // variable indices it has already baked into a trivially-substituted
+    // inlined call site as a raw, resolved localsStack rel_pos (not a
+    // VarIndex ILMethodPromoteLocalsPass could later redirect -- see
+    // ILMethodInliningPass.ProducerRelPos). Once that substitution is
+    // built, it's permanent: nothing revisits it. If this pass then
+    // promoted that same local to zp_localN, the local's real value would
+    // live there, never in localsStack at all, while the already-spliced
+    // substitution still reads the old (now never-written) localsStack
+    // slot -- silently stale. Found for real via Compiler.Test.Runtime's
+    // InlineSubstitutionTests.Local_Variable_Sourced_Trivial_Argument_Correct
+    // the first time a caller shaped like that became promotion-eligible.
+    public HashSet<int> TrivialSubstitutionSourceLocals { get; } = new HashSet<int>();
+
     public string PromotedLocalSlot(int varIndex) =>
         PromotedLocals.TryGetValue(varIndex, out var slot) ? slot : null;
 

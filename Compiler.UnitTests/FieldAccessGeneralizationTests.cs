@@ -113,6 +113,63 @@ class Program
     [Test]
     public void Write_Through_Local_Object_With_Leaf_Value_Fuses()
     {
+        // Helper() -- a same-assembly call -- is deliberately here to keep
+        // Main disqualified from ILMethodPromoteLocalsPass (see
+        // IsSafeExternalCall's own comment: a same-assembly target is
+        // never automatically safe). Without it, Main would now ALSO
+        // qualify (its only other call, FillMemory, is external) and `v`
+        // -- its sole eligible local -- would get promoted to zp_local0,
+        // which is exactly the OTHER, correct behavior
+        // Write_Through_Local_Object_With_Promoted_Value_Does_Not_Fuse
+        // below checks for. Helper() itself calls FillMemory too (not
+        // left empty) deliberately: a truly empty/trivial callee gets
+        // substituted away by ILMethodInliningPass, which REPLACES the
+        // original Call opcode with a synthesized Nop-tagged prologue op
+        // rather than merely marking the old Call line dead while keeping
+        // its opcode -- PromoteLocalsPass would then never see a Call
+        // opcode for it at all, defeating the point. A callee that itself
+        // contains a Call is categorically excluded from InlineCandidates
+        // (ILCallSiteCountPass: "recursion and nested inlining are both
+        // out of scope"), so THIS call site is guaranteed to stay a real,
+        // live, un-inlined Call in Main's own Lines.
+        var source = @"
+class Holder
+{
+    public uint a_;
+}
+class Program
+{
+    static void Helper() { C64Lib.C64.FillMemory(0x0A00UL, 0, 1); }
+    static void Main()
+    {
+        var h = new Holder();
+        uint v = 9u;
+        h.a_ = v;
+        Helper();
+        C64Lib.C64.FillMemory(0x0900UL, h.a_, 1);
+    }
+}";
+        var asmDir = CompileAndGetAsmDir(source);
+        var programAsm = ReadType(asmDir, "Program");
+
+        Assert.That(programAsm, Does.Not.Contain("zp_local"), "v should not be promoted in this test -- that's the OTHER test below:\n" + programAsm);
+        Assert.That(programAsm, Does.Contain("#setfld8"), "the write through a local should fuse via setfld8:\n" + programAsm);
+        Assert.That(programAsm, Does.Not.Contain("\n    #stfld8 "),
+            "the unfused stfld8 macro should not run as real code once fused:\n" + programAsm);
+    }
+
+    // Companion to the test above, for the interaction ILMethodPromoteLocalsPass's
+    // Call/Callvirt-to-external-assembly relaxation newly made reachable:
+    // a method whose ONLY calls are external (here, just FillMemory) now
+    // qualifies for local promotion, so `v` -- its sole eligible local --
+    // gets promoted to zp_local0. ILSetFieldOptimizer's IsPromotedLocal
+    // guard (see its own comment) must then decline to fuse "h.a_ = v;"
+    // (OpSetfld has no zp-aware variant), falling through to the general,
+    // unfused stfld8 + zp_push_value8 path instead of silently reading
+    // stale localsStack memory.
+    [Test]
+    public void Write_Through_Local_Object_With_Promoted_Value_Does_Not_Fuse()
+    {
         var source = @"
 class Holder
 {
@@ -131,9 +188,11 @@ class Program
         var asmDir = CompileAndGetAsmDir(source);
         var programAsm = ReadType(asmDir, "Program");
 
-        Assert.That(programAsm, Does.Contain("#setfld8"), "the write through a local should fuse via setfld8:\n" + programAsm);
-        Assert.That(programAsm, Does.Not.Contain("\n    #stfld8 "),
-            "the unfused stfld8 macro should not run as real code once fused:\n" + programAsm);
+        Assert.That(programAsm, Does.Contain("zp_local0"), "v should be promoted now that Main's only call is external:\n" + programAsm);
+        Assert.That(programAsm, Does.Contain("\n    #stfld8 "),
+            "fusion must decline for a promoted value -- OpSetfld has no zp-aware variant:\n" + programAsm);
+        Assert.That(programAsm, Does.Not.Contain("#setfld8"),
+            "must not silently fuse a promoted local's stale localsStack slot into setfld8:\n" + programAsm);
     }
 
     [Test]

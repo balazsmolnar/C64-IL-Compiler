@@ -21,6 +21,34 @@ class ILSetFieldOptimizer : PeepholeOptimizerPass
     private static bool IsRefOrLocal(ILOperation l) =>
         l.Operation is OpLdarg || l.Operation is OpLdarg_s || l.Operation is OpLdloc || l.Operation is OpLdloc_s;
 
+    // A promoted local (ILMethodPromoteLocalsPass) lives at a fixed
+    // zero-page byte, never written to its nominal localsStack slot at
+    // all -- OpSetfld reads its value operand via a plain, unguarded
+    // RawParameter (a localsStack rel_pos), so without this check a
+    // promoted local used as "obj.field = local;"'s value would silently
+    // load stale/wrong memory, the same hazard ILMethodIncOptimizer/
+    // DecOptimizer/SetVariableOptimizer and the operand-fusion optimizers
+    // already guard against. Only ever matters for the VALUE operand
+    // (w[1] in the rule below) -- the object reference (w[0]) is always
+    // reference-typed, which ILMethodPromoteLocalsPass's own
+    // IsReferenceCounted() check already excludes from promotion
+    // entirely, so it can never be one and needs no check here. Was a
+    // latent gap, not yet a real bug, before Ldfld/Stfld joined
+    // ILMethodPromoteLocalsPass's SafeOpCodes: a method with a Stfld
+    // could never also have a promoted local (Stfld disqualified the
+    // whole method), so this situation couldn't occur until that change.
+    //
+    // Uses the sourceMethod-aware PromotedLocalSlot overload
+    // (ICompilerPass.cs), not the plain one -- this rule is also marked
+    // AllowInlinedWindows(), so w[1] may be a line spliced in from an
+    // inlined callee (l.SourceMethod != null); that overload always
+    // answers "not promoted" for such a line (an inlined local is never
+    // promoted, full stop) instead of risking a coincidental VarIndex
+    // collision against THIS method's own PromotedLocals map.
+    private static bool IsPromotedLocal(CompilerMethodContext ctx, ILOperation l) =>
+        (l.Operation is OpLdloc ldloc && ctx.PromotedLocalSlot(l.SourceMethod, ldloc.VarIndex) != null) ||
+        (l.Operation is OpLdloc_s && ctx.PromotedLocalSlot(l.SourceMethod, (int)l.OriginalParameter) != null);
+
     protected override IEnumerable<PeepholeRule> Rules => new[]
     {
         // Guarded against a float field: OpSetfld/setfld8/setfld16 have
@@ -46,7 +74,8 @@ class ILSetFieldOptimizer : PeepholeOptimizerPass
             IsRefOrLocal,
             IsRefOrLocal,
             l => l.Operation is OpStfld)
-            .WithGuard((ctx, w) => w[2].PreviousInstructions[0].StackContent.Last() != typeof(float)),
+            .WithGuard((ctx, w) => w[2].PreviousInstructions[0].StackContent.Last() != typeof(float) && !IsPromotedLocal(ctx, w[1]))
+            .AllowInlinedWindows(),
 
         // obj.field = <8-bit literal>; -- PeepholeRule's own strict
         // consecutive-window matching already keeps this from also
@@ -61,7 +90,8 @@ class ILSetFieldOptimizer : PeepholeOptimizerPass
                 w[2].Operation.Is16Bit(ctx, w[2])),
             IsRefOrLocal,
             l => l.Operation is OpLdConst,
-            l => l.Operation is OpStfld),
+            l => l.Operation is OpStfld)
+            .AllowInlinedWindows(),
 
         // obj.field = <16-bit literal>; -- Roslyn widens an int literal
         // with Conv_i8/Conv_u8 before a long/ulong field store, same
@@ -79,6 +109,7 @@ class ILSetFieldOptimizer : PeepholeOptimizerPass
             IsRefOrLocal,
             l => l.Operation is OpLdConst,
             l => l.OpCode == ILOpCode.Conv_i8 || l.OpCode == ILOpCode.Conv_u8,
-            l => l.Operation is OpStfld),
+            l => l.Operation is OpStfld)
+            .AllowInlinedWindows(),
     };
 }

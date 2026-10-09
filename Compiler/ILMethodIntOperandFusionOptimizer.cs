@@ -86,10 +86,17 @@ class ILMethodIntOperandFusionOptimizer : ICompilerMethodPass
     // single byte by eligibility" (locals_push_valueflt's own comment),
     // so 16-bit locals are never promoted and TryMatchInt16Leaf below
     // needs no equivalent check.
+    //
+    // No SourceMethod check anywhere in this file, deliberately: every
+    // operand/consumer line this pass touches is reused via its own
+    // already-resolved RawParameter/Pos/RelPos/OpCode/Label
+    // (IntOperandCopy, Compiler/Operands/OperandIntFusion.cs), never
+    // re-derived from a raw VarIndex against context.Method -- see
+    // PeepholeRule.AllowInlinedWindows's comment for the full reasoning
+    // this mirrors (this pass isn't PeepholeRule-based, so it carries the
+    // same guarantee by simply never having added the exclusion).
     private static bool IsFusableInt8Leaf(CompilerMethodContext context, ILOperation l)
     {
-        if (l.SourceMethod != null)
-            return false;
         if (l.Operation is IPushFldOperation pf)
             return !pf.IsFloat && !pf.Is16BitField;
         if (l.Operation is OpLdloc ldloc)
@@ -123,8 +130,6 @@ class ILMethodIntOperandFusionOptimizer : ICompilerMethodPass
     private static (ILOperation leaf, int span)? TryMatchInt16Leaf(List<ILOperation> lines, int index)
     {
         var l = lines[index];
-        if (l.SourceMethod != null)
-            return null;
         if (l.Operation is IPushFldOperation pf)
             return (!pf.IsFloat && pf.Is16BitField) ? (l, 1) : null;
         if (l.Operation is OpLdloc || l.Operation is OpLdloc_s || l.Operation is OpLdarg || l.Operation is OpLdarg_s)
@@ -132,7 +137,7 @@ class ILMethodIntOperandFusionOptimizer : ICompilerMethodPass
                 ? (l, 1) : null;
         if (l.Operation is OpLdConst && l.StackContent != null && l.StackContent.Count > 0 && l.StackContent.Last() == typeof(long) &&
             index + 1 < lines.Count && lines[index + 1].Operation is OpConv_8_16 &&
-            lines[index + 1].SourceMethod == null && string.IsNullOrEmpty(lines[index + 1].Label))
+            string.IsNullOrEmpty(lines[index + 1].Label))
             return (l, 2);
         return null;
     }
@@ -168,7 +173,7 @@ class ILMethodIntOperandFusionOptimizer : ICompilerMethodPass
                 continue;
 
             int j = NextEffective(lines, i);
-            if (j < 0 || lines[j].SourceMethod != null || !string.IsNullOrEmpty(lines[j].Label))
+            if (j < 0 || !string.IsNullOrEmpty(lines[j].Label))
                 continue;
 
             bool isTrue = lines[j].OpCode == ILOpCode.Brtrue_s || lines[j].OpCode == ILOpCode.Brtrue;
@@ -193,7 +198,7 @@ class ILMethodIntOperandFusionOptimizer : ICompilerMethodPass
                 continue;
 
             int k = NextEffective(lines, j);
-            if (k < 0 || lines[k].SourceMethod != null || !string.IsNullOrEmpty(lines[k].Label))
+            if (k < 0 || !string.IsNullOrEmpty(lines[k].Label))
                 continue;
 
             if (!Int8Ops.TryGetValue(lines[k].OpCode, out var spec))
@@ -226,7 +231,7 @@ class ILMethodIntOperandFusionOptimizer : ICompilerMethodPass
             int bEnd = j + bMatch.Value.span - 1;
 
             int k = NextEffective(lines, bEnd);
-            if (k < 0 || lines[k].SourceMethod != null || !string.IsNullOrEmpty(lines[k].Label))
+            if (k < 0 || !string.IsNullOrEmpty(lines[k].Label))
                 continue;
 
             if (!Int16TailMacro.TryGetValue(lines[k].OpCode, out var tailMacro))

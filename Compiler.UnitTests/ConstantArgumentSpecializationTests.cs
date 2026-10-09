@@ -15,19 +15,18 @@ namespace Compiler.UnitTests;
 // instruction, skipping materialization into a fresh locals-stack slot
 // the same way the existing Ldarg/Ldloc trivial substitution does.
 //
-// IMPORTANT, verified (not assumed) finding: this does NOT additionally
-// unlock further constant-folding inside the callee's own spliced body
-// (e.g. MulConstOptimizer never fires on the specialized read) --
-// PeepholeRule.TryApply's blanket SourceMethod-guard rejects a match the
-// moment ANY line in its window belongs to a spliced callee, which every
-// ordinary (non-Ret, non-parameter-read) line in the splice does,
-// regardless of whether one of its operands happens to be a specialized
-// constant. See ILMethodInliningPass.IsTrivialConstantProducer's own
-// comment for the full story -- this file's own
-// Specialized_Constant_Does_Not_Unlock_MulConst_Fusion test exists
-// specifically to guard against that claim quietly becoming true (a
-// welcome surprise, not a regression) or silently being re-introduced
-// as a false assumption in a future change without being re-verified.
+// UPDATED finding (was the opposite before PeepholeRule.AllowInlinedWindows
+// existed): this DOES additionally unlock further constant-folding inside
+// the callee's own spliced body (e.g. MulConstOptimizer fires on the
+// specialized read) -- PeepholeRule.TryApply's SourceMethod-guard is now
+// opt-in per rule, and ILMethodMulConstOptimizer (among others, see
+// PeepholeRule.AllowInlinedWindows's own comment) has been individually
+// audited and marked safe for it. See ILMethodInliningPass.
+// IsTrivialConstantProducer's own comment for the full story -- this
+// file's own Specialized_Constant_Unlocks_MulConst_Fusion test exists to
+// guard against a future change silently regressing this back to not
+// firing, the same way the inverted version of this test used to guard
+// the opposite claim.
 [TestFixture]
 public class ConstantArgumentSpecializationTests
 {
@@ -160,13 +159,13 @@ class Program
     }
 
     // Verified (not assumed) finding -- see this file's own top comment.
-    // A specialized constant feeding a Mul that would otherwise match
-    // ILMethodMulConstOptimizer's shift-fusion does NOT get it, because
-    // every ordinary line inside the splice (the Mul included) carries
-    // SourceMethod != null, which PeepholeRule.TryApply's blanket guard
-    // rejects regardless of what feeds it.
+    // A specialized constant feeding a Mul that matches
+    // ILMethodMulConstOptimizer's shift-fusion DOES get it, now that this
+    // rule is marked PeepholeRule.AllowInlinedWindows() (audited: it only
+    // ever reuses the matched constant's own already-resolved
+    // RawParameter, never re-derives anything against context.Method).
     [Test]
-    public void Specialized_Constant_Does_Not_Unlock_MulConst_Fusion()
+    public void Specialized_Constant_Unlocks_MulConst_Fusion()
     {
         var source = Using + @"
 class Holder
@@ -187,14 +186,14 @@ class Program
         var asmDir = CompileAndGetAsmDir(source);
         var holderAsm = ReadType(asmDir, "Holder");
 
-        // If this starts failing because "mul_shift_const" now DOES
-        // appear, that's a welcome improvement, not a regression --
-        // update this test (and the comment on IsTrivialConstantProducer
-        // claiming it doesn't happen) to match reality, don't just widen
-        // the assertion to let it through unnoticed.
-        Assert.That(holderAsm, Does.Not.Contain("mul_shift_const"),
-            "documents a known, verified limitation (PeepholeRule's SourceMethod guard) -- see this test's own comment:\n" + holderAsm);
-        Assert.That(holderAsm, Does.Contain("#mul8"),
-            "the multiply should still happen correctly, just via the general (non-fused) macro:\n" + holderAsm);
+        // If this starts failing because "mul_shift_const" no longer
+        // appears, that's a regression in the inlining/optimizer
+        // interaction fix (PeepholeRule.AllowInlinedWindows) -- don't just
+        // flip this assertion back, track down why the rule stopped
+        // matching inside a splice.
+        Assert.That(holderAsm, Does.Contain("mul_shift_const"),
+            "the specialized constant should unlock the shift fusion even inside an inlined splice:\n" + holderAsm);
+        Assert.That(holderAsm, Does.Not.Contain("\n    #mul8 "),
+            "the unfused mul8 macro should not run as real code once fused:\n" + holderAsm);
     }
 }

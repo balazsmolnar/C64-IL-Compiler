@@ -16,5 +16,6 @@ class ILMethodBranchConstOptimizer : PeepholeOptimizerPass
             l => l.Operation is OpLdConst,
             l => l.Operation is OpShortJump && l.OpCode != ILOpCode.Br_s && string.IsNullOrEmpty(l.Label))
             .WithRawParameter((ctx, w) => w[0].RawParameter + ", " + w[1].RawParameter)
+            .AllowInlinedWindows()
     };
 }

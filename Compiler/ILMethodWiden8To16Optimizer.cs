@@ -77,6 +77,7 @@ class ILMethodWiden8To16Optimizer : PeepholeOptimizerPass
                 && l.PreviousInstructions.Count > 0
                 && l.StackContent.Count > l.PreviousInstructions.First().StackContent.Count,
             l => (l.OpCode == ILOpCode.Conv_u8 || l.OpCode == ILOpCode.Conv_i8) && string.IsNullOrEmpty(l.Label))
-            .WithStackContent(w => w[1].StackContent),
+            .WithStackContent(w => w[1].StackContent)
+            .AllowInlinedWindows(),
     };
 }

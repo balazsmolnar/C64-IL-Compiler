@@ -28,5 +28,6 @@ class ILFieldIncrementOptimizer : PeepholeOptimizerPass
             // a 16-bit field must fall through to the general pushfld+add+setfld
             // path instead, which does have both width variants.
             .WithGuard((ctx, w) => !w[2].Operation.Is16Bit(ctx, w[2]))
+            .AllowInlinedWindows()
     };
 }

@@ -28,5 +28,6 @@ class ILMethodCompareConstOptimizer : PeepholeOptimizerPass
             (ctx, w) => new OpArithmetic2(o.Macro),
             l => l.Operation is OpLdConst,
             l => l.OpCode == o.Op && string.IsNullOrEmpty(l.Label))
-            .WithRawParameter((ctx, w) => w[0].RawParameter));
+            .WithRawParameter((ctx, w) => w[0].RawParameter)
+            .AllowInlinedWindows());
 }

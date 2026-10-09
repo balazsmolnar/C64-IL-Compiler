@@ -63,13 +63,15 @@ namespace Compiler;
 // whatever the branch's own source code meant to do first.
 class ILMethodFloatOperandFusionOptimizer : ICompilerMethodPass
 {
-    // SourceMethod != null means this line was spliced in from an inlined
-    // callee's own body (ILMethodInliningPass) -- its VarIndex/RelPos
-    // resolves against the CALLEE, not context.Method, the same "VarIndex
-    // hazard" PeepholeRule.TryApply centrally guards against for every
-    // other optimizer. Checked here (not centrally) since this pass
-    // doesn't go through PeepholeRule at all -- see this class's own
-    // top-of-file comment for why.
+    // No SourceMethod check here, deliberately: unlike a rule that captures
+    // a bare VarIndex for its OWN synthesized operand to resolve later
+    // (ILMethodIncOptimizer etc -- see PeepholeRule.AllowInlinedWindows's
+    // comment for the full reasoning), every operand this pass fuses is
+    // reused via its own already-resolved RawParameter/Pos/RelPos (see
+    // FloatOperandCopy, Compiler/Operands/OperandFloatFusion.cs) -- correct
+    // regardless of whether the matched line came from an inlined callee's
+    // own body, the same way the PeepholeRule-based optimizers marked
+    // AllowInlinedWindows() are.
     //
     // IPushFldOperation's own IsFloat (not StackContent) is the right
     // check for a field operand: ILPropertyGettterOptimizer's common
@@ -80,8 +82,6 @@ class ILMethodFloatOperandFusionOptimizer : ICompilerMethodPass
     // silently never match the single most common field-read shape.
     private static bool IsFusableFloatOperand(ILOperation l)
     {
-        if (l.SourceMethod != null)
-            return false;
         if (l.Operation is IPushFldOperation pf)
             return pf.IsFloat;
         if (l.Operation is OpLdloc || l.Operation is OpLdloc_s ||
@@ -97,7 +97,7 @@ class ILMethodFloatOperandFusionOptimizer : ICompilerMethodPass
     // top comment for the safety shape this is restricted to.
     private static bool IsChainableFloatProducer(ILOperation l)
     {
-        if (l.SourceMethod != null || l.StackContent == null || l.StackContent.Count == 0 ||
+        if (l.StackContent == null || l.StackContent.Count == 0 ||
             l.StackContent.Last() != typeof(float))
             return false;
         if (l.Operation is OpFusedFloatBinOp fb)
@@ -184,7 +184,7 @@ class ILMethodFloatOperandFusionOptimizer : ICompilerMethodPass
 
             // [A] [Neg] -- A may be a leaf or a chained producer, Neg has
             // no second operand to worry about clobbering anything.
-            if (lines[j].OpCode == ILOpCode.Neg && lines[j].SourceMethod == null && string.IsNullOrEmpty(lines[j].Label))
+            if (lines[j].OpCode == ILOpCode.Neg && string.IsNullOrEmpty(lines[j].Label))
             {
                 if (aIsProducer)
                 {
@@ -205,7 +205,7 @@ class ILMethodFloatOperandFusionOptimizer : ICompilerMethodPass
                 continue;
 
             int k = NextEffective(lines, j);
-            if (k < 0 || lines[k].SourceMethod != null || !string.IsNullOrEmpty(lines[k].Label))
+            if (k < 0 || !string.IsNullOrEmpty(lines[k].Label))
                 continue;
 
             // [A] [B] [Add/Sub/Mul/Div] -- B already confirmed float, so

@@ -13,6 +13,7 @@ class PeepholeRule
     private Func<CompilerMethodContext, ILOperation[], object> _rawParameter;
     private Func<ILOperation[], List<Type>> _stackContent;
     private Func<CompilerMethodContext, ILOperation[], bool> _guard;
+    private bool _allowInlinedWindows;
 
     public PeepholeRule(
         Func<CompilerMethodContext, ILOperation[], OpBase> build,
@@ -50,6 +51,31 @@ class PeepholeRule
         return this;
     }
 
+    // Opts this rule out of the inlined-window guard below. Safe ONLY for a
+    // rule whose built operation (and whose RawParameter, however it's
+    // computed) never re-derives anything from a matched line's raw
+    // VarIndex/argument-index against context.Method -- i.e. every matched
+    // line's own already-resolved RawParameter/Pos/RelPos (or, like
+    // OpFusedWiden8To16, the original ILOperation itself) is reused as-is.
+    // That value was correctly computed against the CALLEE's own context
+    // when ILMethodInliningPass's callee-isolated pre-pass first produced
+    // it, and localsStack addressing is relative to the runtime stackPointer
+    // either way, so reusing it verbatim remains correct however far the
+    // matched window reaches into (or across) an inlined splice. A rule
+    // that instead captures a bare VarIndex/argument-index (OpLdloc.VarIndex
+    // etc.) for its OWN synthesized operand to resolve later -- e.g.
+    // ILMethodIncOptimizer, ILMethodBranchIfLessOptimizer -- must NOT call
+    // this: that resolution happens at emit time against context.Method,
+    // which for an inlined window is the CALLER, not the callee the raw
+    // index actually belongs to (ILMethodInliningPass's own "VarIndex
+    // hazard" comment). Audited individually, not guessed, for every rule
+    // this is currently applied to -- see each one's own call site.
+    public PeepholeRule AllowInlinedWindows()
+    {
+        _allowInlinedWindows = true;
+        return this;
+    }
+
     // Tries to match this rule starting at lines[i]. On success, inserts the
     // synthesized replacement operation right after the matched window and
     // marks every matched line Optimized. Returns whether it matched.
@@ -73,10 +99,13 @@ class PeepholeRule
         // the callee the window's instructions actually belong to -- see
         // ILMethodInliningPass's "VarIndex hazard" comment. Centralizing the
         // check here, once, protects every PeepholeOptimizerPass subclass
-        // without each one needing its own guard.
-        for (int k = 0; k < window.Length; k++)
-            if (window[k].SourceMethod != null)
-                return false;
+        // without each one needing its own guard -- except a rule that opts
+        // out via AllowInlinedWindows() above, having been individually
+        // audited as not needing it.
+        if (!_allowInlinedWindows)
+            for (int k = 0; k < window.Length; k++)
+                if (window[k].SourceMethod != null)
+                    return false;
 
         if (_guard != null && !_guard(context, window))
             return false;

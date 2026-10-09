@@ -31,7 +31,8 @@ class ILMethodMulConstOptimizer : PeepholeOptimizerPass
             (ctx, w) => new OpArithmetic2("#mul_shift_const"),
             l => l.Operation is OpLdConst && l.RawParameter is int v && ShiftForValue.ContainsKey(v),
             l => l.OpCode == ILOpCode.Mul && string.IsNullOrEmpty(l.Label))
-            .WithRawParameter((ctx, w) => ShiftForValue[(int)w[0].RawParameter]),
+            .WithRawParameter((ctx, w) => ShiftForValue[(int)w[0].RawParameter])
+            .AllowInlinedWindows(),
 
         // long/ulong: Roslyn always widens an int constant with Conv_i8/
         // Conv_u8 before a 64-bit multiply (the same shape OpLdConst.Is16Bit
@@ -47,6 +48,7 @@ class ILMethodMulConstOptimizer : PeepholeOptimizerPass
             l => l.Operation is OpLdConst && l.RawParameter is int v && ShiftForValue.ContainsKey(v),
             l => l.OpCode == ILOpCode.Conv_i8 || l.OpCode == ILOpCode.Conv_u8,
             l => l.OpCode == ILOpCode.Mul && string.IsNullOrEmpty(l.Label))
-            .WithRawParameter((ctx, w) => ShiftForValue[(int)w[0].RawParameter]),
+            .WithRawParameter((ctx, w) => ShiftForValue[(int)w[0].RawParameter])
+            .AllowInlinedWindows(),
     };
 }

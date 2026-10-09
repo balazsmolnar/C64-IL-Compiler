@@ -21,7 +21,8 @@ class ILPropertyGettterOptimizer : PeepholeOptimizerPass
             l => l.Operation is OpLdfld,
             l => l.Operation is OpStloc,
             l => l.OpCode == ILOpCode.Br_s,
-            l => l.Operation is OpLdloc),
+            l => l.Operation is OpLdloc)
+            .AllowInlinedWindows(),
 
         // NOTE: original never set StackContent for this second, shorter pattern
         // (leaving it null, ILOperation's default) -- preserved via the override
@@ -30,7 +31,8 @@ class ILPropertyGettterOptimizer : PeepholeOptimizerPass
             (ctx, w) => new OpPushFld(w[0].RawParameter.ToString(), w[1].RawParameter.ToString(), w[1].Operation.Is16Bit(ctx, w[1]), w[1].StackContent.Last() == typeof(float)),
             l => l.OpCode == ILOpCode.Ldarg_0,
             l => l.Operation is OpLdfld)
-            .WithStackContent(w => null),
+            .WithStackContent(w => null)
+            .AllowInlinedWindows(),
 
         // Generalizes the rule above beyond `this` specifically: any
         // reference held in a local or a parameter (IL guarantees Ldfld's
@@ -56,6 +58,7 @@ class ILPropertyGettterOptimizer : PeepholeOptimizerPass
             (ctx, w) => new OpPushFldAt(w[0].RawParameter.ToString(), w[1].RawParameter.ToString(), w[1].StackContent.Last()),
             l => l.Operation is OpLdloc || l.Operation is OpLdloc_s || l.Operation is OpLdarg || l.Operation is OpLdarg_s,
             l => l.Operation is OpLdfld)
-            .WithStackContent(w => null),
+            .WithStackContent(w => null)
+            .AllowInlinedWindows(),
     };
 }

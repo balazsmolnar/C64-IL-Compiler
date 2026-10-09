@@ -93,6 +93,15 @@ class Program
                         // prototype it replaces: never touches parameters, `this`,
                         // or the prologue/epilogue return-address handling.
                         new ILMethodPromoteLocalsPass(),
+                        // PROTOTYPE companion to the pass above: promotes
+                        // eligible PARAMETERS (never `this`, which is never
+                        // actually eligible) of the same qualifying leaf
+                        // methods, filling whatever pool slots locals left
+                        // over. Must run after ILMethodPromoteLocalsPass --
+                        // see that class's own comment for why, and
+                        // ILMethodEmitPass for the one-time copy this needs
+                        // that locals never did.
+                        new ILMethodPromoteParametersPass(),
                         new ILLibraryUsagePass(),
                         new ILMethodLabelPass(),
                         new ILMethodDebugLabelPass(),

@@ -103,7 +103,19 @@ class ILMethodIntOperandFusionOptimizer : ICompilerMethodPass
             return IsNarrowAndNotPromoted(context, l, ldloc.VarIndex);
         if (l.Operation is OpLdloc_s)
             return IsNarrowAndNotPromoted(context, l, (int)l.OriginalParameter);
-        if (l.Operation is OpLdarg || l.Operation is OpLdarg_s || l.Operation is OpLdConst)
+        // OpLdarg/OpLdarg_s: same hazard as OpLdloc/OpLdloc_s now that
+        // ILMethodPromoteParametersPass can also promote a parameter --
+        // IntOperandCopy (Compiler/Operands/OperandIntFusion.cs) reads
+        // source.RawParameter directly, the plain localsStack rel_pos,
+        // never consulting PromotedParameterSlot the way OpLdarg's own
+        // Emit() does. Found by re-auditing every OpLdarg/OpLdloc call
+        // site right after adding parameter promotion, not by a live bug
+        // this time -- see ILMethodSetVariableOptimizer's own matching fix.
+        if (l.Operation is OpLdarg arg)
+            return IsNarrowAndNotPromotedParam(context, l, arg.ArgIndex);
+        if (l.Operation is OpLdarg_s)
+            return IsNarrowAndNotPromotedParam(context, l, (int)l.OriginalParameter);
+        if (l.Operation is OpLdConst)
             return l.StackContent != null && l.StackContent.Count > 0 &&
                    l.StackContent.Last() != typeof(float) && l.StackContent.Last().GetStorageBytes() == 1;
         return false;
@@ -115,6 +127,14 @@ class ILMethodIntOperandFusionOptimizer : ICompilerMethodPass
             l.StackContent.Last() == typeof(float) || l.StackContent.Last().GetStorageBytes() != 1)
             return false;
         return context.PromotedLocalSlot(varIndex) == null;
+    }
+
+    private static bool IsNarrowAndNotPromotedParam(CompilerMethodContext context, ILOperation l, int argIndex)
+    {
+        if (l.StackContent == null || l.StackContent.Count == 0 ||
+            l.StackContent.Last() == typeof(float) || l.StackContent.Last().GetStorageBytes() != 1)
+            return false;
+        return context.PromotedParameterSlot(argIndex) == null;
     }
 
     // Returns the leaf's own representative line and how many PHYSICAL

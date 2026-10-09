@@ -34,9 +34,15 @@ class ILMethodSetVariableOptimizer : PeepholeOptimizerPass
         // Not zp-aware yet -- #copy_var addresses both sides as raw
         // localsStack positions, and a source/destination pair could be
         // promoted/not-promoted in any combination, so this is guarded off
-        // whenever either side is a promoted local rather than risk a
-        // wrong addressing mode; OpLdloc/OpStloc still route each side to
-        // zp correctly when unfused, just without this extra fusion.
+        // whenever either side is a promoted local OR a promoted
+        // parameter (ILMethodPromoteParametersPass) rather than risk a
+        // wrong addressing mode; OpLdloc/OpLdarg/OpStloc still route each
+        // side to zp correctly when unfused, just without this extra
+        // fusion. The source-side parameter check was added alongside
+        // parameter promotion itself -- w[0].Operation.ConvertParameter
+        // above returns the plain, never-promotion-aware localsStack
+        // rel_pos for an OpLdarg source, exactly the same hazard the
+        // existing OpLdloc source check already guards against.
         new PeepholeRule(
             (ctx, w) => new OpCopyVar(w[0].Operation.ConvertParameter(ctx, w[0]), ((OpStloc)w[1].Operation).VarIndex),
             l => l.Operation is OpLdloc || l.Operation is OpLdarg,
@@ -46,6 +52,7 @@ class ILMethodSetVariableOptimizer : PeepholeOptimizerPass
                 !w[1].Operation.Is16Bit(ctx, w[1]) &&
                 !ctx.Method.GetMethodBody().LocalVariables[((OpStloc)w[1].Operation).VarIndex].LocalType.IsReferenceCounted() &&
                 ctx.PromotedLocalSlot(((OpStloc)w[1].Operation).VarIndex) == null &&
-                (!(w[0].Operation is OpLdloc srcLdloc) || ctx.PromotedLocalSlot(srcLdloc.VarIndex) == null))
+                (!(w[0].Operation is OpLdloc srcLdloc) || ctx.PromotedLocalSlot(srcLdloc.VarIndex) == null) &&
+                (!(w[0].Operation is OpLdarg srcLdarg) || ctx.PromotedParameterSlot(srcLdarg.ArgIndex) == null))
     };
 }

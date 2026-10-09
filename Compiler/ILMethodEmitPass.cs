@@ -58,6 +58,23 @@ class ILMethodEmitPass : ICompilerMethodPass
         outputLine = $"    #init_locals_pull_parameters {context.GetLocalsSize()}, [{string.Join(',', ref_params)}], [{string.Join(',', local_refs)}]";
         output.WriteLine(outputLine);
 
+        // PROTOTYPE (ILMethodPromoteParametersPass): the prologue just
+        // above is otherwise completely unmodified -- unlike a promoted
+        // LOCAL (which is only ever born via Stloc, so nothing extra is
+        // needed), a promoted PARAMETER's real initial value just landed
+        // in its ordinary localsStack slot via that same prologue, so one
+        // one-time copy into its zp byte is needed here before anything
+        // else runs. After this, every Ldarg/Starg of that parameter for
+        // the rest of the method reads/writes the zp byte directly (see
+        // OpLdarg/OpLdarg_s/OpStarg_s's own Emit overrides), and its
+        // localsStack slot is never touched again.
+        foreach (var (argIndex, slot) in context.PromotedParameters)
+        {
+            int relPos = context.GetParameterReferencePosition(argIndex);
+            output.WriteLine($"    #locals_push_value8 {relPos} ; (promoted parameter copy-in)");
+            output.WriteLine($"    #zp_pull_value8 {slot}");
+        }
+
         foreach (var line in context.Lines)
         {
             context.CurrentIlOffset = line.Position;

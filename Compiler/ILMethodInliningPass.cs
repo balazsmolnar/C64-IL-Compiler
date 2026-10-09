@@ -214,6 +214,13 @@ class ILMethodInliningPass : ICompilerMethodPass
                 var localVarIndex = TrivialSubstitutionLocalVarIndex(producer);
                 if (localVarIndex != null)
                     context.TrivialSubstitutionSourceLocals.Add(localVarIndex.Value);
+                // Same hazard, for a CALLER's own parameter used as the
+                // trivial argument instead of a local -- see
+                // TrivialSubstitutionSourceParameters's own comment
+                // (ICompilerPass.cs).
+                var paramIndex = TrivialSubstitutionParamIndex(producer);
+                if (paramIndex != null)
+                    context.TrivialSubstitutionSourceParameters.Add(paramIndex.Value);
                 continue;
             }
             if (IsTrivialConstantProducer(producer.OpCode) && ConstantProducerFitsParameter(target, isInstance, p, producer.OpCode))
@@ -528,9 +535,7 @@ class ILMethodInliningPass : ICompilerMethodPass
     }
 
     // The CALLER's own local variable index a trivial argument-producing
-    // instruction reads, or null for an Ldarg* producer (a parameter,
-    // never promoted by ILMethodPromoteLocalsPass in the first place, so
-    // nothing to protect here) or any non-trivial producer. Deliberately
+    // instruction reads, or null for an Ldarg*/other producer. Deliberately
     // mirrors ProducerRelPos's own opcode set above rather than sharing
     // code with it: that function returns a RESOLVED REL_POS (the thing
     // TryBuildTrivialSubstitution needs to splice), this one returns the
@@ -544,6 +549,23 @@ class ILMethodInliningPass : ICompilerMethodPass
         ILOpCode.Ldloc_3 => 3,
         ILOpCode.Ldloc => (int)producer.OriginalParameter,
         ILOpCode.Ldloc_s => (int)producer.OriginalParameter,
+        _ => null,
+    };
+
+    // Same idea as TrivialSubstitutionLocalVarIndex above, for the
+    // CALLER's own parameter index instead -- the raw Ldarg_N number IS
+    // already the "unified" index GetParameterReferencePosition/
+    // GetParameterType use (0 is `this` for an instance method), no
+    // adjustment needed, same as ProducerRelPos's own Ldarg_0 =>
+    // GetParameterReferencePosition(0) case relies on.
+    private static int? TrivialSubstitutionParamIndex(ILOperation producer) => producer.OpCode switch
+    {
+        ILOpCode.Ldarg_0 => 0,
+        ILOpCode.Ldarg_1 => 1,
+        ILOpCode.Ldarg_2 => 2,
+        ILOpCode.Ldarg_3 => 3,
+        ILOpCode.Ldarg => (int)producer.OriginalParameter,
+        ILOpCode.Ldarg_s => (int)producer.OriginalParameter,
         _ => null,
     };
 

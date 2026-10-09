@@ -339,6 +339,31 @@ class CompilerMethodContext
     // ILMethodInliningPass's "VarIndex hazard" comment.
     public string PromotedLocalSlot(MethodBase sourceMethod, int varIndex) =>
         sourceMethod == null ? PromotedLocalSlot(varIndex) : null;
+
+    // PROTOTYPE: set by ILMethodPromoteParametersPass, which runs AFTER
+    // ILMethodPromoteLocalsPass and shares its exact pool -- locals get
+    // first claim on it (PromotedLocals.Count slots already spoken for),
+    // this fills whatever's left. Keyed the same way GetParameterReferencePosition/
+    // GetParameterType already are (the "unified" index: 0 is `this` for
+    // an instance method, never itself eligible since GetParameterType(0)
+    // is always a reference type). OpLdarg/OpLdarg_s/OpStarg_s consult
+    // this the same way OpLdloc/OpLdloc_s/OpStloc consult PromotedLocals.
+    public Dictionary<int, string> PromotedParameters { get; } = new Dictionary<int, string>();
+
+    // Mirrors TrivialSubstitutionSourceLocals exactly, but for a
+    // CALLER's own parameter baked into an inlined splice as a trivially-
+    // substituted argument -- ILMethodInliningPass.ProducerRelPos also
+    // resolves Ldarg/Ldarg_s/Ldarg_0-3 producers, not just Ldloc ones, so
+    // the same staleness hazard applies to parameters too.
+    public HashSet<int> TrivialSubstitutionSourceParameters { get; } = new HashSet<int>();
+
+    public string PromotedParameterSlot(int argIndex) =>
+        PromotedParameters.TryGetValue(argIndex, out var slot) ? slot : null;
+
+    // sourceMethod: see PromotedLocalSlot's own comment -- same reasoning,
+    // an inlined parameter is never promoted in this phase either.
+    public string PromotedParameterSlot(MethodBase sourceMethod, int argIndex) =>
+        sourceMethod == null ? PromotedParameterSlot(argIndex) : null;
 }
 
 interface ICompilerPass

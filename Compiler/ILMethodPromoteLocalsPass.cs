@@ -39,7 +39,7 @@ class ILMethodPromoteLocalsPass : ICompilerMethodPass
     // (asm/C64.asm) saves/restores them separately, see its own comment.
     // See zeropage.asm's own comment on zp_local0 for the full incident
     // and the fuller reasoning for both batches.
-    static readonly string[] Pool = { "zp_local0", "zp_local2", "zp_local3", "zp_local4", "zp_local5", "zp_local6", "zp_local7" };
+    internal static readonly string[] Pool = { "zp_local0", "zp_local2", "zp_local3", "zp_local4", "zp_local5", "zp_local6", "zp_local7" };
 
     // FAIL-CLOSED allowlist, not a denylist of "the calls we thought of":
     // an earlier version of this pass only excluded Call/Callvirt/Newobj,
@@ -237,20 +237,8 @@ class ILMethodPromoteLocalsPass : ICompilerMethodPass
 
     public void Execute(CompilerMethodContext context)
     {
-        if (context.Lines == null || context.Method.IsAbstract)
+        if (!PassesSafeOpcodeGate(context))
             return;
-
-        foreach (var line in context.Lines)
-        {
-            if (line.OpCode == ILOpCode.Call || line.OpCode == ILOpCode.Callvirt)
-            {
-                if (!IsSafeExternalCall(context.CompilerContext, line))
-                    return;
-                continue;
-            }
-            if (!SafeOpCodes.Contains(line.OpCode))
-                return;
-        }
 
         var body = context.Method.GetMethodBody();
         if (body == null)
@@ -295,5 +283,27 @@ class ILMethodPromoteLocalsPass : ICompilerMethodPass
         if (line.OpCode == ILOpCode.Callvirt && !target.IsDevirtualizable(compilerContext.Assembly))
             return false;
         return target.DeclaringType != null && target.DeclaringType.Assembly != compilerContext.Assembly;
+    }
+
+    // Extracted so ILMethodPromoteParametersPass (which shares this exact
+    // pool and must agree on which methods qualify) can reuse the SAME
+    // check instead of risking the two silently drifting out of sync.
+    internal static bool PassesSafeOpcodeGate(CompilerMethodContext context)
+    {
+        if (context.Lines == null || context.Method.IsAbstract)
+            return false;
+
+        foreach (var line in context.Lines)
+        {
+            if (line.OpCode == ILOpCode.Call || line.OpCode == ILOpCode.Callvirt)
+            {
+                if (!IsSafeExternalCall(context.CompilerContext, line))
+                    return false;
+                continue;
+            }
+            if (!SafeOpCodes.Contains(line.OpCode))
+                return false;
+        }
+        return true;
     }
 }

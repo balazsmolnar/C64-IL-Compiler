@@ -1203,21 +1203,25 @@ class OpLdloc_s : OpPushBase
 
 class OpLdarg : OpPushBase
 {
-    private int _argIndex;
+    // Public, like OpLdloc.VarIndex -- ILMethodIntOperandFusionOptimizer's
+    // IsFusableInt8Leaf needs to check this index against
+    // PromotedParameterSlot before treating this as a fusable leaf, the
+    // same way it already does for OpLdloc.VarIndex.
+    public int ArgIndex;
     public OpLdarg(int argIndex) : base(0, "#locals_push_value")
     {
-        _argIndex = argIndex;
+        ArgIndex = argIndex;
     }
 
     public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
     {
-        int relPos = context.GetParameterReferencePosition(_argIndex);
+        int relPos = context.GetParameterReferencePosition(ArgIndex);
         return $"{relPos}";
     }
 
     public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
     {
-        operation.StackContent.Add(context.GetParameterType(operation.SourceMethod ?? context.Method, (int)_argIndex));
+        operation.StackContent.Add(context.GetParameterType(operation.SourceMethod ?? context.Method, ArgIndex));
     }
 
 
@@ -1225,14 +1229,23 @@ class OpLdarg : OpPushBase
 
     public override bool Is16Bit(CompilerMethodContext context, ILOperation operation)
     {
-        return context.GetParameterSize(operation.SourceMethod ?? context.Method, _argIndex) == 2;
+        return context.GetParameterSize(operation.SourceMethod ?? context.Method, ArgIndex) == 2;
     }
 
     protected override string SizeSuffix(CompilerMethodContext context, ILOperation operation)
     {
-        if (context.GetParameterType(operation.SourceMethod ?? context.Method, _argIndex) == typeof(float))
+        if (context.GetParameterType(operation.SourceMethod ?? context.Method, ArgIndex) == typeof(float))
             return "flt";
         return base.SizeSuffix(context, operation);
+    }
+
+    // PROTOTYPE, see OpLdloc's own copy of this comment (ILMethodPromoteParametersPass).
+    public override string Emit(CompilerMethodContext context, ILOperation operation)
+    {
+        var slot = context.PromotedParameterSlot(operation.SourceMethod, ArgIndex);
+        if (slot != null)
+            return $"#zp_push_value8 {slot}";
+        return base.Emit(context, operation);
     }
 }
 
@@ -1275,6 +1288,15 @@ class OpLdarg_s : OpPushBase
         if (context.GetParameterType(operation.SourceMethod ?? context.Method, ArgIndex(operation)) == typeof(float))
             return "flt";
         return base.SizeSuffix(context, operation);
+    }
+
+    // PROTOTYPE, see OpLdloc's own copy of this comment (ILMethodPromoteParametersPass).
+    public override string Emit(CompilerMethodContext context, ILOperation operation)
+    {
+        var slot = context.PromotedParameterSlot(operation.SourceMethod, ArgIndex(operation));
+        if (slot != null)
+            return $"#zp_push_value8 {slot}";
+        return base.Emit(context, operation);
     }
 }
 
@@ -1618,6 +1640,18 @@ class OpStarg_s : OpBase
         if (context.GetParameterType(operation.SourceMethod ?? context.Method, ArgIndex(operation)) == typeof(float))
             return "flt";
         return base.SizeSuffix(context, operation);
+    }
+
+    // PROTOTYPE (see zp_local0's own comment in asm/helper/zeropage.asm):
+    // no ref-counting parameter needed here, same reason OpStloc's own
+    // copy of this comment gives -- eligibility already excludes every
+    // reference-counted type.
+    public override string Emit(CompilerMethodContext context, ILOperation operation)
+    {
+        var slot = context.PromotedParameterSlot(operation.SourceMethod, ArgIndex(operation));
+        if (slot != null)
+            return $"#zp_pull_value8 {slot}";
+        return base.Emit(context, operation);
     }
 }
 

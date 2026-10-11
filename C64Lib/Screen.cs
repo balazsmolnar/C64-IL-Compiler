@@ -252,6 +252,27 @@ namespace C64Lib
             // frames, a small area is nothing.
             public static void RemapCellColors(uint column, uint row, uint width, uint height, ulong table) { }
 
+            // Copies the left half of a cell rectangle onto its right half,
+            // mirrored, pixels and colours: a symmetric picture (a face, a
+            // doorway, a frame) needs only its left half stored and drawn.
+            //
+            //     C64.Screen.DrawImage(0, 0, C64Address.FromLabel("img_LeftHalf"));   // 20 cells wide
+            //     C64.Screen.MirrorCells(0, 0, 40, 21);
+            //
+            // Pixels are reversed as multicolour pixel pairs or as hi-res
+            // bits, whichever SetScreenMode last set. The middle column of an
+            // odd width is left alone. About 600 cycles per copied cell: half
+            // the viewport takes some 13 frames.
+            public static void MirrorCells(uint column, uint row, uint width, uint height) { }
+
+            // The VIC's horizontal fine scroll: shows the picture 0-7 pixels
+            // to the right (a screen shake; the fine part of a scroller).
+            // The pixels that leave on the right are hidden, the gap on the
+            // left shows the background colour. While a raster split is on
+            // (SetSplit), only the part above the split moves, starting with
+            // the next frame.
+            public static void SetScrollX(uint pixels) { }
+
             // Writes text into the bitmap, one character per cell from
             // (column, row), using the built-in 8x8 font, and gives those
             // cells the colours `matrix` = (text colour << 4) | background.

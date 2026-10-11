@@ -45,7 +45,7 @@
 ; in bank 1 (bitmap $4000, matrix $6000), code from $6400. No sprite frame
 ; storage there.
 GRAPHICS_DOUBLE_BUFFER = Flag_Screen_SetDrawBuffer | Flag_Screen_SwapBuffers
-GRAPHICS_USED = Flag_Screen_SetScreenMode | Flag_Screen_SetPixel | Flag_Screen_DrawLine | Flag_Screen_DrawRectangle | Flag_Screen_DrawTrapezoid | Flag_Screen_DrawCircle | Flag_Screen_SetBitmapColors | Flag_Screen_ClearBitmap | Flag_Screen_DrawBitmap | Flag_Screen_DrawImage | Flag_Screen_SetCellColors | Flag_Screen_RemapCellColors | Flag_Screen_DrawText | Flag_Screen_SetSplit | GRAPHICS_DOUBLE_BUFFER
+GRAPHICS_USED = Flag_Screen_SetScreenMode | Flag_Screen_SetPixel | Flag_Screen_DrawLine | Flag_Screen_DrawRectangle | Flag_Screen_DrawTrapezoid | Flag_Screen_DrawCircle | Flag_Screen_SetBitmapColors | Flag_Screen_ClearBitmap | Flag_Screen_DrawBitmap | Flag_Screen_DrawImage | Flag_Screen_SetCellColors | Flag_Screen_RemapCellColors | Flag_Screen_MirrorCells | Flag_Screen_DrawText | Flag_Screen_SetSplit | GRAPHICS_DOUBLE_BUFFER
 GRAPHICS_HIGH = GRAPHICS_USED & (GRAPHICS_DOUBLE_BUFFER ^ 1)
 
 .if GRAPHICS_HIGH

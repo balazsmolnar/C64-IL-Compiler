@@ -80,6 +80,8 @@ Flag_Screen_SetPixel = 1
 Flag_Screen_DrawImage = 1
 Flag_Screen_SetCellColors = 1
 Flag_Screen_RemapCellColors = 1
+Flag_Screen_MirrorCells = 1
+Flag_Screen_SetScrollX = 1
 GRAPHICS_HIGH = 1
 Graphics_ColorMatrix = ${Matrix:x4}
 Graphics_Bitmap = ${Bitmap:x4}
@@ -119,6 +121,22 @@ Harness_RemapCellColors
     lda #<${Table:x4}
     pha
     jsr Screen_RemapCellColors
+    brk
+Harness_MirrorCells
+    lda #$06
+    sta $01
+    ldx #0
+-   lda Harness_Args,x
+    pha
+    inx
+    cpx #4
+    bne -
+    jsr Screen_MirrorCells
+    brk
+Harness_SetScrollX
+    lda Harness_Args
+    pha
+    jsr Screen_SetScrollX
     brk
 Harness_SetPixel
     lda #$06
@@ -361,5 +379,81 @@ Harness_End
                 int wantC = inside ? table[colour[i] & 15] : colour[i] & 15;
                 Assert.That(emulator.GetMemory(ColorRam + i) & 15, Is.EqualTo(wantC), $"colour RAM ({col},{row})");
             }
+    }
+
+    // Reverses a byte's pixels: four multicolour pixel pairs, or eight hi-res bits.
+    static byte Reversed(byte b, bool multiColor)
+    {
+        int r = 0;
+        if (multiColor)
+            for (int i = 0; i < 4; i++)
+                r |= ((b >> (i * 2)) & 3) << (6 - i * 2);
+        else
+            for (int i = 0; i < 8; i++)
+                r |= ((b >> i) & 1) << (7 - i);
+        return (byte)r;
+    }
+
+    [TestCase(true, 0, 0, 40, 21)]
+    [TestCase(false, 0, 0, 40, 21)]
+    [TestCase(true, 3, 2, 7, 5)]       // odd width: the middle column stays
+    [TestCase(false, 30, 20, 10, 5)]
+    [TestCase(true, 38, 24, 2, 1)]
+    public void MirrorCells_Copies_The_Left_Half_Reversed_And_Touches_Nothing_Else(bool multiColor, int x, int y, int w, int h)
+    {
+        var rnd = new Random(11);
+        var bitmap = new byte[8000];
+        var matrix = new byte[1000];
+        var colour = new byte[1000];
+        rnd.NextBytes(bitmap);
+        rnd.NextBytes(matrix);
+        rnd.NextBytes(colour);
+        emulator.SetMemory(Bitmap, bitmap);
+        emulator.SetMemory(Matrix, matrix);
+        emulator.SetMemory(ColorRam, colour);
+        emulator.SetMemory(Label("graphics_multicolor_active"), new byte[] { (byte)(multiColor ? 1 : 0) });
+
+        Run("Harness_MirrorCells", (byte)x, (byte)y, (byte)w, (byte)h);
+
+        for (int row = 0; row < 25; row++)
+            for (int col = 0; col < 40; col++)
+            {
+                int i = row * 40 + col;
+                bool written = row >= y && row < y + h && col >= x + (w + 1) / 2 && col < x + w;
+                int from = written ? row * 40 + (x + (x + w - 1 - col)) : i;
+                Assert.That(emulator.GetMemory(Matrix + i), Is.EqualTo(matrix[from]), $"matrix ({col},{row})");
+                Assert.That(emulator.GetMemory(ColorRam + i) & 15, Is.EqualTo(colour[from] & 15), $"colour RAM ({col},{row})");
+                for (int k = 0; k < 8; k++)
+                {
+                    byte want = written ? Reversed(bitmap[from * 8 + k], multiColor) : bitmap[i * 8 + k];
+                    Assert.That(Ram(Bitmap + i * 8 + k), Is.EqualTo(want), $"bitmap ({col},{row}) byte {k}");
+                }
+            }
+        Assert.That(emulator.GetMemory(1) & 7, Is.EqualTo(6), "the KERNAL ROM must be banked back in afterwards");
+    }
+
+    [Test]
+    public void MirrorCells_With_Nothing_To_Copy_Does_Nothing()
+    {
+        Fill(Bitmap, 8000, 0x1B);
+        Fill(Matrix, 1000, 0x12);
+        Run("Harness_MirrorCells", 5, 5, 1, 3);
+        Run("Harness_MirrorCells", 5, 5, 4, 0);
+        for (int i = 0; i < 8000; i++)
+            Assert.That(Ram(Bitmap + i), Is.EqualTo(0x1B));
+        for (int i = 0; i < 1000; i++)
+            Assert.That(emulator.GetMemory(Matrix + i), Is.EqualTo(0x12));
+    }
+
+    [Test]
+    public void SetScrollX_Changes_Only_The_Fine_Scroll_Bits()
+    {
+        emulator.SetMemory(0xD016, new byte[] { 0x18 });
+        Run("Harness_SetScrollX", 5);
+        Assert.That(emulator.GetMemory(0xD016), Is.EqualTo(0x1D));
+        Run("Harness_SetScrollX", 0);
+        Assert.That(emulator.GetMemory(0xD016), Is.EqualTo(0x18));
+        Run("Harness_SetScrollX", 0xFA);     // only 0-7 means anything
+        Assert.That(emulator.GetMemory(0xD016), Is.EqualTo(0x1A));
     }
 }

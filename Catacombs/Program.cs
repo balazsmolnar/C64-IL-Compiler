@@ -41,8 +41,16 @@ class Program
 
     static void Main()
     {
+        // Scene builds ("dotnet build -p:Scene=COMBAT", see Catacombs.csproj
+        // and tools/catacombs-shot.ps1) boot straight into a state that
+        // otherwise takes playing to reach.
+#if SCENE_COMBAT || SCENE_MONSTERROOM
+        px_ = 5;
+        py_ = 3;
+#else
         px_ = 1;
         py_ = 1;
+#endif
         playerHp_ = PlayerMaxHp;
         playerDamage_ = UnarmedDamage;
 
@@ -73,6 +81,9 @@ class Program
         PlayerSprite.Init(RoomProjection.ScreenX(roomX_, roomDepth_), RoomProjection.ScreenY(roomDepth_));
 
         EnterRoom();
+#if SCENE_COMBAT
+        Combat();
+#endif
 
         for (;;)
         {

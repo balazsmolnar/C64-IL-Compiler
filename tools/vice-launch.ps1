@@ -20,7 +20,11 @@
 param(
     [Parameter(Mandatory=$true)][string]$Prg,
     [int]$WaitSeconds = 8,
-    [string]$ViceExe
+    [string]$ViceExe,
+    # Leave other running x64sc.exe instances alone (several agents each
+    # driving their own VICE at once). The caller must then pass the printed
+    # pid to vice-capture.ps1/vice-close.ps1 via -ProcessId.
+    [switch]$KeepOthers
 )
 
 $ErrorActionPreference = 'Stop'
@@ -37,8 +41,10 @@ if (-not (Test-Path $ViceExe)) {
     exit 1
 }
 
-Get-Process -Name x64sc -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-Start-Sleep -Milliseconds 300
+if (-not $KeepOthers) {
+    Get-Process -Name x64sc -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Milliseconds 300
+}
 
 $p = Start-Process -FilePath $ViceExe -ArgumentList '-autostart', $Prg -PassThru
 Start-Sleep -Seconds $WaitSeconds

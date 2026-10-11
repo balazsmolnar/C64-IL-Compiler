@@ -47,6 +47,9 @@ class Program
 #if SCENE_TECHDEMO
         TechDemo.Run(); // never returns: the graphics tech showcase (TechDemo.cs)
 #endif
+#if SCENE_HUDFULL || SCENE_HUDMID || SCENE_HUDLOW
+        HudScene.Run(); // never returns: the status panel in one fixed state (Hud.cs)
+#endif
 #if SCENE_COMBAT || SCENE_MONSTERROOM
         px_ = 5;
         py_ = 3;
@@ -78,6 +81,9 @@ class Program
         Item.Init();
         Weapon.Init();
         SpriteStage.Init();
+        Hud.Init();
+        Hud.SetHealth(playerHp_);
+        Hud.SetWeapon(playerDamage_);
 
         roomX_ = RoomProjection.Center;
         roomDepth_ = 0;
@@ -95,6 +101,7 @@ class Program
             Monster.Animate(px_, py_);
             UpdateZOrder();
             UpdateBorderCue();
+            Hud.Tick();
             HandleInput();
         }
     }
@@ -206,8 +213,8 @@ class Program
             Item.Render();
         if (weaponHere_)
             Weapon.Render();
-        Hud.Render(Item.CollectedCount, playerDamage_);
-        Minimap.Render(px_, py_);
+        Hud.Visit(px_, py_);
+        Hud.Render(); // the whole panel: ClearBitmap above wiped it
 
         Monster.Animate(px_, py_); // shows/hides/positions sprite 3 for this room immediately, rather than waiting a frame
         UpdateSpritePosition();
@@ -280,14 +287,14 @@ class Program
         {
             Item.CollectAt(px_, py_);
             itemHere_ = false;
-            Hud.Render(Item.CollectedCount, playerDamage_);
+            Hud.SetTreasure(Item.CollectedCount);
         }
         else if (weaponHere_ && Touching(Weapon.RoomX, Weapon.RoomDepth, Weapon.RoomRadius))
         {
             playerDamage_ = Weapon.DamageAt(px_, py_);
             Weapon.CollectAt(px_, py_);
             weaponHere_ = false;
-            Hud.Render(Item.CollectedCount, playerDamage_);
+            Hud.SetWeapon(playerDamage_);
         }
 
         UpdateSpritePosition();
@@ -434,12 +441,15 @@ class Program
             DungeonView.Render(px_, py_);
             Monster.Render();
             Monster.DrawHealthBars(playerHp_, PlayerMaxHp, Monster.HpAt(px_, py_));
+            Hud.SetHealth(playerHp_);
+            Hud.Render(); // ClearBitmap above wiped the panel
 
             while (!C64.IsKeyPressed(Keys.Space))
             {
                 C64.Screen.WaitForVBlank();
                 Spider.Animate();
                 UpdateZOrder();
+                Hud.Tick();
             }
             while (C64.IsKeyPressed(Keys.Space))
                 Delay.Wait(500);
@@ -482,6 +492,8 @@ class Program
         }
         playerHp_ = PlayerMaxHp;
         playerDamage_ = UnarmedDamage;
+        Hud.SetHealth(playerHp_);
+        Hud.SetWeapon(playerDamage_);
         px_ = 1;
         py_ = 1;
         roomX_ = RoomProjection.Center;

@@ -2,31 +2,69 @@ using C64Lib;
 
 namespace Catacombs;
 
-// A small thumbnail showing where the player is within the whole maze
-// (see Maze.cs's own Width/Height) -- a filled square spanning the
-// maze's bounds, with the player's current cell marked on top as a small
-// square in a different color. Deliberately NOT a per-cell floor/wall
-// rendering (an
-// earlier version drew every floor cell individually -- at this
-// thumbnail's small scale it read as visual noise rather than a legible
-// map, and wall cells had nothing to draw, so they just showed whatever
-// the live room's own background color happened to be underneath, which
-// was confusing). Drawn once per room entry in the screen's top-right
-// corner, the mirror of Hud.cs's own top-left placement.
+// The panel's map (see Hud.cs): the maze's 10x10 interior, one room = 4x2
+// hi-res pixels, in panel columns 34-38. Only rooms the player has been in
+// are drawn (fog of war); the room the player is in blinks.
+//
+// A room is half a bitmap byte on two pixel rows, so a pair of rooms is
+// exactly one byte value written twice: nothing is read back from the
+// screen, and a change redraws two bytes.
 static class Minimap
 {
-    const ulong OriginX = 270, OriginY = 4;
-    const ulong CellSize = 2; // 12*2 = 24px square footprint
-    const ulong MarkerSize = 2;
+    static bool[] seen_;
+    static uint x_, y_;
+    static bool lit_;
 
-    public static void Render(uint px, uint py)
+    public static bool Lit => lit_;
+
+    public static void Init()
     {
-        ulong width = Maze.Width * CellSize;
-        ulong height = Maze.Height * CellSize;
-        C64.Screen.DrawRectangle(OriginX, OriginY, OriginX + width, OriginY + height, true, true, BitmapColorSource.MatrixHigh);
+        seen_ = new bool[Maze.Width * Maze.Height];
+        x_ = 1;
+        y_ = 1;
+    }
 
-        ulong px2 = OriginX + px * CellSize;
-        ulong py2 = OriginY + py * CellSize;
-        C64.Screen.DrawRectangle(px2, py2, px2 + MarkerSize, py2 + MarkerSize, true, true, BitmapColorSource.MatrixLow);
+    public static void Enter(uint x, uint y)
+    {
+        uint oldX = x_, oldY = y_;
+        x_ = x;
+        y_ = y;
+        seen_[y * Maze.Width + x] = true;
+        lit_ = true;
+        DrawPair(oldX, oldY);
+        DrawPair(x, y);
+    }
+
+    public static void Blink()
+    {
+        lit_ = !lit_;
+        DrawPair(x_, y_);
+    }
+
+    public static void Render()
+    {
+        for (uint y = 1; y <= 10; y++)
+            for (uint x = 1; x <= 10; x += 2)
+                DrawPair(x, y);
+    }
+
+    // Redraws the byte pair holding room (x, y) and its neighbour.
+    static void DrawPair(uint x, uint y)
+    {
+        uint left = (x - 1) | 1;
+        uint i = y * Maze.Width + left;
+        uint value = 0;
+        if (seen_[i] && (lit_ || left != x_ || y != y_))
+            value = 0xF0;
+        if (seen_[i + 1] && (lit_ || left + 1 != x_ || y != y_))
+            value = value | 0x0F;
+
+        uint row = y - 1;
+        ulong address = C64Address.FromLabel("Graphics_Bitmap+7311") + (left - 1) * 4 + (row & 3) * 2;
+        if (row >= 4)
+            address = address + 320;
+        if (row >= 8)
+            address = address + 320;
+        C64.FillMemory(address, value, 2);
     }
 }

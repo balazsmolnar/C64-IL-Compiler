@@ -1,0 +1,518 @@
+#!/usr/bin/env python3
+"""
+Art for the status panel (Hud.cs): cell rows 21-24, shown hi-res under a
+raster split (320x32 pixels, two colours per 8x8 cell).
+
+    python Catacombs/art/hud_art.py
+
+writes
+    art/src/hud_panel.png        the empty panel, as the C64 shows it
+    art/src/hud_mock_*.png       the panel in a few game states (x4), for review
+    art/build/hud_panel.img      the panel for Screen.DrawImage (hi-res)
+    HudArt.cs                    the tiles Hud.cs copies into the bitmap
+                                 (hearts, digits, weapon icons), as .byte data
+
+Hi-res art is authored the way the machine stores it: every pixel is on or
+off, and every cell names its two colours (on, off). The panel is built
+directly as c64img cells, so which colour is the "on" one is ours to say --
+the tiles Hud.cs copies in later rely on it.
+"""
+import os
+import sys
+
+from PIL import Image
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(HERE, "..", "..", "tools"))
+import c64img   # noqa: E402
+
+SRC = os.path.join(HERE, "src")
+OUT = os.path.join(HERE, "build")
+P = c64img.PALETTE
+
+BLACK, WHITE, RED, CYAN, VIOLET, GREEN, BLUE, YELLOW = range(8)
+ORANGE, BROWN, LRED, GREY1, GREY2, LGREEN, LBLUE, GREY3 = range(8, 16)
+
+W, H = 320, 32
+COLS, ROWS = 40, 4
+
+
+class Panel:
+    def __init__(self):
+        self.bit = [[0] * W for _ in range(H)]
+        self.col = [[(GREY2, BLACK)] * COLS for _ in range(ROWS)]
+
+    def copy(self):
+        p = Panel()
+        p.bit = [row[:] for row in self.bit]
+        p.col = [row[:] for row in self.col]
+        return p
+
+    def colour(self, c0, r0, c1, r1, fg, bg=BLACK):
+        for r in range(r0, r1 + 1):
+            for c in range(c0, c1 + 1):
+                self.col[r][c] = (fg, bg)
+
+    def put(self, x, y, rows):
+        """'#' sets, '.' clears, ' ' leaves a pixel alone."""
+        for dy, line in enumerate(rows):
+            for dx, ch in enumerate(line):
+                if ch == '#':
+                    self.bit[y + dy][x + dx] = 1
+                elif ch == '.':
+                    self.bit[y + dy][x + dx] = 0
+
+    def tile(self, x, y, rows):
+        """Same, for a list of 0/1 lists."""
+        for dy, line in enumerate(rows):
+            for dx, v in enumerate(line):
+                self.bit[y + dy][x + dx] = v
+
+    def cell_bytes(self, c, r):
+        return bytes(sum(self.bit[r * 8 + y][c * 8 + x] << (7 - x) for x in range(8)) for y in range(8))
+
+    def image(self, scale=1):
+        img = Image.new("RGB", (W, H))
+        px = img.load()
+        for y in range(H):
+            for x in range(W):
+                fg, bg = self.col[y // 8][x // 8]
+                px[x, y] = P[fg if self.bit[y][x] else bg]
+        if scale != 1:
+            img = img.resize((W * scale, H * scale), Image.NEAREST)
+        return img
+
+
+def rows_to_bits(rows):
+    return [[1 if ch == '#' else 0 for ch in line] for line in rows]
+
+
+def mirror(rows):
+    return [line[::-1] for line in rows]
+
+
+# ---------------------------------------------------------------------------
+# Layout (cell columns)
+# ---------------------------------------------------------------------------
+PILLARS = (0, 11, 17, 22, 33, 39)
+HEART_COL = 1          # 5 hearts, 2 cells each: columns 1-10
+CHEST_COL = 12         # treasure icon: columns 12-13
+COUNT_COL = 14         # "n/m": columns 14-16
+WEAPON_COL = 18        # weapon icon: columns 18-19
+POWER_COL = 20         # attack power, two digits: columns 20-21
+CREST_COL = 23         # crest: columns 23-32
+MAP_COL = 34           # minimap: columns 34-38, 4x2 pixels a room
+
+# ---------------------------------------------------------------------------
+# Tiles (16 pixels tall = cell rows 22 and 23)
+# ---------------------------------------------------------------------------
+HEART_FULL = [
+    "................",
+    "................",
+    "...###....###...",
+    "..#####..#####..",
+    ".##.##########..",
+    ".#.###########.#"[:15] + ".",
+    ".#.############.",
+    ".##############.",
+    "..############..",
+    "...##########...",
+    "....########....",
+    ".....######.....",
+    "......####......",
+    ".......##.......",
+    "................",
+    "................",
+]
+HEART_EMPTY = [
+    "................",
+    "................",
+    "...###....###...",
+    "..#...#..#...#..",
+    ".#.....##.....#.",
+    ".#............#.",
+    ".#............#.",
+    ".#............#.",
+    "..#..........#..",
+    "...#........#...",
+    "....#......#....",
+    ".....#....#.....",
+    "......#..#......",
+    ".......##.......",
+    "................",
+    "................",
+]
+
+DIGITS = {
+    '0': ["..###..", ".##.##.", "##...##", "##...##", "##...##", "##...##",
+          "##...##", "##...##", "##...##", "##...##", ".##.##.", "..###.."],
+    '1': ["...##..", "..###..", ".####..", "...##..", "...##..", "...##..",
+          "...##..", "...##..", "...##..", "...##..", "...##..", ".######"],
+    '2': [".#####.", "##...##", ".....##", ".....##", "....##.", "...##..",
+          "..##...", ".##....", "##.....", "##.....", "##...##", "#######"],
+    '3': [".#####.", "##...##", ".....##", ".....##", "....##.", "..####.",
+          "....##.", ".....##", ".....##", ".....##", "##...##", ".#####."],
+    '4': ["....##.", "...###.", "..####.", ".##.##.", "##..##.", "##..##.",
+          "#######", "#######", "....##.", "....##.", "....##.", "...####"],
+    '5': ["#######", "##.....", "##.....", "##.....", "######.", "##...##",
+          ".....##", ".....##", ".....##", ".....##", "##...##", ".#####."],
+    '6': ["..####.", ".##....", "##.....", "##.....", "######.", "##...##",
+          "##...##", "##...##", "##...##", "##...##", "##...##", ".#####."],
+    '7': ["#######", "##...##", ".....##", "....##.", "....##.", "...##..",
+          "...##..", "..##...", "..##...", "..##...", "..##...", "..##..."],
+    '8': [".#####.", "##...##", "##...##", "##...##", ".##.##.", "..###..",
+          ".##.##.", "##...##", "##...##", "##...##", "##...##", ".#####."],
+    '9': [".#####.", "##...##", "##...##", "##...##", "##...##", "##...##",
+          ".######", ".....##", ".....##", ".....##", "....##.", ".####.."],
+    '/': [".....##", ".....##", "....##.", "....##.", "...##..", "...##..",
+          "..##...", "..##...", ".##....", ".##....", "##.....", "##....."],
+}
+DIGIT_ORDER = "0123456789/"
+
+
+def digit_tile(ch):
+    """8x16: the 7x12 glyph, one pixel in from the left, two down."""
+    rows = ["........"] * 2 + ["." + line for line in DIGITS[ch]] + ["........"] * 2
+    return rows
+
+
+CHEST = [
+    "................",
+    "................",
+    "...##########...",
+    "..############..",
+    ".###.######.###.",
+    ".##..........##.",
+    ".##.########.##.",
+    ".##############.",
+    ".......##.......",
+    ".#####.##.#####.",
+    ".#.###....###.#.",
+    ".#.##########.#.",
+    ".#.##########.#.",
+    ".##############.",
+    "................",
+    "................",
+]
+
+FIST = [
+    "................",
+    "................",
+    "....##.##.##....",
+    "...###.##.###...",
+    "...###.##.####..",
+    "...###.##.####..",
+    "...###.##.####..",
+    "..####.##.####..",
+    "..#...........#.",
+    "..#.#########.#.",
+    "..#..........#..",
+    "...#########.#..",
+    "....#.......#...",
+    "....#########...",
+    "....#.#.#.#.#...",
+    "................",
+]
+SWORD = [
+    "................",
+    ".............##.",
+    "............###.",
+    "...........###..",
+    "..........###...",
+    ".........###....",
+    "........###.....",
+    ".......###......",
+    ".##...###.......",
+    "..##.###........",
+    "...####.........",
+    "...###..........",
+    "..#####.........",
+    ".###..##........",
+    "###....#........",
+    "##..............",
+]
+AXE = [
+    "................",
+    ".......##.......",
+    "..#....##....#..",
+    ".###...##...###.",
+    ".#####.##.#####.",
+    ".######..######.",
+    ".######..######.",
+    ".#####.##.#####.",
+    ".###...##...###.",
+    "..#....##....#..",
+    ".......##.......",
+    ".......##.......",
+    ".......##.......",
+    ".......##.......",
+    "......####......",
+    "................",
+]
+WEAPONS = (FIST, SWORD, AXE)
+
+
+# ---------------------------------------------------------------------------
+# The frame
+# ---------------------------------------------------------------------------
+SKULL_CAP = [            # tops each pillar: y 1..7 of the row 21 cell
+    ".######.",
+    "########",
+    "#..##..#",
+    "#..##..#",
+    "###..###",
+    ".######.",
+    ".#.##.#.",
+]
+
+WING = [                 # left wing, 24 wide; the right one is its mirror
+    "#.......#.......#.......",
+    "##......##......##......",
+    "###.....###.....####....",
+    ".####..######..########.",
+    "..######################",
+    "...####..#####..#######.",
+    "....##....###....####...",
+    "..........#.......#.....",
+]
+SKULL = [                # 14 wide
+    "...########...",
+    "..##########..",
+    ".###..##..###.",
+    ".###..##..###.",
+    "..####..####..",
+    "...########...",
+    "...#.#..#.#...",
+    "....######....",
+]
+
+LETTERS = {
+    'C': ["..####.", ".##..##", "##.....", "##.....", "##.....", "##.....", ".##..##", "..####."],
+    'A': ["...#...", "..###..", "..#.##.", ".##.##.", ".#...##", ".######", "##...##", "##...##"],
+    'T': ["#######", "#..##.#", "...##..", "...##..", "...##..", "...##..", "...##..", "..####."],
+    'O': ["..###..", ".##.##.", "##...##", "##...##", "##...##", "##...##", ".##.##.", "..###.."],
+    'M': ["##...##", "###.###", "#######", "##.#.##", "##...##", "##...##", "##...##", "##...##"],
+    'B': ["#####..", "##..##.", "##..##.", "#####..", "##..##.", "##...##", "##...##", "######."],
+    'S': [".#####.", "##...##", "##.....", ".####..", "...###.", ".....##", "##...##", ".#####."],
+}
+
+
+def draw_frame(p):
+    # Lintel: y 1..5, a 16-pixel block pattern with a stud.
+    block = [
+        "###############.",
+        "#.#.#.####.#.#..",
+        "##.#.######.#.#.",
+        "#.#.#..##..#.#..",
+        ".#...#...#...#..",
+    ]
+    for x in range(0, W, 16):
+        p.put(x, 1, block)
+    # Sill: y 28..31.
+    sill = [
+        "###############.",
+        "#.#.#.#.#.#.#.#.",
+        "##.#.#.#.#.#.#..",
+        ".#...#...#...#..",
+    ]
+    for x in range(0, W, 16):
+        p.put(x, 28, sill)
+    p.colour(0, 0, COLS - 1, 0, GREY2)
+    p.colour(0, 3, COLS - 1, 3, GREY2)
+
+    for c in PILLARS:
+        x = c * 8
+        p.put(x, 1, SKULL_CAP)
+        p.colour(c, 0, c, 0, GREY3)
+        for y in range(8, 24):                      # shaft: lit from the left
+            p.put(x, y, ["##.#.#.." if y & 1 else "#.#.#..."])
+        p.put(x, 15, ["########", "........"])       # a joint
+        p.colour(c, 1, c, 2, GREY2, GREY1)
+        for y in range(24, 28):                     # plinth, on the sill
+            p.put(x, y, ["##.#.#.." if y & 1 else "#.#.#..."])
+        p.put(x, 26, ["########", "#.#.#.#."])
+
+
+def draw_static(p):
+    # Treasure chest.
+    p.put(CHEST_COL * 8, 8, CHEST)
+    p.colour(CHEST_COL, 1, CHEST_COL + 1, 1, YELLOW)
+    p.colour(CHEST_COL, 2, CHEST_COL + 1, 2, ORANGE)
+    # Crest: winged skull over the game's name.
+    cx = CREST_COL * 8 + 40
+    p.put(cx - 7, 8, SKULL)
+    p.put(cx - 7 - 24, 8, WING)
+    p.put(cx + 7, 8, mirror(WING))
+    p.colour(CREST_COL, 1, CREST_COL + 9, 1, RED)
+    p.colour(CREST_COL + 4, 1, CREST_COL + 5, 1, GREY3)
+    x = cx - 36
+    for ch in "CATACOMBS":
+        p.put(x, 16, LETTERS[ch])
+        x += 8
+    p.colour(CREST_COL, 2, CREST_COL + 9, 2, YELLOW)
+
+
+def set_dynamic_colours(p):
+    """The colours of the cells Hud.cs copies tiles into."""
+    p.colour(HEART_COL, 1, HEART_COL + 9, 1, LRED)
+    p.colour(HEART_COL, 2, HEART_COL + 9, 2, RED)
+    p.colour(COUNT_COL, 1, COUNT_COL + 2, 1, WHITE)
+    p.colour(COUNT_COL, 2, COUNT_COL + 2, 2, GREY3)
+    p.colour(WEAPON_COL, 1, WEAPON_COL + 1, 1, CYAN)
+    p.colour(WEAPON_COL, 2, WEAPON_COL + 1, 2, LBLUE)
+    p.colour(POWER_COL, 1, POWER_COL + 1, 1, WHITE)
+    p.colour(POWER_COL, 2, POWER_COL + 1, 2, GREY3)
+    # Minimap: explored rooms are lit pixels.
+    p.colour(MAP_COL, 1, MAP_COL + 4, 3, YELLOW, BROWN)
+    for x in range(MAP_COL * 8, MAP_COL * 8 + 40):
+        for y in range(28, 32):
+            p.bit[y][x] = 0
+    p.put(MAP_COL * 8, 28, ["########" * 5, "#.#.#.#." * 5, ".#.#.#.#" * 5, "........" * 5])
+
+
+def build_panel():
+    p = Panel()
+    draw_frame(p)
+    draw_static(p)
+    set_dynamic_colours(p)
+    return p
+
+
+# ---------------------------------------------------------------------------
+# Tile data for Hud.cs. A tile set is a list of 16-row pictures; each is
+# stored as its top cell row, then its bottom cell row (Hud.Put copies the
+# two halves into cell rows 22 and 23).
+# ---------------------------------------------------------------------------
+def strip_bytes(rows):
+    """rows: 16 strings of width 8*n. Returns top n cells' bytes then bottom n cells' bytes."""
+    n = len(rows[0]) // 8
+    out = []
+    for half in (0, 8):
+        for c in range(n):
+            for y in range(8):
+                line = rows[half + y][c * 8:c * 8 + 8]
+                out.append(sum((1 if ch == '#' else 0) << (7 - i) for i, ch in enumerate(line)))
+    return out
+
+
+def tile_sets():
+    hearts = []
+    for art in (HEART_FULL, HEART_EMPTY):            # full left, full right, empty left, empty right
+        hearts += strip_bytes([line[:8] for line in art])
+        hearts += strip_bytes([line[8:] for line in art])
+    digits = []
+    for ch in DIGIT_ORDER:
+        digits += strip_bytes(digit_tile(ch))
+    weapons = []
+    for art in WEAPONS:
+        weapons += strip_bytes(art)
+    return hearts, digits, weapons
+
+
+def write_cs(path, sets):
+    names = ("hud_Hearts", "hud_Digits", "hud_Weapons")
+    lines = ["// Generated by art/hud_art.py -- do not edit. The status panel's tiles:",
+             "// 8 bytes a cell, top cell row then bottom cell row of each picture.",
+             "using C64Lib;",
+             "",
+             "[assembly: RawImage(Resource = \"hud_panel.img\", Label = \"HudPanel\")]",
+             "[assembly: RawAssembly(Asm = @\""]
+    total = 0
+    for name, data in zip(names, sets):
+        total += len(data)
+        for i in range(0, len(data), 16):
+            chunk = ",".join("$%02x" % b for b in data[i:i + 16])
+            lines.append("%s .byte %s" % (name if i == 0 else " " * len(name), chunk))
+    lines.append("\")]")
+    with open(path, "w", newline="\n") as f:
+        f.write("\n".join(lines) + "\n")
+    return total
+
+
+# ---------------------------------------------------------------------------
+# Mock-ups: the panel as Hud.cs would draw it in a given state.
+# ---------------------------------------------------------------------------
+MAZE = [
+    "000000000000",
+    "011101111110",
+    "010101000010",
+    "010111011110",
+    "010001010010",
+    "011101110110",
+    "000100010100",
+    "011111011110",
+    "010001000010",
+    "011101111110",
+    "000111000010",
+    "000000000000",
+]
+
+
+def mock(panel, hp, treasure, weapon, power, seen, here, blink_on=True):
+    p = panel.copy()
+    halves = (hp + 9) // 10
+    for h in range(10):
+        art = HEART_FULL if h < halves else HEART_EMPTY
+        half = [line[8:] if h & 1 else line[:8] for line in art]
+        p.put((HEART_COL + h) * 8, 8, half)
+    for i, ch in enumerate("%d/3" % treasure):
+        p.put((COUNT_COL + i) * 8, 8, digit_tile(ch))
+    p.put(WEAPON_COL * 8, 8, WEAPONS[weapon])
+    for i, ch in enumerate("%02d" % power):
+        p.put((POWER_COL + i) * 8, 8, digit_tile(ch))
+    for my in range(10):
+        for mx in range(10):
+            on = (mx + 1, my + 1) in seen and MAZE[my + 1][mx + 1] == '1'
+            if (mx + 1, my + 1) == here and not blink_on:
+                on = False
+            for dy in range(2):
+                for dx in range(4):
+                    p.bit[8 + my * 2 + dy][MAP_COL * 8 + mx * 4 + dx] = 1 if on else 0
+    return p
+
+
+def flood(start, steps):
+    seen, frontier = {start}, [start]
+    while frontier and len(seen) < steps:
+        x, y = frontier.pop(0)
+        for dx, dy in ((1, 0), (0, 1), (-1, 0), (0, -1)):
+            n = (x + dx, y + dy)
+            if MAZE[n[1]][n[0]] == '1' and n not in seen:
+                seen.add(n)
+                frontier.append(n)
+    return seen
+
+
+def main():
+    os.makedirs(SRC, exist_ok=True)
+    os.makedirs(OUT, exist_ok=True)
+    panel = build_panel()
+    panel.image().save(os.path.join(SRC, "hud_panel.png"))
+
+    image = c64img.Image(c64img.MODE_HIRES, COLS, ROWS, 0)
+    for r in range(ROWS):
+        for c in range(COLS):
+            fg, bg = panel.col[r][c]
+            image.cells[r][c] = (panel.cell_bytes(c, r), (fg << 4) | bg, 0)
+    payload, sizes = c64img.encode_planes(image, c64img.PLANE_BITMAP | c64img.PLANE_MATRIX)
+    c64img.verify(image, payload)
+    c64img.write_file(os.path.join(OUT, "hud_panel.img"), image, payload)
+
+    sets = tile_sets()
+    tiles = write_cs(os.path.join(HERE, "..", "HudArt.cs"), sets)
+    print("hud_panel.img: bitmap %d + matrix %d = %d bytes; tiles %d bytes; assets %d bytes"
+          % (sizes[c64img.PLANE_BITMAP], sizes[c64img.PLANE_MATRIX], len(payload), tiles, len(payload) + tiles))
+
+    states = {
+        "full": mock(panel, 100, 0, 0, 6, {(1, 1)}, (1, 1)),
+        "mid": mock(panel, 55, 2, 1, 12, flood((1, 1), 30), (5, 5)),
+        "low": mock(panel, 15, 3, 2, 20, flood((1, 1), 52), (9, 9)),
+    }
+    sheet = Image.new("RGB", (W * 4, (H * 4 + 16) * len(states)), (40, 40, 60))
+    for i, (name, p) in enumerate(states.items()):
+        sheet.paste(p.image(4), (0, i * (H * 4 + 16)))
+    sheet.save(os.path.join(SRC, "hud_mock.png"))
+
+
+if __name__ == "__main__":
+    main()

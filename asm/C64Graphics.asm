@@ -31,6 +31,7 @@ Flag_Screen_DrawImage = 0
 Flag_Screen_SetCellColors = 0
 Flag_Screen_RemapCellColors = 0
 Flag_Screen_DrawText = 0
+Flag_Screen_DrawTiles = 0
 Flag_Screen_SetSplit = 0
 Flag_Screen_ClearSplit = 0
 ; 1 when the program uses double buffering (Screen.SetDrawBuffer/SwapBuffers):
@@ -2332,7 +2333,7 @@ Screen_DrawBitmap:
 ; addresses whole cells; their bitmap bytes, matrix byte and colour RAM byte
 ; all live at base + (y*40 + x) * (8 or 1), so one cell index serves all
 ; three.
-.if Flag_Screen_DrawImage | Flag_Screen_SetCellColors | Flag_Screen_RemapCellColors | Flag_Screen_DrawText
+.if Flag_Screen_DrawImage | Flag_Screen_SetCellColors | Flag_Screen_RemapCellColors | Flag_Screen_DrawText | Flag_Screen_DrawTiles
 
 ; In: zp_cell_x (0-39), zp_cell_y (0-24). Out: zp_cell_index_low/high =
 ; y*40 + x. Destroys A.
@@ -2789,6 +2790,92 @@ Screen_DrawText_Row:
 +   inc zp_text_index
     bne Screen_DrawText_Char
 Screen_DrawText_Done:
+    #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+; ---------------------------------------------------------------------------
+; Screen.DrawTiles(column, row, width, height, tiles, index): copies raw
+; 8-byte cells into the bitmap -- a width x height block of cells whose
+; top-left cell is (column, row), from consecutive tiles of a tile set,
+; row by row. `tiles` is the address of the set (8 bytes a tile, top pixel
+; row first), `index` the first tile to use: the source is tiles + index*8.
+; No colours are touched and nothing is read from the bitmap, so the tiles
+; mean whatever the cells' mode makes of the bits (hi-res or multicolour).
+; width is at most 31 (width*8 must fit a byte); width and height at least 1.
+; ---------------------------------------------------------------------------
+.if Flag_Screen_DrawTiles
+zp_tiles_src_low  = zp_gfx_endx_low   ; $0A  the next tile row's bytes
+zp_tiles_src_high = zp_gfx_endx_high
+zp_tiles_bytes    = zp_gfx_endy       ; $0C  bytes per cell row (width*8)
+zp_tiles_h        = zp_gfx_endy_high  ; $0D  cell rows left
+zp_tiles_dst_low  = zp_gfx_dx_low     ; $0E  bitmap address of the current cell row
+zp_tiles_dst_high = zp_gfx_dx_high
+zp_tiles_tmp      = zp_gfx_dy         ; $10
+
+Screen_DrawTiles:
+    #stack_save_return_adress zp_tmp1_low
+    #stack_pull_int zp_tiles_tmp  ; index
+    #stack_pull_pointer zp_tiles_src_low
+    lda #0                        ; source = tiles + index*8
+    asl zp_tiles_tmp
+    rol
+    asl zp_tiles_tmp
+    rol
+    asl zp_tiles_tmp
+    rol
+    tax
+    lda zp_tiles_tmp
+    clc
+    adc zp_tiles_src_low
+    sta zp_tiles_src_low
+    txa
+    adc zp_tiles_src_high
+    sta zp_tiles_src_high
+    #stack_pull_int zp_tiles_h
+    #stack_pull_int zp_tiles_bytes
+    #stack_pull_int zp_cell_y
+    #stack_pull_int zp_cell_x
+    asl zp_tiles_bytes
+    asl zp_tiles_bytes
+    asl zp_tiles_bytes
+    jsr Cells_ComputeIndex
+    lda zp_cell_index_high        ; bitmap address = Graphics_Bitmap + index*8
+    sta zp_tiles_dst_high
+    lda zp_cell_index_low
+    asl
+    rol zp_tiles_dst_high
+    asl
+    rol zp_tiles_dst_high
+    asl
+    rol zp_tiles_dst_high
+    sta zp_tiles_dst_low
+    lda zp_tiles_dst_high
+    clc
+    adc #>Graphics_Bitmap
+    sta zp_tiles_dst_high
+Screen_DrawTiles_Row:
+    ldy #0
+Screen_DrawTiles_Byte:
+    lda (zp_tiles_src_low),y
+    sta (zp_tiles_dst_low),y
+    iny
+    cpy zp_tiles_bytes
+    bne Screen_DrawTiles_Byte
+    tya                           ; next tile row; the cell row below (320 bytes on)
+    clc
+    adc zp_tiles_src_low
+    sta zp_tiles_src_low
+    bcc +
+    inc zp_tiles_src_high
++   lda zp_tiles_dst_low
+    clc
+    adc #<320
+    sta zp_tiles_dst_low
+    lda zp_tiles_dst_high
+    adc #>320
+    sta zp_tiles_dst_high
+    dec zp_tiles_h
+    bne Screen_DrawTiles_Row
     #stack_return_to_saved_address zp_tmp1_low
 .endif
 

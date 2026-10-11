@@ -72,3 +72,35 @@ since the plain forms kill every VICE on the machine, including other
 agents'. Animation is judged from several shots a few hundred ms apart.
 The first frames after launch can contain a stray keypress from VICE's
 own autostart typing; that is not a game bug.
+
+## Who owns what (parallel work, merged afterwards)
+
+Each part is built on its own branch and merged later, so stay inside
+your own files. Edits to anyone else's file, `Program.cs` above all, must
+be the smallest possible call into your own code. Read `TECH.md` for the
+graphics APIs, asset tools and memory map.
+
+| Part | Owns | New-byte budget | Sprites |
+|---|---|---|---|
+| Rooms | `DungeonView.cs`, `RoomProjection.cs`, `Maze.cs` colours, doors, torches, room transitions | 6 KB | none |
+| Characters | `PlayerSprite.cs`, `Spider.cs`, `SpriteStage.cs`, `Sprites.cs`, `Item.cs`, `Weapon.cs`, the patrolling monster in `Monster.cs` | 2 KB + 48 frames | hardware sprites 0-5 |
+| HUD | `Hud.cs`, `Minimap.cs`, rows 21-24 | 1.5 KB | none |
+| Combat | the encounter screen (`Monster.Render`, health bars, `Program.Combat` presentation) | 4 KB + 8 frames | 6-7, and only during combat |
+| Title/flow | title, game over, victory screens, game flow around `Main` | 4 KB + 8 frames | any, only on its own screens |
+| Audio | `Audio.cs`, music driver | 4 KB | none |
+
+Budgets are hard: about 25 KB is free in total for everyone's code,
+assets and the heap. Deleting prototype code you replace earns bytes back.
+
+## Room geometry (fixed, so sprites and rooms agree)
+
+Viewport 320x168. The near frame is the viewport edge. The far (north)
+wall is the rectangle x 64..255, y 24..119 (cell columns 8-31, rows 3-14).
+Ceiling above it, side walls left/right of it, the floor is the trapezoid
+from the far wall's bottom edge (y 120) down to the viewport bottom
+(y 167, full width). The north door is centred on the far wall, cell
+columns 17-22, rows 6-14. Side doors sit on the side walls; the south
+exit is marked at the bottom centre of the floor. `RoomProjection` keeps
+its API (`ScreenX`, `ScreenY`, `Width`, `DepthMax`, `Center`) and maps the
+walkable floor: depth 0 is near y 160, `DepthMax` is the foot of the far
+wall near y 124.

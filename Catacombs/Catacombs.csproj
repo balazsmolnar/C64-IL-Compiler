@@ -6,6 +6,10 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Torch.aas" />
+    <!-- Converted art (tools/c64img.py -> .img, tools/c64spr.py -> .spr; see
+         TECH.md). Embedded under the bare file name, so code says
+         Resource = "room1.img". -->
+    <EmbeddedResource Include="art\build\*.img;art\build\*.spr" LogicalName="%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup>

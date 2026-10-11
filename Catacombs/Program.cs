@@ -44,6 +44,9 @@ class Program
         // Scene builds ("dotnet build -p:Scene=COMBAT", see Catacombs.csproj
         // and tools/catacombs-shot.ps1) boot straight into a state that
         // otherwise takes playing to reach.
+#if SCENE_TECHDEMO
+        TechDemo.Run(); // never returns: the graphics tech showcase (TechDemo.cs)
+#endif
 #if SCENE_COMBAT || SCENE_MONSTERROOM
         px_ = 5;
         py_ = 3;

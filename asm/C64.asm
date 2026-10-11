@@ -481,6 +481,23 @@ C64_add_Interrupt
     sei
     #stack_save_return_adress zp_tmp1_low
     #stack_pull_pointer zp_interrupt_address_low
+.if Flag_Screen_SetSplit
+    ; A raster split (Screen.SetSplit, asm/C64Graphics.asm) must stay first
+    ; on the IRQ vector: it calls what it replaced once per frame. So while
+    ; one is on, the subscriber is put behind it instead of in front.
+    lda graphics_split_active
+    beq C64_add_Interrupt_Direct
+    lda graphics_split_chain
+    sta zp_interrupt_saved_low
+    lda graphics_split_chain+1
+    sta zp_interrupt_saved_high
+    lda #< OnInterrupt
+    sta graphics_split_chain
+    lda #> OnInterrupt
+    sta graphics_split_chain+1
+    jmp C64_add_Interrupt_Done
+C64_add_Interrupt_Direct
+.endif
     lda $0314
     sta zp_interrupt_saved_low
     lda $0315
@@ -490,6 +507,7 @@ C64_add_Interrupt
     sta $0314
     lda #> OnInterrupt
     sta $0315
+C64_add_Interrupt_Done
     cli
     #stack_return_to_saved_address zp_tmp1_low
 .endif
@@ -600,7 +618,11 @@ Flag_Screen_BeginUpdate = 0
 Screen_BeginUpdate:
     #stack_save_return_adress zp_tmp1_low
     lda $d011
+.if Flag_Screen_SetSplit
+    and #%01101111          ; also keep the raster compare's bit 8 clear -- see Graphics_SplitIrq
+.else
     and #%11101111
+.endif
     sta $d011
     #stack_return_to_saved_address zp_tmp1_low
 .endif
@@ -613,6 +635,9 @@ Flag_Screen_EndUpdate = 0
 Screen_EndUpdate:
     #stack_save_return_adress zp_tmp1_low
     lda $d011
+.if Flag_Screen_SetSplit
+    and #%01111111
+.endif
     ora #%00010000
     sta $d011
     #stack_return_to_saved_address zp_tmp1_low

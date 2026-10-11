@@ -133,6 +133,32 @@ SpriteCollection_set_CommonColor2:
     #stack_return_to_saved_address zp_tmp1_low,
 .endif
 
+; SpriteCollection.MultiColorMask / BehindBackgroundMask: one bit per sprite
+; (bit 0 = sprite 0), written whole to $D01C / $D01B.
+.weak
+Flag_SpriteCollection_set_MultiColorMask = 0
+.endweak
+.if Flag_SpriteCollection_set_MultiColorMask
+
+SpriteCollection_set_MultiColorMask:
+    #stack_save_return_adress zp_tmp1_low
+    #stack_pull_int_a
+    sta spriteMultiColor
+    #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+.weak
+Flag_SpriteCollection_set_BehindBackgroundMask = 0
+.endweak
+.if Flag_SpriteCollection_set_BehindBackgroundMask
+
+SpriteCollection_set_BehindBackgroundMask:
+    #stack_save_return_adress zp_tmp1_low
+    #stack_pull_int_a
+    sta $d01b
+    #stack_return_to_saved_address zp_tmp1_low
+.endif
+
 .weak
 Flag_SpriteCollection_get_Collisions = 0
 .endweak
@@ -306,7 +332,34 @@ Sprite_set_DataBlock:
     lsr zp_param2_low
     ror
     sta spriteData,x
+.if GRAPHICS_HIGH
+    sta Graphics_ColorMatrix+$3f8,x
+.endif
 
+    #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+; Sprite.Frame: the sprite's data pointer itself -- a block number, the
+; frame's address / 64 within the VIC's 16K bank (what C64Address.FromLabel(
+; "frm_<Label>") gives for a [RawSprites] frame; frames of one sheet are
+; consecutive). The VIC reads the eight pointers from the last 8 bytes of
+; whichever 1K it is using as the video matrix: the text screen's ($07F8),
+; and in bitmap mode (the high layout) Graphics_ColorMatrix's. Both are
+; written, so a frame set in one mode is still right after switching.
+.weak
+Flag_Sprite_set_Frame = 0
+.endweak
+.if Flag_Sprite_set_Frame
+
+Sprite_set_Frame:
+    #stack_save_return_adress zp_tmp1_low
+    #stack_pull_int_y
+    #stack_pull_int_x
+    tya
+    sta spriteData,x
+.if GRAPHICS_HIGH
+    sta Graphics_ColorMatrix+$3f8,x
+.endif
     #stack_return_to_saved_address zp_tmp1_low
 .endif
 

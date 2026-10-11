@@ -53,6 +53,7 @@ class Program
 #endif
         playerHp_ = PlayerMaxHp;
         playerDamage_ = UnarmedDamage;
+        Audio.Init();
 
         // MultiColor (not plain Bitmap) so doors can be a color distinct
         // from the lines: MatrixHigh=White (wall/outline lines),
@@ -252,6 +253,7 @@ class Program
         {
             roomX_ = nx;
             roomDepth_ = nd;
+            Audio.Step();
         }
 
         // Checked every frame, not just when moved: the player can stop
@@ -276,6 +278,7 @@ class Program
         else if (itemHere_ && Touching(Item.RoomX, Item.RoomDepth, Item.RoomRadius))
         {
             Item.CollectAt(px_, py_);
+            Audio.Pickup();
             itemHere_ = false;
             Hud.Render(Item.CollectedCount, playerDamage_);
         }
@@ -283,6 +286,7 @@ class Program
         {
             playerDamage_ = Weapon.DamageAt(px_, py_);
             Weapon.CollectAt(px_, py_);
+            Audio.WeaponPickup();
             weaponHere_ = false;
             Hud.Render(Item.CollectedCount, playerDamage_);
         }
@@ -335,6 +339,7 @@ class Program
     {
         if (!C64.IsKeyPressed(Keys.Space))
             return false;
+        if (AtDoor()) Audio.Door();
 
         if (roomDepth_ >= RoomProjection.DepthMax && northOpen_ && NearCenterX())
         {
@@ -424,6 +429,7 @@ class Program
         // order over a loop with more than one exit edge).
         bool monsterDied = false;
         bool playerDied = false;
+        Audio.CombatStart();
         C64.Sprites.Sprite3.Visible = false; // the small patrol sprite -- Render() below draws its own, unrelated full-screen face
         while (!monsterDied && !playerDied)
         {
@@ -441,13 +447,16 @@ class Program
             while (C64.IsKeyPressed(Keys.Space))
                 Delay.Wait(500);
 
+            Audio.SwordHit();
             Monster.DamageAt(px_, py_, playerDamage_);
             if (!Monster.IsAliveAt(px_, py_))
             {
                 monsterDied = true;
+                Audio.MonsterDied();
             }
             else
             {
+                Audio.MonsterAttack();
                 playerHp_ = playerHp_ <= Monster.MonsterDamage ? 0 : playerHp_ - Monster.MonsterDamage;
                 if (playerHp_ == 0)
                     playerDied = true;
@@ -470,6 +479,7 @@ class Program
     // fight is waiting on a second attempt.
     static void PlayerDied()
     {
+        Audio.PlayerDied();
         for (uint i = 0; i < 6; i++)
         {
             C64.Screen.SetBorderColor(Colors.Red);

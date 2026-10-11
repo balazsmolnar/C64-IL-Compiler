@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Torch.aas" />
+    <EmbeddedResource Include="audio\music.asm" />
   </ItemGroup>
 
   <ItemGroup>

@@ -87,6 +87,9 @@ class Program
 #if SCENE_COMBAT
         Combat();
 #endif
+#if SCENE_ENCOUNTER
+        Encounter.Scene(); // never returns: the encounter's states on a loop (Encounter.cs)
+#endif
 
         for (;;)
         {
@@ -421,48 +424,19 @@ class Program
     // time this returns).
     static bool Combat()
     {
-        // Single loop condition, no break/return inside the loop body --
-        // a for(;;)/while with multiple early exits hits a real limitation
-        // in this compiler (ILMethodBuildEvaluationStackPass's traversal
-        // order over a loop with more than one exit edge).
-        bool monsterDied = false;
-        bool playerDied = false;
-        C64.Sprites.Sprite3.Visible = false; // the small patrol sprite -- Render() below draws its own, unrelated full-screen face
-        while (!monsterDied && !playerDied)
-        {
-            C64.Screen.ClearBitmap();
-            DungeonView.Render(px_, py_);
-            Monster.Render();
-            Monster.DrawHealthBars(playerHp_, PlayerMaxHp, Monster.HpAt(px_, py_));
-
-            while (!C64.IsKeyPressed(Keys.Space))
-            {
-                C64.Screen.WaitForVBlank();
-                Spider.Animate();
-                UpdateZOrder();
-            }
-            while (C64.IsKeyPressed(Keys.Space))
-                Delay.Wait(500);
-
-            Monster.DamageAt(px_, py_, playerDamage_);
-            if (!Monster.IsAliveAt(px_, py_))
-            {
-                monsterDied = true;
-            }
-            else
-            {
-                playerHp_ = playerHp_ <= Monster.MonsterDamage ? 0 : playerHp_ - Monster.MonsterDamage;
-                if (playerHp_ == 0)
-                    playerDied = true;
-            }
-        }
-
-        if (playerDied)
+        // The fight itself is Encounter's (Encounter.cs). The screen is
+        // blanked while the room comes back.
+        playerHp_ = Encounter.Fight(px_, py_, playerHp_, playerDamage_);
+        C64.Screen.BeginUpdate();
+        if (playerHp_ == 0)
         {
             PlayerDied();
+            C64.Screen.EndUpdate();
             return false;
         }
+        ApplyRoomColor();
         EnterRoom(); // redraw without the now-dead monster
+        C64.Screen.EndUpdate();
         return true;
     }
 

@@ -25,6 +25,8 @@
          boots straight into one game state, for looking at it in VICE
          without playing up to it (see tools/catacombs-shot.ps1). -->
     <DefineConstants Condition="'$(Scene)' != ''">$(DefineConstants);SCENE_$(Scene)</DefineConstants>
+    <!-- Every ENC... scene (the encounter's states, see Encounter.cs) also defines SCENE_ENCOUNTER. -->
+    <DefineConstants Condition="$(Scene.StartsWith('ENC'))">$(DefineConstants);SCENE_ENCOUNTER</DefineConstants>
   </PropertyGroup>
 
 </Project>

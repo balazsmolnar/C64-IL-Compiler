@@ -2,7 +2,7 @@ using C64Lib;
 
 #if SCENE_HUDFULL || SCENE_HUDMID || SCENE_HUDLOW
 // Stand-in viewport for the panel's own scene builds only (never in the game).
-[assembly: RawImage(Resource = "techdemo_room.img", Label = "HudBackdrop")]
+[assembly: RawImage(Resource = "hud_backdrop.img", Label = "HudBackdrop")]
 #endif
 
 namespace Catacombs;
@@ -92,7 +92,7 @@ static class Hud
             return;
         Minimap.Flip();
         // Alarm: what is left of the hearts throbs between full and hollow.
-        if (hp_ <= LowHealth)
+        if (hp_ < LowHealth + 1)
             Hearts(Minimap.Hidden ? 0 : hp_);
     }
 
@@ -109,11 +109,14 @@ static class Hud
 
     static void Hearts(uint hp)
     {
-        uint threshold = 0;
+        // Written with "<" on purpose, here and in Tick: an unsigned
+        // "if (a <= b)" compiles to bgt.un, and asm/helper/branch.asm's
+        // branch_greater_unsigned8/_const also branch when a == b.
+        uint threshold = 1;
         for (uint half = 0; half < 10; half++)
         {
             uint tile = (half & 1) * 2;
-            if (hp <= threshold)
+            if (hp < threshold)
                 tile = tile + 4;
             Tile(1 + half, 1, tile);
             threshold = threshold + 10;

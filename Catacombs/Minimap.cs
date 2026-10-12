@@ -2,69 +2,49 @@ using C64Lib;
 
 namespace Catacombs;
 
-// The panel's map (see Hud.cs): the maze's 10x10 interior, one room = 4x2
-// hi-res pixels, in panel columns 34-38. Only rooms the player has been in
-// are drawn (fog of war); the room the player is in blinks.
+// The panel's map (see Hud.cs): the whole 12x12 maze in panel columns 33-38,
+// one maze cell = 4x2 hi-res pixels (48x24 pixels = 6x3 screen cells). Only
+// rooms the player has been in are drawn (fog of war); the room the player
+// is in blinks.
 //
-// A room is half a bitmap byte on two pixel rows, so a pair of rooms is
-// exactly one byte value written twice: nothing is read back from the
-// screen, and a change redraws two bytes.
+// The map lives in hud_Map (HudArt.cs): the 18 screen cells' bitmap bytes,
+// as tiles. A room is half a byte on two pixel rows, so revealing or
+// blinking one changes two bytes there; the map is then copied to the
+// screen in one go. The maze's solid outer ring is never a room: its pixels
+// hold the map's frame.
 static class Minimap
 {
-    static bool[] seen_;
-    static uint x_, y_;
-    static bool lit_;
+    static uint index_, mask_;  // the current room: its first byte in hud_Map, its half of that byte
+    static bool hidden_;        // the blink's dark half
 
-    public static bool Lit => lit_;
-
-    public static void Init()
-    {
-        seen_ = new bool[Maze.Width * Maze.Height];
-        x_ = 1;
-        y_ = 1;
-    }
+    public static bool Hidden => hidden_;
 
     public static void Enter(uint x, uint y)
     {
-        uint oldX = x_, oldY = y_;
-        x_ = x;
-        y_ = y;
-        seen_[y * Maze.Width + x] = true;
-        lit_ = true;
-        DrawPair(oldX, oldY);
-        DrawPair(x, y);
+        if (hidden_)
+            Flip();             // leave the old room drawn
+        index_ = C64.GetMemory(C64Address.FromLabel("hud_MapRow"), y) + (x & 0xFE) * 4;
+        mask_ = 0xF0;
+        if ((x & 1) != 0)
+            mask_ = 0x0F;
+        Store(C64.GetMemory(C64Address.FromLabel("hud_Map"), index_) | mask_);
     }
 
-    public static void Blink()
+    // Blinks the current room.
+    public static void Flip()
     {
-        lit_ = !lit_;
-        DrawPair(x_, y_);
+        hidden_ = !hidden_;
+        Store(C64.GetMemory(C64Address.FromLabel("hud_Map"), index_) ^ mask_);
     }
 
-    public static void Render()
+    public static void Draw()
     {
-        for (uint y = 1; y <= 10; y++)
-            for (uint x = 1; x <= 10; x += 2)
-                DrawPair(x, y);
+        C64.Screen.DrawTiles(33, 22, 6, 3, C64Address.FromLabel("hud_Map"), 0);
     }
 
-    // Redraws the byte pair holding room (x, y) and its neighbour.
-    static void DrawPair(uint x, uint y)
+    static void Store(uint value)
     {
-        uint left = (x - 1) | 1;
-        uint i = y * Maze.Width + left;
-        uint value = 0;
-        if (seen_[i] && (lit_ || left != x_ || y != y_))
-            value = 0xF0;
-        if (seen_[i + 1] && (lit_ || left + 1 != x_ || y != y_))
-            value = value | 0x0F;
-
-        uint row = y - 1;
-        ulong address = C64Address.FromLabel("Graphics_Bitmap+7311") + (left - 1) * 4 + (row & 3) * 2;
-        if (row >= 4)
-            address = address + 320;
-        if (row >= 8)
-            address = address + 320;
-        C64.FillMemory(address, value, 2);
+        C64.FillMemory(C64Address.FromLabel("hud_Map-1") + index_, value, 2); // FillMemory writes bytes 1..size
+        Draw();
     }
 }

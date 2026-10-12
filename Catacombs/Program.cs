@@ -213,7 +213,7 @@ class Program
             Item.Render();
         if (weaponHere_)
             Weapon.Render();
-        Hud.Visit(px_, py_);
+        Minimap.Enter(px_, py_);
         Hud.Render(); // the whole panel: ClearBitmap above wiped it
 
         Monster.Animate(px_, py_); // shows/hides/positions sprite 3 for this room immediately, rather than waiting a frame

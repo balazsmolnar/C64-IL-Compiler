@@ -94,14 +94,14 @@ def mirror(rows):
 # ---------------------------------------------------------------------------
 # Layout (cell columns)
 # ---------------------------------------------------------------------------
-PILLARS = (0, 11, 17, 22, 33, 39)
+PILLARS = (0, 11, 17, 22, 32, 39)
 HEART_COL = 1          # 5 hearts, 2 cells each: columns 1-10
 CHEST_COL = 12         # treasure icon: columns 12-13
 COUNT_COL = 14         # "n/m": columns 14-16
 WEAPON_COL = 18        # weapon icon: columns 18-19
 POWER_COL = 20         # attack power, two digits: columns 20-21
-CREST_COL = 23         # crest: columns 23-32
-MAP_COL = 34           # minimap: columns 34-38, 4x2 pixels a room
+CREST_COL = 23         # crest: columns 23-31
+MAP_COL = 33           # minimap: columns 33-38, rows 22-24; 4x2 pixels a maze cell
 
 # ---------------------------------------------------------------------------
 # Tiles (16 pixels tall = cell rows 22 and 23)
@@ -198,19 +198,19 @@ CHEST = [
 FIST = [
     "................",
     "................",
-    "....##.##.##....",
-    "...###.##.###...",
-    "...###.##.####..",
-    "...###.##.####..",
-    "...###.##.####..",
-    "..####.##.####..",
-    "..#...........#.",
-    "..#.#########.#.",
-    "..#..........#..",
-    "...#########.#..",
-    "....#.......#...",
-    "....#########...",
-    "....#.#.#.#.#...",
+    "...##.##.##.##..",
+    "..############..",
+    "..#..#..#..#.##.",
+    "..#..#..#..#.##.",
+    "..#..#..#..#.##.",
+    "..############..",
+    ".##.........#...",
+    ".#.########.#...",
+    ".##........##...",
+    "..##########....",
+    "...#......#.....",
+    "...########.....",
+    "...#.#..#.#.....",
     "................",
 ]
 SWORD = [
@@ -266,24 +266,24 @@ SKULL_CAP = [            # tops each pillar: y 1..7 of the row 21 cell
 ]
 
 WING = [                 # left wing, 24 wide; the right one is its mirror
-    "#.......#.......#.......",
-    "##......##......##......",
-    "###.....###.....####....",
-    ".####..######..########.",
-    "..######################",
-    "...####..#####..#######.",
-    "....##....###....####...",
-    "..........#.......#.....",
+    ".#......................",
+    ".##.......#.............",
+    ".####.....###......#....",
+    "..######..#####....###..",
+    "..#####################.",
+    "...##.#####..#####.####.",
+    "....#...###....###...##.",
+    ".........#......#.......",
 ]
 SKULL = [                # 14 wide
-    "...########...",
+    "....######....",
     "..##########..",
-    ".###..##..###.",
-    ".###..##..###.",
+    ".############.",
+    ".##..####..##.",
+    ".##..####..##.",
     "..####..####..",
     "...########...",
     "...#.#..#.#...",
-    "....######....",
 ]
 
 LETTERS = {
@@ -298,22 +298,25 @@ LETTERS = {
 
 
 def draw_frame(p):
-    # Lintel: y 1..5, a 16-pixel block pattern with a stud.
+    # Lintel, y 1..7: a cornice in 16-pixel blocks -- lit top edge, body, a
+    # groove, a lower moulding and a row of dentils hanging under it.
     block = [
         "###############.",
-        "#.#.#.####.#.#..",
-        "##.#.######.#.#.",
-        "#.#.#..##..#.#..",
+        "#.#.#.#.#.#.#.#.",
+        ".#.#.#.#.#.#.#..",
+        "................",
+        "###############.",
+        "###.###.###.###.",
         ".#...#...#...#..",
     ]
     for x in range(0, W, 16):
         p.put(x, 1, block)
-    # Sill: y 28..31.
+    # Sill, y 28..31.
     sill = [
         "###############.",
         "#.#.#.#.#.#.#.#.",
-        "##.#.#.#.#.#.#..",
-        ".#...#...#...#..",
+        ".#.#.#.#.#.#.#..",
+        "...#.......#....",
     ]
     for x in range(0, W, 16):
         p.put(x, 28, sill)
@@ -324,12 +327,13 @@ def draw_frame(p):
         x = c * 8
         p.put(x, 1, SKULL_CAP)
         p.colour(c, 0, c, 0, GREY3)
-        for y in range(8, 24):                      # shaft: lit from the left
-            p.put(x, y, ["##.#.#.." if y & 1 else "#.#.#..."])
+        for y in range(8, 24):                      # fluted shaft, lit from the left
+            p.put(x, y, ["##.##.#."])
+        p.put(x, 8, ["########", "#.#.#.#."])        # necking under the skull
         p.put(x, 15, ["########", "........"])       # a joint
         p.colour(c, 1, c, 2, GREY2, GREY1)
         for y in range(24, 28):                     # plinth, on the sill
-            p.put(x, y, ["##.#.#.." if y & 1 else "#.#.#..."])
+            p.put(x, y, ["##.##.#."])
         p.put(x, 26, ["########", "#.#.#.#."])
 
 
@@ -339,17 +343,20 @@ def draw_static(p):
     p.colour(CHEST_COL, 1, CHEST_COL + 1, 1, YELLOW)
     p.colour(CHEST_COL, 2, CHEST_COL + 1, 2, ORANGE)
     # Crest: winged skull over the game's name.
-    cx = CREST_COL * 8 + 40
+    cx = CREST_COL * 8 + 36
     p.put(cx - 7, 8, SKULL)
-    p.put(cx - 7 - 24, 8, WING)
-    p.put(cx + 7, 8, mirror(WING))
-    p.colour(CREST_COL, 1, CREST_COL + 9, 1, RED)
-    p.colour(CREST_COL + 4, 1, CREST_COL + 5, 1, GREY3)
+    p.put(cx - 12 - 24, 8, WING)                # the wings stay out of the skull's three cells
+    p.put(cx + 12, 8, mirror(WING))
+    shoulder = ["....", ".#..", "###.", "####", "####", ".##.", "....", "...."]
+    p.put(cx - 12, 8, shoulder)
+    p.put(cx + 8, 8, mirror(shoulder))
+    p.colour(CREST_COL, 1, CREST_COL + 8, 1, RED)
+    p.colour(CREST_COL + 3, 1, CREST_COL + 5, 1, GREY3)
     x = cx - 36
     for ch in "CATACOMBS":
         p.put(x, 16, LETTERS[ch])
         x += 8
-    p.colour(CREST_COL, 2, CREST_COL + 9, 2, YELLOW)
+    p.colour(CREST_COL, 2, CREST_COL + 8, 2, YELLOW)
 
 
 def set_dynamic_colours(p):
@@ -362,12 +369,11 @@ def set_dynamic_colours(p):
     p.colour(WEAPON_COL, 2, WEAPON_COL + 1, 2, LBLUE)
     p.colour(POWER_COL, 1, POWER_COL + 1, 1, WHITE)
     p.colour(POWER_COL, 2, POWER_COL + 1, 2, GREY3)
-    # Minimap: explored rooms are lit pixels.
-    p.colour(MAP_COL, 1, MAP_COL + 4, 3, YELLOW, BROWN)
-    for x in range(MAP_COL * 8, MAP_COL * 8 + 40):
-        for y in range(28, 32):
+    # Minimap: explored rooms are lit pixels. Its pixels come from hud_Map.
+    p.colour(MAP_COL, 1, MAP_COL + 5, 3, MAP_FG, MAP_BG)
+    for y in range(8, 32):
+        for x in range(MAP_COL * 8, MAP_COL * 8 + 48):
             p.bit[y][x] = 0
-    p.put(MAP_COL * 8, 28, ["########" * 5, "#.#.#.#." * 5, ".#.#.#.#" * 5, "........" * 5])
 
 
 def build_panel():
@@ -395,6 +401,34 @@ def strip_bytes(rows):
     return out
 
 
+MAP_FG, MAP_BG = YELLOW, BLACK
+
+
+def map_frame():
+    """The minimap's 48x24 pixels before anything is explored: a frame in
+    the maze's solid outer ring (2 pixel rows top and bottom, 4 columns left
+    and right). 0/1 rows."""
+    g = [[0] * 48 for _ in range(24)]
+    for x in range(1, 47):
+        g[0][x] = g[23][x] = 1
+    for y in range(0, 24):
+        g[y][1] = g[y][46] = 1
+    for cx, cy in ((1, 0), (45, 0), (1, 22), (45, 22)):      # corner studs
+        for dy in range(2):
+            for dx in range(2):
+                g[cy + dy][cx + dx] = 1
+    return g
+
+
+def map_bytes(g):
+    out = []
+    for r in range(3):
+        for c in range(6):
+            for y in range(8):
+                out.append(sum(g[r * 8 + y][c * 8 + x] << (7 - x) for x in range(8)))
+    return out
+
+
 def tile_sets():
     hearts = []
     for art in (HEART_FULL, HEART_EMPTY):            # full left, full right, empty left, empty right
@@ -406,11 +440,13 @@ def tile_sets():
     weapons = []
     for art in WEAPONS:
         weapons += strip_bytes(art)
-    return hearts, digits, weapons
+    # hud_MapRow[y]: where maze row y's first byte is in hud_Map's first cell column.
+    rows = [(y // 4) * 48 + (y % 4) * 2 for y in range(12)]
+    return hearts + digits + weapons, map_bytes(map_frame()), rows
 
 
 def write_cs(path, sets):
-    names = ("hud_Hearts", "hud_Digits", "hud_Weapons")
+    names = ("hud_Tiles", "hud_Map", "hud_MapRow")
     lines = ["// Generated by art/hud_art.py -- do not edit. The status panel's tiles:",
              "// 8 bytes a cell, top cell row then bottom cell row of each picture.",
              "using C64Lib;",
@@ -423,6 +459,8 @@ def write_cs(path, sets):
         for i in range(0, len(data), 16):
             chunk = ",".join("$%02x" % b for b in data[i:i + 16])
             lines.append("%s .byte %s" % (name if i == 0 else " " * len(name), chunk))
+            if name == "hud_Tiles" and i % 16 == 0:
+                lines[-1] += "   ; tile %d" % (i // 8)
     lines.append("\")]")
     with open(path, "w", newline="\n") as f:
         f.write("\n".join(lines) + "\n")
@@ -460,10 +498,11 @@ def mock(panel, hp, treasure, weapon, power, seen, here, blink_on=True):
     p.put(WEAPON_COL * 8, 8, WEAPONS[weapon])
     for i, ch in enumerate("%02d" % power):
         p.put((POWER_COL + i) * 8, 8, digit_tile(ch))
-    for my in range(10):
-        for mx in range(10):
-            on = (mx + 1, my + 1) in seen and MAZE[my + 1][mx + 1] == '1'
-            if (mx + 1, my + 1) == here and not blink_on:
+    p.tile(MAP_COL * 8, 8, map_frame())
+    for my in range(1, 11):
+        for mx in range(1, 11):
+            on = (mx, my) in seen and MAZE[my][mx] == '1'
+            if (mx, my) == here and not blink_on:
                 on = False
             for dy in range(2):
                 for dx in range(4):

@@ -245,13 +245,10 @@ class Program
     // units against a pixel radius directly.
     static bool Touching(uint x, uint depth, ulong radius)
     {
-        ulong px = RoomProjection.ScreenX(roomX_, roomDepth_);
-        ulong py = RoomProjection.ScreenY(roomDepth_);
-        ulong tx = RoomProjection.ScreenX(x, depth);
-        ulong ty = RoomProjection.ScreenY(depth);
-        ulong dx = px > tx ? px - tx : tx - px;
-        ulong dy = py > ty ? py - ty : ty - py;
-        return dx < radius && dy < radius;
+        // What is at (x, depth) -- this room's guardian, treasure or weapon --
+        // is on the sprite stage, which already knows where both it and the
+        // player are on screen: no projecting anything again.
+        return SpriteStage.PlayerAtFeature(radius);
     }
 
     // True while standing right at an open door's crossing edge -- the

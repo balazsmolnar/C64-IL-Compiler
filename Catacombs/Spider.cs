@@ -26,11 +26,11 @@ static class Spider
     {
         crawlerX_ = 90;
         flyerX_ = 200;
-        SpriteStage.Part(6, SpriteStage.HiRes | (uint)Colors.Grey3, 12, 31);
-        SpriteStage.Part(9, SpriteStage.HiRes | (uint)Colors.LightRed, 12, 40);
-        SpriteStage.Parts[SpriteStage.Crawler] = 1;
-        SpriteStage.Parts[SpriteStage.Flyer] = 1;
-        SpriteStage.Y[SpriteStage.Crawler] = FloorY;
+        SpriteStage.Part(SpriteStage.Crawler, (uint)Colors.Grey3, 12, 31);
+        SpriteStage.Part(SpriteStage.Flyer, (uint)Colors.LightRed, 12, 40);
+        SpriteStage.Count[2] = 1;
+        SpriteStage.Count[3] = 1;
+        SpriteStage.Y[2] = FloorY;
     }
 
     // Called on entering a room: the vermin there are somewhere else.
@@ -71,10 +71,10 @@ static class Spider
             }
             pose = (tick_ >> 1) & 1;
         }
-        SpriteStage.X[SpriteStage.Crawler] = crawlerX_;
-        SpriteStage.Frame[6] = SpriteStage.Hi + Frame.Crawler + pose;
+        SpriteStage.X[2] = crawlerX_;
+        SpriteStage.Parts[SpriteStage.Crawler + SpriteStage.Frame] = SpriteStage.Hi + Frame.Crawler + pose;
 
-        if (SpriteStage.Y[SpriteStage.Feature] == 0)
+        if (SpriteStage.Y[1] == 0)
         {
             if (flyerRight_)
             {
@@ -88,9 +88,9 @@ static class Spider
                 if (flyerX_ < Left)
                     flyerRight_ = true;
             }
-            SpriteStage.X[SpriteStage.Flyer] = flyerX_;
-            SpriteStage.Y[SpriteStage.Flyer] = Swoop[(tick_ >> 2) & 15];
-            SpriteStage.Frame[9] = SpriteStage.Hi + Frame.Flyer + Flap[(tick_ >> 2) & 3];
+            SpriteStage.X[3] = flyerX_;
+            SpriteStage.Y[3] = Swoop[(tick_ >> 2) & 15];
+            SpriteStage.Parts[SpriteStage.Flyer + SpriteStage.Frame] = SpriteStage.Hi + Frame.Flyer + Flap[(tick_ >> 2) & 3];
         }
     }
 }

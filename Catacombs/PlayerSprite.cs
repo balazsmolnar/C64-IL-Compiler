@@ -2,10 +2,10 @@ using C64Lib;
 
 namespace Catacombs;
 
-// The adventurer: three sprites (SpriteStage actor 0). From the front:
-//   0  hi-res overlay: the torch flame's core and the torchlight on his edges
-//   1  multicolour top half (hood, face, cloak, torch)
-//   2  multicolour legs, with the ground shadow under them
+// The adventurer: three sprites (SpriteStage's Player actor). From the front:
+//   Light  hi-res overlay: the torch flame's core and the torchlight on his edges
+//   Top    multicolour top half (hood, face, cloak, torch)
+//   Legs   multicolour legs, with the ground shadow under them
 //
 // Program.cs only ever says where he stands (SetPosition, when he moved).
 // Which way he faces is read off the movement itself, the walk cycle
@@ -15,6 +15,8 @@ static class PlayerSprite
 {
     const uint Down = 0, Up = 1, Left = 2, Right = 3;
     const uint Walking = 0, Striking = 1, Fallen = 2;
+    const uint Light = SpriteStage.Player, Top = SpriteStage.Player + 4, Legs = SpriteStage.Player + 8;
+    const uint Cloak = SpriteStage.Multi | (uint)Colors.Cyan;
 
     static uint facing_, pose_;
     static uint step_;      // walk cycle position, one per step taken
@@ -26,9 +28,9 @@ static class PlayerSprite
     public static void Init(ulong x, ulong y)
     {
         facing_ = Up;
-        SpriteStage.Part(0, 0, 12, 15);
-        SpriteStage.Part(1, 0, 12, 15);
-        SpriteStage.Part(2, (uint)Colors.Grey3, 12, 36);
+        SpriteStage.Part(Light, 0, 12, 15);
+        SpriteStage.Part(Top, Cloak, 12, 15);
+        SpriteStage.Part(Legs, SpriteStage.Multi | (uint)Colors.Grey3, 12, 36);
         SetPosition(x, y);
     }
 
@@ -87,48 +89,48 @@ static class PlayerSprite
     {
         tick_ = tick_ + 1;
 
+        if (pose_ == Fallen)
+        {
+            SpriteStage.Count[0] = 1;
+            SpriteStage.Parts[Light + SpriteStage.Frame] = SpriteStage.Mc + Frame.Fallen;
+            SpriteStage.Parts[Light + SpriteStage.Color] = Cloak;
+            SpriteStage.Parts[Light + SpriteStage.Dy] = 36;
+            return;
+        }
+
         uint legs = 1;                          // standing
-        uint bob = (tick_ >> 5) & 1;            // breathing
+        uint bob = 15 + ((tick_ >> 5) & 1);     // breathing
         if (still_ < 3)
         {
             still_ = still_ + 1;
             legs = (step_ >> 2) & 3;            // contact, passing, contact, passing
-            bob = (legs & 1) ^ 1;               // the body dips as a foot lands
-        }
-
-        if (pose_ == Fallen)
-        {
-            SpriteStage.Parts[0] = 1;
-            SpriteStage.Frame[0] = SpriteStage.Mc + Frame.Fallen;
-            SpriteStage.Color[0] = (uint)Colors.Cyan;
-            SpriteStage.Dy[0] = 36;
-            return;
+            bob = 16 - (legs & 1);              // the body dips as a foot lands
         }
 
         uint top = facing_;
+        uint cycle = Frame.Legs;
         if (pose_ == Striking)
             top = Frame.TopAttack;
-        uint cloak = (uint)Colors.Cyan;
+        else if (facing_ > Up)
+            cycle = Frame.Legs - 4 + (facing_ << 2);
+        uint cloak = Cloak;
         if (hurt_ != 0)
         {
             hurt_ = hurt_ - 1;
-            cloak = (uint)Colors.White;
+            cloak = SpriteStage.Multi | (uint)Colors.White;
         }
         // The flame gutters now and then: the light on him dims with it.
         uint light = (uint)Colors.Yellow;
         if (C64.Random() < 20)
             light = (uint)Colors.Orange;
 
-        SpriteStage.Parts[0] = 3;
-        SpriteStage.Frame[0] = SpriteStage.Hi + Frame.Overlay + top;
-        SpriteStage.Color[0] = SpriteStage.HiRes | light;
-        SpriteStage.Dy[0] = 15 + bob;
-        SpriteStage.Frame[1] = SpriteStage.Mc + Frame.Top + top;
-        SpriteStage.Color[1] = cloak;
-        SpriteStage.Dy[1] = 15 + bob;
-        uint cycle = Frame.Legs;
-        if (facing_ > Up && pose_ == Walking)
-            cycle = Frame.Legs - 4 + facing_ * 4;
-        SpriteStage.Frame[2] = SpriteStage.Mc + cycle + legs;
+        SpriteStage.Count[0] = 3;
+        SpriteStage.Parts[Light + SpriteStage.Frame] = SpriteStage.Hi + Frame.Overlay + top;
+        SpriteStage.Parts[Light + SpriteStage.Color] = light;
+        SpriteStage.Parts[Light + SpriteStage.Dy] = bob;
+        SpriteStage.Parts[Top + SpriteStage.Frame] = SpriteStage.Mc + Frame.Top + top;
+        SpriteStage.Parts[Top + SpriteStage.Color] = cloak;
+        SpriteStage.Parts[Top + SpriteStage.Dy] = bob;
+        SpriteStage.Parts[Legs + SpriteStage.Frame] = SpriteStage.Mc + cycle + legs;
     }
 }

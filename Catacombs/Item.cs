@@ -68,13 +68,14 @@ static class Item
     // Feature (SpriteStage actor 1; see Monster.Setup, which calls this when
     // the room has no guardian): the item itself with its shadow, and in
     // front of it a hi-res glint that flares and jumps about on it.
+    const uint Glint = SpriteStage.Feature, Thing = SpriteStage.Feature + 4;
     static readonly uint[] GlintDx = { 8, 15, 11, 17 };
     static readonly uint[] GlintDy = { 28, 25, 33, 30 };
 
     public static bool Setup(uint px, uint py)
     {
         uint frame = Frame.Treasure;
-        uint color = (uint)Colors.Yellow;
+        uint color = SpriteStage.Multi | (uint)Colors.Yellow;
         uint rx = RoomX;
         uint depth = RoomDepth;
         if (!IsPresentAt(px, py))
@@ -82,15 +83,15 @@ static class Item
             if (!Weapon.IsPresentAt(px, py))
                 return false;
             frame = Frame.Sword + Weapon.FindAt(px, py);
-            color = (uint)Colors.Grey3;
+            color = SpriteStage.Multi | (uint)Colors.Grey3;
             rx = Weapon.RoomX;
             depth = Weapon.RoomDepth;
         }
-        SpriteStage.Part(3, SpriteStage.HiRes | (uint)Colors.White, 12, 28);
-        SpriteStage.Part(4, color, 12, 33);
-        SpriteStage.Frame[4] = SpriteStage.Mc + frame;
-        SpriteStage.X[SpriteStage.Feature] = RoomProjection.ScreenX(rx, depth);
-        SpriteStage.Y[SpriteStage.Feature] = (uint)RoomProjection.ScreenY(depth);
+        SpriteStage.Part(Glint, (uint)Colors.White, 12, 28);
+        SpriteStage.Part(Thing, color, 12, 33);
+        SpriteStage.Parts[Thing + SpriteStage.Frame] = SpriteStage.Mc + frame;
+        SpriteStage.X[1] = RoomProjection.ScreenX(rx, depth);
+        SpriteStage.Y[1] = (uint)RoomProjection.ScreenY(depth);
         return true;
     }
 
@@ -101,12 +102,12 @@ static class Item
         uint flare = 0;
         if (phase == 1)
             flare = 1;
-        SpriteStage.Frame[3] = SpriteStage.Hi + Frame.Spark + flare;
+        SpriteStage.Parts[Glint + SpriteStage.Frame] = SpriteStage.Hi + Frame.Spark + flare;
         if ((tick & 31) == 0)
         {
             uint spot = (tick >> 5) & 3;
-            SpriteStage.Dx[3] = GlintDx[spot];
-            SpriteStage.Dy[3] = GlintDy[spot];
+            SpriteStage.Parts[Glint] = GlintDx[spot];
+            SpriteStage.Parts[Glint + SpriteStage.Dy] = GlintDy[spot];
         }
     }
 }

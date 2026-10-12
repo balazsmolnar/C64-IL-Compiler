@@ -147,18 +147,6 @@ SpriteCollection_set_MultiColorMask:
     #stack_return_to_saved_address zp_tmp1_low
 .endif
 
-.weak
-Flag_SpriteCollection_get_MultiColorMask = 0
-.endweak
-.if Flag_SpriteCollection_get_MultiColorMask
-
-SpriteCollection_get_MultiColorMask:
-    #stack_save_return_adress zp_tmp1_low
-    lda spriteMultiColor
-    #stack_push_int_a
-    #stack_return_to_saved_address zp_tmp1_low
-.endif
-
 ; SpriteCollection.VisibleMask: one bit per sprite, $D015 whole.
 .weak
 Flag_SpriteCollection_set_VisibleMask = 0
@@ -239,6 +227,103 @@ Sprite_Place_l1:
     sta spriteX,x
     lda zp_param2_low
     sta spriteY,x
+    #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+; SpriteCollection.PlaceGroup(first, count, x, y, parts, offset): `count`
+; hardware sprites from sprite `first` on, placed as one object at (x, y).
+; Each sprite is four bytes of the byte array `parts`, starting at `offset`:
+; dx (0-255, added to x), dy (added to y, wrapping), frame (the data
+; pointer, as Sprite.Frame), colour (bit 7 set = multicolour, as in a .spr
+; frame's last byte). Sets X (9 bits), Y, pointer, colour and the
+; multicolour bit; which sprites are shown is the caller's (VisibleMask).
+; Stack, top first: offset, parts, y, x low, x high, count, first.
+.weak
+Flag_SpriteCollection_PlaceGroup = 0
+.endweak
+.if Flag_SpriteCollection_PlaceGroup
+
+SpriteCollection_PlaceGroup:
+    #stack_save_return_adress zp_tmp1_low
+    pla
+    sta zp_param0_low           ; offset
+    pla
+    tax
+    jsr resolveObjPtr           ; tmpPointer = the array's bytes
+    clc
+    lda tmpPointer
+    adc zp_param0_low
+    sta zp_param3_low
+    lda tmpPointer+1
+    adc #0
+    sta zp_param3_high          ; -> the first sprite's four bytes
+    pla
+    sta zp_param2_low           ; y
+    pla
+    sta zp_param1_low           ; x low
+    pla
+    sta zp_param1_high          ; x high
+    pla
+    sta zp_param2_high          ; count
+    pla
+    tax                         ; sprite number
+    ldy #0
+SpriteCollection_PlaceGroup_next:
+    lda zp_param2_high
+    beq SpriteCollection_PlaceGroup_done
+    dec zp_param2_high
+    txa
+    asl
+    sta zp_param0_low           ; sprite number * 2: its X/Y register pair
+    clc
+    lda (zp_param3_low),y       ; dx
+    iny
+    adc zp_param1_low
+    pha
+    lda zp_param1_high
+    adc #0
+    lsr                         ; bit 8 of x -> carry
+    lda sprite_bit_table,x
+    bcs SpriteCollection_PlaceGroup_xhigh
+    eor #$FF
+    and spriteExtraPosition
+    bcc SpriteCollection_PlaceGroup_xset
+SpriteCollection_PlaceGroup_xhigh:
+    ora spriteExtraPosition
+SpriteCollection_PlaceGroup_xset:
+    sta spriteExtraPosition
+    clc
+    lda (zp_param3_low),y       ; dy
+    iny
+    adc zp_param2_low
+    stx zp_param4_low
+    ldx zp_param0_low
+    sta spriteY,x
+    pla
+    sta spriteX,x
+    ldx zp_param4_low
+    lda (zp_param3_low),y       ; frame
+    iny
+    sta spriteData,x
+.if GRAPHICS_HIGH
+    sta Graphics_ColorMatrix+$3f8,x
+.endif
+    lda (zp_param3_low),y       ; colour; bit 7 = multicolour
+    iny
+    sta spriteColor,x
+    asl
+    lda sprite_bit_table,x
+    bcs SpriteCollection_PlaceGroup_multi
+    eor #$FF
+    and spriteMultiColor
+    bcc SpriteCollection_PlaceGroup_mset
+SpriteCollection_PlaceGroup_multi:
+    ora spriteMultiColor
+SpriteCollection_PlaceGroup_mset:
+    sta spriteMultiColor
+    inx
+    bne SpriteCollection_PlaceGroup_next
+SpriteCollection_PlaceGroup_done:
     #stack_return_to_saved_address zp_tmp1_low
 .endif
 

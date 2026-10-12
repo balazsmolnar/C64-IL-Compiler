@@ -68,9 +68,19 @@ static class CharScenes
         for (;;)
         {
             C64.Screen.WaitForVBlank();
+#if SCENE_CHAR_TIMING
+            C64.Screen.SetBorderColor(Colors.Red);
+            Spider.Animate();
+            C64.Screen.SetBorderColor(Colors.Green);
+            Monster.Animate(RoomX, RoomY);
+            C64.Screen.SetBorderColor(Colors.Blue);
+            SpriteStage.Update();
+            C64.Screen.SetBorderColor(Colors.Yellow);
+#else
             Spider.Animate();
             Monster.Animate(RoomX, RoomY);
             SpriteStage.Update();
+#endif
 
             uint leg = t >> 6;
 #if SCENE_CHAR_POSES
@@ -100,6 +110,9 @@ static class CharScenes
             }
 #endif
             t = t + 1;
+#if SCENE_CHAR_TIMING
+            C64.Screen.SetBorderColor(Colors.Black);
+#endif
         }
 #endif
     }

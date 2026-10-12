@@ -7,37 +7,43 @@ namespace Catacombs;
 //
 //   Player   the adventurer: hi-res torchlight overlay, top half, legs
 //   Feature  what the room holds: its guardian (two sprites) or a pickup
-//            (sparkle + item); never both (see Monster.cs)
+//            (glint + item); never both (see Monster.cs)
 //   Crawler  the spider on the floor
 //   Flyer    the bat, only where there is no Feature (six sprites in all)
 //
 // An actor is placed by the point between its feet, in bitmap pixels (what
-// RoomProjection.ScreenX / ScreenY return); each part has an offset from it.
+// RoomProjection.ScreenX / ScreenY return); each part is four bytes of
+// Parts -- offset from that point, frame, colour -- exactly as
+// C64.Sprites.PlaceGroup reads them, which writes a whole actor's sprite
+// registers in one call.
 //
 // Depth: the VIC draws sprite 0 in front of sprite 1 and so on, by sprite
 // NUMBER, so every video frame the actors are handed out to the hardware
 // sprites nearest first (largest floor Y first). The order is kept from
-// frame to frame and fixed up with one bubble pass, which is enough: actors
-// pass each other one at a time.
+// frame to frame and one neighbouring pair is put right per frame, which is
+// enough: actors pass each other one at a time, slowly.
 //
 // Sprites 6 and 7 are never touched (they belong to the combat screen).
 static class SpriteStage
 {
-    public const uint Player = 0, Feature = 1, Crawler = 2, Flyer = 3;
-    public const uint HiRes = 0x80;         // in a part's colour: a hi-res sprite
+    // Actors, as the offset of their first part in Parts.
+    public const uint Player = 0, Feature = 16, Crawler = 32, Flyer = 48;
+
+    // A part: Parts[part + ...]. The second and third parts of an actor
+    // are at + 4 and + 8.
+    public const uint Dx = 0, Dy = 1, Frame = 2, Color = 3;
+    public const uint Multi = 0x80;         // in a part's colour: a multicolour sprite
 
     public static uint Mc, Hi;              // first frame of the Chars / CharsHi sheets
 
-    public static ulong[] X;                // per actor: the feet, bitmap x
-    public static uint[] Y;                 //            bitmap y; 0 = not on stage
-    public static uint[] Parts;             //            how many parts
-    public static uint[] Frame;             // per part (actor * 3 + n), front one first
-    public static uint[] Color;
-    public static uint[] Dx;                // sprite X = feet x + Dx, sprite Y = feet y + Dy
-    public static uint[] Dy;
+    public static ulong[] X;                // per actor (index = actor / 16): the feet, bitmap x
+    public static uint[] Y;                 //   bitmap y; 0 = not on stage
+    public static uint[] Count;             //   how many parts
+    public static uint[] Parts;
 
-    static uint[] order_;                   // the actors, nearest first
-    static readonly uint[] Bit = { 1, 2, 4, 8, 16, 32, 64 };
+    static uint[] order_;                   // the actors (/ 16), nearest first
+    static uint pair_;
+    static readonly uint[] Shown = { 0, 1, 3, 7, 15, 31, 63 };
 
     public static void Init()
     {
@@ -45,11 +51,8 @@ static class SpriteStage
         Hi = (uint)C64Address.FromLabel("frm_CharsHi");
         X = new ulong[4];
         Y = new uint[4];
-        Parts = new uint[4];
-        Frame = new uint[12];
-        Color = new uint[12];
-        Dx = new uint[12];
-        Dy = new uint[12];
+        Count = new uint[4];
+        Parts = new uint[64];
         order_ = new uint[4];
         for (uint i = 0; i < 4; i++)
             order_[i] = i;
@@ -60,11 +63,26 @@ static class SpriteStage
         C64.Sprites.CommonColor2 = Colors.Orange;
     }
 
-    public static void Part(uint index, uint color, uint dx, uint dy)
+    public static void Part(uint part, uint color, uint dx, uint dy)
     {
-        Color[index] = color;
-        Dx[index] = dx;
-        Dy[index] = dy;
+        Parts[part] = dx;
+        Parts[part + Dy] = dy;
+        Parts[part + Color] = color;
+    }
+
+    // True while the player's feet are within `radius` pixels of the room's
+    // Feature (guardian or pickup), both ways.
+    public static bool PlayerAtFeature(ulong radius)
+    {
+        uint fy = Y[1];
+        if (fy == 0)
+            return false;
+        uint py = Y[0];
+        uint dy = py > fy ? py - fy : fy - py;
+        ulong px = X[0];
+        ulong fx = X[1];
+        ulong dx = px > fx ? px - fx : fx - px;
+        return dx < radius && dy < radius;
     }
 
     // Once per video frame, right after the vertical blank.
@@ -72,39 +90,30 @@ static class SpriteStage
     {
         PlayerSprite.Animate();
 
-        for (uint i = 0; i < 3; i++)
+        uint i = pair_ + 1;
+        if (i == 3)
+            i = 0;
+        pair_ = i;
+        uint a = order_[i];
+        uint b = order_[i + 1];
+        if (Y[a] < Y[b])
         {
-            uint a = order_[i];
-            uint b = order_[i + 1];
-            if (Y[a] < Y[b])
-            {
-                order_[i] = b;
-                order_[i + 1] = a;
-            }
+            order_[i] = b;
+            order_[i + 1] = a;
         }
 
         uint slot = 0;
-        uint multi = 0;
-        for (uint i = 0; i < 4; i++)
+        for (i = 0; i < 4; i++)
         {
-            uint a = order_[i];
+            a = order_[i];
             uint y = Y[a];
             if (y != 0)
             {
-                uint p = a + a + a;
-                uint end = p + Parts[a];
-                while (p < end)
-                {
-                    uint c = Color[p];
-                    if (c < HiRes)
-                        multi = multi | Bit[slot];
-                    C64.Sprites[slot].Place(X[a] + Dx[p], y + Dy[p], Frame[p], (Colors)c);
-                    slot = slot + 1;
-                    p = p + 1;
-                }
+                uint n = Count[a];
+                C64.Sprites.PlaceGroup(slot, n, X[a], y, Parts, a << 4);
+                slot = slot + n;
             }
         }
-        C64.Sprites.MultiColorMask = (C64.Sprites.MultiColorMask & 0xC0) | multi;
-        C64.Sprites.VisibleMask = (C64.Sprites.VisibleMask & 0xC0) | (Bit[slot] - 1);
+        C64.Sprites.VisibleMask = (C64.Sprites.VisibleMask & 0xC0) | Shown[slot];
     }
 }

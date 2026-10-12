@@ -119,7 +119,8 @@ static class Monster
     const uint NoRoom = 255;
     const uint Nothing = 0, Guardian = 1, Pickup = 2;
     const uint GiantSpider = 3;
-    static readonly uint[] KindColor = { (uint)Colors.White, (uint)Colors.Green, (uint)Colors.LightBlue, (uint)Colors.Red };
+    const uint Front = SpriteStage.Feature, Back = SpriteStage.Feature + 4;    // its two sprites
+    static readonly uint[] KindColor = { 0x81, 0x85, 0x8E, 0x82 };  // white, green, light blue, red (+ multicolour)
 
     static uint room_ = NoRoom;     // the room the Feature was set up for
     static uint feature_;
@@ -136,7 +137,7 @@ static class Monster
     // Takes the guardian off the stage (the combat screen shows its own).
     public static void HideSprite()
     {
-        SpriteStage.Y[SpriteStage.Feature] = 0;
+        SpriteStage.Y[1] = 0;
         room_ = NoRoom;
         feature_ = Nothing;
     }
@@ -173,27 +174,27 @@ static class Monster
                 if (roomX_[i] < PatrolMin)
                     movingRight_[i] = true;
             }
-            SpriteStage.X[SpriteStage.Feature] = RoomProjection.ScreenX(roomX_[i], RoomDepth);
+            SpriteStage.X[1] = RoomProjection.ScreenX(roomX_[i], RoomDepth);
         }
 
         uint step = (tick_ >> 3) & 1;
         uint first = SpriteStage.Mc + Frame.Guardian + i + i + i;
         if (i == GiantSpider)
         {
-            SpriteStage.Frame[3] = first + step;
-            SpriteStage.Frame[4] = first + 2 + step;
+            SpriteStage.Parts[Front + SpriteStage.Frame] = first + step;
+            SpriteStage.Parts[Back + SpriteStage.Frame] = first + 2 + step;
         }
         else
         {
-            SpriteStage.Frame[3] = first;
-            SpriteStage.Frame[4] = first + 1 + step;
+            SpriteStage.Parts[Front + SpriteStage.Frame] = first;
+            SpriteStage.Parts[Back + SpriteStage.Frame] = first + 1 + step;
         }
     }
 
     static void Setup(uint px, uint py)
     {
         feature_ = Nothing;
-        SpriteStage.Y[SpriteStage.Feature] = 0;
+        SpriteStage.Y[1] = 0;
         guard_ = FindAt(px, py);
         if (guard_ < Count)
         {
@@ -205,10 +206,10 @@ static class Monster
                 dy = 33;
                 dx2 = 24;
             }
-            SpriteStage.Part(3, KindColor[guard_], dx, dy);
-            SpriteStage.Part(4, KindColor[guard_], dx2, 33);
-            SpriteStage.X[SpriteStage.Feature] = RoomProjection.ScreenX(roomX_[guard_], RoomDepth);
-            SpriteStage.Y[SpriteStage.Feature] = (uint)RoomProjection.ScreenY(RoomDepth);
+            SpriteStage.Part(Front, KindColor[guard_], dx, dy);
+            SpriteStage.Part(Back, KindColor[guard_], dx2, 33);
+            SpriteStage.X[1] = RoomProjection.ScreenX(roomX_[guard_], RoomDepth);
+            SpriteStage.Y[1] = (uint)RoomProjection.ScreenY(RoomDepth);
             feature_ = Guardian;
         }
         else if (Item.Setup(px, py))
@@ -216,8 +217,8 @@ static class Monster
 
         if (feature_ != Nothing)
         {
-            SpriteStage.Parts[SpriteStage.Feature] = 2;
-            SpriteStage.Y[SpriteStage.Flyer] = 0;   // its sprite is needed here
+            SpriteStage.Count[1] = 2;
+            SpriteStage.Y[3] = 0;   // the bat: its sprite is needed here
         }
     }
 

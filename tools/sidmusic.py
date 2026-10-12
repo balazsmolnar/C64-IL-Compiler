@@ -18,6 +18,8 @@ Instrument: ADSR, a wave program, pulse width, pulse modulation, vibrato.
 
     s.instrument('lead', ad=0x28, sr=0xA9, wave=[(0x41, 0)],
                  pw=0x800, pws=0x18, vib=(5, 14))
+    s.instrument('pluck', ad=0x09, sr=0x00, wave=[(0x41, 0)], gate=3,
+                 filt=0x40, fdel=-3)
 
   wave      rows of (waveform, pitch), one row per `wspd` ticks.
             waveform: the $D404 value with the gate bit set ($41 pulse, $21
@@ -32,6 +34,19 @@ Instrument: ADSR, a wave program, pulse width, pulse modulation, vibrato.
   pws       pulse width change per tick; it swings between $200 and $E00
   vib       (half period in ticks, delay in ticks). Depth grows with the
             period: about 7 cents per tick of half period.
+  slide     change of the SID frequency value per tick (signed; 1 = 0.06 Hz)
+  gate      gate off this many ticks before the note (or effect) ends, so
+            its release is heard; 0 = hold to the end. Such notes cannot be
+            longer than Score(max_rows=...).
+  legato    True: no hard restart. A note following another just changes
+            pitch (the envelope carries on); after a rest it attacks.
+  filt      None: not filtered. 'keep': filtered, cutoff left alone.
+            A number: filtered, and every note sets the cutoff to it...
+  fdel      ...and then adds this to the cutoff every tick (signed), within
+            the song's cut=(min, max).
+            Waveform values may carry the ring modulation ($04) and sync
+            ($02) bits; a row with the gate bit clear followed by one with
+            it set re-attacks the note.
 
 Pattern: a string of tokens, one voice, any number of rows.
 
@@ -47,12 +62,13 @@ Pattern: a string of tokens, one voice, any number of rows.
 Song: one order list per voice.
 
     s.song('explore', tempo=8, voices=[[...], [...], [...]], end='loop',
-           filter=dict(voices=0b001, res=10, mode='lp', cut=(0x30, 0x70, 40)))
+           filter=dict(res=10, mode='lp', cut=(0x08, 0x70)))
 
   An order list holds pattern names, T(n) (transpose everything after it by
   n semitones) and at most one LOOP marker (where the song restarts from;
-  default the beginning). end: 'loop', 'stop', or ('chain', 'songname').
-  tempo is ticks per row; the player ticks 60 times a second.
+  default the beginning). end: 'loop', 'stop', ('chain', 'songname'), or
+  'resume' (carry on with the song Music.Interrupt put aside).
+  tempo is ticks per row; the player ticks once per PAL frame (50.12 Hz).
 
 Effect: one note of one instrument for a number of ticks, played on the
 voice chosen by `Score(sfx_voice=...)`. Effects are numbered in the order
@@ -62,7 +78,10 @@ they are declared, and a higher number wins over a lower one still playing.
 import re
 
 PAL_CLOCK = 985248
-TICK_HZ = PAL_CLOCK / 16421.0      # the KERNAL's CIA1 timer on a PAL C64: 60 Hz
+TICK_CYCLES = 19656                # one PAL frame
+TICK_HZ = PAL_CLOCK / TICK_CYCLES   # 50.12
+
+INS_FIELDS = ('ad', 'sr', 'wave', 'wspd', 'pw', 'pws', 'vspd', 'vdly', 'sllo', 'slhi', 'gate', 'filt', 'fdel')
 
 REST = 0x60
 TIE = 0x61
@@ -118,6 +137,7 @@ class Score:
         self.patterns = [('(empty)', [0xFF], 0)]   # (name, bytes, rows)
         self.pat_index = {}
         self.pat_notes = {}              # name -> (lowest, highest) note, for range checks
+        self.pat_gated = {}
         self.songs = []
         self.song_index = {}
         self.effects = []
@@ -154,19 +174,31 @@ class Score:
         self.wave_programs[key] = start
         return start
 
-    def instrument(self, name, ad, sr, wave, wspd=1, pw=0x800, pws=0, vib=(0, 0)):
+    def instrument(self, name, ad, sr, wave, wspd=1, pw=0x800, pws=0, vib=(0, 0),
+                   slide=0, gate=0, legato=False, filt=None, fdel=0):
         if name in self.ins_index:
             raise ValueError('duplicate instrument ' + name)
         if not 0x200 <= pw <= 0xDFF:
             raise ValueError('%s: pw must be $200..$DFF' % name)
         if not (0 <= pws <= 255 and 1 <= wspd <= 255 and 0 <= vib[0] <= 255 and 0 <= vib[1] <= 127):
             raise ValueError('%s: parameter out of range' % name)
+        if not (-32768 <= slide <= 32767 and 0 <= gate <= 127 and -128 <= fdel <= 127):
+            raise ValueError('%s: parameter out of range' % name)
+        if filt is None:
+            f = 0
+        elif filt == 'keep':
+            f = 0xFF
+        elif 1 <= filt <= 0xFE:
+            f = filt
+        else:
+            raise ValueError('%s: filt must be None, "keep" or 1..254' % name)
         rel = [p for wf, p in wave if wf != 'jump' and not isinstance(p, str)]
         self.ins_index[name] = len(self.instruments)
         self.instruments.append(dict(
             name=name, ad=ad, sr=sr, wave=self._wave_program(wave), wspd=wspd,
             pw=(pw >> 8) | (pw & 0xF0), pws=pws, vspd=vib[0], vdly=vib[1],
-            maxrel=max(rel) if rel else 0))
+            sllo=slide & 0xFF, slhi=(slide >> 8) & 0xFF, gate=gate | (0x80 if legato else 0),
+            filt=f, fdel=fdel & 0xFF, maxrel=max(rel) if rel else 0))
         if len(self.instruments) > 63:
             raise ValueError('too many instruments')
 
@@ -181,6 +213,7 @@ class Score:
         ins = None
         emitted_ins = None
         lo, hi = 999, -1
+        gated = []                       # (rows, gate lead) of notes that gate off early
 
         def emit(event, n):
             nonlocal cur_len, rows
@@ -222,6 +255,11 @@ class Score:
                 if ins != emitted_ins:
                     out.append(0xC0 + self.ins_index[ins])
                     emitted_ins = ins
+                lead = self.instruments[self.ins_index[ins]]['gate'] & 0x7F
+                if lead:
+                    if n > self.max_rows:
+                        raise ValueError('%s: %s is too long for an instrument with gate=' % (name, tok))
+                    gated.append((n, lead))
                 top = note + self.instruments[self.ins_index[ins]]['maxrel']
                 lo, hi = min(lo, note), max(hi, top)
                 emit(note, n)
@@ -230,6 +268,7 @@ class Score:
             raise ValueError('%s: pattern is over 256 bytes' % name)
         self.pat_index[name] = len(self.patterns)
         self.pat_notes[name] = (lo, hi)
+        self.pat_gated[name] = gated
         self.patterns.append((name, out, rows))
         if len(self.patterns) > 128:
             raise ValueError('too many patterns')
@@ -242,12 +281,12 @@ class Score:
             raise ValueError('a song has three voices')
         if tempo < 3:
             raise ValueError('tempo must be at least 3 ticks per row')
-        f = dict(voices=0, res=0, mode='lp', cut=(0, 0, 0))
+        f = dict(res=0, mode='lp', cut=(1, 255))
         f.update(filter or {})
-        mode = {'lp': 1, 'bp': 2, 'hp': 4, 'lp+hp': 5, 'off': 0}[f['mode']]
-        cmin, cmax, cspd = f['cut']
-        if cspd and not cmin < cmax:
-            raise ValueError('%s: filter sweep needs min < max' % name)
+        mode = {'lp': 1, 'bp': 2, 'hp': 4, 'lp+hp': 5, 'lp+bp': 3, 'off': 0}[f['mode']]
+        cmin, cmax = f['cut']
+        if not 0 <= cmin < cmax <= 255:
+            raise ValueError('%s: filter range needs 0 <= min < max <= 255' % name)
         lengths = []
         for v, order in enumerate(voices):
             if order.count(LOOP) > 1:
@@ -268,6 +307,9 @@ class Score:
                     if hi >= 0 and (lo + trans < 0 or hi + trans > 95):
                         raise ValueError('%s: %s transposed %+d leaves the note range' % (name, item, trans))
                     total += self.patterns[self.pat_index[item]][2]
+                    for rows, lead in self.pat_gated[item]:
+                        if rows * tempo <= lead:
+                            raise ValueError('%s: %s has a note shorter than its gate= lead' % (name, item))
             lengths.append((total, total - before))
         if end == 'loop' and len(set(lengths)) != 1:
             raise ValueError('%s: voices differ in (total rows, looped rows): %r' % (name, lengths))
@@ -276,8 +318,8 @@ class Score:
         self.song_index[name] = len(self.songs)
         self.songs.append(dict(
             name=name, tempo=tempo, voices=voices, end=end,
-            filter=(f['res'] << 4) | f['voices'], modevol=(mode << 4) | volume,
-            cutmin=cmin, cutmax=cmax, cutspd=cspd, rows=lengths[0][0], loop_rows=lengths[0][1]))
+            res=f['res'] << 4, modevol=(mode << 4) | volume,
+            cutmin=cmin, cutmax=cmax, rows=lengths[0][0], loop_rows=lengths[0][1]))
 
     def effect(self, name, ins, note, ticks):
         if not 1 <= ticks <= 255:
@@ -315,6 +357,8 @@ class Score:
                     orders += [0xFF, loop_at]
                 elif end == 'stop':
                     orders.append(0xFE)
+                elif end == 'resume':
+                    orders += [0xFD, 0xFE]
                 else:
                     orders += [0xFD, self.song_index[end[1]]]
             starts.append(row)
@@ -324,10 +368,10 @@ class Score:
         d['music_song_ord0'] = [r[0] for r in starts]
         d['music_song_ord1'] = [r[1] for r in starts]
         d['music_song_ord2'] = [r[2] for r in starts]
-        for key in ('tempo', 'filter', 'modevol', 'cutmin', 'cutmax', 'cutspd'):
+        for key in ('tempo', 'res', 'modevol', 'cutmin', 'cutmax'):
             d['music_song_' + key] = [s[key] for s in self.songs]
         d['music_orders'] = orders
-        for key in ('ad', 'sr', 'wave', 'wspd', 'pw', 'pws', 'vspd', 'vdly'):
+        for key in INS_FIELDS:
             d['music_ins_' + key] = [i[key] for i in self.instruments]
         d['music_wave_l'] = list(self.wave_l)
         d['music_wave_r'] = list(self.wave_r)
@@ -360,9 +404,10 @@ class Score:
         w('; %d bytes of data.' % self.data_size())
         w('')
         w('music_sfx_reg = %d    ; effects borrow SID voice %d' % (self.sfx_voice * 7, self.sfx_voice + 1))
+        w('music_sfx_bit = %d' % (1 << self.sfx_voice))
         w('')
         w('; ---- songs: ' + ', '.join('%d %s' % (i, s['name']) for i, s in enumerate(self.songs)))
-        for key in ('ord0', 'ord1', 'ord2', 'tempo', 'filter', 'modevol', 'cutmin', 'cutmax', 'cutspd'):
+        for key in ('ord0', 'ord1', 'ord2', 'tempo', 'res', 'modevol', 'cutmin', 'cutmax'):
             table('music_song_' + key, d['music_song_' + key])
         w('')
         w('; ---- order lists')
@@ -376,7 +421,7 @@ class Score:
                 w('    .byte ' + ', '.join('$%02x' % x for x in chunk[i:i + 16]))
         w('')
         w('; ---- instruments: ' + ', '.join('%d %s' % (i, s['name']) for i, s in enumerate(self.instruments)))
-        for key in ('ad', 'sr', 'wave', 'wspd', 'pw', 'pws', 'vspd', 'vdly'):
+        for key in INS_FIELDS:
             table('music_ins_' + key, d['music_ins_' + key])
         w('')
         w('; ---- wave table (left: waveform / $ff jump, right: pitch / jump target)')
@@ -445,34 +490,41 @@ class Frame:
 class Player:
     """The 6502 player (asm/C64Music.asm), statement for statement."""
 
+    SONG_STATE = ('playing', 'chain', 'tempo', 'modevol', 'res', 'route', 'cut', 'cutd', 'cutmin', 'cutmax',
+                  'count', 'pend', 'dur', 'ins', 'trans', 'ord', 'pat', 'ppos', 'note', 'cur',
+                  'wptr', 'wcnt', 'wspd', 'wave', 'gate', 'goff', 'ad', 'sr', 'pwlo', 'pwhi', 'pws', 'pwdir',
+                  'vspd', 'vcnt', 'vdir', 'vdly', 'vlo', 'vhi', 'sllo', 'slhi')
+
     def __init__(self, score):
         self.d = score.compile()
         self.regofs = [0, 7, 14, score.sfx_voice * 7]
+        self.regbit = [1, 2, 4, 1 << score.sfx_voice]
         self.sid = [0] * 25
         self.playing = 0
         self.chain = 0
         self.tempo = 0
         self.modevol = 0x0F
-        self.cut = self.cutfrac = self.cutdir = self.cutmin = self.cutmax = self.cutspd = 0
-        self.sfx = 0
+        self.res = self.route = self.cut = self.cutd = self.cutmin = self.cutmax = 0
+        self.sfx = self.sfxhr = 0
+        self.saved = None
         z = lambda: [0, 0, 0, 0]
         self.count, self.pend, self.dur, self.ins, self.trans = z(), z(), z(), z(), z()
         self.ord, self.pat, self.ppos, self.note, self.cur = z(), z(), z(), z(), z()
-        self.wptr, self.wcnt, self.wspd, self.wave, self.gate = z(), z(), z(), z(), z()
+        self.wptr, self.wcnt, self.wspd, self.wave, self.gate, self.goff = z(), z(), z(), z(), z(), z()
         self.ad, self.sr, self.pwlo, self.pwhi, self.pws, self.pwdir = z(), z(), z(), z(), z(), z()
         self.vspd, self.vcnt, self.vdir, self.vdly, self.vlo, self.vhi = z(), z(), z(), z(), z(), z()
+        self.sllo, self.slhi = z(), z()
 
-    def play(self, song):
+    def _song_init(self, song):
         d = self.d
         self.ord[0] = d['music_song_ord0'][song]
         self.ord[1] = d['music_song_ord1'][song]
         self.ord[2] = d['music_song_ord2'][song]
         self.tempo = d['music_song_tempo'][song]
-        self.sid[0x17] = d['music_song_filter'][song]
+        self.res = d['music_song_res'][song]
         self.modevol = d['music_song_modevol'][song]
         self.cutmax = d['music_song_cutmax'][song]
-        self.cutspd = d['music_song_cutspd'][song]
-        self.cutmin = self.cut = d['music_song_cutmin'][song]
+        self.cutmin = d['music_song_cutmin'][song]
         for x in range(3):
             self.pat[x] = self.ppos[x] = self.trans[x] = self.ins[x] = 0
             self.pend[x] = REST
@@ -480,8 +532,28 @@ class Player:
             self.dur[x] = 1
             self.count[x] = 3
         self.playing = 0xFF
-        self.cutdir = 0
         self.chain = 0
+        self.cutd = 0
+        self.route = 0
+
+    def play(self, song):
+        self._song_init(song)
+        self.saved = None
+
+    def interrupt(self, song):
+        if self.saved is None:
+            self.saved = {k: (list(v) if isinstance(v, list) else v)
+                          for k, v in ((k, getattr(self, k)) for k in self.SONG_STATE)}
+        self._song_init(song)
+
+    def resume(self):
+        if self.saved is None:
+            return
+        for k, v in self.saved.items():
+            setattr(self, k, list(v) if isinstance(v, list) else v)
+        self.saved = None
+        self.count[3] = 0
+        self.sid[4] = self.sid[11] = self.sid[18] = 0x08
 
     def stop(self):
         self.playing = 0
@@ -493,7 +565,7 @@ class Player:
         if self.count[3] and e < self.sfx:
             return
         self.sfx = e
-        self.count[3] = d['music_sfx_len'][e]
+        self.count[3] = self.sfxhr = d['music_sfx_len'][e]
         self.note_init(3, d['music_sfx_note'][e], d['music_sfx_ins'][e])
 
     def note_init(self, x, note, y):
@@ -505,29 +577,42 @@ class Player:
         self.wspd[x] = d['music_ins_wspd'][y]
         self.wcnt[x] = 1
         self.pws[x] = d['music_ins_pws'][y]
-        if self.pws[x] == 0 or self.pwhi[x] == 0:
+        if self.pws[x] == 0 or x == 3 or self.pwhi[x] == 0:
             self.pwlo[x] = d['music_ins_pw'][y]
             self.pwhi[x] = self.pwlo[x] & 0x0F
         self.vdly[x] = d['music_ins_vdly'][y]
         self.vspd[x] = d['music_ins_vspd'][y]
         self.vcnt[x] = (self.vspd[x] >> 1) + (self.vspd[x] & 1)
+        self.sllo[x] = d['music_ins_sllo'][y]
+        self.slhi[x] = d['music_ins_slhi'][y]
+        self.goff[x] = d['music_ins_gate'][y] & 0x7F
+        self.route &= ~self.regbit[x] & 0xFF
+        f = d['music_ins_filt'][y]
+        if f:
+            if f != 0xFF:
+                self.cut = f
+                self.cutd = d['music_ins_fdel'][y]
+            self.route |= self.regbit[x]
         self.vlo[x] = self.vhi[x] = self.vdir[x] = 0
         self.gate[x] = 0xFF
 
     def tick(self):
         self.sid[0x18] = self.modevol
-        if self.cutspd:
-            s = self.cutfrac + self.cutspd
-            self.cutfrac = s & 0xFF
-            if s > 0xFF:
-                if self.cutdir == 0:
-                    self.cut = (self.cut + 1) & 0xFF
-                    if self.cut >= self.cutmax:
-                        self.cutdir = 1
+        self.sid[0x17] = self.route | self.res
+        if self.cutd:
+            if self.cutd < 0x80:
+                c = self.cutd + self.cut
+                if c > 0xFF or c >= self.cutmax:
+                    c = self.cutmax
+            else:
+                c = self.cutd + self.cut
+                if c <= 0xFF:
+                    c = self.cutmin
                 else:
-                    self.cut = (self.cut - 1) & 0xFF
-                    if self.cutmin >= self.cut:
-                        self.cutdir = 0
+                    c &= 0xFF
+                    if c < self.cutmin:
+                        c = self.cutmin
+            self.cut = c
         self.sid[0x16] = self.cut
         for x in (2, 1, 0):
             if self.playing:
@@ -543,11 +628,21 @@ class Player:
                     self.fetch(x)
             self.chan(x)
         if self.count[3]:
-            self.chan(3)
-            self.count[3] -= 1
+            y = self.regofs[3]
+            if self.sfxhr:
+                self.sfxhr = 0
+                self.sid[y + 5] = self.sid[y + 6] = 0
+                self.sid[y + 4] = 0x08
+            else:
+                self.chan(3)
+                self.count[3] -= 1
+                if self.count[3] == 0:
+                    self.sid[y + 4] = 0x08
         if self.chain:
-            song = self.chain - 1
-            self.play(song)
+            if self.chain == 0xFF:
+                self.resume()
+            else:
+                self._song_init(self.chain - 1)
 
     def fetch(self, x):
         d = self.d
@@ -570,7 +665,7 @@ class Player:
                             self.trans[x] = (a - 0xA0) & 0xFF
                             continue
                         if a == 0xFD:
-                            self.chain = d['music_orders'][y] + 1
+                            self.chain = (d['music_orders'][y] + 1) & 0xFF
                             self.pend[x] = REST
                             return
                         if a == 0xFF:
@@ -586,13 +681,16 @@ class Player:
                 continue
             if a < REST:
                 a = (a + self.trans[x]) & 0xFF
-                self.gate[x] = 0xFE
-                self.ad[x] = self.sr[x] = 0
+                if not d['music_ins_gate'][self.ins[x]] & 0x80:
+                    self.gate[x] = 0xFE
+                    self.ad[x] = self.sr[x] = 0
             self.pend[x] = a
             return
 
     def chan(self, x):
         d = self.d
+        if self.count[x] == self.goff[x]:
+            self.gate[x] = 0xFE
         self.wcnt[x] = (self.wcnt[x] - 1) & 0xFF
         if self.wcnt[x] == 0:
             self.wcnt[x] = self.wspd[x]
@@ -608,18 +706,19 @@ class Player:
             a = d['music_wave_r'][y]
             self.cur[x] = (a & 0x7F) if a & 0x80 else (a + self.note[x]) & 0xFF
             self.wptr[x] = (y + 1) & 0xFF
+        v = self.vlo[x] | (self.vhi[x] << 8)
         if self.vspd[x]:
             if self.vdly[x]:
                 self.vdly[x] -= 1
             else:
                 step = FREQ[self.cur[x]] >> 8
-                v = self.vlo[x] | (self.vhi[x] << 8)
                 v = (v - step if self.vdir[x] else v + step) & 0xFFFF
-                self.vlo[x], self.vhi[x] = v & 0xFF, v >> 8
                 self.vcnt[x] = (self.vcnt[x] - 1) & 0xFF
                 if self.vcnt[x] == 0:
                     self.vcnt[x] = self.vspd[x]
                     self.vdir[x] ^= 1
+        v = (v + (self.sllo[x] | (self.slhi[x] << 8))) & 0xFFFF
+        self.vlo[x], self.vhi[x] = v & 0xFF, v >> 8
         if self.pws[x]:
             pw = self.pwlo[x] | (self.pwhi[x] << 8)
             if self.pwdir[x] == 0:
@@ -631,7 +730,7 @@ class Player:
                 if (pw >> 8) < 0x02:
                     self.pwdir[x] = 0
             self.pwlo[x], self.pwhi[x] = pw & 0xFF, pw >> 8
-        f = (FREQ[self.cur[x]] + (self.vlo[x] | (self.vhi[x] << 8))) & 0xFFFF
+        f = (FREQ[self.cur[x]] + v) & 0xFFFF
         y = self.regofs[x]
         if x != 3 and self.count[3] and y == self.regofs[3]:
             return

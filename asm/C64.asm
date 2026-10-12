@@ -261,6 +261,27 @@ C64_GetMemory
 .endif
 
 .weak
+Flag_C64_GetWord = 0
+.endweak
+.if Flag_C64_GetWord
+
+; C64.GetWord(address, index): the word at address + index * 2 (index 0-127).
+C64_GetWord
+    #stack_save_return_adress zp_tmp1_low
+    #stack_pull_int_a
+    asl
+    tay
+    #stack_pull_pointer zp_param4_low
+    iny
+    lda (zp_param4_low),y
+    pha                             ; high byte first, like #stack_push_var16
+    dey
+    lda (zp_param4_low),y
+    pha
+    #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+.weak
 Flag_C64_Random = 0
 .endweak
 .if Flag_C64_Random

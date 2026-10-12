@@ -14,20 +14,19 @@ namespace Catacombs;
 //                   viewport). The screen is blanked while this happens, so
 //                   a half-drawn room is never visible.
 //   Animate         every video frame: flickers the two torches (a few cells
-//                   of flame, and the colours of the lit wall around them).
+//                   of flame, and the fire colours of the wall around them).
 //   OpenNorthDoor   the north door swinging open, one step per call.
 static class DungeonView
 {
     public const uint North = 1, West = 2, East = 4, South = 8;                     // door bits
     public const uint Chains = 1, Banner = 2, Bones = 4, Puddle = 8, Grate = 16;    // prop bits
 
-    // Indices into room_Images (RoomArt.cs): door overlays in door-bit order,
-    // then props in prop-bit order, then the door-opening and flame frames.
-    const uint FirstDoor = 0, FirstProp = 4, FirstOpening = 9, FirstFlame = 12;
+    // Indices into room_Table (RoomArt.cs): door overlays in door-bit order,
+    // props in prop-bit order, the door-opening steps, four flame pictures,
+    // four glow states for each torch, then the theme colour tables.
+    const uint FirstDoor = 0, FirstProp = 4, FirstOpening = 9, FirstFlame = 12, FirstGlow = 16, FirstTheme = 23;
 
-    static uint theme_;
     static uint tick_;
-    static uint flame_;
 
     public static void Render(uint px, uint py)
     {
@@ -40,9 +39,11 @@ static class DungeonView
             doors = doors | East;
         if (!Maze.SouthIsWall(px, py))
             doors = doors | South;
-        Draw(Maze.Theme(px, py), doors, Maze.Props(px, py));
+        uint info = Maze.Info(px, py);
+        Draw((info >> 5) - 1, doors, info & 31);
     }
 
+    // theme 0..RoomArt.ThemeCount-1, doors and props as bit sets.
     public static void Draw(uint theme, uint doors, uint props)
     {
         C64.Screen.BeginUpdate();
@@ -50,79 +51,46 @@ static class DungeonView
         Overlays(doors, FirstDoor);
         Overlays(props, FirstProp);
         if (theme != 0)
-        {
-            ulong offset = theme - 1;
-            C64.Screen.RemapCellColors(0, 0, 40, 21, C64Address.FromLabel("pal_Themes") + offset * 16);
-        }
-        theme_ = theme;
+            C64.Screen.RemapCellColors(0, 0, 40, 21, Entry(FirstTheme + theme));
         C64.Screen.EndUpdate();
     }
 
-    // Draws the overlay of every set bit of mask; bit 0 is image `index`.
+    // Draws the overlay of every set bit of mask; bit 0 is picture `index`.
     static void Overlays(uint mask, uint index)
     {
         while (mask != 0)
         {
             if ((mask & 1) != 0)
-                C64.Screen.DrawImage(0, 0, ImageAt(index));
+                C64.Screen.DrawImage(0, 0, Entry(index));
             mask = mask >> 1;
             index = index + 1;
         }
     }
 
-    static ulong ImageAt(uint index)
+    static ulong Entry(uint index)
     {
-        ulong table = C64Address.FromLabel("room_Images");
-        ulong high = C64.GetMemory(table, index * 2 + 1);
-        return high * 256 + C64.GetMemory(table, index * 2);
+        return C64.GetWord(C64Address.FromLabel("room_Table"), index);
     }
 
     // step 0..2: the door leaf swings further in. Drawn over the closed door
     // (each picture only holds the cells that change).
     public static void OpenNorthDoor(uint step)
     {
-        C64.Screen.DrawImage(0, 0, ImageAt(FirstOpening + step));
+        C64.Screen.DrawImage(0, 0, Entry(FirstOpening + step));
     }
 
     // Call once per frame, right after WaitForVBlank. Every fourth frame one
     // of the two torches (they take turns) gets a new flame picture, and
-    // sometimes a new brightness for the wall around it.
+    // half the time a new state for the glow on the wall around it.
     public static void Animate()
     {
         tick_ = tick_ + 1;
         if ((tick_ & 3) != 0)
             return;
-        uint torch = (tick_ >> 2) & 1;
+        uint torch = tick_ & 4;             // 0 = left, 4 = right
         uint random = C64.Random();
-
-        flame_ = flame_ + 1 + (random & 1);
-        if (flame_ >= 3)
-            flame_ = flame_ - 3;
-        C64.Screen.DrawImage(torch == 0 ? RoomArt.FlameColumn0 : RoomArt.FlameColumn1, RoomArt.FlameRow, ImageAt(FirstFlame + flame_));
-
+        C64.Screen.DrawImage(torch == 0 ? RoomArt.FlameColumn0 : RoomArt.FlameColumn1, RoomArt.FlameRow, Entry(FirstFlame + (random & 3)));
         if ((random & 16) != 0)
-            Glow(torch, random >> 6);
-    }
-
-    // Recolours the lit wall around one torch: state 0 brightest .. 3 dimmest.
-    static void Glow(uint torch, uint state)
-    {
-        ulong rects = C64Address.FromLabel("glow_Rects");
-        uint at = 0;
-        if (torch != 0)
-            at = C64.GetMemory(rects, 0) * 4 + 1;
-        uint count = C64.GetMemory(rects, at);
-
-        ulong colors = C64Address.FromLabel("glow_Colors");
-        uint entry = theme_ * (RoomArt.GlowStates * 2) + state * 2;
-        uint matrix = C64.GetMemory(colors, entry);
-        Colors colorRam = (Colors)C64.GetMemory(colors, entry + 1);
-
-        while (count != 0)
-        {
-            C64.Screen.SetCellColors(C64.GetMemory(rects, at + 1), C64.GetMemory(rects, at + 2), C64.GetMemory(rects, at + 3), C64.GetMemory(rects, at + 4), matrix, colorRam);
-            at = at + 4;
-            count = count - 1;
-        }
+            C64.Screen.DrawImage(0, 0, Entry(FirstGlow + torch + (random >> 6)));
     }
 }

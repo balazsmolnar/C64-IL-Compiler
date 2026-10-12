@@ -58,6 +58,7 @@ HOT_R = 34.0                    # far wall: per-pixel shading within this many p
 ACCENT = 5                      # the theme accent (moss here; themes remap it)
 
 STONE, WOOD, IRON, VOID, WATER = range(5)
+PLAIN = {'left', 'right'}        # surfaces whose stones get a plain bevel, no shading bands (bytes)
 
 # Colour ramps, dark to light. A lit surface is a position on its ramp: the
 # face sits at the light level, its shadow one entry below, its highlight one
@@ -334,13 +335,23 @@ def level_of(e):
     return max(0.0, min(4.0, math.log2(max(e, 1e-6) / 0.035)))
 
 
+OVER = {'dn', 'dw', 'de', 'so', 'pu', 'gr'}     # regions that only exist in overlays
+
+
+def differs(rid, other):
+    """Is `other` a different region, as seen from a pixel of `rid`? The room itself does not
+    react to an overlay next to it (no joint, no bevel): the overlay draws the outline, so the
+    cells around an overlay stay exactly as they are in the backdrop."""
+    return other != rid and not (rid[0] not in OVER and other[0] in OVER)
+
+
 def edge_dist(S, mx, my, dx, dy, rid, cap=4):
     """Pixels from (mx, my) to the region's edge going (dx, dy): 1 = the next one is outside."""
     for k in range(1, cap + 1):
         x, y = mx + dx * k, my + dy * k
         if x < 0 or y < 0 or x > W or y > H:
             return cap + 1
-        if S[y][x][0] != rid:
+        if differs(rid, S[y][x][0]):
             return k
     return cap + 1
 
@@ -559,6 +570,16 @@ def in_moss(mx, my):
 # Rendering
 # ---------------------------------------------------------------------------
 
+BASE_CFG = Cfg()
+_BASE_INFO = {}
+
+
+def base_info():
+    if not _BASE_INFO:
+        render(BASE_CFG)
+    return _BASE_INFO
+
+
 def render(cfg):
     """Returns a 160x168 grid of C64 colour indices."""
     S = [[sample(2 * mx + 1.0, my + 0.5, cfg) for mx in range(W + 1)] for my in range(H + 1)]
@@ -576,6 +597,9 @@ def render(cfg):
             a[5] += my
     info = {}
     for rid, a in acc.items():
+        if cfg is not BASE_CFG and rid in base_info():
+            info[rid] = base_info()[rid]                 # an overlay must not relight what it only covers part of
+            continue
         n = a[0]
         pos = (a[1] / n, a[2] / n, a[3] / n)
         kind = KIND.get(rid[0], rid[0])
@@ -589,6 +613,8 @@ def render(cfg):
         tsx, tsy = min(TORCH_SCREEN, key=lambda t: (t[0] - scx) ** 2 + (t[1] - scy) ** 2)
         info[rid] = (ew, ec, tsx >= scx, tsy >= scy, hash2('v', rid))
 
+    if cfg is BASE_CFG:
+        _BASE_INFO.update(info)
     want = [[None] * W for _ in range(H)]
     lit = [[None] * W for _ in range(H)]
     for my in range(H):
@@ -597,7 +623,10 @@ def render(cfg):
             rid, mat, ta, tb, bias = s[0], s[1], s[2], s[3], s[4]
             if mat == VOID:
                 continue
-            joint = S[my][mx + 1][0] != rid or S[my + 1][mx][0] != rid
+            joint = differs(rid, S[my][mx + 1][0]) or differs(rid, S[my + 1][mx][0])
+            if rid[0] in OVER and ((mx > 0 and S[my][mx - 1][0][0] not in OVER) or
+                                   (my > 0 and S[my - 1][mx][0][0] not in OVER)):
+                joint = True
             ew, ec, lit_right, lit_down, hv = info[rid]
             du = edge_dist(S, mx, my, 0, -1, rid)
             dd = edge_dist(S, mx, my + 1, 0, 1, rid)
@@ -610,6 +639,8 @@ def render(cfg):
                 tone = 3.0
             elif fv_ == 1 or fh_ == 1:
                 tone = 1.0
+            elif mat == STONE and rid[0] in PLAIN:
+                pass
             elif mat == STONE:
                 if lv_ == 2:
                     tone += 0.5
@@ -807,7 +838,6 @@ THEMES = [
     ("Crypt", theme(c11=4, c12=14, c15=3, c5=10)),       # violet crypt
     ("Bone", theme(c6=9, c11=12, c12=15, c15=1, c5=9)),  # pale, dry stone
 ]
-GLOW_STATES = [(7, 8), (7, 8), (10, 8), (8, 9)]          # what yellow / orange become, bright to dim
 PROPS = ['chains', 'banner', 'bones', 'puddle', 'grate']
 
 
@@ -821,8 +851,8 @@ def convert(name, grid, label, table, base=None, crop=None):
                                             base=png(base) if base else None, crop=crop, quiet=True)
     if report.compromised:
         raise SystemExit("%s: %d compromised cells" % (name, len(report.compromised)))
-    print("%-10s %4d cells %5d bytes" % (name, image.opaque_count(), len(payload) + 11))
-    table.append((name, label, image, len(payload) + 11))
+    print("%-10s %4d cells %5d bytes" % (name, image.opaque_count(), len(payload)))
+    table.append((name, label, image, len(payload)))
     return image
 
 
@@ -887,7 +917,7 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     c64img.lz_encode.__defaults__ = (2048,)               # search harder: these are built once
     table = []
-    base = render(Cfg())
+    base = render(BASE_CFG)
     room = convert("room", base, "Room", table)
     c64img.convert(png("room"), None, preview=os.path.join(SRC, "room.c64.png"), quiet=True)
     over = {}
@@ -912,41 +942,58 @@ def main():
         flames.append(img)
 
     # The glow: cells around each flame that hold only yellow / orange / grey,
-    # always in the same colour slots, so Screen.SetCellColors can dim them.
+    # with the orange in colour RAM. A colour-RAM-only picture then turns the
+    # orange of exactly those cells brighter or darker, whatever theme has
+    # recoloured the grey.
     touched = {(c, r) for im in over.values() for r in range(im.rows) for c in range(im.cols) if im.cells[r][c]}
-    slots = None
     glow = []
-    for cx, cy in FLAME_CELLS:
+    moved = 0
+    for (cx, cy), (tx, ty) in zip(FLAME_CELLS, TORCH_SCREEN):
         cells = []
-        for r in range(cy - 4, cy + 7):
-            for c in range(cx - 4, cx + 6):
+        for r in range(cy - 5, cy + 8):
+            for c in range(cx - 5, cx + 7):
                 if (c, r) in touched or (cx <= c < cx + 2 and cy <= r < cy + 2):
                     continue
                 bm, m, col = room.cells[r][c]
                 tab = (0, m >> 4, m & 15, col & 15)
-                used = {tab[(b >> s) & 3] for b in bm for s in (0, 2, 4, 6)} - {0}
-                if not used or not used <= {7, 8, 12} or not (used & {7, 8}):
+                px = [tab[(b_ >> s_) & 3] for b_ in bm for s_ in (6, 4, 2, 0)]
+                used = set(px) - {0}
+                if 8 not in used or not used <= {7, 8, 12}:
                     continue
-                cell_slots = tuple(tab[1:])
-                want_slots = tuple(x if x in used else None for x in cell_slots)
-                if slots is None:
-                    slots = [None, None, None]
-                ok = all(w is None or slots[i] in (None, w) for i, w in enumerate(want_slots))
-                if not ok:
-                    continue
-                for i, w in enumerate(want_slots):
-                    if w is not None:
-                        slots[i] = w
-                cells.append((c, r))
-        glow.append(rect_cover(cells))
-    print("glow slots", slots, "rects", [len(g) for g in glow])
-    if slots is None or set(slots) != {7, 8, 12}:
-        raise SystemExit("glow: no consistent colour slots %r" % (slots,))
+                if tab[3] != 8:                           # not where the tool put it: re-encode this cell
+                    code = {0: 0, 7: 1, 12: 2, 8: 3}
+                    nb = bytes(sum(code[px[y * 4 + x]] << (6 - 2 * x) for x in range(4)) for y in range(8))
+                    room.cells[r][c] = (nb, 0x7C, 8)
+                    moved += 1
+                cells.append((c, r, math.hypot(c * 8 + 4 - tx, r * 8 + 4 - ty)))
+        glow.append(cells)
+    if moved:
+        payload, _ = c64img.encode_planes(room, 7)
+        c64img.verify(room, payload)
+        c64img.write_file(os.path.join(OUT, "room.img"), room, payload)
+        table[0] = ("room", "Room", room, len(payload))
+    print("glow cells %s, %d re-encoded, room %d bytes" % ([len(g) for g in glow], moved, table[0][3]))
 
-    def glow_bytes(theme_table, state):
-        y, o = GLOW_STATES[state]
-        m = {7: y, 8: o, 12: theme_table[12]}
-        return ((m[slots[0]] << 4) | m[slots[1]], m[slots[2]])
+    def glow_colour(state, d):
+        if state == 1:                                    # flare: the inner ring turns yellow
+            return 7 if d <= 14 else 8
+        if state == 2:                                    # dim: the outer ring turns brown
+            return 9 if d > 14 else 8
+        return 8
+
+    glow_images = []
+    for t_, cells in enumerate(glow):
+        for state in range(3):
+            im = c64img.Image(c64img.MODE_MC, 40, 21, 0)
+            for c, r, d in cells:
+                im.cells[r][c] = (bytes(8), 0, glow_colour(state, d))
+            pl, _ = c64img.encode_planes(im, c64img.PLANE_COLOR)
+            c64img.verify(im, pl)
+            name = "glow%d%d" % (t_, state)
+            c64img.write_file(os.path.join(OUT, name + ".img"), im, pl)
+            table.append((name, "Glow%d%d" % (t_, state), im, len(pl)))
+            glow_images.append(im)
+    print("glow images: %d bytes" % sum(t[3] for t in table[-6:]))
 
     total = sum(t[3] for t in table)
     print("images: %d bytes" % total)
@@ -956,29 +1003,23 @@ def main():
              "using C64Lib;", ""]
     for name, label, _, size in table:
         lines.append('[assembly: RawImage(Resource = "%s.img", Label = "%s")]   // %d bytes' % (name, label, size))
-    asm = ["; room themes: 16-byte colour tables for Screen.RemapCellColors, theme 1 first (theme 0 = as drawn)"]
+    asm = ["; room themes: 16-byte colour tables for Screen.RemapCellColors (theme 0 = as drawn, no table)"]
     for i, (name, t) in enumerate(THEMES):
         if i:
-            asm.append("%-14s .byte %s" % ("pal_Themes" if i == 1 else "", ",".join(str(v) for v in t)) + "   ; " + name)
+            asm.append("%-14s .byte %s" % ("pal_Theme%d" % i, ",".join(str(v) for v in t)) + "   ; " + name)
     order = ["DoorN", "DoorW", "DoorE", "DoorS"] + [p_.capitalize() for p_ in PROPS] + \
-            ["DoorN2", "DoorN3", "DoorN4", "Flame0", "Flame1", "Flame2"]
-    asm.append("; overlay pictures by index (see DungeonView.cs)")
-    asm.append("%-14s .word %s" % ("room_Images", ", ".join("img_" + o for o in order)))
-    asm.append("; torch glow: per torch a count, then that many cell rectangles (column, row, width, height)")
-    for i, g in enumerate(glow):
-        flat = [len(g)] + [v for rc in g for v in rc]
-        asm.append("%-14s .byte %s" % ("glow_Rects" if i == 0 else "", ",".join(str(v) for v in flat)))
-    asm.append("; torch glow colours: per theme, per state (bright to dim): matrix byte, colour RAM byte")
-    for i, (name, t) in enumerate(THEMES):
-        flat = [v for st in range(len(GLOW_STATES)) for v in glow_bytes(t, st)]
-        asm.append("%-14s .byte %s" % ("glow_Colors" if i == 0 else "", ",".join(str(v) for v in flat)) + "   ; " + name)
+            ["DoorN2", "DoorN3", "DoorN4", "Flame0", "Flame1", "Flame2", "Flame0"] + \
+            ["Glow%d%d" % (t_, st) for t_ in range(2) for st in (0, 1, 2, 0)]
+    words = ["img_" + o for o in order] + ["pal_Theme%d" % i for i in range(1, len(THEMES))]
+    asm.append("; pictures and tables by index (see DungeonView.cs): doors, props, door opening, flames,")
+    asm.append("; glow states of torch 0 and of torch 1, theme tables 1..")
+    asm.append("%-14s .word %s" % ("room_Table", ", ".join(words)))
     lines.append("")
     lines.append('[assembly: RawAssembly(Asm = @"')
     lines += asm
     lines.append('")]')
     lines += ["", "namespace Catacombs;", "", "static class RoomArt", "{",
               "    public const uint ThemeCount = %d;" % len(THEMES),
-              "    public const uint GlowStates = %d;" % len(GLOW_STATES),
               "    public const uint FlameColumn0 = %d, FlameColumn1 = %d, FlameRow = %d;"
               % (FLAME_CELLS[0][0], FLAME_CELLS[1][0], FLAME_CELLS[0][1]),
               "}", ""]
@@ -1000,16 +1041,18 @@ def main():
                 scr.draw(over[pr])
             if theme_i:
                 scr.remap(THEMES[theme_i][1])
-            for (cx, cy), g in zip(FLAME_CELLS, glow):
+            for t_, (cx, cy) in enumerate(FLAME_CELLS):
                 scr.draw(flames[flame], cx, cy)
-                mb, cb = glow_bytes(THEMES[theme_i][1], state)
-                for rc in g:
-                    scr.set_colors(rc, mb, cb)
+                gi = glow_images[t_ * 3 + state]
+                for r in range(gi.rows):
+                    for c in range(gi.cols):
+                        if gi.cells[r][c]:
+                            scr.cells[(c, r)] = (scr.cells[(c, r)][0], scr.cells[(c, r)][1], gi.cells[r][c][2])
             return scr.picture()
 
         shots = [scene(0, "nwes", PROPS), scene(1, "nw", ['chains', 'puddle']), scene(2, "ne", ['bones', 'banner']),
                  scene(3, "s", ['grate', 'chains']), scene(4, "nes", ['banner', 'puddle']),
-                 scene(0, "nwe", [], flame=1, state=2), scene(0, "nwe", [], flame=2, state=3),
+                 scene(0, "nwe", [], flame=1, state=1), scene(0, "nwe", [], flame=2, state=2),
                  scene(0, "n", [], door_frame=2), scene(0, "n", [], door_frame=3), scene(0, "n", [], door_frame=4)]
         for i, im in enumerate(shots):
             im.save(os.path.join(SRC, "preview_%d.png" % i))

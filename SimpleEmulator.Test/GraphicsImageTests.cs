@@ -81,6 +81,7 @@ Flag_Screen_DrawImage = 1
 Flag_Screen_SetCellColors = 1
 Flag_Screen_RemapCellColors = 1
 Flag_Screen_MirrorCells = 1
+Flag_Screen_MirrorCellColors = 1
 Flag_Screen_SetScrollX = 1
 GRAPHICS_HIGH = 1
 Graphics_ColorMatrix = ${Matrix:x4}
@@ -132,6 +133,15 @@ Harness_MirrorCells
     cpx #4
     bne -
     jsr Screen_MirrorCells
+    brk
+Harness_MirrorCellColors
+    ldx #0
+-   lda Harness_Args,x
+    pha
+    inx
+    cpx #4
+    bne -
+    jsr Screen_MirrorCellColors
     brk
 Harness_SetScrollX
     lda Harness_Args
@@ -430,6 +440,34 @@ Harness_End
                 }
             }
         Assert.That(emulator.GetMemory(1) & 7, Is.EqualTo(6), "the KERNAL ROM must be banked back in afterwards");
+    }
+
+    [TestCase(0, 0, 40, 21)]
+    [TestCase(5, 3, 9, 4)]
+    public void MirrorCellColors_Copies_Colours_And_Leaves_The_Pixels(int x, int y, int w, int h)
+    {
+        var rnd = new Random(12);
+        var matrix = new byte[1000];
+        var colour = new byte[1000];
+        rnd.NextBytes(matrix);
+        rnd.NextBytes(colour);
+        Fill(Bitmap, 8000, 0x6C);
+        emulator.SetMemory(Matrix, matrix);
+        emulator.SetMemory(ColorRam, colour);
+
+        Run("Harness_MirrorCellColors", (byte)x, (byte)y, (byte)w, (byte)h);
+
+        for (int row = 0; row < 25; row++)
+            for (int col = 0; col < 40; col++)
+            {
+                int i = row * 40 + col;
+                bool written = row >= y && row < y + h && col >= x + (w + 1) / 2 && col < x + w;
+                int from = written ? row * 40 + (x + (x + w - 1 - col)) : i;
+                Assert.That(emulator.GetMemory(Matrix + i), Is.EqualTo(matrix[from]), $"matrix ({col},{row})");
+                Assert.That(emulator.GetMemory(ColorRam + i) & 15, Is.EqualTo(colour[from] & 15), $"colour RAM ({col},{row})");
+            }
+        for (int i = 0; i < 8000; i++)
+            Assert.That(Ram(Bitmap + i), Is.EqualTo(0x6C), $"bitmap byte {i}");
     }
 
     [Test]

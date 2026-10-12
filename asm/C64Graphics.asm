@@ -31,6 +31,7 @@ Flag_Screen_DrawImage = 0
 Flag_Screen_SetCellColors = 0
 Flag_Screen_RemapCellColors = 0
 Flag_Screen_MirrorCells = 0
+Flag_Screen_MirrorCellColors = 0
 Flag_Screen_SetScrollX = 0
 Flag_Screen_DrawText = 0
 Flag_Screen_SetSplit = 0
@@ -151,7 +152,7 @@ Screen_WaitForVBlank:
 ; line) to pick which pixel format to plot. Declared here, gated broadly
 ; (writer OR every reader), so it exists whenever any of them are compiled,
 ; matching graphics_saved_d018's own pattern below.
-.if Flag_Screen_SetScreenMode | Flag_Screen_SetPixel | Flag_Screen_DrawLine | Flag_Screen_DrawRectangle | Flag_Screen_DrawTrapezoid | Flag_Screen_DrawCircle | Flag_Screen_DrawBitmap | Flag_Screen_MirrorCells
+.if Flag_Screen_SetScreenMode | Flag_Screen_SetPixel | Flag_Screen_DrawLine | Flag_Screen_DrawRectangle | Flag_Screen_DrawTrapezoid | Flag_Screen_DrawCircle | Flag_Screen_DrawBitmap | Flag_Screen_MirrorCells | Flag_Screen_MirrorCellColors
 graphics_multicolor_active .byte 0
 .endif
 
@@ -2334,7 +2335,7 @@ Screen_DrawBitmap:
 ; addresses whole cells; their bitmap bytes, matrix byte and colour RAM byte
 ; all live at base + (y*40 + x) * (8 or 1), so one cell index serves all
 ; three.
-.if Flag_Screen_DrawImage | Flag_Screen_SetCellColors | Flag_Screen_RemapCellColors | Flag_Screen_DrawText | Flag_Screen_MirrorCells
+.if Flag_Screen_DrawImage | Flag_Screen_SetCellColors | Flag_Screen_RemapCellColors | Flag_Screen_DrawText | (Flag_Screen_MirrorCells | Flag_Screen_MirrorCellColors)
 
 ; In: zp_cell_x (0-39), zp_cell_y (0-24). Out: zp_cell_index_low/high =
 ; y*40 + x. Destroys A.
@@ -2362,7 +2363,7 @@ Cells_ComputeIndex:
 +   rts
 .endif
 
-.if Flag_Screen_SetCellColors | Flag_Screen_RemapCellColors | Flag_Screen_DrawText | Flag_Screen_MirrorCells
+.if Flag_Screen_SetCellColors | Flag_Screen_RemapCellColors | Flag_Screen_DrawText | (Flag_Screen_MirrorCells | Flag_Screen_MirrorCellColors)
 
 ; In: zp_cell_x, zp_cell_y. Out: zp_cell_mptr / zp_cell_cptr = the matrix and
 ; colour RAM addresses of that cell. Destroys A.
@@ -2384,7 +2385,7 @@ Cells_RectSetup:
     rts
 .endif
 
-.if Flag_Screen_SetCellColors | Flag_Screen_RemapCellColors | Flag_Screen_MirrorCells
+.if Flag_Screen_SetCellColors | Flag_Screen_RemapCellColors | (Flag_Screen_MirrorCells | Flag_Screen_MirrorCellColors)
 
 ; Moves both row pointers one screen row down. Destroys A.
 Cells_NextRow:
@@ -2512,8 +2513,10 @@ Screen_RemapCellColors_Done:
 ; symmetric picture needs only its left half stored. Pixels are reversed as
 ; multicolour pixel pairs or as hi-res bits, whichever mode Screen.
 ; SetScreenMode last set. The middle column of an odd width is left alone.
+; Screen.MirrorCellColors(x, y, width, height) is the same without the
+; pixels: only the matrix and colour RAM bytes are copied.
 ; ---------------------------------------------------------------------------
-.if Flag_Screen_MirrorCells
+.if Flag_Screen_MirrorCells | Flag_Screen_MirrorCellColors
 .cerror (<Graphics_Bitmap) != 0, "Graphics_Bitmap must be page aligned"
 zp_mir_base_low  = zp_cell_index_low   ; $06  bitmap address of the row's first cell
 zp_mir_base_high = zp_cell_index_high  ; $07
@@ -2526,6 +2529,7 @@ zp_mir_dst_high  = zp_gfx_sy           ; $13
 zp_mir_table     = zp_cell_tmp2        ; $11  0 = hi-res table, 16 = multicolour table
 zp_mir_i         = zp_gfx_err_low      ; $14  column within the left half
 zp_mir_half      = zp_gfx_err_high     ; $15  width / 2
+zp_mir_skip      = zp_gfx_cx_low       ; $16  nonzero: colours only
 
 ; A nibble with its pixels in reverse order: four hi-res bits, then two
 ; multicolour pixel pairs.
@@ -2533,7 +2537,14 @@ Screen_MirrorCells_Table:
     .byte 0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7, 15
     .byte 0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15
 
+.if Flag_Screen_MirrorCellColors
+Screen_MirrorCellColors:
+    lda #1
+    .byte $2c                     ; BIT abs: skips the lda below
+.endif
 Screen_MirrorCells:
+    lda #0
+    sta zp_mir_skip
     #stack_save_return_adress zp_tmp1_low
     #stack_pull_int zp_cell_h
     #stack_pull_int zp_cell_w
@@ -2599,6 +2610,8 @@ Screen_MirrorCells_Cell:
     sta (zp_cell_cptr_low),y
     pla
     sta (zp_cell_mptr_low),y
+    lda zp_mir_skip
+    bne Screen_MirrorCells_NextCell
     ldy #7                        ; pixels: each byte reversed
 Screen_MirrorCells_Byte:
     lda (zp_mir_src_low),y
@@ -2636,7 +2649,9 @@ Screen_MirrorCells_Byte:
     sta zp_mir_dst_low
     bcs +
     dec zp_mir_dst_high
-+   inc zp_mir_i
++
+Screen_MirrorCells_NextCell:
+    inc zp_mir_i
     lda zp_mir_i
     cmp zp_mir_half
     bne Screen_MirrorCells_Cell

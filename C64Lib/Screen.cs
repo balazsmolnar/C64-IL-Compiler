@@ -265,6 +265,10 @@ namespace C64Lib
             // the viewport takes some 13 frames.
             public static void MirrorCells(uint column, uint row, uint width, uint height) { }
 
+            // The same for the colours alone (no pixel is touched): quick,
+            // some 40 cycles per copied cell.
+            public static void MirrorCellColors(uint column, uint row, uint width, uint height) { }
+
             // The VIC's horizontal fine scroll: shows the picture 0-7 pixels
             // to the right (a screen shake; the fine part of a scroller).
             // The pixels that leave on the right are hidden, the gap on the

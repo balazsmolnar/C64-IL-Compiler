@@ -66,6 +66,7 @@ COLD = (0, 6, 11, 12, 15, 1)
 MIDR = (0, 9, 11, 12, 15, 7)
 WARM = (0, 9, 8, 10, 7, 1)
 WOODR = (0, 9, 8, 10, 7)
+HOT = (0, 12, 8, 7)            # the far wall around a flame, by distance: grey, orange, pink, yellow
 IRONR = (0, 11, 12, 15, 1)
 WATERR = (0, 6, ACCENT)
 RAMPS = {
@@ -103,7 +104,7 @@ def hash2(*k):
 # ---------------------------------------------------------------------------
 
 OPEN_W = {1: 32.0, 2: 22.0, 3: 12.0, 4: 4.0}     # visible leaf width per north-door state
-FRAME_BIAS = 0.9
+FRAME_BIAS = 0.5
 
 
 def door(du, dv, state, tag, planks=4):
@@ -157,10 +158,6 @@ def door(du, dv, state, tag, planks=4):
             if abs(lx - (stud * 8.0 + 4.0)) < 2.0 and by + 2.0 <= ly < by + 4.0 and lw > 12:
                 return ((tag, 'stud', n, stud), IRON, lx, ly, 1.0 + dim)
             return ((tag, 'band', n), IRON, lx, ly, dim)
-    if state == 1 and planks == 4:
-        rr = math.hypot((lx - 25.0) * 0.8, ly - 32.0)
-        if 1.8 <= rr < 4.2:
-            return ((tag, 'ring'), IRON, lx, ly, 1.0)
     k = int(lx // (32.0 / planks))
     return ((tag, 'plank', k), WOOD, ly, lx, dim + (0.35 if (k * 7 + 3) % 3 == 0 else 0.0))
 
@@ -297,8 +294,8 @@ def wood_tex(a, b, rid):
 
 NORMALS = {'fw': (0, 0, -1), 'dn': (0, 0, -1), 'left': (1, 0, 0), 'dw': (1, 0, 0), 'right': (-1, 0, 0),
            'de': (-1, 0, 0), 'fl': (0, -1, 0), 'ce': (0, 1, 0), 'bf': (0, 0, -1.0001), 'bb': (0, 1, 0)}
-AMBIENT = {'fw': 0.125, 'dn': 0.125, 'left': 0.14, 'right': 0.14, 'dw': 0.14, 'de': 0.14,
-           'fl': 0.165, 'ce': 0.13, 'bf': 0.17, 'bb': 0.10}
+AMBIENT = {'fw': 0.135, 'dn': 0.135, 'left': 0.19, 'right': 0.19, 'dw': 0.19, 'de': 0.19,
+           'fl': 0.20, 'ce': 0.13, 'bf': 0.17, 'bb': 0.10}
 
 
 def light(pos, normal):
@@ -308,8 +305,10 @@ def light(pos, normal):
         lx, ly, lz = tx - pos[0], ty - pos[1], tz - pos[2]
         d = math.sqrt(lx * lx + ly * ly + lz * lz) + 1e-6
         ndl = (lx * normal[0] + ly * normal[1] + lz * normal[2]) / d
-        facing = 1.0 if normal == (0, 0, -1) else max(0.0, 0.25 + 0.75 * ndl)
-        e += math.exp(-d / LIGHT_R) * facing
+        if normal == (0, 0, -1):
+            e += math.exp(-d / LIGHT_R)
+        else:
+            e += 1.2 * math.exp(-d / 30.0) * max(0.0, 0.25 + 0.75 * ndl)
     return e
 
 
@@ -317,16 +316,17 @@ def hot_light(sx, sy):
     """Per-pixel torch light on the far wall, or None outside the hot zones."""
     best = None
     for tx, ty in TORCH_SCREEN:
-        d = math.hypot(sx - tx, (sy - ty) * 1.1)
+        d = math.hypot(sx - tx, (sy - ty) * 1.15)
         if d < HOT_R:
-            e = math.exp(-d / LIGHT_R)
+            p = 3.35 - 2.35 * (d / HOT_R) ** 0.9          # position on the HOT ramp
             below = sy - (ty + 9.0)
             if below > 0:                                 # the bracket's shadow
-                half = 5.0 + below * 0.5
+                half = 5.0 + below * 0.45
                 k = abs(sx - tx) / half
                 if k < 1.0:
-                    e *= 0.25 + 0.75 * k * k
-            best = e if best is None else max(best, e)
+                    p -= 1.0 * (1.0 - k * k)
+            p = max(1.0, min(3.0, p))
+            best = p if best is None else max(best, p)
     return best
 
 
@@ -349,41 +349,66 @@ def edge_dist(S, mx, my, dx, dy, rid, cap=4):
 # Stamps: small pixel maps drawn over the lit room
 # ---------------------------------------------------------------------------
 
+FLAMES = [[
+    "........",
+    "....o...",
+    "...oo...",
+    "...oWo..",
+    "...oWo..",
+    "..oWWo..",
+    "..oWWWo.",
+    ".oWWWWo.",
+    ".oWWWWo.",
+    ".oWWWWWo",
+    ".oWWWWWo",
+    ".oWWWWo.",
+    "..oWWWo.",
+    "..oooo..",
+    "KooooooK",
+    "KKKKKKKK",
+], [
+    "........",
+    "........",
+    ".o......",
+    "..o.....",
+    "..oo....",
+    "..oWo...",
+    "..oWWo..",
+    ".oWWWo..",
+    ".oWWWWo.",
+    "oWWWWWo.",
+    "oWWWWWWo",
+    ".oWWWWWo",
+    ".oWWWWo.",
+    "..oooo..",
+    "KooooooK",
+    "KKKKKKKK",
+], [
+    ".....o..",
+    "....oo..",
+    "....oWo.",
+    "...oWWo.",
+    "...oWo..",
+    "..oWWo.o",
+    "..oWWWo.",
+    ".oWWWWo.",
+    ".oWWWWWo",
+    ".oWWWWWo",
+    "oWWWWWWo",
+    "oWWWWWo.",
+    ".oWWWWo.",
+    "..oooo..",
+    "KooooooK",
+    "KKKKKKKK",
+]]
+
+
 def flame_rows(frame):
-    """8x16 multicolour pixels: the flame, the lit wall behind it, the cup's rim."""
-    height = (11.5, 9.5, 12.5)[frame]
-    lean = (0.0, -1.5, 1.2)[frame]
-    rows = []
-    for fy in range(16):
-        row = ""
-        for fx in range(8):
-            if fy == 15:
-                ch = 'K'
-            elif fy == 14:
-                ch = 'K' if fx in (0, 7) else 'y'
-            else:
-                t = (13.6 - fy) / height
-                ch = 'y' if fy == 0 else 'r'
-                if 0.0 <= t <= 1.0:
-                    cxf = 4.0 + lean * t * t + (0.5 if frame == 1 and t > 0.5 else 0.0)
-                    wdt = 3.3 * (1.0 - t) ** 0.65 * min(1.0, 0.6 + t * 2.5)
-                    dist = abs(fx + 0.5 - cxf)
-                    if dist < wdt:
-                        ch = 'W' if (fy >= 8 and dist < wdt * 0.5 - 0.3 and t < 0.5) else 'y'
-                        if fy < 8 and dist > wdt - 1.0 and wdt > 1.2:
-                            ch = 'o'
-                    elif fy < 8 and dist < wdt + 1.0 and wdt > 0.4:
-                        ch = 'o'
-                if frame == 2 and (fx, fy) == (2, 2):
-                    ch = 'o'
-                if frame == 1 and (fx, fy) == (6, 3):
-                    ch = 'o'
-            row += ch
-        rows.append(row)
-    return rows
+    """8x16 multicolour pixels over the lit wall: the flame and the cup's rim."""
+    return FLAMES[frame]
 
 
-FLAME_LEGEND = {'r': 10, 'y': 7, 'W': 1, 'o': 8}
+FLAME_LEGEND = {'W': 1, 'o': 8}
 
 BRACKET = [
     "KhhhhhhK",
@@ -612,24 +637,33 @@ def render(cfg):
             jitter = ((hv >> 8) % 100) / 100.0 * 0.7 - 0.35
             hot = hot_light(sx, sy) if rid[0] == 'fw' else None
             if hot is not None:
-                wr = hot / (hot + ec)
-                warm = 2 if wr > 0.60 else (1 if wr > 0.30 else 0)
-                ramp = RAMPS[(mat, warm)]
-                top = len(ramp) - 1
-                lv = max(0.0, min(3.45, level_of(hot + ec) + bias + jitter * 0.4))
-                ps, pm, ph = max(0.0, lv - 1.0), lv, min(top, lv + 1.0)
+                ramp = HOT
+                tone = float(round(tone))
+                tsx_, tsy_ = min(TORCH_SCREEN, key=lambda t: abs(t[0] - sx))
+                lv_, fv_ = (dd, du) if tsy_ > sy else (du, dd)
+                lh_, fh_ = (dr, dl) if tsx_ > sx else (dl, dr)
+                tone = 3.0 if (lv_ == 1 or lh_ == 1) else (1.0 if (fv_ == 1 or fh_ == 1) else 2.0)
+                ps, pm, ph = max(0.5, hot - 0.5), hot, min(3.0, hot + 0.5)
             else:
                 wr = ew / (ew + ec)
                 warm = 2 if wr > 0.60 else (1 if wr > 0.30 else 0)
+                if rid[0] == 'fw':
+                    warm = min(warm, 1)                         # the hot zone does the warm part
                 ramp = RAMPS[(mat, warm)]
                 top = len(ramp) - 1
                 lv = level_of(ew + ec) + bias + jitter + LEVEL_SHIFT[mat]
                 lv = max(0.0, min(top - 1.0, math.floor(lv * 2.0 + 0.5) / 2.0))
+                if mat == STONE and warm == 0 and lv == 1.0:
+                    lv = 1.5 if (hv >> 4) & 1 else 0.5          # never a flat blue face
+                if mat == WOOD:
+                    lv = min(lv, 1.5)
                 lo_, hi_ = math.floor(lv), math.ceil(lv)
                 ps = max(0.0, lo_ - 1.0)
                 if lo_ >= 2 and hi_ > lo_:
                     ps = lo_
                 pm, ph = lv, min(top, hi_ + 1.0)
+                if mat == WOOD:
+                    ph = min(ph, 2.0)
                 if mat == IRON:
                     ps, pm, ph = 0.0, 0.0, max(1.0, min(top, math.floor(lv + 1.0)))
                 elif mat == WATER:
@@ -675,9 +709,9 @@ def render(cfg):
                 want[wy][wx] = tone_at(wx, wy, 'H')
     # props
     if 'chains' in cfg.props:
-        stamp(36, 40, CHAIN, CHAIN_LEGEND)
+        stamp(32, 40, CHAIN, CHAIN_LEGEND)
     if 'banner' in cfg.props:
-        stamp(116, 34, banner_rows(), BANNER_LEGEND)
+        stamp(120, 34, banner_rows(), BANNER_LEGEND)
     if 'bones' in cfg.props:
         stamp(38, 124, SKULL, SKULL_LEGEND)
     # torches
@@ -751,17 +785,234 @@ def save_png(grid, path):
     img.save(path)
 
 
+# ---------------------------------------------------------------------------
+# Themes, glow, export
+# ---------------------------------------------------------------------------
+
+# table[colour] = the colour it becomes (Screen.RemapCellColors over the whole
+# viewport). Only the cold colours and the accent move: black, white and the
+# fire colours (yellow, orange, brown, the reds) are the same in every theme,
+# so the torches and their flicker do not care which theme is on.
+def theme(**m):
+    t = list(range(16))
+    for k, v in m.items():
+        t[int(k[1:])] = v
+    return t
+
+
+THEMES = [
+    ("Moss", theme()),                                   # the picture as drawn: grey stone, green moss
+    ("Cold", theme(c12=14, c15=3, c5=15)),               # blue-grey stone, pale lichen
+    ("Rust", theme(c6=9, c11=2, c12=10, c5=8)),          # red stone, rust stains
+    ("Crypt", theme(c11=4, c12=14, c15=3, c5=10)),       # violet crypt
+    ("Bone", theme(c6=9, c11=12, c12=15, c15=1, c5=9)),  # pale, dry stone
+]
+GLOW_STATES = [(7, 8), (7, 8), (10, 8), (8, 9)]          # what yellow / orange become, bright to dim
+PROPS = ['chains', 'banner', 'bones', 'puddle', 'grate']
+
+
+def png(name):
+    return os.path.join(SRC, name + ".png")
+
+
+def convert(name, grid, label, table, base=None, crop=None):
+    save_png(grid, png(name))
+    image, payload, report = c64img.convert(png(name), os.path.join(OUT, name + ".img"),
+                                            base=png(base) if base else None, crop=crop, quiet=True)
+    if report.compromised:
+        raise SystemExit("%s: %d compromised cells" % (name, len(report.compromised)))
+    print("%-10s %4d cells %5d bytes" % (name, image.opaque_count(), len(payload) + 11))
+    table.append((name, label, image, len(payload) + 11))
+    return image
+
+
+class Screen:
+    """A model of the C64 screen's cells, for previews: draw / remap exactly as the game does."""
+
+    def __init__(self):
+        self.cells = {}
+
+    def draw(self, image, col=0, row=0):
+        for r in range(image.rows):
+            for c in range(image.cols):
+                if image.cells[r][c] is not None:
+                    self.cells[(col + c, row + r)] = image.cells[r][c]
+
+    def remap(self, table, rect=(0, 0, 40, 21)):
+        x, y, w, h = rect
+        for (c, r), (bm, m, col) in list(self.cells.items()):
+            if x <= c < x + w and y <= r < y + h:
+                self.cells[(c, r)] = (bm, (table[m >> 4] << 4) | table[m & 15], table[col & 15])
+
+    def set_colors(self, rect, matrix, colour):
+        x, y, w, h = rect
+        for c in range(x, x + w):
+            for r in range(y, y + h):
+                self.cells[(c, r)] = (self.cells[(c, r)][0], matrix, colour)
+
+    def picture(self, scale=2):
+        img = Image.new("RGB", (320, 168))
+        px = img.load()
+        for (c, r), (bm, m, col) in self.cells.items():
+            tab = (0, m >> 4, m & 15, col & 15)
+            for y in range(8):
+                for x in range(4):
+                    rgb = P[tab[(bm[y] >> (6 - 2 * x)) & 3]]
+                    px[c * 8 + x * 2, r * 8 + y] = rgb
+                    px[c * 8 + x * 2 + 1, r * 8 + y] = rgb
+        return img.resize((320 * scale, 168 * scale), Image.NEAREST)
+
+
+def rect_cover(cells):
+    """Greedy cover of a set of (col, row) cells with rectangles (col, row, w, h)."""
+    cells = set(cells)
+    rects = []
+    while cells:
+        c0, r0 = min(cells, key=lambda t: (t[1], t[0]))
+        w = 1
+        while (c0 + w, r0) in cells:
+            w += 1
+        h = 1
+        while all((c0 + i, r0 + h) in cells for i in range(w)):
+            h += 1
+        for i in range(w):
+            for j in range(h):
+                cells.discard((c0 + i, r0 + j))
+        rects.append((c0, r0, w, h))
+    return rects
+
+
 def main():
     os.makedirs(SRC, exist_ok=True)
     os.makedirs(OUT, exist_ok=True)
+    c64img.lz_encode.__defaults__ = (2048,)               # search harder: these are built once
+    table = []
     base = render(Cfg())
-    save_png(base, os.path.join(SRC, "room.png"))
-    c64img.convert(os.path.join(SRC, "room.png"), os.path.join(OUT, "room.img"),
-                   preview=os.path.join(SRC, "room.c64.png"))
-    full = render(Cfg(north=1, west=True, east=True, south=True, props=('chains', 'banner', 'bones', 'puddle', 'grate')))
-    save_png(full, os.path.join(SRC, "room_doors.png"))
-    c64img.convert(os.path.join(SRC, "room_doors.png"), None,
-                   preview=os.path.join(SRC, "room_doors.c64.png"))
+    room = convert("room", base, "Room", table)
+    c64img.convert(png("room"), None, preview=os.path.join(SRC, "room.c64.png"), quiet=True)
+    over = {}
+    prev = "room"
+    for k, name in ((1, "door_n"), (2, "door_n2"), (3, "door_n3"), (4, "door_n4")):
+        over[name] = convert(name, render(Cfg(north=k)), "DoorN" + ("" if k == 1 else str(k)), table, base=prev)
+        prev = name
+    over["door_w"] = convert("door_w", render(Cfg(west=True)), "DoorW", table, base="room")
+    over["door_e"] = convert("door_e", render(Cfg(east=True)), "DoorE", table, base="room")
+    over["door_s"] = convert("door_s", render(Cfg(south=True)), "DoorS", table, base="room")
+    for prop in PROPS:
+        over[prop] = convert("prop_" + prop, render(Cfg(props=(prop,))), prop.capitalize(), table, base="room")
+    flames = []
+    for f in range(3):
+        grid = base if f == 0 else render(Cfg(flame=f))
+        cx, cy = FLAME_CELLS[0]
+        img = convert("flame%d" % f, grid, "Flame%d" % f, table, crop=(cx, cy, 2, 2))
+        cx, cy = FLAME_CELLS[1]
+        other, _, _ = c64img.convert(png("flame%d" % f), None, crop=(cx, cy, 2, 2), quiet=True)
+        if other.cells != img.cells:
+            raise SystemExit("flame %d: the two torches differ" % f)
+        flames.append(img)
+
+    # The glow: cells around each flame that hold only yellow / orange / grey,
+    # always in the same colour slots, so Screen.SetCellColors can dim them.
+    touched = {(c, r) for im in over.values() for r in range(im.rows) for c in range(im.cols) if im.cells[r][c]}
+    slots = None
+    glow = []
+    for cx, cy in FLAME_CELLS:
+        cells = []
+        for r in range(cy - 4, cy + 7):
+            for c in range(cx - 4, cx + 6):
+                if (c, r) in touched or (cx <= c < cx + 2 and cy <= r < cy + 2):
+                    continue
+                bm, m, col = room.cells[r][c]
+                tab = (0, m >> 4, m & 15, col & 15)
+                used = {tab[(b >> s) & 3] for b in bm for s in (0, 2, 4, 6)} - {0}
+                if not used or not used <= {7, 8, 12} or not (used & {7, 8}):
+                    continue
+                cell_slots = tuple(tab[1:])
+                want_slots = tuple(x if x in used else None for x in cell_slots)
+                if slots is None:
+                    slots = [None, None, None]
+                ok = all(w is None or slots[i] in (None, w) for i, w in enumerate(want_slots))
+                if not ok:
+                    continue
+                for i, w in enumerate(want_slots):
+                    if w is not None:
+                        slots[i] = w
+                cells.append((c, r))
+        glow.append(rect_cover(cells))
+    print("glow slots", slots, "rects", [len(g) for g in glow])
+    if slots is None or set(slots) != {7, 8, 12}:
+        raise SystemExit("glow: no consistent colour slots %r" % (slots,))
+
+    def glow_bytes(theme_table, state):
+        y, o = GLOW_STATES[state]
+        m = {7: y, 8: o, 12: theme_table[12]}
+        return ((m[slots[0]] << 4) | m[slots[1]], m[slots[2]])
+
+    total = sum(t[3] for t in table)
+    print("images: %d bytes" % total)
+
+    # RoomArt.cs
+    lines = ["// Generated by art/room_art.py -- do not edit; change the script and run it again.",
+             "using C64Lib;", ""]
+    for name, label, _, size in table:
+        lines.append('[assembly: RawImage(Resource = "%s.img", Label = "%s")]   // %d bytes' % (name, label, size))
+    asm = ["; room themes: 16-byte colour tables for Screen.RemapCellColors, theme 1 first (theme 0 = as drawn)"]
+    for i, (name, t) in enumerate(THEMES):
+        if i:
+            asm.append("%-14s .byte %s" % ("pal_Themes" if i == 1 else "", ",".join(str(v) for v in t)) + "   ; " + name)
+    order = ["DoorN", "DoorW", "DoorE", "DoorS"] + [p_.capitalize() for p_ in PROPS] + \
+            ["DoorN2", "DoorN3", "DoorN4", "Flame0", "Flame1", "Flame2"]
+    asm.append("; overlay pictures by index (see DungeonView.cs)")
+    asm.append("%-14s .word %s" % ("room_Images", ", ".join("img_" + o for o in order)))
+    asm.append("; torch glow: per torch a count, then that many cell rectangles (column, row, width, height)")
+    for i, g in enumerate(glow):
+        flat = [len(g)] + [v for rc in g for v in rc]
+        asm.append("%-14s .byte %s" % ("glow_Rects" if i == 0 else "", ",".join(str(v) for v in flat)))
+    asm.append("; torch glow colours: per theme, per state (bright to dim): matrix byte, colour RAM byte")
+    for i, (name, t) in enumerate(THEMES):
+        flat = [v for st in range(len(GLOW_STATES)) for v in glow_bytes(t, st)]
+        asm.append("%-14s .byte %s" % ("glow_Colors" if i == 0 else "", ",".join(str(v) for v in flat)) + "   ; " + name)
+    lines.append("")
+    lines.append('[assembly: RawAssembly(Asm = @"')
+    lines += asm
+    lines.append('")]')
+    lines += ["", "namespace Catacombs;", "", "static class RoomArt", "{",
+              "    public const uint ThemeCount = %d;" % len(THEMES),
+              "    public const uint GlowStates = %d;" % len(GLOW_STATES),
+              "    public const uint FlameColumn0 = %d, FlameColumn1 = %d, FlameRow = %d;"
+              % (FLAME_CELLS[0][0], FLAME_CELLS[1][0], FLAME_CELLS[0][1]),
+              "}", ""]
+    with open(os.path.join(HERE, "..", "RoomArt.cs"), "w", newline="\n") as f:
+        f.write("\n".join(lines))
+
+    if "--sheet" in sys.argv:
+        def scene(theme_i, doors, props, flame=0, state=0, door_frame=1):
+            scr = Screen()
+            scr.draw(room)
+            if 'n' in doors:
+                scr.draw(over["door_n"])
+                for k in range(2, door_frame + 1):
+                    scr.draw(over["door_n%d" % k])
+            for d in "wes":
+                if d in doors:
+                    scr.draw(over["door_" + d])
+            for pr in props:
+                scr.draw(over[pr])
+            if theme_i:
+                scr.remap(THEMES[theme_i][1])
+            for (cx, cy), g in zip(FLAME_CELLS, glow):
+                scr.draw(flames[flame], cx, cy)
+                mb, cb = glow_bytes(THEMES[theme_i][1], state)
+                for rc in g:
+                    scr.set_colors(rc, mb, cb)
+            return scr.picture()
+
+        shots = [scene(0, "nwes", PROPS), scene(1, "nw", ['chains', 'puddle']), scene(2, "ne", ['bones', 'banner']),
+                 scene(3, "s", ['grate', 'chains']), scene(4, "nes", ['banner', 'puddle']),
+                 scene(0, "nwe", [], flame=1, state=2), scene(0, "nwe", [], flame=2, state=3),
+                 scene(0, "n", [], door_frame=2), scene(0, "n", [], door_frame=3), scene(0, "n", [], door_frame=4)]
+        for i, im in enumerate(shots):
+            im.save(os.path.join(SRC, "preview_%d.png" % i))
 
 
 if __name__ == "__main__":

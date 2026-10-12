@@ -29,42 +29,43 @@ static class Maze
         0,0,0,0,0,0,0,0,0,0,0,0,
     };
 
-    // Each cell's room color -- a Colors value (0-15), same 12x12 layout as
-    // Grid, used for both the screen background and the border while the
-    // player is in that room (see Program.cs). Only the floor cells' entries
-    // are ever read; solid cells just carry the pattern along. The palette
-    // is deliberately limited to colors that stay legible with the white
-    // lines and brown doors drawn on top: no White, Brown, Yellow, Cyan or
-    // LightGreen (too close to the lines or the doors), leaving Black(0),
-    // Red(2), Violet(4), Green(5), Blue(6), LightRed(10), Grey1(11),
-    // Grey2(12), LightBlue(14). Laid out so that any two orthogonally
-    // adjacent cells always differ.
-    static readonly uint[] RoomColors =
+    // The room at (x, y) has a palette theme (RoomArt.ThemeCount of them:
+    // 0 moss, 1 cold, 2 rust, 3 crypt, 4 bone -- see art/room_art.py) and a
+    // set of props (DungeonView's prop bits). Themes go by region, 4x4
+    // cells each, so walking the maze passes through differently coloured
+    // parts of the catacomb; props vary from room to room within a region.
+    public static uint Theme(uint x, uint y)
     {
-        0,5,11,0,5,11,0,5,11,0,5,11,
-        10,14,4,10,14,4,10,14,4,10,14,4,
-        2,6,12,2,6,12,2,6,12,2,6,12,
-        11,0,5,11,0,5,11,0,5,11,0,5,
-        4,10,14,4,10,14,4,10,14,4,10,14,
-        12,2,6,12,2,6,12,2,6,12,2,6,
-        5,11,0,5,11,0,5,11,0,5,11,0,
-        14,4,10,14,4,10,14,4,10,14,4,10,
-        6,12,2,6,12,2,6,12,2,6,12,2,
-        0,5,11,0,5,11,0,5,11,0,5,11,
-        10,14,4,10,14,4,10,14,4,10,14,4,
-        2,6,12,2,6,12,2,6,12,2,6,12,
-    };
-
-    public static Colors RoomColor(uint x, uint y)
-    {
-        return (Colors)RoomColors[y * Width + x];
+        return ((x / 4 + (y / 4) * 3) * 2) % RoomArt.ThemeCount;
     }
 
-    // The same value as a plain uint, for callers that need to do
-    // arithmetic on it (this compiler has no arithmetic on enum types).
+    static readonly uint[] PropSets =
+    {
+        0,
+        DungeonView.Chains,
+        DungeonView.Bones | DungeonView.Banner,
+        DungeonView.Puddle,
+        DungeonView.Grate | DungeonView.Chains,
+        DungeonView.Banner,
+        DungeonView.Bones,
+        DungeonView.Puddle | DungeonView.Banner,
+    };
+
+    public static uint Props(uint x, uint y)
+    {
+        return PropSets[(x * 3 + y * 5) & 7];
+    }
+
+    // The screen background and border are black in every room (the room
+    // picture brings its own colours). Program.cs still asks per room.
+    public static Colors RoomColor(uint x, uint y)
+    {
+        return Colors.Black;
+    }
+
     public static uint RoomColorValue(uint x, uint y)
     {
-        return RoomColors[y * Width + x];
+        return 0;
     }
 
     // Out-of-range coordinates read as solid: a step that would take x or y

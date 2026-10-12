@@ -319,13 +319,13 @@ Music_Interrupt
 Music_Resume
     php
     sei
-    jsr music_resume
+    jsr music_restore
     plp
     rts
 .endif
 
 .if MUSIC_RESUMABLE
-music_resume
+music_restore
     lda m_saved
     beq _none
     ldx #music_state_end - music_state
@@ -588,7 +588,7 @@ _sfxdone
     beq _done
 .if MUSIC_RESUMABLE
     iny
-    beq music_resume            ; $fd $fe
+    beq music_restore           ; $fd $fe
     dey
 .endif
     dey

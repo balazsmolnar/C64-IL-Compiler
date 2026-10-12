@@ -180,6 +180,7 @@ def build():
 
     s.pattern('drone2', '@drone a-2:16 | a-1:8 a-2:8')
     s.pattern('drone1', '@drone a-2:16')
+    s.pattern('bassC', '@drone l16 d-3 c-3 bb2 a-2 | g-2 f-2 e-2 e-2')
     s.pattern('bassB', '@kbass a-2:3 a-2:5 @bass a-3:6 a-2:2')
     s.pattern('bassFill', '@kbass a-2:3 a-2:3 a-2:2 | a-2:2 a-2:2 l1 a-2 a-2 a-2 a-2')
 
@@ -190,6 +191,10 @@ def build():
         s.pattern('padB' + q, '@pad%s a-3:6 a-3:6 a-3:4' % q)
     for q in 'mMd':
         s.pattern('half' + q, '@pad%s a-3:8' % q)
+    s.pattern('padsC', '@padm d-4:12 @bell a-5:4 @padm d-4:12 @bell f-5:4 |'
+                       ' @padM bb3:12 @bell f-5:4 @padM a-3:12 @bell e-5:4 |'
+                       ' @padm g-3:12 @bell d-5:4 @padm d-4:12 @bell a-5:4 |'
+                       ' @padd b-3:16 @pads e-3:16')
     s.pattern('counter1', '@bell r:6 a-5:2 g-5:2 f-5:2 e-5:4 | r:4 d-5:2 f-5:2 e-5:4 c-5:4')
     s.pattern('counter2', '@bell r:6 e-5:2 d-5:2 c-5:2 b-4:4 | r:4 b-4:2 d-5:2 c-5:4 a-4:4')
 
@@ -197,7 +202,7 @@ def build():
     explore_bass = (
         ['drone2', 'drone2', 'drone2', T(1), 'drone1', T(-5), 'drone1'] +
         bars('bassB', lament) +
-        bars('drone1', [(5, ''), (3, ''), (1, ''), (0, ''), (-2, ''), (-4, ''), (-5, ''), (-5, '')]) +
+        [T(0), 'bassC'] +
         bars('bassB', [(0, ''), (0, ''), (5, ''), (5, ''), (0, ''), (-1, ''), (1, '')]) + [T(-5), 'bassFill'])
     explore_lead = (
         ['motif', T(5), 'motif', T(0), 'motifInv', 'cadence', 'leadB1', 'leadB2', 'fluteC1', 'fluteC2',
@@ -209,8 +214,7 @@ def build():
         # B: Am E/G# C/G D/F# F E Bb E7
         bars('padB%', [(0, 'm'), (-5, 'M'), (3, 'M'), (5, 'M'), (-4, 'M'), (-5, 'M'), (1, 'M')]) + [T(-5), 'pads'] +
         # C: Dm Dm Bb A Gm Dm Bdim E7
-        bars('padBell%', [(5, 'm'), (5, 'm'), (1, 'M'), (0, 'M'), (-2, 'm'), (5, 'm')]) +
-        [T(2), 'halfd', 'halfd', T(-5), 'pads'] +
+        [T(0), 'padsC'] +
         # A': bell counter-line, then Bb | E7
         [T(0), 'counter1', T(5), 'counter1', T(0), 'counter2', T(1), 'padM', T(-5), 'pads'])
     s.song('explore', tempo=9, end='loop', volume=15,

@@ -18,15 +18,28 @@ namespace C64Lib
         // pays nothing for the player.
         public static class Music
         {
-            // Silences the SID and starts the player ticking 60 times a
-            // second from the KERNAL's interrupt, so it keeps time no matter
+            // Silences the SID and starts the player ticking once per video
+            // frame from the KERNAL's interrupt, so it keeps time no matter
             // what the main program is doing. Call once, before Play or
-            // PlayEffect. (A program that drives its own interrupts calls
-            // Tick() once per frame instead and never calls Install.)
+            // PlayEffect. It re-times that interrupt to the frame (50 Hz on
+            // PAL, in the bottom border), so the jiffy clock and C64.Delay
+            // count 50ths from then on; works with or without
+            // Screen.SetSplit. (A program that drives its own interrupts
+            // calls Tick() once per frame instead and never calls Install.)
             public static void Install() { }
 
-            // Starts a song from its beginning, replacing the current one.
+            // Starts a song from its beginning, replacing the current one
+            // (and forgetting any song Interrupt put aside).
             public static void Play(uint song) { }
+
+            // Puts the playing song aside exactly where it is and plays
+            // this one instead -- a fight breaking into the level's tune.
+            // Resume() (or a song that ends with 'resume' in the score)
+            // carries on with the first one from that very note. Only one
+            // song is kept: a second Interrupt before a Resume just
+            // replaces what is playing.
+            public static void Interrupt(uint song) { }
+            public static void Resume() { }
 
             // Stops the song and releases its notes. Effects still play.
             public static void Stop() { }

@@ -31,13 +31,15 @@ import vice_record  # noqa: E402
 
 # scene -> emulated seconds to record (from power-on; the program starts ~3 s in)
 SCENES = {
-    'EXPLORE': 100,   # the 77 s tune and the start of its second time round
-    'COMBAT': 50,     # 21 s loop, twice
-    'TITLE': 22,      # the jingle, then the exploration tune taking over
+    'EXPLORE': 112,   # the 92 s tune and the start of its second time round
+    'COMBAT': 48,     # 20 s loop, twice
+    'TITLE': 24,      # the jingle, then the exploration tune taking over
     'DEATH': 20,
-    'VICTORY': 16,
-    'SFX': 26,        # every effect in turn, 2 s apart, no music
-    'SFXMIX': 26,     # the same over the exploration tune
+    'VICTORY': 22,    # 5 s of exploration, the fanfare breaking in, exploration resuming
+    'RESUME': 30,     # 10 s of exploration, 5 s of combat, exploration resumed where it was
+    'SFX': 28,        # every effect in turn, 2 s apart, no music
+    'SFXMIX': 28,     # the same over the exploration tune
+    'SFXGATED': 28,   # the same while voice 3 holds a chord (gate on)
 }
 
 

@@ -256,8 +256,8 @@ class Program
         {
             roomX_ = nx;
             roomDepth_ = nd;
-            Audio.Step();
         }
+        Audio.Step(moved);
 
         // Checked every frame, not just when moved: the player can stop
         // right at a door (see the green border cue from UpdateBorderCue)

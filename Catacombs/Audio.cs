@@ -12,9 +12,10 @@ namespace Catacombs;
 // these calls block unless they say so.
 static class Audio
 {
-    const uint StepEvery = 9;   // moved frames between two footsteps
+    const uint StepEvery = 24;  // frames between two footsteps: about two a second
 
     static uint stepTimer_;
+    static bool stepLeft_;
 
     // Once, at boot.
     public static void Init()
@@ -29,24 +30,45 @@ static class Audio
 #elif SCENE_AUDIO_DEATH
         Hold(AudioIds.SongDeath);
 #elif SCENE_AUDIO_VICTORY
-        Hold(AudioIds.SongVictory);
+        C64.Music.Play(AudioIds.SongExplore);
+        Wait(250);
+        C64.Music.Interrupt(AudioIds.SongVictory); // resumes the exploration tune by itself
+        Forever();
+#elif SCENE_AUDIO_RESUME
+        C64.Music.Play(AudioIds.SongExplore);
+        Wait(250);
+        Wait(250);
+        C64.Music.Interrupt(AudioIds.SongCombat);
+        Wait(250);
+        C64.Music.Resume();
+        Forever();
 #elif SCENE_AUDIO_SFX
         EffectReel();
 #elif SCENE_AUDIO_SFXMIX
         C64.Music.Play(AudioIds.SongExplore);
+        EffectReel();
+#elif SCENE_AUDIO_SFXGATED
+        C64.Music.Play(AudioIds.SongHold);
         EffectReel();
 #else
         C64.Music.Play(AudioIds.SongTitle); // hands over to the exploration tune by itself
 #endif
     }
 
-    // Every frame the player actually moved.
-    public static void Step()
+    // Every frame of the main loop: did the player move this frame?
+    // Footsteps come two a second, left and right alternating, and the
+    // first one as soon as the player sets off.
+    public static void Step(bool moved)
     {
-        if (stepTimer_ == 0)
+        if (!moved)
         {
-            C64.Music.PlayEffect(AudioIds.FxStep);
-            stepTimer_ = StepEvery;
+            stepTimer_ = 0;
+        }
+        else if (stepTimer_ == 0)
+        {
+            C64.Music.PlayEffect(stepLeft_ ? AudioIds.FxStepA : AudioIds.FxStepB);
+            stepLeft_ = !stepLeft_;
+            stepTimer_ = StepEvery - 1;
         }
         else
         {
@@ -64,7 +86,7 @@ static class Audio
     {
         C64.Music.PlayEffect(AudioIds.FxPickup);
         if (Item.CollectedCount == Item.Count)
-            C64.Music.Play(AudioIds.SongVictory); // the last one
+            C64.Music.Interrupt(AudioIds.SongVictory); // the last one; the tune resumes after the fanfare
     }
 
     public static void WeaponPickup()
@@ -72,36 +94,41 @@ static class Audio
         C64.Music.PlayEffect(AudioIds.FxWeapon);
     }
 
+    // The exploration tune is put aside, not stopped: MonsterDied picks it
+    // up where it was.
     public static void CombatStart()
     {
-        C64.Music.Play(AudioIds.SongCombat);
+        C64.Music.Interrupt(AudioIds.SongCombat);
         C64.Music.PlayEffect(AudioIds.FxGrowl);
     }
 
-    // The player's blow. Waits for it to land, so the monster's answer
-    // (or its death) doesn't cut it off.
+    // The player's blow. It outranks the monster's sounds, so it is never
+    // dropped; then waits for it to land before whatever comes next.
     public static void SwordHit()
     {
         C64.Music.PlayEffect(AudioIds.FxSword);
-        Wait(14);
+        Wait(18);
     }
 
     // The monster strikes back: its growl, then the player's cry.
     public static void MonsterAttack()
     {
         C64.Music.PlayEffect(AudioIds.FxGrowl);
-        Wait(20);
+        Wait(30);
         C64.Music.PlayEffect(AudioIds.FxHurt);
     }
 
     public static void MonsterDied()
     {
+        C64.Music.Resume();
         C64.Music.PlayEffect(AudioIds.FxMonsterDeath);
-        C64.Music.Play(AudioIds.SongExplore);
     }
 
+    // Comes straight after MonsterAttack on a fatal blow: let the cry be
+    // heard first.
     public static void PlayerDied()
     {
+        Wait(16);
         C64.Music.PlayEffect(AudioIds.FxPlayerDeath);
         C64.Music.Play(AudioIds.SongDeath); // hands over to the exploration tune by itself
     }
@@ -112,7 +139,7 @@ static class Audio
             C64.Screen.WaitForVBlank();
     }
 
-#if SCENE_AUDIO_EXPLORE || SCENE_AUDIO_COMBAT || SCENE_AUDIO_TITLE || SCENE_AUDIO_DEATH || SCENE_AUDIO_VICTORY || SCENE_AUDIO_SFX || SCENE_AUDIO_SFXMIX
+#if SCENE_AUDIO_EXPLORE || SCENE_AUDIO_COMBAT || SCENE_AUDIO_TITLE || SCENE_AUDIO_DEATH || SCENE_AUDIO_VICTORY || SCENE_AUDIO_RESUME || SCENE_AUDIO_SFX || SCENE_AUDIO_SFXMIX || SCENE_AUDIO_SFXGATED
     // Audio scene builds (see audio/README.md): play one thing from boot and
     // stay there, for recording.
     static void Hold(uint song)
@@ -121,7 +148,7 @@ static class Audio
         Forever();
     }
 
-    // Every effect in turn, two seconds apart (100 PAL frames).
+    // Every effect in turn, two seconds (100 frames) apart.
     static void EffectReel()
     {
         Wait(50);

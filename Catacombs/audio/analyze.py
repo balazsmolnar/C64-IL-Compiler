@@ -36,19 +36,22 @@ import sidmusic  # noqa: E402
 import vice_record  # noqa: E402
 import score as score_module  # noqa: E402
 
-TICK_CYCLES = 16421                      # KERNAL's CIA1 timer A period on PAL
+TICK_CYCLES = sidmusic.TICK_CYCLES       # one PAL frame
 TICK_S = TICK_CYCLES / sidmusic.PAL_CLOCK
 
-# scene -> (song started at boot or None, effects played in order)
-ALL_FX = ['step', 'door', 'pickup', 'weapon', 'sword', 'growl', 'hurt', 'monster death', 'player death']
+# scene -> what the scene build does, in order (see Audio.Init)
+ALL_FX = [('fx', n) for n in ('step a', 'step b', 'door', 'pickup', 'weapon', 'growl', 'hurt', 'sword',
+                              'monster death', 'player death')]
 SCENES = {
-    'EXPLORE': ('explore', []),
-    'COMBAT': ('combat', []),
-    'TITLE': ('title', []),
-    'DEATH': ('death', []),
-    'VICTORY': ('victory', []),
-    'SFX': (None, ALL_FX),
-    'SFXMIX': ('explore', ALL_FX),
+    'EXPLORE': [('play', 'explore')],
+    'COMBAT': [('play', 'combat')],
+    'TITLE': [('play', 'title')],
+    'DEATH': [('play', 'death')],
+    'VICTORY': [('play', 'explore'), ('interrupt', 'victory')],
+    'RESUME': [('play', 'explore'), ('interrupt', 'combat'), ('resume',)],
+    'SFX': ALL_FX,
+    'SFXMIX': [('play', 'explore')] + ALL_FX,
+    'SFXGATED': [('play', 'hold')] + ALL_FX,
 }
 
 
@@ -56,55 +59,65 @@ SCENES = {
 # 1. register dump against the model
 # ---------------------------------------------------------------------------
 def split_ticks(writes):
-    """Groups a dump into player ticks. Returns (ticks, setup) where each
-    tick is (cycle, [(reg, value), ...]) and `setup` maps a tick index to
+    """Groups a dump into player ticks. Returns (ticks, between) where each
+    tick is (cycle, [(reg, value), ...]) and `between` maps a tick index to
     the writes made between the previous tick and that one."""
     ticks, between = [], {}
     i = 0
     n = len(writes)
     while i < n:
         cyc, reg, val = writes[i]
-        # A tick always starts with $D418 then $D416.
-        if reg == 24 and i + 1 < n and writes[i + 1][1] == 22:
+        # A tick starts with $D418, $D417, $D416 (Install's clearing loop
+        # does too, but carries on down to $D415).
+        if reg == 24 and i + 3 < n and writes[i + 1][1] == 23 and writes[i + 2][1] == 22 and writes[i + 3][1] != 21:
             group = []
             start = cyc
-            while i < n and writes[i][0] - start < 3000:
+            while i < n and writes[i][0] - start < 4000:
                 group.append((writes[i][1], writes[i][2]))
                 i += 1
-            ticks.append((start, group))
+            ticks.append((start, group, writes[i - 1][0] - start))
         else:
             between.setdefault(len(ticks), []).append((reg, val))
             i += 1
     return ticks[:-1], between       # the last tick may have been cut off by the end of the recording
 
 
+def apply_event(model, sc, ev):
+    if ev[0] == 'play':
+        model.play(sc.song_index[ev[1]])
+    elif ev[0] == 'interrupt':
+        model.interrupt(sc.song_index[ev[1]])
+    elif ev[0] == 'resume':
+        model.resume()
+    else:
+        model.play_effect(sc.fx_index[ev[1]])
+
+
 def check_dump(sc, scene, path):
-    song, effects = SCENES[scene]
     ticks, between = split_ticks(vice_record.read_dump(path))
     model = sidmusic.Player(sc)
     sid = [0] * 25
-    pending = list(effects)
+    pending = list(SCENES[scene])
     triggers = []
     mismatches = []
-    started = None
-    timeline = []                         # per tick after the song started: model Frame
-    for t, (cyc, group) in enumerate(ticks):
+    timeline = []                         # per tick: (cycle, model Frame)
+    for t, (cyc, group, span) in enumerate(ticks):
         for reg, val in between.get(t, ()):
             sid[reg] = val
-            if reg == 23 and song is not None and started is None:
-                model.play(sc.song_index[song])   # C64.Music.Play: the only caller-side SID write
-                started = t
         for reg, val in group:
             sid[reg] = val
         before = copy.deepcopy(model)
         model.tick()
+        # What the program called between two ticks is not in the dump:
+        # when the model stops matching, the next call the scene makes is
+        # tried, and has to make it match again.
         if model.sid != sid and pending:
             trial = copy.deepcopy(before)
-            trial.play_effect(sc.fx_index[pending[0]])
+            apply_event(trial, sc, pending[0])
             trial.tick()
             if trial.sid == sid:
                 model = trial
-                triggers.append((pending.pop(0), t, cyc))
+                triggers.append((' '.join(pending.pop(0)), t, cyc))
         if model.sid != sid:
             if len(mismatches) < 5:
                 diff = [(r, sid[r], model.sid[r]) for r in range(25) if sid[r] != model.sid[r]]
@@ -113,14 +126,19 @@ def check_dump(sc, scene, path):
                 mismatches.append((t, None))
             model.sid = list(sid)          # resynchronise the register view only
         timeline.append((cyc, model.frame()))
-    ok = not mismatches and not pending and (song is None or started is not None)
-    print('  dump : %d ticks, tick period %.1f cycles, %s' % (
-        len(ticks), (ticks[-1][0] - ticks[0][0]) / max(1, len(ticks) - 1),
-        'EXACT MATCH with the model' if ok else 'MISMATCH'))
+    ok = not mismatches and not pending
+    iv = [b[0] - a[0] for a, b in zip(ticks, ticks[1:])]
+    spans = sorted(tk[2] for tk in ticks)
+    print('  dump : %d ticks, %s' % (len(ticks), 'EXACT MATCH with the model' if ok else 'MISMATCH'))
+    print('         tick interval %d..%d cycles (one frame = %d); first to last register write of a tick: median %d, max %d cycles'
+          % (min(iv), max(iv), TICK_CYCLES, spans[len(spans) // 2], spans[-1]))
+    last = None
     for name, t, cyc in triggers:
-        print('         effect %-14s triggered at tick %d (%.2f s)' % (name, t, cyc / sidmusic.PAL_CLOCK))
+        print('         %-18s at tick %4d (%.2f s)%s' % (name, t, cyc / sidmusic.PAL_CLOCK,
+                                                          '' if last is None else '  +%d ticks' % (t - last)))
+        last = t
     if pending:
-        print('         effects never seen: %s' % ', '.join(pending))
+        print('         never seen: %s' % ', '.join(' '.join(e) for e in pending))
     for t, diff in mismatches[:5]:
         print('         tick %d: (reg, VICE, model) %s' % (t, diff))
     if len(mismatches) > 5:
@@ -166,6 +184,7 @@ def note_segments(timeline):
 
 
 def check_wav(scene, path, timeline, triggers, png):
+    sc_effect_ticks = {e['name']: e['len'] for e in score_module.build().effects}
     import numpy as np
     rate, x = read_wav(path)
     dur = len(x) / rate
@@ -279,18 +298,29 @@ def check_wav(scene, path, timeline, triggers, png):
         print('         %d silent stretches expected (all gates off for >= 0.5 s); loudest residue above 40 Hz: rms %.4f (%s)'
               % (len(runs), worst, 'silent' if worst < 0.004 else 'NOT silent'))
 
-    # --- effects: measured length and envelope of each one (SFX scene)
-    if triggers and scene == 'SFX':
-        for name, t, cyc in triggers:
-            a = int(tick_time(t) * rate)
-            seg = env[a:a + int(1.6 * rate)]
-            if not len(seg):
-                continue
-            pk = float(seg.max())
-            above = np.nonzero(seg > 0.1 * pk)[0]
-            print('         effect %-14s peak %.2f, attack %3.0f ms, audible for %4.0f ms'
-                  % (name, pk, 1000 * int(np.argmax(seg > 0.7 * pk)) / rate,
-                     1000 * (above[-1] - above[0]) / rate if len(above) else 0))
+    # --- effects: level, attack and length of each one
+    fx_levels = {}
+    for name, t, cyc in triggers:
+        if not name.startswith('fx '):
+            continue
+        a = int(tick_time(t) * rate)
+        n = sc_effect_ticks[name[3:]]
+        seg = x[a:a + int((n + 2) * TICK_S * rate)]
+        if len(seg) < 100:
+            continue
+        seg = seg - seg.mean()
+        pk = float(np.abs(seg).max())
+        rms = float(np.sqrt((seg ** 2).mean()))
+        e = env[a:a + len(seg)]
+        fx_levels[name[3:]] = (20 * np.log10(pk + 1e-9), 20 * np.log10(rms + 1e-9))
+        print('         %-16s peak %6.1f dB, rms %6.1f dB, reaches 70%% of its peak after %3.0f ms'
+              % (name[3:], fx_levels[name[3:]][0], fx_levels[name[3:]][1],
+                 1000 * int(np.argmax(e > 0.7 * e.max())) / rate))
+
+    m = x[int(tick_time(0) * rate):]
+    if len(m) > rate and not fx_levels:
+        print('         music level: rms %.1f dB, peak %.1f dB' % (
+            10 * np.log10((m ** 2).mean() + 1e-12), 20 * np.log10(np.abs(m).max() + 1e-9)))
 
     # --- clicks: single-sample jumps far beyond what the waveforms themselves do
     d = np.abs(np.diff(x))
@@ -303,7 +333,7 @@ def check_wav(scene, path, timeline, triggers, png):
         matplotlib.use('Agg')
         import matplotlib.pyplot as plt
     except ImportError:
-        return
+        return fx_levels
     n = 2048
     step = 512
     frames = 1 + (len(x) - n) // step
@@ -331,6 +361,7 @@ def check_wav(scene, path, timeline, triggers, png):
     fig.savefig(png)
     plt.close(fig)
     print('         spectrogram: ' + png)
+    return fx_levels
 
 
 if __name__ == '__main__':
@@ -340,6 +371,7 @@ if __name__ == '__main__':
     a = ap.parse_args()
     sc = score_module.build()
     all_ok = True
+    levels = {}
     for scene in ([s.upper() for s in a.scenes] or list(SCENES)):
         dump = os.path.join(a.dir, scene + '.dump.txt')
         if not os.path.exists(dump):
@@ -350,5 +382,12 @@ if __name__ == '__main__':
         for sid in ('8580', '6581'):
             wav = os.path.join(a.dir, '%s-%s.wav' % (scene, sid))
             if os.path.exists(wav):
-                check_wav(scene, wav, timeline, triggers, wav[:-4] + '.png')
+                levels[(scene, sid)] = check_wav(scene, wav, timeline, triggers, wav[:-4] + '.png')
+    for sid in ('8580', '6581'):
+        solo, gated = levels.get(('SFX', sid)), levels.get(('SFXGATED', sid))
+        if solo and gated:
+            print('Effects started while voice 3 is sounding a chord, against the same effect alone (%s), peak / rms dB:' % sid)
+            for name in solo:
+                if name in gated:
+                    print('  %-16s %+5.1f / %+5.1f' % (name, gated[name][0] - solo[name][0], gated[name][1] - solo[name][1]))
     sys.exit(0 if all_ok else 1)

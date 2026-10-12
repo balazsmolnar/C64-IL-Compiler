@@ -24,8 +24,16 @@ namespace C64Lib
         // pixels drawn from BitmapColorSource.MatrixLow and ColorRam (bit
         // pairs 10 and 11); Background and MatrixHigh pixels stay behind
         // the sprite.
-        public uint MultiColorMask { set { } }
+        public uint MultiColorMask { get => 0; set { } }
         public uint BehindBackgroundMask { set { } }
+
+        // Which sprites are shown ($D015), all eight at once; reading it
+        // back lets a program change some sprites' bits and keep the rest.
+        public uint VisibleMask { get => 0; set { } }
+
+        // Sprite number index (0-7): C64.Sprites[n] is C64.Sprites.SpriteN,
+        // for code that picks the sprite at run time.
+        public Sprite this[uint index] => null;
     }
 
     public class Sprite
@@ -48,6 +56,11 @@ namespace C64Lib
         public uint Frame { set { } }
         public ulong X { get; set; }
         public uint Y { get; set; }
+
+        // Position, frame (see Frame) and colour in one call: what a game
+        // writes for every sprite every video frame, at a fraction of the
+        // code of four property sets.
+        public void Place(ulong x, uint y, uint frame, Colors color) { }
 
     }
 }

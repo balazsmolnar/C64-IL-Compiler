@@ -20,7 +20,7 @@ class Program
     static uint playerDamage_; // set in Main()/PlayerDied(), raised by Weapon.DamageAt on pickup
     const uint PlayerMaxHp = 100;
     const uint UnarmedDamage = 6;
-    const uint Speed = 4;
+    const uint Speed = 1;   // room units per video frame: 2-3 pixels across, a smooth walk
 
     // Cached once per room entry (EnterRoom) instead of recomputed every
     // frame -- HandleInput just reads these. Compass-absolute, matching
@@ -33,12 +33,6 @@ class Program
     // flash, without recomputing Maze.RoomColor every frame.
     static Colors roomColor_;
 
-    // Screen-pixel touch radius for the player-vs-spider check (see
-    // Spider.IsCollidingWith) -- same order of magnitude as Monster's own
-    // RoomRadius (20), which is the established precedent in this codebase
-    // for a screen-space, non-perspective-scaled hit radius.
-    const ulong SpiderCollisionRadius = 12;
-
     static void Main()
     {
         // Scene builds ("dotnet build -p:Scene=COMBAT", see Catacombs.csproj
@@ -46,6 +40,9 @@ class Program
         // otherwise takes playing to reach.
 #if SCENE_TECHDEMO
         TechDemo.Run(); // never returns: the graphics tech showcase (TechDemo.cs)
+#endif
+#if SCENE_CHARS
+        CharScenes.Run(); // never returns: the sprite scenes, "-Scene CHAR_..." (CharScenes.cs)
 #endif
 #if SCENE_COMBAT || SCENE_MONSTERROOM
         px_ = 5;
@@ -72,12 +69,12 @@ class Program
         var colorRam = 0xD800UL;
         for (ulong offset = 0; offset < 1000UL; offset += 250UL)
             C64.FillMemory(colorRam + offset, (uint)Colors.Brown, 250);
+        SpriteStage.Init(); // before everything that puts sprites on it
         Spider.Init();
         Spider.SetRoomColor(Maze.RoomColorValue(px_, py_));
         Monster.Init();
         Item.Init();
         Weapon.Init();
-        SpriteStage.Init();
 
         roomX_ = RoomProjection.Center;
         roomDepth_ = 0;
@@ -108,72 +105,21 @@ class Program
         Spider.SetRoomColor(Maze.RoomColorValue(px_, py_));
     }
 
-    // Border is the feedback channel for two things, checked every frame
-    // regardless of whether the player moved this frame (the spiders move
-    // on their own, and standing still at a door should still show the
-    // cue): red while touching a spider (danger -- see Spider.
-    // IsCollidingWith's own comment for why this is calculated in
-    // screen-space rather than trusting VIC-II hardware sprite collision),
-    // green while standing at an open door (AtDoor -- "press SPACE"),
-    // back to the room's own color otherwise. Collision takes priority
-    // over the door cue if somehow both were ever true at once.
+    // Green border while standing at an open door ("press SPACE"), the
+    // room's own color otherwise.
     static void UpdateBorderCue()
     {
-        bool colliding = Spider.IsCollidingWith(PlayerSprite.X, PlayerSprite.BitmapY, SpiderCollisionRadius);
-        if (colliding)
-            C64.Screen.SetBorderColor(Colors.Red);
-        else if (AtDoor())
+        if (AtDoor())
             C64.Screen.SetBorderColor(Colors.Green);
         else
             C64.Screen.SetBorderColor(roomColor_);
     }
 
-    // Re-ranks the 3 moving creatures (player + 2 spiders) by depth (larger
-    // bitmap-space Y = nearer the viewer, same convention RoomProjection.
-    // ScreenY already uses) and writes each into the physical hardware
-    // sprite slot (0/1/2) that rank calls for -- see SpriteStage's own
-    // comment for why this has to happen fresh every frame rather than
-    // once. Spider1's own floor line (BitmapY1=195) is always nearer than
-    // Spider0's (BitmapY0=185), so only the player's depth is ever in
-    // question -- that collapses the 6 possible orderings of 3 items down
-    // to these 3 cases.
+    // Animates the player and hands every sprite out to the hardware,
+    // nearest first (SpriteStage.cs).
     static void UpdateZOrder()
     {
-        uint playerKey = PlayerSprite.BitmapY;
-
-        if (playerKey >= Spider.BitmapY1)
-        {
-            PlacePlayer(0);
-            PlaceSpider1(1);
-            PlaceSpider0(2);
-        }
-        else if (playerKey >= Spider.BitmapY0)
-        {
-            PlaceSpider1(0);
-            PlacePlayer(1);
-            PlaceSpider0(2);
-        }
-        else
-        {
-            PlaceSpider1(0);
-            PlaceSpider0(1);
-            PlacePlayer(2);
-        }
-    }
-
-    static void PlacePlayer(uint slot)
-    {
-        SpriteStage.Place(slot, PlayerSprite.X, PlayerSprite.RawY, PlayerSprite.Pointer, Colors.Black, true, true, true);
-    }
-
-    static void PlaceSpider0(uint slot)
-    {
-        SpriteStage.Place(slot, Spider.X0, Spider.RawY0, Spider.Pointer, Spider.Color, false, false, false);
-    }
-
-    static void PlaceSpider1(uint slot)
-    {
-        SpriteStage.Place(slot, Spider.X1, Spider.RawY1, Spider.Pointer, Spider.Color, false, false, false);
+        SpriteStage.Update();
     }
 
     // Draws the room's walls/doors ONCE (see DungeonView's own comment on
@@ -427,7 +373,7 @@ class Program
         // order over a loop with more than one exit edge).
         bool monsterDied = false;
         bool playerDied = false;
-        C64.Sprites.Sprite3.Visible = false; // the small patrol sprite -- Render() below draws its own, unrelated full-screen face
+        Monster.HideSprite(); // the patrolling guardian -- Render() below draws its own, unrelated full-screen face
         while (!monsterDied && !playerDied)
         {
             C64.Screen.ClearBitmap();
@@ -473,6 +419,8 @@ class Program
     // fight is waiting on a second attempt.
     static void PlayerDied()
     {
+        PlayerSprite.Fall();
+        SpriteStage.Update();
         for (uint i = 0; i < 6; i++)
         {
             C64.Screen.SetBorderColor(Colors.Red);

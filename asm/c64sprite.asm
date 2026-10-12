@@ -148,6 +148,101 @@ SpriteCollection_set_MultiColorMask:
 .endif
 
 .weak
+Flag_SpriteCollection_get_MultiColorMask = 0
+.endweak
+.if Flag_SpriteCollection_get_MultiColorMask
+
+SpriteCollection_get_MultiColorMask:
+    #stack_save_return_adress zp_tmp1_low
+    lda spriteMultiColor
+    #stack_push_int_a
+    #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+; SpriteCollection.VisibleMask: one bit per sprite, $D015 whole.
+.weak
+Flag_SpriteCollection_set_VisibleMask = 0
+.endweak
+.if Flag_SpriteCollection_set_VisibleMask
+
+SpriteCollection_set_VisibleMask:
+    #stack_save_return_adress zp_tmp1_low
+    #stack_pull_int_a
+    sta spriteEnabled
+    #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+.weak
+Flag_SpriteCollection_get_VisibleMask = 0
+.endweak
+.if Flag_SpriteCollection_get_VisibleMask
+
+SpriteCollection_get_VisibleMask:
+    #stack_save_return_adress zp_tmp1_low
+    lda spriteEnabled
+    #stack_push_int_a
+    #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+; SpriteCollection[index]: a Sprite is its number, which is already what the
+; caller pushed as the index (see SpriteCollection_get_Sprite0).
+.weak
+Flag_SpriteCollection_get_Item = 0
+.endweak
+.if Flag_SpriteCollection_get_Item
+
+SpriteCollection_get_Item:
+    rts
+.endif
+
+; Sprite.Place(x, y, frame, color): X (9 bits), Y, data pointer and colour of
+; one sprite. Stack, top first: color, frame, y, x low, x high, sprite number.
+.weak
+Flag_Sprite_Place = 0
+.endweak
+.if Flag_Sprite_Place
+
+Sprite_Place:
+    #stack_save_return_adress zp_tmp1_low
+    pla
+    sta zp_param1_low       ; colour
+    pla
+    sta zp_param1_high      ; frame
+    pla
+    sta zp_param2_low       ; y
+    pla
+    sta zp_param2_high      ; x low
+    pla
+    tay                     ; x high
+    pla
+    tax                     ; sprite number
+    lda zp_param1_low
+    sta spriteColor,x
+    lda zp_param1_high
+    sta spriteData,x
+.if GRAPHICS_HIGH
+    sta Graphics_ColorMatrix+$3f8,x
+.endif
+    lda sprite_bit_table,x
+    cpy #0
+    beq +
+    ora spriteExtraPosition
+    bne Sprite_Place_l1
++   eor #$FF
+    and spriteExtraPosition
+Sprite_Place_l1:
+    sta spriteExtraPosition
+    txa
+    asl
+    tax
+    lda zp_param2_high
+    sta spriteX,x
+    lda zp_param2_low
+    sta spriteY,x
+    #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+.weak
 Flag_SpriteCollection_set_BehindBackgroundMask = 0
 .endweak
 .if Flag_SpriteCollection_set_BehindBackgroundMask

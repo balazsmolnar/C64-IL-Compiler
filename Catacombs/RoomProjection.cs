@@ -23,30 +23,16 @@ static class RoomProjection
     public const uint Center = Width / 2;
     public const uint DepthMax = 100;  // 0=entrance, DepthMax=far wall
 
-    // Mirrors DungeonView's own FX0Near/FX1Near/FX0Far/FX1Far, inset by
-    // half the player sprite's width (48px now that PlayerSprite doubles
-    // it via ExpandX, see Sprites.cs/PlayerSprite.cs) plus a little slack
-    // -- the wall LINE position itself isn't a safe bound for where a
-    // sprite's own X can go: a sprite is drawn with that X as its left
-    // edge, so sitting right at the true wall line put roughly the left
-    // half of it past the visible screen edge and off-screen (confirmed
-    // empirically via VICE -- the sprite vanished at roomX=0, back when
-    // the sprite was still single-width). Insetting both near and far by
-    // the same fixed amount is simpler than scaling the inset with the
-    // frame's own width, and the far frame (219px wide) still has room
-    // left after it.
-    const ulong Margin = 40;
-    const ulong FX0Near = 4 + Margin, FX1Near = 315 - Margin;
-    const ulong FX0Far = 50 + Margin, FX1Far = 269 - Margin;
-
-    // Where the player's FEET (see PlayerSprite's own bottom-edge
-    // positioning) should be, not the sprite's top: 199 is the very
-    // bottom of the visible 200-line picture (depth=0, standing right at
-    // the front of your own view) down to 173 -- DungeonView's own
-    // FY1Far, the far frame's actual floor line -- at DepthMax, so
-    // reaching the far wall visually plants the character's feet exactly
-    // on that line instead of floating above or sinking below it.
-    const ulong ScreenYNear = 199, ScreenYFar = 173;
+    // CHARACTERS BRANCH STAND-IN (take the Rooms part's version of this
+    // file on merge): the fixed room geometry of AAA-BRIEF.md, so that
+    // sprites stand where the repainted room's floor will be. The walkable
+    // floor: depth 0 at y 160, DepthMax at y 124 (the foot of the far wall
+    // is y 120), and at each depth the floor trapezoid's width less a
+    // margin for half a sprite. ScreenX / ScreenY give the bitmap pixel
+    // between a character's feet.
+    const ulong FX0Near = 26, FX1Near = 293;
+    const ulong FX0Far = 74, FX1Far = 245;
+    const ulong ScreenYNear = 160, ScreenYFar = 124;
 
     public static ulong ScreenX(uint roomX, uint depth)
     {

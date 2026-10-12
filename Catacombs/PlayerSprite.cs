@@ -2,97 +2,133 @@ using C64Lib;
 
 namespace Catacombs;
 
-// The player, shown as a hardware sprite that moves via plain X/Y register
-// pokes, no bitmap redraw at all -- see DungeonView's own comment for why
-// the room itself is only ever drawn once per entry.
+// The adventurer: three sprites (SpriteStage actor 0). From the front:
+//   0  hi-res overlay: the torch flame's core and the torchlight on his edges
+//   1  multicolour top half (hood, face, cloak, torch)
+//   2  multicolour legs, with the ground shadow under them
 //
-// This class only tracks the player's own LOGICAL sprite state (position,
-// walk-cycle frame) -- it no longer writes any hardware register itself.
-// Which physical sprite (0/1/2) actually shows the player changes frame to
-// frame depending on depth ranking against the two spiders (see
-// SpriteStage.cs/Program.cs's own UpdateZOrder), so the actual register
-// writes happen there, once per frame, for whichever creature currently
-// ranks into each slot.
-//
-// 2-frame walk cycle copied from Hunchback (see Sprites.cs's own comment on
-// where the art came from). Multicolor, unlike the spiders -- needs both
-// the per-sprite MultiColor flag (set per-frame by SpriteStage, since
-// MultiColor is a per-PHYSICAL-sprite register that has to follow whichever
-// creature currently occupies that slot) and the two SHARED palette
-// registers ($D025/$D026, not exposed as a C64Lib property -- poked
-// directly). Double-sized (ExpandX/ExpandY) so the character reads clearly
-// against the room's own scale.
+// Program.cs only ever says where he stands (SetPosition, when he moved).
+// Which way he faces is read off the movement itself, the walk cycle
+// advances with the steps actually taken, and when no step arrives for a few
+// frames he stands, breathing, the torch flickering.
 static class PlayerSprite
 {
-    // Frames 1 and 2 of the "Legacy" sheet (see Sprites.cs).
-    static uint firstFrame_;
+    const uint Down = 0, Up = 1, Left = 2, Right = 3;
+    const uint Walking = 0, Striking = 1, Fallen = 2;
 
-    // Sprite_set_Y (asm/c64sprite.asm) writes straight to the VIC-II's raw
-    // hardware Y register with no conversion -- unlike bitmap-drawn Y
-    // coordinates (DrawCircle/DrawRectangle/DungeonView's own FY0/FY1
-    // constants, and RoomProjection's own ScreenY), which are relative to
-    // the visible picture's own top edge (bitmap Y=0). The standard C64
-    // offset between the two is +50 (the visible 200-line picture starts
-    // at raster line 50).
-    //
-    // Y is also the sprite's TOP edge, not its center or bottom -- and this
-    // sprite is double-height (42px, ExpandY). Positioning by bitmapY+50
-    // would push a 42px-tall sprite's BOTTOM well past the visible area, so
-    // this subtracts the doubled height instead, positioning by the
-    // sprite's BOTTOM edge (bitmapY+50-42 = bitmapY+8), which is what
-    // should actually line up with the floor.
-    const uint SpriteHeight = 42; // 21px base, doubled by ExpandY
-    const uint SpriteYOffset = 50 - SpriteHeight;
-
-    static ulong x_;
-    static uint bitmapY_;
-    static uint walkTick_;
-    static uint frame_;
+    static uint facing_, pose_;
+    static uint step_;      // walk cycle position, one per step taken
+    static uint still_;     // video frames since the last step
+    static uint tick_;
+    static uint xLow_;      // low byte of the last x: enough to see a step
+    static uint hurt_;      // frames left of the white hurt flash
 
     public static void Init(ulong x, ulong y)
     {
-        walkTick_ = 0;
-        frame_ = 0;
-        firstFrame_ = (uint)C64Address.FromLabel("frm_Legacy") + 1;
-
-        // Blue/Yellow match the original sprite art's own mcolour1=6/
-        // mcolour2=7 -- shared regs, safe to set once regardless of which
-        // physical sprite slot ends up showing the player on any given
-        // frame.
-        Poke(0xD025UL, (uint)Colors.Blue);
-        Poke(0xD026UL, (uint)Colors.Yellow);
-
+        facing_ = Up;
+        SpriteStage.Part(0, 0, 12, 15);
+        SpriteStage.Part(1, 0, 12, 15);
+        SpriteStage.Part(2, (uint)Colors.Grey3, 12, 36);
         SetPosition(x, y);
     }
 
-    // Advances the walk-cycle frame roughly every 6 calls (Program.cs calls
-    // this once per frame the player actually moves).
+    // The point between his feet, in bitmap pixels (RoomProjection).
     public static void SetPosition(ulong x, ulong y)
     {
-        x_ = x;
-        bitmapY_ = (uint)y;
+        uint ny = (uint)y;
+        uint d = ny - SpriteStage.Y[0];
+        if (d == 0)
+        {
+            // A step sideways is 2 pixels or more; less is the perspective
+            // drift of walking in or out and must not turn him.
+            d = (uint)x - xLow_ - 2;
+            if (d < 6)
+                facing_ = Right;
+            else if (d > 246 && d < 253)
+                facing_ = Left;
+        }
+        else if (d < 4)
+            facing_ = Down;
+        else if (d > 252)
+            facing_ = Up;
+        // (anything bigger is arriving through a door: keep facing)
 
-        walkTick_ = walkTick_ + 1;
-        if (walkTick_ % 6 == 0)
-            frame_ = (frame_ + 1) % 2;
+        xLow_ = (uint)x;
+        SpriteStage.X[0] = x;
+        SpriteStage.Y[0] = ny;
+        still_ = 0;
+        step_ = step_ + 1;
+        pose_ = Walking;
     }
 
-    public static ulong X => x_;
+    public static ulong X => SpriteStage.X[0];
+    public static uint BitmapY => SpriteStage.Y[0];
 
-    // Bitmap-space Y (pre-hardware-offset) -- this doubles as the player's
-    // depth-sort key for SpriteStage's z-ordering and for Spider's own
-    // collision check, both of which need the same coordinate space the
-    // spiders' own floor Y constants are already given in.
-    public static uint BitmapY => bitmapY_;
-
-    public static uint RawY => bitmapY_ + SpriteYOffset;
-    public static uint Pointer => firstFrame_ + frame_;
-
-    // FillMemory writes offsets 1..size of its target (its loop never
-    // touches offset 0), so writing one byte at `address` means filling one
-    // byte starting one below it.
-    static void Poke(ulong address, uint value)
+    // A white flash for a few frames: he was hit.
+    public static void Hurt()
     {
-        C64.FillMemory(address - 1UL, value, 1);
+        hurt_ = 12;
+    }
+
+    // Sword arm up, until he next moves.
+    public static void Strike()
+    {
+        pose_ = Striking;
+    }
+
+    // Slain, until he is next placed.
+    public static void Fall()
+    {
+        pose_ = Fallen;
+    }
+
+    // Once per video frame (SpriteStage.Update).
+    public static void Animate()
+    {
+        tick_ = tick_ + 1;
+
+        uint legs = 1;                          // standing
+        uint bob = (tick_ >> 5) & 1;            // breathing
+        if (still_ < 3)
+        {
+            still_ = still_ + 1;
+            legs = (step_ >> 2) & 3;            // contact, passing, contact, passing
+            bob = (legs & 1) ^ 1;               // the body dips as a foot lands
+        }
+
+        if (pose_ == Fallen)
+        {
+            SpriteStage.Parts[0] = 1;
+            SpriteStage.Frame[0] = SpriteStage.Mc + Frame.Fallen;
+            SpriteStage.Color[0] = (uint)Colors.Cyan;
+            SpriteStage.Dy[0] = 36;
+            return;
+        }
+
+        uint top = facing_;
+        if (pose_ == Striking)
+            top = Frame.TopAttack;
+        uint cloak = (uint)Colors.Cyan;
+        if (hurt_ != 0)
+        {
+            hurt_ = hurt_ - 1;
+            cloak = (uint)Colors.White;
+        }
+        // The flame gutters now and then: the light on him dims with it.
+        uint light = (uint)Colors.Yellow;
+        if (C64.Random() < 20)
+            light = (uint)Colors.Orange;
+
+        SpriteStage.Parts[0] = 3;
+        SpriteStage.Frame[0] = SpriteStage.Hi + Frame.Overlay + top;
+        SpriteStage.Color[0] = SpriteStage.HiRes | light;
+        SpriteStage.Dy[0] = 15 + bob;
+        SpriteStage.Frame[1] = SpriteStage.Mc + Frame.Top + top;
+        SpriteStage.Color[1] = cloak;
+        SpriteStage.Dy[1] = 15 + bob;
+        uint cycle = Frame.Legs;
+        if (facing_ > Up && pose_ == Walking)
+            cycle = Frame.Legs - 4 + facing_ * 4;
+        SpriteStage.Frame[2] = SpriteStage.Mc + cycle + legs;
     }
 }

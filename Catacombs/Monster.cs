@@ -84,6 +84,7 @@ static class Monster
         {
             hp_[i] = 0;
             alive_[i] = false;
+            Refresh();
         }
         else
         {
@@ -108,51 +109,117 @@ static class Monster
         return i < Count ? roomX_[i] : PatrolCenter;
     }
 
-    // One animation tick: steps the room's own monster (if any) one frame
-    // of patrol, and reflects that onto hardware sprite 3 -- the ONLY
-    // physical sprite this ever uses (unlike the player/spiders, it's
-    // never rotated through SpriteStage's 0/1/2 z-order ranking, since at
-    // most one monster is ever active at a time and it doesn't need
-    // depth-sorting against them). Reuses Spider's own pose art
-    // (Spider.Pointer) rather than authoring new sprite pixel art at a
-    // hand-picked address -- see Sprites.cs's own comment on the $1700
-    // bat-pose that rendered as garbage when that was tried before.
-    // Called once per frame from Program.cs's main loop (and once more,
-    // directly, from EnterRoom, so a fresh room shows/hides it
-    // immediately rather than waiting a frame) -- cheap no-op (just hides
-    // the sprite) when no monster is in the current room.
+    // --- The room's Feature (SpriteStage actor 1): its guardian or, in a
+    // room without one, its pickup (Item.cs). No room has both.
+    //
+    // Guardians, one kind per guarded room, two sprites each: skeleton
+    // warrior, ghoul, wraith (stacked top and legs) and the giant spider
+    // (two sprites side by side). They pace their patrol slowly; the legs
+    // (or the wraith's rags, or the spider's eight) step as they go.
+    const uint NoRoom = 255;
+    const uint Nothing = 0, Guardian = 1, Pickup = 2;
+    const uint GiantSpider = 3;
+    static readonly uint[] KindColor = { (uint)Colors.White, (uint)Colors.Green, (uint)Colors.LightBlue, (uint)Colors.Red };
+
+    static uint room_ = NoRoom;     // the room the Feature was set up for
+    static uint feature_;
+    static uint guard_;
+    static uint tick_;
+
+    // Makes the next Animate look at the room again: something in it was
+    // killed or collected.
+    public static void Refresh()
+    {
+        room_ = NoRoom;
+    }
+
+    // Takes the guardian off the stage (the combat screen shows its own).
+    public static void HideSprite()
+    {
+        SpriteStage.Y[SpriteStage.Feature] = 0;
+        room_ = NoRoom;
+        feature_ = Nothing;
+    }
+
+    // Once per video frame, from Program.cs's main loop (and once more from
+    // EnterRoom, so a fresh room is right at once).
     public static void Animate(uint px, uint py)
     {
-        uint i = FindAt(px, py);
-        if (i >= Count)
+        tick_ = tick_ + 1;
+        uint key = (px << 4) + py;
+        if (key != room_)
         {
-            C64.Sprites.Sprite3.Visible = false;
-            return;
+            room_ = key;
+            Setup(px, py);
         }
 
-        if (movingRight_[i])
+        if (feature_ == Pickup)
+            Item.Twinkle(tick_);
+        if (feature_ != Guardian)
+            return;
+
+        uint i = guard_;
+        if ((tick_ & 3) == 0)
         {
-            roomX_[i] = roomX_[i] + 1;
-            if (roomX_[i] > PatrolMax)
-                movingRight_[i] = false;
+            if (movingRight_[i])
+            {
+                roomX_[i] = roomX_[i] + 1;
+                if (roomX_[i] > PatrolMax)
+                    movingRight_[i] = false;
+            }
+            else
+            {
+                roomX_[i] = roomX_[i] - 1;
+                if (roomX_[i] < PatrolMin)
+                    movingRight_[i] = true;
+            }
+            SpriteStage.X[SpriteStage.Feature] = RoomProjection.ScreenX(roomX_[i], RoomDepth);
+        }
+
+        uint step = (tick_ >> 3) & 1;
+        uint first = SpriteStage.Mc + Frame.Guardian + i + i + i;
+        if (i == GiantSpider)
+        {
+            SpriteStage.Frame[3] = first + step;
+            SpriteStage.Frame[4] = first + 2 + step;
         }
         else
         {
-            roomX_[i] = roomX_[i] - 1;
-            if (roomX_[i] < PatrolMin)
-                movingRight_[i] = true;
+            SpriteStage.Frame[3] = first;
+            SpriteStage.Frame[4] = first + 1 + step;
         }
-
-        ulong x = RoomProjection.ScreenX(roomX_[i], RoomDepth);
-        uint y = (uint)RoomProjection.ScreenY(RoomDepth);
-        SpriteStage.Place(3, x, y + SpriteYOffset, Spider.Pointer, Colors.Red, false, false, false);
     }
 
-    // Floor-level positioning, same "feet at ScreenY" idea Spider/
-    // PlayerSprite already use -- Spider.Pointer's own pose art is
-    // SpriteHeight (21px, unexpanded) tall.
-    const uint SpriteHeight = 21;
-    const uint SpriteYOffset = 50 - SpriteHeight;
+    static void Setup(uint px, uint py)
+    {
+        feature_ = Nothing;
+        SpriteStage.Y[SpriteStage.Feature] = 0;
+        guard_ = FindAt(px, py);
+        if (guard_ < Count)
+        {
+            // Stacked: top above the legs. The spider: left and right halves.
+            uint dx = 12, dy = 12, dx2 = 12;
+            if (guard_ == GiantSpider)
+            {
+                dx = 0;
+                dy = 33;
+                dx2 = 24;
+            }
+            SpriteStage.Part(3, KindColor[guard_], dx, dy);
+            SpriteStage.Part(4, KindColor[guard_], dx2, 33);
+            SpriteStage.X[SpriteStage.Feature] = RoomProjection.ScreenX(roomX_[guard_], RoomDepth);
+            SpriteStage.Y[SpriteStage.Feature] = (uint)RoomProjection.ScreenY(RoomDepth);
+            feature_ = Guardian;
+        }
+        else if (Item.Setup(px, py))
+            feature_ = Pickup;
+
+        if (feature_ != Nothing)
+        {
+            SpriteStage.Parts[SpriteStage.Feature] = 2;
+            SpriteStage.Y[SpriteStage.Flyer] = 0;   // its sprite is needed here
+        }
+    }
 
     // Simple silhouette: a body and two eyes. MatrixLow is a fixed color
     // (LightRed) set once in Program.Main and never changed, so it's

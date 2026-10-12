@@ -51,20 +51,62 @@ static class Item
         {
             collected_[i] = true;
             collectedCount_ = collectedCount_ + 1;
+            Monster.Refresh();
         }
     }
 
     public static uint CollectedCount => collectedCount_;
 
-    // Small distinct marker (yellow-ish via ColorRam's fixed Brown --
-    // reuses the door color deliberately, both read as "things in the
-    // world," distinct from Monster's MatrixLow/LightRed) drawn once as
-    // part of DungeonView's static room scene, same idea as
-    // Monster.RenderInRoom.
+    // The treasure and the weapons used to be drawn into the room's bitmap;
+    // they are sprites now (below), so there is nothing to draw. Kept for
+    // Program.EnterRoom, which still calls it.
     public static void Render()
     {
-        ulong x = RoomProjection.ScreenX(RoomX, RoomDepth);
-        ulong y = RoomProjection.ScreenY(RoomDepth);
-        C64.Screen.DrawRectangle(x - RoomRadius, y - RoomRadius, x + RoomRadius, y + RoomRadius, true, true, BitmapColorSource.ColorRam);
+    }
+
+    // --- The pickup lying in this room, treasure or weapon, as the room's
+    // Feature (SpriteStage actor 1; see Monster.Setup, which calls this when
+    // the room has no guardian): the item itself with its shadow, and in
+    // front of it a hi-res glint that flares and jumps about on it.
+    static readonly uint[] GlintDx = { 8, 15, 11, 17 };
+    static readonly uint[] GlintDy = { 28, 25, 33, 30 };
+
+    public static bool Setup(uint px, uint py)
+    {
+        uint frame = Frame.Treasure;
+        uint color = (uint)Colors.Yellow;
+        uint rx = RoomX;
+        uint depth = RoomDepth;
+        if (!IsPresentAt(px, py))
+        {
+            if (!Weapon.IsPresentAt(px, py))
+                return false;
+            frame = Frame.Sword + Weapon.FindAt(px, py);
+            color = (uint)Colors.Grey3;
+            rx = Weapon.RoomX;
+            depth = Weapon.RoomDepth;
+        }
+        SpriteStage.Part(3, SpriteStage.HiRes | (uint)Colors.White, 12, 28);
+        SpriteStage.Part(4, color, 12, 33);
+        SpriteStage.Frame[4] = SpriteStage.Mc + frame;
+        SpriteStage.X[SpriteStage.Feature] = RoomProjection.ScreenX(rx, depth);
+        SpriteStage.Y[SpriteStage.Feature] = (uint)RoomProjection.ScreenY(depth);
+        return true;
+    }
+
+    // Small, large, small, then somewhere else on the item.
+    public static void Twinkle(uint tick)
+    {
+        uint phase = (tick >> 3) & 3;
+        uint flare = 0;
+        if (phase == 1)
+            flare = 1;
+        SpriteStage.Frame[3] = SpriteStage.Hi + Frame.Spark + flare;
+        if ((tick & 31) == 0)
+        {
+            uint spot = (tick >> 5) & 3;
+            SpriteStage.Dx[3] = GlintDx[spot];
+            SpriteStage.Dy[3] = GlintDy[spot];
+        }
     }
 }

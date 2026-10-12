@@ -116,7 +116,7 @@ LEVELS = {
     4: (ORANGE, BROWN, BLACK),
     3: (GREY1, BROWN, BLACK),
     2: (GREY1, BLUE, BLACK),
-    1: (BLUE, BLACK, BLACK),
+    1: (BLACK, BLUE, BLACK),          # a silhouette: only the mid tone shows
     0: (BLACK, BLACK, BLACK),
 }
 
@@ -126,8 +126,8 @@ def light(x, y):
     total = 0.0
     for tx in TORCH_X:
         d = math.hypot((x - tx) * 2.0, (y - TORCH_Y) * 1.15)
-        total += math.exp(-d / 30.0)
-    return 7.3 + 1.9 * math.log(total + 1e-9)
+        total += math.exp(-d / 40.0)
+    return 7.9 + 2.6 * math.log(total + 1e-9)
 
 
 def cell_light(c, r):
@@ -141,52 +141,56 @@ def level_pal(level):
 # ---------------------------------------------------------------------------
 # Tiles
 # ---------------------------------------------------------------------------
-# A femur end seen head-on, 4x8 (8x8 hi-res pixels), lit from the top left.
-# Three tonal variants: the fraction of the light level picks one, so the
+# A femur end seen head-on, 8x12 (16x12 hi-res pixels), lit from the top
+# left. Two tonal variants: the fraction of the light level picks one, so the
 # falloff between two palette steps is dithered at tile level.
 KNOB = {
-    2: [".aa.",
-        "aaab",
-        "aabb",
-        "aabb",
-        "abbc",
-        "abbc",
-        ".bc.",
-        "...."],
-    1: [".aa.",
-        "aabb",
-        "abbc",
-        "abbc",
-        "bbbc",
-        "bbcc",
-        ".cc.",
-        "...."],
-    0: [".ab.",
-        "abbc",
-        "bbcc",
-        "bbcc",
-        "bccc",
-        "bccc",
-        ".cc.",
-        "...."],
+    1: ["..aaaa..",
+        ".aaaaab.",
+        "aaaabbbc",
+        "aaabbbbc",
+        "aabbbbbc",
+        "aabbbbcc",
+        "abbbbbcc",
+        "abbbbccc",
+        ".bbbccc.",
+        "..cccc..",
+        "........",
+        "........"],
+    0: ["..aaab..",
+        ".aabbbb.",
+        "aabbbbbc",
+        "abbbbbcc",
+        "abbbbbcc",
+        "abbbbccc",
+        "bbbbcccc",
+        "bbbccccc",
+        ".bccccc.",
+        "..cccc..",
+        "........",
+        "........"],
 }
 # A snapped bone: the marrow hole.
-HOLLOW = [".ab.",
-          "ab.c",
-          "b..c",
-          "b..c",
-          "bc.c",
-          "bccc",
-          ".cc.",
-          "...."]
-# A small skull of the wall, 8x16.
-SKULL = ["..aaaa..",
-         ".aaaabb.",
+HOLLOW = ["..aaab..",
+          ".aab.bb.",
+          "aab...bc",
+          "ab.....c",
+          "ab.....c",
+          "ab....cc",
+          "abb..bcc",
+          "abbbbccc",
+          ".bbbccc.",
+          "..cccc..",
+          "........",
+          "........"]
+# A skull of the wall, 8x16 (jawless, as stacked in an ossuary).
+SKULL = ["..aaaab.",
+         ".aaaabbb",
          "aaaabbbc",
          "aaabbbbc",
          "aabbbbbc",
          "aabbbbcc",
-         "ab.bbb.c",
+         "a..bb..c",
          "a...b..c",
          "a...b..c",
          "ab.bbb.c",
@@ -245,14 +249,13 @@ BIGSKULL = [
 def rnd(*key):
     """A repeatable pseudo-random float 0..1 for a key (so the layout is
     stable from run to run)."""
-    return random.Random(hash(key) & 0xFFFFFFFF).random()
+    return random.Random(repr(key)).random()
 
 
 # ---------------------------------------------------------------------------
 # The picture
 # ---------------------------------------------------------------------------
 WALL_TOP, WALL_BOTTOM = 5, 17          # cell rows of the bone wall
-SKULL_ROWS = (8, 13)                   # top rows of the two courses of skulls
 FLOOR_Y = 144
 CX = 79.5                              # the gate's axis
 SPRING_Y = 108                         # where the arch starts
@@ -260,30 +263,28 @@ R_IN, R_OUT = 32.0, 46.0               # arch radii, hi-res pixels
 JAMB_L = (57, 63)                      # mc x range of the left jamb
 
 
+# The wall, top to bottom (pixel rows): courses of femur ends 12 high, two
+# courses of skulls 16 high.
+COURSES = [(40, 'k'), (52, 'k'), (64, 's'), (80, 'k'), (92, 'k'), (104, 'k'), (116, 's'), (132, 'k')]
+
+
 def wall():
     for r in range(WALL_TOP, WALL_BOTTOM + 1):
-        skull_row = next((s for s in SKULL_ROWS if r in (s, s + 1)), None)
         for c in range(COLS):
             lv = cell_light(c, r)
-            # Each bone a touch lighter or darker than its neighbours.
-            if rnd('j', c, r) < 0.16:
-                lv += 1.0 if rnd('s', c, r) < 0.5 else -1.0
             pal[r][c] = level_pal(lv)
-        if skull_row is not None:
-            if r == skull_row:
-                for c in range(0, COLS, 2):
-                    stamp(c * 4, r * 8, SKULL)
+    for n, (y, kind) in enumerate(COURSES):
+        if kind == 's':
+            for x in range(0, W, 8):
+                stamp(x, y, SKULL)
             continue
-        shift = 2 if (r & 1) else 0
-        for c in range(-1, COLS):
-            x = c * 4 + shift
-            lv = light(x + 2, r * 8 + 4)
-            frac = lv - math.floor(lv)
-            variant = 2 if frac > 0.62 else (1 if frac > 0.30 else 0)
-            tile = KNOB[variant]
-            if rnd('h', c // 2, r) < 0.10 and (c & 1):
+        shift = 4 if (n & 1) else 0
+        for x in range(shift - 8, W, 8):
+            lv = light(x + 4, y + 5)
+            tile = KNOB[1 if (lv - math.floor(lv)) > 0.5 or lv < 4 else 0]
+            if rnd('h', x, y) < 0.08:
                 tile = HOLLOW
-            stamp(x, r * 8, tile)
+            stamp(x, y, tile)
 
 
 def cornice():
@@ -292,35 +293,35 @@ def cornice():
     tile2 = ["aaaa", "bbbb", "bbbb", "cccc", "....", "....", "....", "...."]
     for c in range(COLS):
         stamp(c * 4, 32, tile if c & 1 else tile2)
-        pal[4][c] = level_pal(cell_light(c, 5) - 0.6)
+        pal[4][c] = level_pal(max(2.0, cell_light(c, 6) - 0.5))
 
 
 def floor():
-    """Rows 18-20: three courses of flagstones, wider towards the viewer."""
-    courses = [(144, 150, 12), (151, 158, 16), (159, 167, 24)]
-    for r in range(18, ROWS):
+    """Rows 18-20: three courses of flagstones, larger towards the viewer.
+    Each stone is whole cells wide and has one palette, so the light falls
+    off stone by stone."""
+    for n, (width, offset) in enumerate(((4, 2), (6, -1), (8, 0))):
+        r = 18 + n
+        y0 = r * 8
         for c in range(COLS):
-            pal[r][c] = level_pal(cell_light(c, r) - 0.3)
-    for i, (y0, y1, width) in enumerate(courses):
-        for y in range(y0, y1 + 1):
-            for x in range(W):
-                # joints fan out from the gate's axis
-                spread = 1.0 + (y - 144) * 0.035
-                u = (x - CX) / spread + 400 + (width // 2 if i & 1 else 0)
-                k = int(u) % width
-                if y == y0:
-                    r_ = 1                        # lit top edge of the course
-                elif y == y1:
-                    r_ = 0                        # joint
-                elif k == 0:
-                    r_ = 0
-                elif k == 1:
-                    r_ = 1
-                elif k == width - 1:
-                    r_ = 3
-                else:
-                    r_ = 2 if ((x + y) & 1 or y < y0 + 3) else 3
-                put(x, y, r_)
+            k = (c - offset) % width            # cell within its stone
+            first = c - k
+            lv = cell_light(first + width / 2.0 - 0.5, 16) - 0.6 - n * 0.8
+            if rnd('f', first, n) < 0.25:
+                lv -= 1.0
+            pal[r][c] = level_pal(max(1.0, lv))
+            for y in range(8):
+                for x in range(4):
+                    px = k * 4 + x              # pixel within the stone
+                    if y == 7 or px == 0:
+                        v = 0                   # joints
+                    elif y == 0 or px == 1:
+                        v = 1                   # lit top and left edges
+                    elif px == width * 4 - 1 or y == 6:
+                        v = 3                   # shaded right and bottom edges
+                    else:
+                        v = 3 if (px * 7 + y * 3) % 11 == 0 else 2   # a worn face
+                    put(c * 4 + x, y0 + y, v)
 
 
 def gate():
@@ -356,7 +357,7 @@ def gate():
                 elif edge_in:
                     r_ = 3
                 else:
-                    r_ = 2 if (x * 3 + y * 5) % 7 else 3
+                    r_ = 2
             else:
                 k = (y - SPRING_Y) % 12
                 if k == 11:
@@ -366,7 +367,7 @@ def gate():
                 elif mirror == JAMB_L[1] or k == 10:
                     r_ = 3
                 else:
-                    r_ = 2 if (x * 3 + y * 5) % 7 else 3
+                    r_ = 2
                 if x >= 80 and mirror == JAMB_L[0]:
                     r_ = 3                                # far side of the right jamb is in shade
             put(x, y, r_)
@@ -376,6 +377,18 @@ def gate():
             x0, y0 = c * 4, r * 8
             if all(is_void(x, y) for x in range(x0, x0 + 4) for y in range(y0, y0 + 8)):
                 pal[r][c] = (GREY1, BLUE, VIOLET)
+            elif any(is_stone(x, y) for x in range(x0, x0 + 4) for y in range(y0, y0 + 8)):
+                pal[r][c] = LEVELS[5]           # the gate is one object: one palette
+
+
+def is_stone(x, y):
+    if not 40 <= y < FLOOR_Y:
+        return False
+    dx = (x - CX) * 2.0
+    mirror = x if x < 80 else 159 - x
+    if y < SPRING_Y:
+        return R_IN <= math.hypot(dx, y - SPRING_Y) < R_OUT
+    return JAMB_L[0] <= mirror <= JAMB_L[1]
 
 
 def is_void(x, y):
@@ -418,6 +431,86 @@ def void(x, y):
         level = 1.0 - d / 11.0
         return 3 if level * 16 > BAYER[y & 3][x & 3] else 0
     return 0
+
+
+# ---------------------------------------------------------------------------
+# The logo: hand-drawn 14x14 letters, each drawn cell two pixel rows tall,
+# then cut in gold: lit and shaded edges, the faces a dithered gradient that
+# runs through the four cell rows' palettes (white -> yellow -> light red ->
+# orange -> brown).
+# ---------------------------------------------------------------------------
+LETTERS = {
+    'C': ["....XXXXXXX...", "..XXXXXXXXXXX.", ".XXXX.....XXXX", "XXXX.......XXX", "XXX.........X.",
+          "XXX...........", "XXX...........", "XXX...........", "XXX...........", "XXX.........X.",
+          "XXXX.......XXX", ".XXXX.....XXXX", "..XXXXXXXXXXX.", "....XXXXXXX..."],
+    'A': ["......XX......", ".....XXXX.....", ".....XXXX.....", "....XXXXXX....", "....XX.XXX....",
+          "...XXX.XXXX...", "...XX...XXX...", "..XXX...XXXX..", "..XXXXXXXXXX..", ".XXXXXXXXXXXX.",
+          ".XXX.....XXXX.", "XXXX......XXXX", "XXX.......XXXX", "XXXX.....XXXXX"],
+    'T': ["XXXXXXXXXXXXXX", "XXXXXXXXXXXXXX", "XXX..XXXX..XXX", "XX...XXXX...XX", "X....XXXX....X",
+          ".....XXXX.....", ".....XXXX.....", ".....XXXX.....", ".....XXXX.....", ".....XXXX.....",
+          ".....XXXX.....", ".....XXXX.....", "....XXXXXX....", "...XXXXXXXX..."],
+    'O': ["....XXXXXX....", "..XXXXXXXXXX..", ".XXXX....XXXX.", "XXXX......XXXX", "XXX........XXX",
+          "XXX........XXX", "XXX........XXX", "XXX........XXX", "XXX........XXX", "XXX........XXX",
+          "XXXX......XXXX", ".XXXX....XXXX.", "..XXXXXXXXXX..", "....XXXXXX...."],
+    'M': ["XXX........XXX", "XXXX......XXXX", "XXXXX....XXXXX", "XXXXXX..XXXXXX", "XXX.XXXXXX.XXX",
+          "XXX..XXXX..XXX", "XXX...XX...XXX", "XXX........XXX", "XXX........XXX", "XXX........XXX",
+          "XXX........XXX", "XXX........XXX", "XXX........XXX", "XXXX......XXXX"],
+    'B': ["XXXXXXXXXXX...", "XXXXXXXXXXXXX.", ".XXX.....XXXX.", ".XXX......XXX.", ".XXX.....XXXX.",
+          ".XXXXXXXXXXX..", ".XXXXXXXXXXXX.", ".XXX.....XXXXX", ".XXX......XXXX", ".XXX......XXXX",
+          ".XXX......XXXX", ".XXX.....XXXXX", "XXXXXXXXXXXXX.", "XXXXXXXXXXX..."],
+    'S': ["...XXXXXXXX...", ".XXXXXXXXXXXX.", "XXXX.....XXXX.", "XXX.......XX..", "XXXX..........",
+          ".XXXXXX.......", "..XXXXXXXXX...", "....XXXXXXXXX.", ".........XXXXX", "..........XXXX",
+          ".XX.......XXXX", "XXXX.....XXXX.", ".XXXXXXXXXXX..", "...XXXXXXXX..."],
+}
+LOGO_Y = 2
+LOGO_PALS = [(WHITE, YELLOW, LRED), (YELLOW, LRED, ORANGE), (LRED, ORANGE, BROWN), (ORANGE, BROWN, BROWN)]
+
+
+def letter_mask(rows):
+    """14x14 drawn cells -> 14x28 pixels, with the stair steps of diagonals
+    and curves smoothed by half cells."""
+    g = [[ch == 'X' for ch in row] for row in rows]
+
+    def at(x, y):
+        return 0 <= x < 14 and 0 <= y < 14 and g[y][x]
+    m = [[False] * 14 for _ in range(28)]
+    for y in range(14):
+        for x in range(14):
+            beside = at(x - 1, y) or at(x + 1, y)
+            if g[y][x]:
+                both = at(x - 1, y) and at(x + 1, y)
+                m[y * 2][x] = at(x, y - 1) or both or not beside or y == 0
+                m[y * 2 + 1][x] = at(x, y + 1) or both or not beside or y == 13
+            else:
+                m[y * 2][x] = at(x, y - 1) and beside
+                m[y * 2 + 1][x] = at(x, y + 1) and beside
+    return m
+
+
+def logo():
+    for i, ch in enumerate("CATACOMBS"):
+        m = letter_mask(LETTERS[ch])
+        x0 = 9 + i * 16
+
+        def on(x, y):
+            return 0 <= x < 14 and 0 <= y < 28 and m[y][x]
+        for y in range(28):
+            for x in range(14):
+                if not m[y][x]:
+                    continue
+                py = LOGO_Y + y
+                if not on(x, y - 1) or not on(x - 1, y):
+                    r_ = 1                                  # lit edge
+                elif not on(x, y + 1) or not on(x + 1, y):
+                    r_ = 3                                  # shaded edge
+                else:
+                    # the face: mid tone at the top of each cell row, dithered
+                    # into the dark tone (the next row's mid tone) by its bottom
+                    k = py & 7
+                    r_ = 3 if (k * 2 + 1) > BAYER[py & 3][x & 3] else 2
+                put(x0 + x, py, r_)
+    for r in range(4):
+        set_pal(0, r, COLS - 1, r, LOGO_PALS[r])
 
 
 def keystone():
@@ -524,6 +617,7 @@ def sprite_sheet():
 
 
 def build():
+    logo()
     wall()
     cornice()
     floor()

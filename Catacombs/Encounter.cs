@@ -11,16 +11,20 @@ using C64Lib;
 [assembly: RawImage(Resource = "enc_name1.img", Label = "EncName1")]
 [assembly: RawImage(Resource = "enc_name2.img", Label = "EncName2")]
 [assembly: RawImage(Resource = "enc_name3.img", Label = "EncName3")]
+// Eight hi-res frames for sprites 6-7: 0 eye, 1 eye narrowed, 2-3 the
+// player's blade stroke, 4-5 the guardian's claws, 6 "MISS", 7 spare.
 [assembly: RawSprites(Order = 20, Resource = "enc_sprites.spr", Label = "Enc")]
 
 // Colour tables for Screen.RemapCellColors (table[colour] = new colour).
-//   pal_EncKind  the three other guardians: the bone's greys become greens,
-//                reds, violets. Each maps its results to themselves, so a
-//                table can be applied again over cells it already changed.
+//   pal_EncKind  one per guardian: the bone's greys as they are, then as
+//                greens, reds, violets. Each maps its results to
+//                themselves, so a table can be applied again over cells it
+//                already changed.
 //   pal_EncTorch yellow <-> orange: the torches' flicker.
 //   pal_EncFade  one step darker; applied over and over it ends in black.
 [assembly: RawAssembly(Asm = @"
-pal_EncKind  .byte 0,1,2,3,4,5,9,7,8,9,10,5,13,13,14,7
+pal_EncKind  .byte 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+             .byte 0,1,2,3,4,5,9,7,8,9,10,5,13,13,14,7
              .byte 0,1,2,3,4,5,9,7,8,9,10,2,8,13,14,10
              .byte 0,1,2,3,4,5,6,7,8,9,10,4,14,13,14,3
 pal_EncTorch .byte 0,1,2,3,4,5,6,8,7,9,10,11,12,13,14,15
@@ -35,33 +39,39 @@ namespace Catacombs;
 //
 // Sprites 6 and 7 are the guardian's burning eyes; for a moment at a time
 // they become the player's blade stroke, the guardian's claws, or "MISS".
+//
+// Written for size: this compiler spends some 30 bytes on a method's entry
+// and exit and 5 more per parameter, so there are few methods, with few
+// parameters, and everything fits 8 bits (sprite X included).
 static class Encounter
 {
     const uint MaxHp = Monster.MaxHp;        // the bar is drawn for 30 points, 4 pixels each
-    const ulong BarX = 100;
-    const ulong EyeLeft = 149, EyeRight = 195;
-    const uint EyeY = 117;
+    const uint EyeX = 149, EyeGap = 46, EyeY = 117;
+    const uint Stroke = 2, Claws = 4, MissText = 6;     // frames (see the sheet above)
 
     static uint kind_;       // which guardian: 0-3
     static uint bar_;        // hit points the bar shows
     static uint tick_;
     static bool eyes_;       // the sprites are the eyes right now
+    static ulong tint_;      // this guardian's colour table
+    static bool big_;        // Pair: the frames are shown double size
 
     // Returns the player's health after the fight: 0 = the player died, the
     // guardian lives; anything else = the guardian is dead.
     public static uint Fight(uint mx, uint my, uint playerHp, uint playerDamage)
     {
         kind_ = Monster.FindAt(mx, my);
-        Enter(Monster.HpAt(mx, my));
+        bar_ = Monster.HpAt(mx, my);
+        Enter();
         // One loop condition and no break: see Program.Combat's old note on
         // loops with several exits.
         bool over = false;
         while (!over)
         {
             while (!C64.IsKeyPressed(Keys.Space))
-                Tick();
+                Idle(1);
             while (C64.IsKeyPressed(Keys.Space))
-                Tick();
+                Idle(1);
 
             if ((C64.Random() & 7) == 0)
             {
@@ -74,11 +84,7 @@ static class Encounter
                 if (Monster.IsAliveAt(mx, my))
                     hp = Monster.HpAt(mx, my);
                 Struck(hp);
-                if (hp == 0)
-                {
-                    Die();
-                    over = true;
-                }
+                over = hp == 0;
             }
             if (!over)
             {
@@ -87,8 +93,7 @@ static class Encounter
                 {
                     playerHp = playerHp <= Monster.MonsterDamage ? 0 : playerHp - Monster.MonsterDamage;
                     PlayerHealth(playerHp);
-                    if (playerHp == 0)
-                        over = true;
+                    over = playerHp == 0;
                 }
             }
         }
@@ -104,8 +109,14 @@ static class Encounter
 
     // ---- entrance and exit ----
 
-    static void Enter(uint hp)
+    // In: kind_, and bar_ = the guardian's health.
+    static void Enter()
     {
+        uint hp = bar_;
+        tint_ = C64Address.FromLabel("pal_EncKind");
+        for (uint i = 0; i < kind_; i++)
+            tint_ = tint_ + 16;
+
         C64.Sprites.Sprite0.Visible = false;
         C64.Sprites.Sprite1.Visible = false;
         C64.Sprites.Sprite2.Visible = false;
@@ -127,20 +138,18 @@ static class Encounter
         C64.Screen.DrawImage(0, 0, C64Address.FromLabel("img_EncPixels"));
         C64.Screen.MirrorCells(0, 0, 40, 21);
         bar_ = MaxHp;
-        Bar(hp, false);
+        Bar(hp);
 
         // Two eyes open in the dark...
-        tick_ = 0;
-        Eyes(1, Colors.Red);
-        Wait(30);
+        Pair(1, Colors.Red, EyeY);
+        Idle(30);
         // ...a shape looms...
         C64.Screen.SetCellColors(0, 0, 40, 18, 0x66, Colors.Blue);
-        Eyes(0, Colors.Orange);
-        Wait(14);
+        Idle(14);
         // ...and the torches catch.
         C64.Screen.BeginUpdate();
         C64.Screen.DrawImage(0, 0, C64Address.FromLabel("img_EncColours"));
-        Tint(4, 0, 16, 18);
+        C64.Screen.RemapCellColors(4, 0, 16, 18, tint_);
         C64.Screen.MirrorCellColors(0, 0, 40, 21);
         ulong name = C64Address.FromLabel("img_EncName0");
         if (kind_ == 1)
@@ -151,7 +160,7 @@ static class Encounter
             name = C64Address.FromLabel("img_EncName3");
         C64.Screen.DrawImage(14, 18, name);
         C64.Screen.EndUpdate();
-        Eyes(0, Colors.Yellow);
+        eyes_ = true;
     }
 
     static void Leave()
@@ -159,98 +168,77 @@ static class Encounter
         eyes_ = false;
         C64.Sprites.Sprite6.Visible = false;
         C64.Sprites.Sprite7.Visible = false;
-        C64.Screen.SetScrollX(0);
         C64.Screen.SetCellColors(0, 0, 40, 21, 0, Colors.Black);
-    }
-
-    // Gives a freshly drawn part of the left half this guardian's colours.
-    static void Tint(uint column, uint row, uint width, uint height)
-    {
-        if (kind_ != 0)
-            C64.Screen.RemapCellColors(column, row, width, height, C64Address.FromLabel("pal_EncKind") + (ulong)(kind_ - 1) * 16);
     }
 
     // ---- idle life ----
 
-    // One frame of the picture being alive: the torches gutter, the eyes
-    // pulse, glance aside and blink.
-    static void Tick()
-    {
-        C64.Screen.WaitForVBlank();
-        tick_ = tick_ + 1;
-        if ((C64.Random() & 7) < 2)
-        {
-            ulong torch = C64Address.FromLabel("pal_EncTorch");
-            C64.Screen.RemapCellColors(0, 2, 4, 7, torch);
-            C64.Screen.RemapCellColors(36, 2, 4, 7, torch);
-        }
-        if (eyes_ && (tick_ & 7) == 0)
-        {
-            uint phase = tick_ >> 3;
-            if ((phase & 31) == 31)
-            {
-                C64.Sprites.Sprite6.Visible = false;       // a blink
-                C64.Sprites.Sprite7.Visible = false;
-            }
-            else
-            {
-                Eyes(0, (phase & 3) == 0 ? Colors.Orange : Colors.Yellow);
-            }
-        }
-    }
-
+    // Lets `frames` frames pass with the picture alive: the torches gutter;
+    // the eyes (while the sprites are eyes) pulse and blink.
     static void Idle(uint frames)
     {
         for (uint i = 0; i < frames; i++)
-            Tick();
-    }
-
-    static void Wait(uint frames)
-    {
-        for (uint i = 0; i < frames; i++)
+        {
             C64.Screen.WaitForVBlank();
+            tick_ = tick_ + 1;
+            if ((C64.Random() & 7) < 2)
+            {
+                C64.Screen.RemapCellColors(0, 2, 4, 7, C64Address.FromLabel("pal_EncTorch"));
+                C64.Screen.RemapCellColors(36, 2, 4, 7, C64Address.FromLabel("pal_EncTorch"));
+            }
+            if (eyes_ && (tick_ & 7) == 0)
+            {
+                Pair(0, (tick_ & 24) == 0 ? Colors.Orange : Colors.Yellow, EyeY);
+                if (tick_ > 247)                       // a blink, every five seconds
+                    Hide();
+            }
+        }
     }
 
-    static void Eyes(uint frame, Colors color)
+    static void Hide()
     {
-        eyes_ = true;
-        Pair(frame, frame, EyeLeft, EyeRight, EyeY, color, false);
+        C64.Sprites.Sprite6.Visible = false;
+        C64.Sprites.Sprite7.Visible = false;
     }
 
-    // Shows two frames of the sheet on sprites 6 and 7.
-    static void Pair(uint left, uint right, ulong leftX, ulong rightX, uint y, Colors color, bool big)
+    // Shows a frame pair on sprites 6 and 7 at height y. Frames 0-1 are the
+    // eyes (the same frame twice, at the sockets); the others are two
+    // halves side by side, at double size, across the guardian's face.
+    static void Pair(uint frame, Colors color, uint y)
     {
-        uint sheet = (uint)C64Address.FromLabel("frm_Enc");
+        frame = frame + (uint)C64Address.FromLabel("frm_Enc");
+        big_ = frame > (uint)C64Address.FromLabel("frm_Enc") + 1;
         Sprite s = C64.Sprites.Sprite6;
-        s.Frame = sheet + left;
-        s.X = leftX;
+        s.Frame = frame;
+        s.X = big_ ? 136u : EyeX;
         s.Y = y;
         s.Color = color;
-        s.ExpandX = big;
-        s.ExpandY = big;
+        s.ExpandX = big_;
+        s.ExpandY = big_;
         s.Visible = true;
         s = C64.Sprites.Sprite7;
-        s.Frame = sheet + right;
-        s.X = rightX;
+        s.Frame = big_ ? frame + 1 : frame;
+        s.X = big_ ? 184u : EyeX + EyeGap;
         s.Y = y;
         s.Color = color;
-        s.ExpandX = big;
-        s.ExpandY = big;
+        s.ExpandX = big_;
+        s.ExpandY = big_;
         s.Visible = true;
     }
 
     // ---- the readout ----
 
-    // Drains the health bar down to hp, a point per frame when `slowly`.
-    static void Bar(uint hp, bool slowly)
+    // Drains the health bar down to hp, a point per frame once the
+    // picture is showing.
+    static void Bar(uint hp)
     {
         while (bar_ > hp)
         {
             bar_ = bar_ - 1;
-            ulong x = BarX + (ulong)bar_ * 4;
+            uint x = 100 + bar_ * 4;
             C64.Screen.DrawRectangle(x, 156, x + 3, 163, true, false, BitmapColorSource.Background);
-            if (slowly)
-                Tick();
+            if (eyes_)
+                Idle(1);
         }
     }
 
@@ -259,94 +247,91 @@ static class Encounter
     static void Jaw(bool open)
     {
         C64.Screen.DrawImage(0, 0, open ? C64Address.FromLabel("img_EncRoar") : C64Address.FromLabel("img_EncShut"));
-        Tint(14, 12, 6, 6);
+        C64.Screen.RemapCellColors(14, 12, 6, 6, tint_);
         C64.Screen.MirrorCells(14, 12, 12, 6);
     }
 
-    // The words "MISS" drift up and fade.
+    // Shakes the picture for `frames` frames; the dark flashes `flash` for
+    // the first three.
+    static void Shake(uint frames, Colors flash)
+    {
+        for (uint i = 0; i < frames; i++)
+        {
+            C64.Screen.SetBackgroundColor(i < 3 ? flash : Colors.Black);
+            C64.Screen.SetScrollX((i & 1) == 0 ? 4u : 0u);
+            Idle(1);
+        }
+        C64.Screen.SetScrollX(0);
+    }
+
+    // "MISS" drifts up.
     static void Miss()
     {
         eyes_ = false;
         for (uint i = 0; i < 24; i++)
         {
-            Pair(6, 6, 160, 160, 150 - i, i < 16 ? Colors.White : Colors.Grey2, false);
+            Pair(MissText, Colors.White, 140 - i);
             C64.Sprites.Sprite7.Visible = false;
-            Tick();
+            Idle(1);
         }
-        Eyes(0, Colors.Yellow);
+        eyes_ = true;
     }
 
-    // The player's blade lands: stroke, flash, recoil, the bar drains.
+    // The player's blade lands: stroke, flash, recoil, the bar drains; at
+    // no health left the guardian dies.
     static void Struck(uint hp)
     {
         eyes_ = false;
-        Pair(2, 3, 136, 184, 104, Colors.White, true);
-        C64.Screen.SetBackgroundColor(Colors.White);
-        Wait(2);
-        C64.Screen.SetBackgroundColor(Colors.Black);
+        Pair(Stroke, Colors.White, 104);
         Jaw(true);
-        for (uint i = 0; i < 8; i++)
+        Shake(8, Colors.White);
+        Pair(1, Colors.Red, EyeY);
+        eyes_ = true;
+        Bar(hp);
+        eyes_ = false;
+        if (hp == 0)
         {
-            C64.Screen.WaitForVBlank();
-            C64.Screen.SetScrollX((i & 1) == 0 ? 3u : 0u);
-            if (i == 3)
-                Pair(2, 3, 136, 184, 104, Colors.Yellow, true);
+            // Its eyes fall out of its head like embers, and it sinks back
+            // into the dark.
+            for (uint i = 0; i < 30; i++)
+            {
+                Pair(0, i < 15 ? Colors.Orange : Colors.Red, EyeY + i * 2);
+                Idle(1);
+            }
+            Hide();
+            for (uint i = 0; i < 5; i++)
+            {
+                C64.Screen.RemapCellColors(0, 0, 40, 21, C64Address.FromLabel("pal_EncFade"));
+                Idle(5);
+            }
         }
-        C64.Screen.SetScrollX(0);
-        Eyes(1, Colors.Red);
-        Bar(hp, true);
-        Jaw(false);
-        Eyes(0, Colors.Yellow);
+        else
+        {
+            Jaw(false);
+            eyes_ = true;
+        }
     }
 
     // The guardian's answer. True when the claws connect.
     static bool Lunge()
     {
-        Eyes(1, Colors.White);                 // wind-up: the eyes narrow and blaze
-        Wait(14);
+        eyes_ = false;
+        Pair(1, Colors.White, EyeY);            // wind-up: the eyes narrow and blaze
+        Idle(14);
         Jaw(true);
         bool hit = (C64.Random() & 3) != 0;
         if (hit)
         {
-            eyes_ = false;
-            for (uint i = 0; i < 9; i++)
-            {
-                Pair(4, 5, 124, 172, 92 + i * 5, i < 5 ? Colors.White : Colors.Red, true);
-                C64.Screen.WaitForVBlank();
-                C64.Screen.SetScrollX((i & 1) == 0 ? 5u : 0u);
-                C64.Screen.SetBackgroundColor(i < 3 ? Colors.Red : Colors.Black);
-            }
-            C64.Screen.SetScrollX(0);
+            Pair(Claws, Colors.Red, 100);
+            Shake(9, Colors.Red);
         }
         else
         {
-            Idle(6);
             Miss();
         }
         Jaw(false);
-        Eyes(0, Colors.Yellow);
+        eyes_ = true;
         return hit;
-    }
-
-    // The guardian dies: a last roar, the eyes fall out of its head like
-    // embers, and it sinks back into the dark.
-    static void Die()
-    {
-        Jaw(true);
-        eyes_ = false;
-        for (uint i = 0; i < 30; i++)
-        {
-            Pair(0, 0, EyeLeft - i, EyeRight + i, EyeY + i * 2, i < 10 ? Colors.Yellow : i < 20 ? Colors.Orange : Colors.Red, false);
-            C64.Screen.WaitForVBlank();
-            C64.Screen.SetScrollX(i < 12 ? (i & 3) : 0);
-        }
-        C64.Sprites.Sprite6.Visible = false;
-        C64.Sprites.Sprite7.Visible = false;
-        for (uint i = 0; i < 5; i++)
-        {
-            C64.Screen.RemapCellColors(0, 0, 40, 21, C64Address.FromLabel("pal_EncFade"));
-            Wait(5);
-        }
     }
 
 #if SCENE_ENCOUNTER
@@ -363,15 +348,22 @@ static class Encounter
 #else
         kind_ = 0;
 #endif
-        Enter(MaxHp);
+        bar_ = MaxHp;
+            Enter();
         for (;;)
         {
 #if SCENE_ENCHIT
             Idle(30);
-            if (bar_ < 7)
-                Enter(MaxHp);
+            if (bar_ < 8)
+            {
+                Leave();
+                bar_ = MaxHp;
+            Enter();
+            }
             else
+            {
                 Struck(bar_ - 7);
+            }
 #elif SCENE_ENCMISS
             Idle(30);
             Miss();
@@ -381,17 +373,18 @@ static class Encounter
 #elif SCENE_ENCDEATH
             Idle(50);
             Struck(0);
-            Die();
             Leave();
-            Wait(40);
-            Enter(MaxHp);
+            Idle(40);
+            bar_ = MaxHp;
+            Enter();
 #elif SCENE_ENCENTER
             Idle(60);
             Leave();
-            Wait(30);
-            Enter(MaxHp);
+            Idle(30);
+            bar_ = MaxHp;
+            Enter();
 #else
-            Tick();
+            Idle(1);
 #endif
         }
     }

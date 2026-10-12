@@ -29,7 +29,7 @@ using C64Lib;
 pal_Dim     .byte 0,15,2,3,4,5,0,10,9,2,8,6,11,13,14,12
 pal_Bright  .byte 6,1,9,3,4,5,11,7,10,8,7,12,15,13,14,1
 pal_Dead    .byte 6,1,2,3,2,5,11,15,12,11,15,12,15,13,14,1
-pal_Dawn    .byte 9,1,9,3,7,5,8,7,10,8,7,10,7,13,14,1
+pal_Dawn    .byte 9,1,8,3,1,5,8,1,7,10,1,10,7,13,14,1
 pal_Darken  .byte 0,15,0,14,6,11,0,10,9,0,8,6,11,5,6,12
 ttl_Pos     .byte 0,54, 92,110, 252,110, 92,90, 252,100, 172,93, 174,168, 174,150, 0
 ttl_Look    .byte 0,$ff,0, 0,0, 0,0, 0,0,0, 7,8, 1,2,2,8,10,2,11,1
@@ -71,13 +71,14 @@ static class TitleScreen
     static ulong glint_;
     static ulong table_;
 #if SCENE
-    static ulong timer_;
+    // Scene builds: leave the screen by itself after this many video frames
+    // (0 = stay). Set before Show().
+    public static ulong Timer;
 #endif
 
     // Shows a screen and returns when fire / SPACE is pressed. `value` is the
     // number shown: relics recovered (game over), health left (victory).
-    // Scene builds: also returns after `frames` video frames, if not 0.
-    public static void Show(uint kind, uint value, ulong frames)
+    public static void Show(uint kind, uint value)
     {
         kind_ = kind;
         flame_ = (uint)C64Address.FromLabel("frm_Title");
@@ -140,13 +141,10 @@ static class TitleScreen
         lit_ = 1;
         armed_ = 0;
         glint_ = 400;
-#if SCENE
-        timer_ = frames;
-#endif
         while (Animate())
         {
         }
-        C64.FillMemory(SpriteEnable, 0, 1);
+        FadeOut();
     }
 
     // One video frame of the screen's life. False when it is time to leave.
@@ -155,9 +153,10 @@ static class TitleScreen
         C64.Screen.WaitForVBlank();
         tick_++;
 
-        // Torch light: the cells around each flame drop a step and come back,
-        // at random. First thing in the frame, ahead of the beam.
-        if (kind_ != GameOver && (C64.Random() & 15) == 0)
+        // Torch light: the cells around each flame drop a step and come
+        // back, at random. First thing in the frame, ahead of
+        // the beam.
+        if (kind_ == Title && (C64.Random() & 15) == 0)
         {
             lit_ = lit_ ^ 1;
             table_ = C64Address.FromLabel("pal_Bright");
@@ -175,14 +174,9 @@ static class TitleScreen
                 phase_ = 0;
             C64.Sprites.Sprite1.Frame = flame_ + phase_;
             C64.Sprites.Sprite2.Frame = flame_ + 2 - phase_;
+            // The prompt pulses white / yellow (0x10 / 0x70).
             if (kind_ == Title)
-            {
-                // The prompt pulses white / yellow.
-                column_ = 0x10;
-                if ((tick_ & 32) != 0)
-                    column_ = 0x70;
-                C64.Screen.SetCellColors(10, PromptRow, 19, 1, column_, Colors.Black);
-            }
+                C64.Screen.SetCellColors(10, PromptRow, 19, 1, 0x10 + (tick_ & 0x20) * 3, Colors.Black);
         }
 
         // Embers climb from the flames and start over.
@@ -203,22 +197,18 @@ static class TitleScreen
 
         if (kind_ == Title && tick_ == 128)
         {
-            info_++;
-            if (info_ == 3)
-                info_ = 0;
+            info_ = info_ ^ 1;
             if (info_ == 0)
-                C64.Screen.DrawText(2, InfoRow, "RECOVER THE THREE RELICS AND ESCAPE ", 0xF0);
-            if (info_ == 1)
-                C64.Screen.DrawText(2, InfoRow, "  W A S D TO WALK - SPACE TO ACT    ", 0xF0);
-            if (info_ == 2)
-                C64.Screen.DrawText(2, InfoRow, " A C# GAME FOR THE C64 - B. MOLNAR  ", 0xF0);
+                C64.Screen.DrawText(3, InfoRow, "STEAL THE 3 RELICS AND ESCAPE ALIVE", 0xF0);
+            else
+                C64.Screen.DrawText(3, InfoRow, "  W A S D: WALK    SPACE: ACT      ", 0xF0);
         }
 
 #if SCENE
-        if (timer_ != 0)
+        if (Timer != 0)
         {
-            timer_ = timer_ - 1;
-            if (timer_ == 0)
+            Timer = Timer - 1;
+            if (Timer == 0)
                 return false;
         }
 #endif
@@ -232,25 +222,16 @@ static class TitleScreen
         return armed_ == 0;
     }
 
-    // Any screen to black: five darkening waves close in from both sides.
-    // Leaves an empty bitmap with black colours, no split and no sprites.
+    // Any screen to black, the game's rooms included: five darkening passes
+    // roll down it. Leaves an empty bitmap with black colours, no split and
+    // no sprites.
     public static void FadeOut()
     {
         C64.FillMemory(SpriteEnable, 0, 1);
-        table_ = C64Address.FromLabel("pal_Darken");
-        for (tick_ = 0; tick_ < 28; tick_++)
+        for (column_ = 0; column_ < 5; column_++)
         {
             C64.Screen.WaitForVBlank();
-            column_ = tick_;
-            for (phase_ = 0; phase_ < 5; phase_++)
-            {
-                if (column_ < 20)   // (it wraps past zero: that wave has not started)
-                {
-                    C64.Screen.RemapCellColors(column_, 0, 1, 25, table_);
-                    C64.Screen.RemapCellColors(39 - column_, 0, 1, 25, table_);
-                }
-                column_ = column_ - 2;
-            }
+            C64.Screen.RemapCellColors(0, 0, 40, 25, C64Address.FromLabel("pal_Darken"));
         }
         C64.Screen.SetBorderColor(Colors.Black);
         C64.Screen.SetBackgroundColor(Colors.Black);

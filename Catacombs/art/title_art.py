@@ -59,8 +59,9 @@ BRIGHT = {v: k for k, v in DIM.items()}
 # Game over: the torches are out. Warm light turns to cold stone, the darkest
 # warm tone and the glow in the gate turn blood red.
 GAMEOVER = {YELLOW: GREY3, LRED: GREY2, ORANGE: GREY1, BROWN: RED, VIOLET: RED}
-# Victory: daylight. Cold stone turns gold, the gate glows.
-VICTORY = {BLUE: BROWN, GREY1: ORANGE, GREY2: LRED, GREY3: YELLOW, VIOLET: YELLOW}
+# Victory: daylight. Everything a step brighter and warm, the gate blazes.
+VICTORY = {BLUE: BROWN, GREY1: ORANGE, GREY2: LRED, GREY3: YELLOW, VIOLET: WHITE,
+           BROWN: ORANGE, ORANGE: LRED, LRED: YELLOW, YELLOW: WHITE}
 # Fade to black, applied repeatedly; works on any screen (the game's too).
 DARKEN = {WHITE: GREY3, GREY3: GREY2, GREY2: GREY1, GREY1: BLUE, BLUE: BLACK,
           YELLOW: LRED, LRED: ORANGE, ORANGE: BROWN, BROWN: BLACK, RED: BLACK,
@@ -299,17 +300,18 @@ def cornice():
 def floor():
     """Rows 18-20: three courses of flagstones, larger towards the viewer.
     Each stone is whole cells wide and has one palette, so the light falls
-    off stone by stone."""
+    off stone by stone; the faces go from a light/mid dither at the wall to
+    plain mid tone at the front."""
     for n, (width, offset) in enumerate(((4, 2), (6, -1), (8, 0))):
         r = 18 + n
         y0 = r * 8
         for c in range(COLS):
             k = (c - offset) % width            # cell within its stone
             first = c - k
-            lv = cell_light(first + width / 2.0 - 0.5, 16) - 0.6 - n * 0.8
+            lv = cell_light(first + width / 2.0 - 0.5, 16) - 0.4 - n * 0.6
             if rnd('f', first, n) < 0.25:
                 lv -= 1.0
-            pal[r][c] = level_pal(max(1.0, lv))
+            pal[r][c] = level_pal(max(2.0, lv))
             for y in range(8):
                 for x in range(4):
                     px = k * 4 + x              # pixel within the stone
@@ -318,9 +320,13 @@ def floor():
                     elif y == 0 or px == 1:
                         v = 1                   # lit top and left edges
                     elif px == width * 4 - 1 or y == 6:
-                        v = 3                   # shaded right and bottom edges
+                        v = 2                   # shaded right and bottom edges
+                    elif n == 0:
+                        v = 1 if (px + y) & 1 else 2
+                    elif n == 1:
+                        v = 1 if (px & 3) == (y & 3) else 2
                     else:
-                        v = 3 if (px * 7 + y * 3) % 11 == 0 else 2   # a worn face
+                        v = 2
                     put(c * 4 + x, y0 + y, v)
 
 
@@ -404,31 +410,24 @@ BAYER = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]]
 
 
 def void(x, y):
-    """Through the gate: a vaulted stair going down, three receding arches and
-    their steps, and a glow at the bottom of it."""
+    """Through the gate: a vaulted stair going down -- two receding arches,
+    the treads narrowing below them -- into a glow."""
     dx = (x - CX) * 2.0
-    for k, (radius, drop) in enumerate(((25.0, 5), (18.0, 11), (11.0, 18))):
+    for k, (radius, drop) in enumerate(((24.0, 6), (15.0, 13))):
         sy = SPRING_Y + drop
-        if y < sy:
-            u = math.hypot(dx, y - sy)
-        else:
-            u = abs(dx)
-        if radius <= u < radius + (3.0 if k < 2 else 2.0):
-            if k == 0:
-                return 1
-            return 2 if k == 1 or (x + y) & 1 else 0
-        # treads between this arch and the next one out
-    # steps: horizontal treads narrowing as they go down and away
-    for k, (half, y0) in enumerate(((25.0, 140), (18.0, 134), (11.0, 129))):
-        if y == y0 and abs(dx) < half:
+        u = math.hypot(dx, y - sy) if y < sy else abs(dx)
+        if radius <= u < radius + 2.0 and y < 143 - k * 6:
             return 1 if k == 0 else 2
-        if y == y0 + 1 and abs(dx) < half and k == 0:
-            return 2
+    for k, (half, y0) in enumerate(((30.0, 141), (24.0, 136), (18.0, 132), (13.0, 129))):
+        if abs(dx) < half:
+            if y == y0:
+                return 1 if k < 2 else 2
+            if y == y0 + 1:
+                return 2 if k < 2 else 0
     # the glow: densest at the far end of the stair
-    gx, gy = 0.0, SPRING_Y + 6
-    d = math.hypot(dx * 0.9, (y - gy) * 0.8)
-    if d < 11:
-        level = 1.0 - d / 11.0
+    d = math.hypot(dx * 0.75, (y - (SPRING_Y + 4)) * 0.62)
+    if d < 15:
+        level = 1.15 - d / 15.0
         return 3 if level * 16 > BAYER[y & 3][x & 3] else 0
     return 0
 
@@ -525,31 +524,30 @@ def keystone():
 
 
 def torches():
-    """The iron baskets; the flames themselves are sprites."""
-    basket = ["a......a",
-              "ac....ac",
-              "bcc..ccb",
-              "bcbccbcb",
-              ".cbccbc.",
+    """The wall sconces; the flames themselves are sprites. ' ' leaves the
+    wall alone, '.' is the black outline."""
+    sconce = ["a.    .a",
+              "ba.  .ab",
+              "bba..abb",
+              "cbbaabbc",
+              "cbbbbbbc",
+              ".cbbbbc.",
               ".ccbbcc.",
-              "..cccc..",
-              "...cc...",
-              "...bc...",
-              "...bc...",
-              "...bc...",
-              "..abcc..",
-              "..bccc..",
-              "...cc...",
-              "........",
-              "........"]
+              " .cccc. ",
+              "  .bc.  ",
+              "  .bc.  ",
+              "  .bc.  ",
+              " ..bc.. ",
+              " .abcc. ",
+              ".abbccc.",
+              " .cccc. ",
+              "  .cc.  ",
+              "   ..   "]
     for tx in TORCH_X:
         x0 = tx - 4
-        for y in range(80, 96):
-            for x in range(x0, x0 + 8):
-                put(x, y, 0)
-        stamp(x0, 80, basket)
+        stamp(x0, 80, sconce, transparent=' ')
         c = x0 // 4
-        set_pal(c, 10, c + 1, 11, (YELLOW, ORANGE, BROWN))
+        set_pal(c, 10, c + 1, 12, (YELLOW, ORANGE, BROWN))
 
 
 # ---------------------------------------------------------------------------
@@ -558,23 +556,23 @@ def torches():
 # ---------------------------------------------------------------------------
 SPRITE_FRAMES = [
     # 0-2: the torch flame
-    ["............", ".....x......", ".....x......", "....xo......", "....xox.....", "....ooo.....",
-     "...xooox....", "...oooyo....", "...ooyyox...", "..xoyyyoo...", "..ooyyyyo...", "..oyyyyyox..",
-     ".xoyyyyyoo..", ".ooyyyyyyo..", ".ooyyyyyyo..", ".xoyyyyyyo..", "..oyyyyyoo..", "..ooyyyyox..",
-     "...ooyyoo...", "....oooo....", "............"],
-    ["............", "............", ".......x....", "......xo....", "......oox...", ".....xoo....",
-     ".....ooox...", "....xoyoo...", "....ooyyo...", "...xoyyyox..", "...ooyyyoo..", "..xoyyyyyo..",
-     "..ooyyyyyox.", "..oyyyyyyoo.", ".xoyyyyyyoo.", ".ooyyyyyyo..", "..oyyyyyyo..", "..xoyyyyoo..",
-     "...ooyyoo...", "....oooo....", "............"],
-    ["......x.....", "............", "....x.......", "....ox......", "...xoo......", "....oox.....",
-     "...xooo.....", "...ooyox....", "..xoyyoo....", "..ooyyyo....", "..oyyyyox...", ".xoyyyyoo...",
-     ".ooyyyyyox..", ".oyyyyyyoo..", ".ooyyyyyyo..", ".xoyyyyyyox.", "..oyyyyyoo..", "..ooyyyyo...",
-     "...ooyyoo...", "....oooo....", "............"],
-    # 3: a hooded figure with a lantern, seen from behind on the stair
-    ["............", "....xxx.....", "...xxxxx....", "...xxxxx....", "...xxxxx....", "...xxxxx....",
-     "..xxxxxxx...", "..xxxxxxx.y.", ".xxxxxxxxoyo", ".xxxxxxx.yyy", ".xxxxxxx.oyo", ".xxxxxxx....",
-     ".xxxxxxx....", ".xxxxxxx....", ".xxxxxxxx...", ".xxxxxxxx...", "xxxxxxxxx...", "xxxxxxxxx...",
-     "xxxxxxxxx...", "xxxxxxxxxx..", "............"],
+    [".....x......", ".....xx.....", "....xox.....", "....xoox....", "...xooox....", "...xoyoox...",
+     "..xooyyox...", "..xoyyyoox..", ".xooyyyyox..", ".xoyyyyyoox.", ".xoyyyyyyox.", "xooyyyyyyoox",
+     "xoyyyyyyyyox", "xoyyyyyyyyox", "xooyyyyyyoox", ".xoyyyyyyox.", ".xooyyyyoox.", "..xooyyoox..",
+     "...xoooox...", "....xxxx....", "............"],
+    ["......x.....", ".......x....", "......xx....", ".....xoox...", ".....xoox...", "....xooox...",
+     "...xoyoox...", "...xoyyoox..", "..xooyyyox..", "..xoyyyyoox.", ".xooyyyyyox.", ".xoyyyyyyox.",
+     "xooyyyyyyoox", "xoyyyyyyyyox", "xoyyyyyyyyox", ".xoyyyyyyoox", ".xooyyyyyox.", "..xooyyyox..",
+     "...xoooox...", "....xxxx....", "............"],
+    ["....x.......", "............", "...xx.......", "...xox......", "..xoox......", "..xooox.....",
+     "..xooyox....", ".xooyyox....", ".xoyyyoox...", ".xoyyyyox...", "xooyyyyoox..", "xoyyyyyyox..",
+     "xoyyyyyyoox.", "xoyyyyyyyox.", "xooyyyyyyox.", ".xoyyyyyyox.", ".xooyyyyoox.", "..xooyyoox..",
+     "...xoooox...", "....xxxx....", "............"],
+    # 3: a hooded figure holding out a lantern, on the stair
+    ["............", ".....xx.....", "....xxxx....", "....xxxx....", "....x..x....", "...xxxxxx...",
+     "..xxxxxxxx..", "..xxxxxxxx.y", ".xxxxxxxxxoy", ".xxxxxxxx.yy", ".xxxxxxxx.oy", ".xxxxxxxx...",
+     ".xxxxxxxx...", ".xxxxxxxx...", ".xxxxxxxxx..", ".xxxxxxxxx..", "xxxxxxxxxx..", "xxxxxxxxxx..",
+     "xxxxxxxxxxx.", "xxxxxxxxxxx.", "............"],
     # 4: eyes for the keystone skull's sockets
     ["............", "............", "............", "............", "............", "............",
      "............", "............", ".xox....xox.", "xoyox..xoyox", "xoyox..xoyox", ".xox....xox.",
@@ -585,7 +583,7 @@ SPRITE_FRAMES = [
      ".....x......", "....xyx.....", "..xxyyyxx...", "....xyx.....", ".....x......", ".....x......",
      ".....x......", ".....x......", "............", "............", "............", "............",
      "............", "............", "............"],
-    # 6: embers / smoke (own colour only, so the code can recolour it)
+    # 6: embers (own colour only, so the code can recolour them)
     ["............", ".....x......", "............", "............", "........x...", "............",
      "............", "..x.........", "............", "............", "......x.....", "............",
      "............", "............", "...x........", "............", "............", ".......x....",

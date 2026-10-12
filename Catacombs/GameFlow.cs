@@ -52,28 +52,25 @@ static class GameFlow
     public static void BeforeGame()
     {
 #if SCENE_GAMEOVER
-        TitleScreen.Show(TitleScreen.GameOver, 1, 0);
+        TitleScreen.Show(TitleScreen.GameOver, 1);
 #elif SCENE_VICTORY
-        TitleScreen.Show(TitleScreen.Victory, 64, 0);
+        TitleScreen.Show(TitleScreen.Victory, 64);
 #elif SCENE_FLOW
-        TitleScreen.Show(TitleScreen.Title, 0, 300);
-        TitleScreen.FadeOut();
+        TitleScreen.Timer = 300;
+        TitleScreen.Show(TitleScreen.Title, 0);
         runs_ = runs_ + 1;
         clock_ = 0;
 #elif SCENE_RESTART
         runs_ = runs_ + 1;
         if (runs_ > 200)
-        {
-            TitleScreen.Show(TitleScreen.Title, 0, 0);
-            TitleScreen.FadeOut();
-        }
+            TitleScreen.Show(TitleScreen.Title, 0);
 #elif !SCENE
-        TitleScreen.Show(TitleScreen.Title, 0, 0);
-        TitleScreen.FadeOut();
+        TitleScreen.Show(TitleScreen.Title, 0);
 #endif
         outcome_ = 0;
     }
 
+    // `health`: what the player has left (shown on the victory screen).
     public static void AfterGame(uint health)
     {
 #if SCENE_RESTART
@@ -82,11 +79,11 @@ static class GameFlow
 #endif
         TitleScreen.FadeOut();
 #if SCENE_FLOW
-        TitleScreen.Show(outcome_, outcome_ == TitleScreen.Victory ? 64U : 1U, 300);
-#else
-        TitleScreen.Show(outcome_, outcome_ == TitleScreen.Victory ? health : Item.CollectedCount, 0);
+        TitleScreen.Timer = 300;
 #endif
-        TitleScreen.FadeOut();
+        if (outcome_ == TitleScreen.GameOver)
+            health = Item.CollectedCount;
+        TitleScreen.Show(outcome_, health);
     }
 
     public static void Lose()

@@ -167,8 +167,9 @@ def door(du, dv, state, tag, planks=4):
 # The ray caster: screen position -> (region id, material, texel a, texel b, level bias, X, Y, Z)
 # ---------------------------------------------------------------------------
 
-BEAMS = [(198.0, 12.0), (246.0, 11.0), (292.0, 10.0)]
-BEAM_Y = -26.5
+BEAMS = [(200.0, 9.0), (258.0, 9.0)]      # ceiling beams across the room: (depth, thickness)
+BEAM_Y = -27.5
+FIXED = 100.0                             # a level bias >= FIXED is a fixed level, not lit
 KIND = {'so': 'fl', 'pu': 'fl', 'gr': 'fl'}
 
 
@@ -245,12 +246,12 @@ def sample(sx, sy, cfg):
         return (('fl', row, idx), STONE, (u + off) % 48.0 / 3.0, w % 32.0 / 2.0, 0.0) + pos
     if s == 'ceil':
         u = x + XW
-        return (('ce', int(u // 24.0)), WOOD, ZF - z, u, 0.0) + pos
+        return (('ce', int(u // 32.0), z > 230.0), WOOD, ZF - z, u, FIXED + (0.5 if z > 268.0 else 0.0)) + pos
     kind, i = s
     u = x + XW
     if kind == 'beamF':
-        return (('bf', i), WOOD, u, (y - YC) * 2.0, 0.0) + pos
-    return (('bb', i), WOOD, u, (z - BEAMS[i][0]), 0.0) + pos
+        return (('bf', i, int((u + 40.0 * i) // 96.0)), WOOD, u, (y - YC) * 1.5, FIXED + (0.5, 0.5)[i]) + pos
+    return (('bb', i), WOOD, u, (z - BEAMS[i][0]), FIXED + (0.5, 1.5)[i]) + pos
 
 
 # ---------------------------------------------------------------------------
@@ -683,6 +684,8 @@ def render(cfg):
                 ramp = RAMPS[(mat, warm)]
                 top = len(ramp) - 1
                 lv = level_of(ew + ec) + bias + jitter + LEVEL_SHIFT[mat]
+                if bias >= FIXED:
+                    lv = bias - FIXED
                 lv = max(0.0, min(top - 1.0, math.floor(lv * 2.0 + 0.5) / 2.0))
                 if mat == STONE and warm == 0 and lv == 1.0:
                     lv = 1.5 if (hv >> 4) & 1 else 0.5          # never a flat blue face
@@ -694,7 +697,7 @@ def render(cfg):
                     ps = lo_
                 pm, ph = lv, min(top, hi_ + 1.0)
                 if mat == WOOD:
-                    ph = min(ph, 2.0)
+                    ph = min(ph, 2.0 if lv >= 1.0 else 1.0)
                 if mat == IRON:
                     ps, pm, ph = 0.0, 0.0, max(1.0, min(top, math.floor(lv + 1.0)))
                 elif mat == WATER:

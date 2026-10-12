@@ -24,8 +24,8 @@ namespace Catacombs;
 // against the room's own scale.
 static class PlayerSprite
 {
-    // Blocks 1/2 of the sprite data gap ($3F80/$3FC0 -- see Sprites.cs).
-    static readonly uint[] FramePointer = { 0xFE, 0xFF };
+    // Frames 1 and 2 of the "Legacy" sheet (see Sprites.cs).
+    static uint firstFrame_;
 
     // Sprite_set_Y (asm/c64sprite.asm) writes straight to the VIC-II's raw
     // hardware Y register with no conversion -- unlike bitmap-drawn Y
@@ -53,6 +53,7 @@ static class PlayerSprite
     {
         walkTick_ = 0;
         frame_ = 0;
+        firstFrame_ = (uint)C64Address.FromLabel("frm_Legacy") + 1;
 
         // Blue/Yellow match the original sprite art's own mcolour1=6/
         // mcolour2=7 -- shared regs, safe to set once regardless of which
@@ -85,7 +86,7 @@ static class PlayerSprite
     public static uint BitmapY => bitmapY_;
 
     public static uint RawY => bitmapY_ + SpriteYOffset;
-    public static uint Pointer => FramePointer[frame_];
+    public static uint Pointer => firstFrame_ + frame_;
 
     // FillMemory writes offsets 1..size of its target (its loop never
     // touches offset 0), so writing one byte at `address` means filling one

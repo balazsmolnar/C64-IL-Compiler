@@ -167,6 +167,35 @@ zp_bmp_pattern             = zp_gfx_err_low    ; $14  mc_fill_pattern[colorSourc
 zp_bmp_mask                = zp_gfx_err_high   ; $15  scratch: this byte's decompressed mask
 zp_bmp_scratch             = zp_gfx_cx_low     ; $16  scratch: (target AND NOT mask)
 
+; Cell-level operations (Screen.DrawImage / SetCellColors / RemapCellColors /
+; DrawText in asm/C64Graphics.asm): none of them calls a pixel routine, so
+; they reuse the drawing registers under their own names.
+zp_cell_index_low  = zp_gfx_x_low      ; $06  y*40 + x: the cell's index in screen order
+zp_cell_index_high = zp_gfx_x_high     ; $07
+zp_cell_x          = zp_gfx_y          ; $08  column (0-39)
+zp_cell_y          = zp_gfx_y_high     ; $09  row (0-24)
+zp_cell_mptr_low   = zp_gfx_ptr_low    ; $02  matrix pointer of the current row
+zp_cell_mptr_high  = zp_gfx_ptr_high   ; $03
+zp_cell_cptr_low   = zp_gfx_endx_low   ; $0A  colour RAM pointer of the current row
+zp_cell_cptr_high  = zp_gfx_endx_high  ; $0B
+zp_cell_w          = zp_gfx_endy       ; $0C  rectangle width in cells
+zp_cell_h          = zp_gfx_endy_high  ; $0D  rows left
+zp_cell_val_m      = zp_gfx_dx_low     ; $0E  SetCellColors: matrix byte
+zp_cell_val_c      = zp_gfx_dx_high    ; $0F  SetCellColors: colour RAM byte
+zp_cell_tmp        = zp_gfx_dy         ; $10  scratch
+zp_cell_tmp2       = zp_gfx_dy_high    ; $11  scratch
+; Image_Lz_Decode (the decompressor behind Screen.DrawImage).
+zp_lz_dst_low      = zp_gfx_ptr_low    ; $02  write pointer
+zp_lz_dst_high     = zp_gfx_ptr_high   ; $03
+zp_lz_src_low      = zp_gfx_endx_low   ; $0A  compressed stream read pointer
+zp_lz_src_high     = zp_gfx_endx_high  ; $0B
+zp_lz_match_low    = zp_gfx_endy       ; $0C  where a match copies from
+zp_lz_match_high   = zp_gfx_endy_high  ; $0D
+zp_lz_off_low      = zp_gfx_dx_low     ; $0E  offset of the last match (kept for repeat matches)
+zp_lz_off_high     = zp_gfx_dx_high    ; $0F
+zp_lz_len          = zp_gfx_dy         ; $10  match length
+zp_img_flags       = zp_gfx_dy_high    ; $11  which planes are still to come
+
 ; NOT aliased to zp_gfx_radius: DrawCircle needs radius and filled live at
 ; the same time (unlike DrawRectangle, which has no radius), so this gets
 ; its own byte out of the $1e-$1f spare pair.

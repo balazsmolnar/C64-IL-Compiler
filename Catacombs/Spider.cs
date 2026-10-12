@@ -12,7 +12,8 @@ namespace Catacombs;
 // player (see SpriteStage.cs/Program.cs's own UpdateZOrder).
 static class Spider
 {
-    const uint PosePointer = 0xFD;
+    // Frame 0 of the "Legacy" sheet (see Sprites.cs).
+    static uint posePointer_;
 
     // Floor-level Y, not bobbing -- same "position by the bottom edge"
     // idea as PlayerSprite (see its own comment): bitmapY+50-21 puts a
@@ -40,6 +41,7 @@ static class Spider
         right1_ = false;
         tick_ = 0;
         color_ = Colors.Black;
+        posePointer_ = (uint)C64Address.FromLabel("frm_Legacy");
     }
 
     // Black spiders, except in the black room, where they'd vanish.
@@ -91,7 +93,7 @@ static class Spider
     public static Colors Color => color_;
     public static uint RawY0 => BitmapY0 + SpriteYOffset;
     public static uint RawY1 => BitmapY1 + SpriteYOffset;
-    public static uint Pointer => PosePointer;
+    public static uint Pointer => posePointer_;
 
     // Calculated collision, not VIC-II hardware collision: hardware
     // sprite-sprite collision (Sprite.IsInCollision / SpriteCollection's

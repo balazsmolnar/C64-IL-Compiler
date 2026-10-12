@@ -35,3 +35,6 @@ asm/*_debug.asm
 asm/unittest_runtime/**
 asm/unittest_runtime.asm
 /C64.slnLaunch.user
+
+# Python bytecode (tools/*.py, Catacombs/art/*.py)
+__pycache__/

@@ -115,6 +115,10 @@ def check_dump(sc, scene, path):
             trial = copy.deepcopy(before)
             apply_event(trial, sc, pending[0])
             trial.tick()
+            if trial.sid != sid:
+                # (a call made just after this tick, inside its 4000-cycle window)
+                trial = copy.deepcopy(model)
+                apply_event(trial, sc, pending[0])
             if trial.sid == sid:
                 model = trial
                 triggers.append((' '.join(pending.pop(0)), t, cyc))

@@ -51,6 +51,12 @@ static class GameFlow
 
     public static void BeforeGame()
     {
+        // This runtime only frees memory when asked. Every run's Init
+        // methods allocate their arrays again and drop the old ones; without
+        // this the object table is full after some 35 runs (checked with the
+        // RESTART scene: a red border and a halt).
+        System.GC.Collect();
+
 #if SCENE_GAMEOVER
         TitleScreen.Show(TitleScreen.GameOver, 1);
 #elif SCENE_VICTORY

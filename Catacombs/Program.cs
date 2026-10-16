@@ -16,6 +16,9 @@ class Program
     // deeper naturally drifts the ON-SCREEN sprite toward center without
     // this code ever computing that drift itself).
     static uint roomX_, roomDepth_;
+#if SCENE_TIMING || SCENE_TIMINGM
+    static uint timing_;
+#endif
     static uint playerHp_;
     static uint playerDamage_; // set in Main()/PlayerDied(), raised by Weapon.DamageAt on pickup
     const uint PlayerMaxHp = 100;
@@ -67,7 +70,7 @@ class Program
     // over (the player died, or escaped with the relics).
     static void Play()
     {
-#if SCENE_COMBAT || SCENE_MONSTERROOM
+#if SCENE_COMBAT || SCENE_MONSTERROOM || SCENE_TIMINGM
         px_ = 5;
         py_ = 3;
 #else
@@ -104,6 +107,11 @@ class Program
         Hud.SetWeapon(playerDamage_);
 
         roomX_ = RoomProjection.Center;
+#if SCENE_TIMING
+        roomX_ = 18;
+#elif SCENE_TIMINGM
+        roomX_ = 5;     // along the left wall, clear of the room's guardian
+#endif
         roomDepth_ = 0;
         PlayerSprite.Init(RoomProjection.ScreenX(roomX_, roomDepth_), RoomProjection.ScreenY(roomDepth_));
 
@@ -118,13 +126,36 @@ class Program
         while (GameFlow.Playing)
         {
             C64.Screen.WaitForVBlank();
+#if SCENE_TIMING || SCENE_TIMINGM
+            C64.Screen.SetBorderColor(Colors.White); // the loop's work shows as a white band in the border
+            TimingProbe.Start();
+#endif
             DungeonView.Animate(); // torch flicker: first, while the beam is off screen
+#if SCENE_TIMING || SCENE_TIMINGM
+            TimingProbe.Mark(0);
+#endif
             Spider.Animate();
+#if SCENE_TIMING || SCENE_TIMINGM
+            TimingProbe.Mark(1);
+#endif
             Monster.Animate(px_, py_);
+#if SCENE_TIMING || SCENE_TIMINGM
+            TimingProbe.Mark(2);
+#endif
             UpdateZOrder();
-            UpdateBorderCue();
+#if SCENE_TIMING || SCENE_TIMINGM
+            TimingProbe.Mark(3);
+#endif
             Hud.Tick();
+#if SCENE_TIMING || SCENE_TIMINGM
+            TimingProbe.Mark(4);
+#endif
             HandleInput();
+#if SCENE_TIMING || SCENE_TIMINGM
+            C64.Screen.SetBorderColor(Colors.Black);
+            TimingProbe.Mark(5);
+            TimingProbe.Report();
+#endif
         }
     }
 
@@ -137,15 +168,8 @@ class Program
         Spider.SetRoomColor(Maze.RoomColorValue(px_, py_));
     }
 
-    // Green border while standing at an open door ("press SPACE"), the
-    // room's own color otherwise.
-    static void UpdateBorderCue()
-    {
-        if (AtDoor())
-            C64.Screen.SetBorderColor(Colors.Green);
-        else
-            C64.Screen.SetBorderColor(roomColor_);
-    }
+    // (The old green-border door cue is gone: the border stays black, see
+    // AAA-BRIEF.md. A door prompt belongs in the room art or the HUD.)
 
     // Animates the player and hands every sprite out to the hardware,
     // nearest first (SpriteStage.cs).
@@ -207,6 +231,27 @@ class Program
         uint nx = roomX_, nd = roomDepth_;
         bool moved = false;
 
+#if SCENE_TIMING || SCENE_TIMINGM
+        // Timing scenes: walk diagonally back and forth by themselves, the
+        // most expensive frame (both coordinates re-projected every frame).
+        timing_ = timing_ + 1;
+        moved = true;
+        if ((timing_ & 64) == 0)
+        {
+            nd = roomDepth_ + Speed;
+#if SCENE_TIMING
+            nx = roomX_ + Speed;
+#endif
+        }
+        else
+        {
+            nd = roomDepth_ - Speed;
+#if SCENE_TIMING
+            nx = roomX_ - Speed;
+#endif
+        }
+        if (false)
+#endif
         if (C64.IsKeyPressed(Keys.W))
         {
             nd = roomDepth_ + Speed < RoomProjection.DepthMax ? roomDepth_ + Speed : RoomProjection.DepthMax;
@@ -236,7 +281,7 @@ class Program
         Audio.Step(moved);
 
         // Checked every frame, not just when moved: the player can stop
-        // right at a door (see the green border cue from UpdateBorderCue)
+        // right at a door (Audio.Door is the cue)
         // and press SPACE separately, same as how Combat's own SPACE
         // press works independently of movement.
         if (TryCrossDoor())
@@ -287,7 +332,7 @@ class Program
 
     // True while standing right at an open door's crossing edge -- the
     // same position checks TryCrossDoor itself uses, split out so
-    // UpdateBorderCue can show the "press SPACE" cue without actually
+    // TryCrossDoor can sound the door without actually
     // crossing.
     static bool AtDoor()
     {
@@ -303,7 +348,7 @@ class Program
     }
 
     // Crossing is now a deliberate action (SPACE), not automatic on
-    // reaching the edge -- UpdateBorderCue's green flash is the signal
+    // reaching the edge -- standing at the door is the signal
     // that SPACE will do something here. Fixed orientation (see
     // DungeonView's own comment) means crossing any given wall always
     // lands at the SAME edge of the next room -- the one opposite the

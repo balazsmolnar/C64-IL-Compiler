@@ -68,10 +68,14 @@ static class Encounter
         bool over = false;
         while (!over)
         {
+#if SCENE_COMBAT
+            Idle(40); // the COMBAT scene fights by itself (no keypresses)
+#else
             while (!C64.IsKeyPressed(Keys.Space))
                 Idle(1);
             while (C64.IsKeyPressed(Keys.Space))
                 Idle(1);
+#endif
 
             Audio.SwordHit();
             if ((C64.Random() & 7) == 0)

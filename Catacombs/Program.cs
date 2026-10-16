@@ -50,6 +50,21 @@ class Program
 #if SCENE_HUDFULL || SCENE_HUDMID || SCENE_HUDLOW
         HudScene.Run(); // never returns: the status panel in one fixed state (Hud.cs)
 #endif
+        // Title -> a run of the game -> game over / victory -> title, for
+        // ever (GameFlow.cs, TitleScreen.cs). Play() starts every run from
+        // scratch.
+        for (;;)
+        {
+            GameFlow.BeforeGame();
+            Play();
+            GameFlow.AfterGame(playerHp_);
+        }
+    }
+
+    // One run: sets the whole game up, then plays until GameFlow says it is
+    // over (the player died, or escaped with the relics).
+    static void Play()
+    {
 #if SCENE_COMBAT || SCENE_MONSTERROOM
         px_ = 5;
         py_ = 3;
@@ -97,7 +112,7 @@ class Program
         Encounter.Scene(); // never returns: the encounter's states on a loop (Encounter.cs)
 #endif
 
-        for (;;)
+        while (GameFlow.Playing)
         {
             C64.Screen.WaitForVBlank();
             DungeonView.Animate(); // torch flicker: first, while the beam is off screen
@@ -348,6 +363,8 @@ class Program
     {
         px_ = newPx;
         py_ = newPy;
+        if (GameFlow.Escaped(px_, py_))
+            return; // out with every relic: the run is won
         roomX_ = entryRoomX;
         roomDepth_ = entryRoomDepth;
         ApplyRoomColor();
@@ -378,11 +395,8 @@ class Program
         return true;
     }
 
-    // No separate game-over screen/state machine yet -- just enough that
-    // dying doesn't strand the player: a flash to signal it, then reset to
-    // full health back at the starting room. The monster that killed them
-    // stays alive (DamageAt was never reached this exchange), so the same
-    // fight is waiting on a second attempt.
+    // A flash, then the run is over: nothing is reset here, the next run's
+    // Play() sets everything up again.
     static void PlayerDied()
     {
         PlayerSprite.Fall();
@@ -394,15 +408,6 @@ class Program
             C64.Screen.SetBorderColor(Colors.Black);
             Delay.Wait(80);
         }
-        playerHp_ = PlayerMaxHp;
-        playerDamage_ = UnarmedDamage;
-        Hud.SetHealth(playerHp_);
-        Hud.SetWeapon(playerDamage_);
-        px_ = 1;
-        py_ = 1;
-        roomX_ = RoomProjection.Center;
-        roomDepth_ = 0;
-        ApplyRoomColor();
-        EnterRoom();
+        GameFlow.Lose(); // ends Play(); Main shows the game over screen, then the title
     }
 }

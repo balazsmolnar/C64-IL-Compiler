@@ -53,8 +53,10 @@ class Program
         // Title -> a run of the game -> game over / victory -> title, for
         // ever (GameFlow.cs, TitleScreen.cs). Play() starts every run from
         // scratch.
+        Audio.Init();
         for (;;)
         {
+            Audio.Title();
             GameFlow.BeforeGame();
             Play();
             GameFlow.AfterGame(playerHp_);
@@ -74,6 +76,7 @@ class Program
 #endif
         playerHp_ = PlayerMaxHp;
         playerDamage_ = UnarmedDamage;
+        Audio.Explore();
 
         // MultiColor (not plain Bitmap) so doors can be a color distinct
         // from the lines: MatrixHigh=White (wall/outline lines),
@@ -230,6 +233,7 @@ class Program
             roomX_ = nx;
             roomDepth_ = nd;
         }
+        Audio.Step(moved);
 
         // Checked every frame, not just when moved: the player can stop
         // right at a door (see the green border cue from UpdateBorderCue)
@@ -253,6 +257,7 @@ class Program
         else if (itemHere_ && Touching(Item.RoomX, Item.RoomDepth, Item.RoomRadius))
         {
             Item.CollectAt(px_, py_);
+            Audio.Pickup();
             itemHere_ = false;
             Hud.SetTreasure(Item.CollectedCount);
         }
@@ -260,6 +265,7 @@ class Program
         {
             playerDamage_ = Weapon.DamageAt(px_, py_);
             Weapon.CollectAt(px_, py_);
+            Audio.WeaponPickup();
             weaponHere_ = false;
             Hud.SetWeapon(playerDamage_);
         }
@@ -309,6 +315,7 @@ class Program
     {
         if (!C64.IsKeyPressed(Keys.Space))
             return false;
+        if (AtDoor()) Audio.Door();
 
         if (roomDepth_ >= RoomProjection.DepthMax && northOpen_ && NearCenterX())
         {
@@ -380,6 +387,7 @@ class Program
     {
         // The fight itself is Encounter's (Encounter.cs). The screen is
         // blanked while the room comes back.
+        Audio.CombatStart();
         Monster.HideSprite(); // the patrolling guardian: the encounter has its own sprites
         playerHp_ = Encounter.Fight(px_, py_, playerHp_, playerDamage_);
         C64.Screen.BeginUpdate();
@@ -399,6 +407,7 @@ class Program
     // Play() sets everything up again.
     static void PlayerDied()
     {
+        Audio.PlayerDied();
         PlayerSprite.Fall();
         SpriteStage.Update();
         for (uint i = 0; i < 6; i++)

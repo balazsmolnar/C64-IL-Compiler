@@ -47,6 +47,9 @@ class Program
 #if SCENE_TECHDEMO
         TechDemo.Run(); // never returns: the graphics tech showcase (TechDemo.cs)
 #endif
+#if SCENE_ROOM4 || SCENE_DEADEND || SCENE_THEME0 || SCENE_THEME1 || SCENE_THEME2 || SCENE_THEME3 || SCENE_THEME4 || SCENE_DOOROPEN || SCENE_ROOMTOUR
+        RoomScenes.Run(); // never returns: the room scenes (RoomScenes.cs)
+#endif
 #if SCENE_COMBAT || SCENE_MONSTERROOM
         px_ = 5;
         py_ = 3;
@@ -91,6 +94,7 @@ class Program
         for (;;)
         {
             C64.Screen.WaitForVBlank();
+            DungeonView.Animate(); // torch flicker: first, while the beam is off screen
             Spider.Animate();
             Monster.Animate(px_, py_);
             UpdateZOrder();
@@ -200,8 +204,7 @@ class Program
         itemHere_ = Item.IsPresentAt(px_, py_);
         weaponHere_ = Weapon.IsPresentAt(px_, py_);
 
-        C64.Screen.ClearBitmap();
-        DungeonView.Render(px_, py_);
+        DungeonView.Render(px_, py_); // a whole picture, drawn with the screen blanked: nothing to clear first
         if (itemHere_)
             Item.Render();
         if (weaponHere_)
@@ -369,33 +372,17 @@ class Program
         return dx < 20;
     }
 
-    // The north door panel's far (right) edge at each animation frame -- an
-    // x (receding from the closed door's right edge, 187, toward the
-    // hinge, 131) AND a top/bottom row pair (see DungeonView.
-    // RenderNorthDoorOpening/DrawTaperedPanel), shrinking symmetrically in
-    // from the door's own top (92) and bottom (173) toward its vertical
-    // center (132.5) at the same rate the edge recedes -- the two right
-    // corners trace inward AND toward the middle together, a real 3D
-    // swing rather than a flat edge sliding sideways, collapsing together
-    // at the hinge on the last frame (fully open). Row pairs sum to 265
-    // (92+173) by construction, keeping them symmetric around the center.
-    static readonly ulong[] NorthDoorOpenFarX = { 171, 155, 143, 135, 131 };
-    static readonly ulong[] NorthDoorOpenFarTopRow = { 104, 115, 124, 130, 132 };
-    static readonly ulong[] NorthDoorOpenFarBottomRow = { 161, 150, 141, 135, 133 };
-
-    // Plays the swing before the player actually steps through -- still
-    // viewing the CURRENT room, door hinged at its left edge, opening away.
-    // Not double-buffered (see EnterRoom's own comment on why nothing here
-    // is anymore): each frame is a plain ClearBitmap+redraw, the same
-    // one-off flicker tradeoff already accepted for an ordinary room
-    // transition, just spread over 5 frames instead of 1.
+    // Plays the north door swinging open (DungeonView.OpenNorthDoor: three
+    // steps, six frames apart) before the player steps through, with the
+    // room's own animation and the sprites kept going meanwhile.
     static void AnimateNorthDoorOpening()
     {
-        for (uint i = 0; i < 5; i++)
+        for (uint i = 0; i < 24; i++)
         {
             C64.Screen.WaitForVBlank();
-            C64.Screen.ClearBitmap();
-            DungeonView.RenderNorthDoorOpening(px_, py_, NorthDoorOpenFarX[i], NorthDoorOpenFarTopRow[i], NorthDoorOpenFarBottomRow[i]);
+            DungeonView.Animate();
+            if (i < 18 && i % 6 == 0)
+                DungeonView.OpenNorthDoor(i / 6);
             Spider.Animate();
             UpdateZOrder();
         }

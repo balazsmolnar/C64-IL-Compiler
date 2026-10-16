@@ -205,7 +205,7 @@ def sample(sx, sy, cfg):
         course = int(v // 16.0)
         off = 16.0 if course & 1 else 0.0
         idx = int((u + off) // 32.0)
-        bias = -0.5 if course == 5 else 0.0
+        bias = -0.3 if course == 5 else 0.0
         return (('fw', course, idx), STONE, (u + off) % 32.0 / 2.0, v % 16.0, bias) + pos
     if s in ('left', 'right'):
         w, v = ZF - z, y - YC
@@ -216,7 +216,7 @@ def sample(sx, sy, cfg):
         course = int(v // 16.0)
         off = 0.0 if course & 1 else 16.0
         idx = int((w + off) // 32.0)
-        bias = -0.5 if course == 5 else 0.0
+        bias = -0.3 if course == 5 else 0.0
         return ((s, course, idx), STONE, (w + off) % 32.0 / 2.0, v % 16.0, bias) + pos
     if s == 'floor':
         u, w = x + XW, ZF - z
@@ -296,7 +296,7 @@ def wood_tex(a, b, rid):
 
 NORMALS = {'fw': (0, 0, -1), 'dn': (0, 0, -1), 'left': (1, 0, 0), 'dw': (1, 0, 0), 'right': (-1, 0, 0),
            'de': (-1, 0, 0), 'fl': (0, -1, 0), 'ce': (0, 1, 0), 'bf': (0, 0, -1.0001), 'bb': (0, 1, 0)}
-AMBIENT = {'fw': 0.135, 'dn': 0.135, 'left': 0.19, 'right': 0.19, 'dw': 0.19, 'de': 0.19,
+AMBIENT = {'fw': 0.165, 'dn': 0.165, 'left': 0.19, 'right': 0.19, 'dw': 0.19, 'de': 0.19,
            'fl': 0.20, 'ce': 0.13, 'bf': 0.17, 'bb': 0.10}
 
 
@@ -641,7 +641,9 @@ def render(cfg):
             elif fv_ == 1 or fh_ == 1:
                 tone = 1.0
             elif mat == STONE and rid[0] in PLAIN:
-                pass
+                d_ = TILES[hv % len(TILES)][int(tb) & 15][int(ta) & 15]
+                if d_ and min(lv_, lh_, fv_, fh_) > 2:
+                    tone = 2.0 + d_
             elif mat == STONE:
                 if lv_ == 2:
                     tone += 0.5
@@ -666,7 +668,7 @@ def render(cfg):
                     tone = 3.0
 
             sx, sy = 2 * mx + 1.0, my + 0.5
-            jitter = ((hv >> 8) % 100) / 100.0 * 0.7 - 0.35
+            jitter = ((hv >> 8) % 100) / 100.0 * 0.44 - 0.22
             hot = hot_light(sx, sy) if rid[0] == 'fw' else None
             if hot is not None:
                 ramp = HOT
@@ -838,7 +840,7 @@ THEMES = [
     ("Moss", theme()),                                   # the picture as drawn: grey stone, green moss
     ("Cold", theme(c12=14, c15=3, c5=15)),               # blue-grey stone, pale lichen
     ("Rust", theme(c6=9, c11=2, c12=10, c5=8)),          # red stone, rust stains
-    ("Crypt", theme(c11=4, c12=14, c15=3, c5=10)),       # violet crypt
+    ("Crypt", theme(c6=4, c11=4, c12=14, c5=10)),        # violet crypt
     ("Bone", theme(c6=9, c11=12, c12=15, c15=1, c5=9)),  # pale, dry stone
 ]
 PROPS = ['chains', 'banner', 'bones', 'puddle', 'grate']
@@ -978,10 +980,10 @@ def main():
     print("glow cells %s, %d re-encoded, room %d bytes" % ([len(g) for g in glow], moved, table[0][3]))
 
     def glow_colour(state, d):
-        if state == 1:                                    # flare: the inner ring turns yellow
-            return 7 if d <= 14 else 8
-        if state == 2:                                    # dim: the outer ring turns brown
-            return 9 if d > 14 else 8
+        if state == 1:                                    # dim: the outer ring turns brown
+            return 9 if d > 24 else 8
+        if state == 2:                                    # dimmer: all but the cells next to the flame
+            return 9 if d > 15 else 8
         return 8
 
     glow_images = []

@@ -40,6 +40,12 @@ Flag_Joystick_get_Pressed = 0
 Joystick_get_Pressed:
     #stack_save_return_adress zp_tmp1_low
     #stack_pull_int_x
+    ; $DC00 is also the keyboard's column select: whatever column the last
+    ; keyboard scan (C64.IsKeyPressed, the KERNAL) left selected reads as
+    ; joystick-2 lines held low -- a column with bit 4 clear read as FIRE.
+    ; Deselect every column first (also keeps keys out of joystick 1).
+    lda #$ff
+    sta joy2
     lda joy2,x
     eor #$ff
     and #$1f

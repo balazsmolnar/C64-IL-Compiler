@@ -46,8 +46,19 @@ namespace C64Lib
 
             // Plays a sound effect over the music. While an effect is still
             // sounding, only one with an equal or higher number replaces it,
-            // so number effects from least to most important.
+            // so number effects from least to most important. An effect
+            // marked polite in the score only plays when the music's note
+            // on the borrowed voice is released (footsteps).
             public static void PlayEffect(uint effect) { }
+
+            // Ticks the player has made so far, 0-255 and round again: a
+            // frame counter (50 a second) that keeps counting however long
+            // the main loop takes.
+            public static uint Frame => 0;
+
+            // True while a sound effect is sounding (for example to know
+            // whether a polite effect was actually played).
+            public static bool EffectPlaying => false;
 
             // One step of the player -- only for programs that do not call
             // Install() and tick it themselves.

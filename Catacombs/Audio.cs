@@ -14,7 +14,8 @@ static class Audio
 {
     const uint StepEvery = 24;  // frames between two footsteps: about two a second
 
-    static uint stepTimer_;
+    static uint lastStep_;      // C64.Music.Frame of the last footstep
+    static bool walking_;
     static bool stepLeft_;
 
     // Once, at boot.
@@ -55,24 +56,28 @@ static class Audio
 #endif
     }
 
-    // Every frame of the main loop: did the player move this frame?
-    // Footsteps come two a second, left and right alternating, and the
-    // first one as soon as the player sets off.
+    // Every pass of the main loop: did the player move? Footsteps come
+    // at most two a second (timed in real frames, however long a pass
+    // takes), left and right alternating, the first as soon as the player
+    // sets off. A step is polite (see audio/score.py): it only sounds
+    // while the chord on voice 3 is ringing off, so it is tried every
+    // pass until one actually plays.
     public static void Step(bool moved)
     {
         if (!moved)
         {
-            stepTimer_ = 0;
+            walking_ = false;
+            return;
         }
-        else if (stepTimer_ == 0)
+        uint now = C64.Music.Frame;
+        if (walking_ && (uint)(now - lastStep_) < StepEvery)
+            return;
+        C64.Music.PlayEffect(stepLeft_ ? AudioIds.FxStepA : AudioIds.FxStepB);
+        if (C64.Music.EffectPlaying)
         {
-            C64.Music.PlayEffect(stepLeft_ ? AudioIds.FxStepA : AudioIds.FxStepB);
+            walking_ = true;
+            lastStep_ = now;
             stepLeft_ = !stepLeft_;
-            stepTimer_ = StepEvery - 1;
-        }
-        else
-        {
-            stepTimer_ = stepTimer_ - 1;
         }
     }
 
@@ -107,7 +112,7 @@ static class Audio
     public static void SwordHit()
     {
         C64.Music.PlayEffect(AudioIds.FxSword);
-        Wait(18);
+        Wait(28);                   // its 26 ticks and the tick of hard restart before
     }
 
     // The monster strikes back: its growl, then the player's cry.

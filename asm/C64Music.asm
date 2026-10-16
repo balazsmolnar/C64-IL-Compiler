@@ -132,10 +132,16 @@ Flag_Music_PlayEffect = 0
 .weak
 Flag_Music_Tick = 0
 .endweak
+.weak
+Flag_Music_get_Frame = 0
+.endweak
+.weak
+Flag_Music_get_EffectPlaying = 0
+.endweak
 
 MUSIC_RESUMABLE = Flag_Music_Interrupt | Flag_Music_Resume
 
-.if Flag_Music_Install | Flag_Music_Play | Flag_Music_Stop | Flag_Music_PlayEffect | Flag_Music_Tick | MUSIC_RESUMABLE
+.if Flag_Music_Install | Flag_Music_Play | Flag_Music_Stop | Flag_Music_PlayEffect | Flag_Music_Tick | MUSIC_RESUMABLE | Flag_Music_get_Frame | Flag_Music_get_EffectPlaying
 
 MUSIC_REST = $60
 MUSIC_FRAME_CYCLES = 19656          ; one PAL frame (312 lines * 63 cycles)
@@ -157,6 +163,7 @@ mv_count    .fill 4         ; ticks to the next event (3: ticks the effect has l
 mv_pend     .fill 3         ; event fetched two ticks early, applied when mv_count hits 0
 mv_dur      .fill 3         ; rows the pending event lasts
 mv_ins      .fill 3
+mv_lins     .fill 4         ; instrument of the note sounding now (legato needs the same one)
 mv_trans    .fill 3
 mv_ord      .fill 3         ; next index in music_orders
 mv_pat      .fill 3         ; current pattern
@@ -187,6 +194,8 @@ music_state_end
 ; ---- the rest of the player's variables ------------------------------------
 m_sfx       .byte 0         ; number of the effect on the effect channel
 m_sfxhr     .byte 0         ; nonzero: the effect starts next tick, this one kills the voice
+m_fxroute   .byte 0         ; the effect's own $D417 routing bit (0 or music_sfx_bit)
+m_frame     .byte 0         ; counts ticks (C64.Music.Frame)
 m_saved     .byte 0         ; nonzero: music_save holds an interrupted song
 m_flo       .byte 0
 m_fhi       .byte 0
@@ -372,8 +381,16 @@ Music_PlayEffect
     beq +
     cpy m_sfx                   ; one is sounding: only an equal or higher number replaces it
     bcc _skip
++   lda music_sfx_len,y
+    bpl +                       ; bit 7: only if the music isn't sounding a note on the voice
+    lda m_playing
+    beq +
+    lda mv_gate + music_sfx_reg / 7
+    lsr
+    bcs _skip
 +   sty m_sfx
     lda music_sfx_len,y
+    and #$7f
     sta mv_count+3
     sta m_sfxhr                 ; (nonzero) first a tick with the voice's envelope killed
     lda music_sfx_note,y
@@ -385,6 +402,31 @@ Music_PlayEffect
     jsr music_note_init
 _skip
     plp
+    #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+; ---------------------------------------------------------------------------
+; C64.Music.Frame -- ticks so far (wraps at 256): a frame counter that keeps
+; counting however long the main loop takes.
+; ---------------------------------------------------------------------------
+.if Flag_Music_get_Frame
+Music_get_Frame
+    #stack_save_return_adress zp_tmp1_low
+    lda m_frame
+    #stack_push_int_a
+    #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+; ---------------------------------------------------------------------------
+; C64.Music.EffectPlaying -- true while an effect owns its voice.
+; ---------------------------------------------------------------------------
+.if Flag_Music_get_EffectPlaying
+Music_get_EffectPlaying
+    #stack_save_return_adress zp_tmp1_low
+    lda mv_count+3
+    beq +
+    lda #1
++   #stack_push_int_a
     #stack_return_to_saved_address zp_tmp1_low
 .endif
 
@@ -405,6 +447,7 @@ music_song_init
     sta m_modevol
     lda music_song_cutmax,y
     sta m_cutmax
+    sta m_cut                   ; open until an instrument sets it
     lda music_song_cutmin,y
     sta m_cutmin
     ldx #2
@@ -468,6 +511,16 @@ music_note_init
     lda music_ins_gate,y
     and #$7f
     sta mv_goff,x
+    tya
+    sta mv_lins,x
+    cpx #3                      ; the effect channel has its own routing bit and
+    bne _music                  ; never touches the music's cutoff
+    lda music_ins_filt,y
+    beq +
+    lda #music_sfx_bit
++   sta m_fxroute
+    jmp _unfiltered
+_music
     lda music_regbit,x          ; filter routing and cutoff envelope
     eor #$ff
     and m_route
@@ -497,8 +550,13 @@ _unfiltered
 Music_Tick
     lda m_modevol
     sta $d418
+    inc m_frame
     lda m_route
-    ora m_res
+    ldy mv_count+3
+    beq +
+    and #~music_sfx_bit & $ff   ; while an effect sounds, its routing bit, not the music's
+    ora m_fxroute
++   ora m_res
     sta $d417
 
     ; filter cutoff envelope
@@ -621,8 +679,11 @@ _read
     sta mv_pend,x
     ldy mv_ins,x
     lda music_ins_gate,y
-    bmi _done                   ; legato: no hard restart
-    lda #$fe                    ; hard restart: gate off and ADSR zeroed for
+    bpl +
+    tya                         ; legato, and the same instrument is sounding:
+    cmp mv_lins,x               ; no hard restart
+    beq _done
++   lda #$fe                    ; hard restart: gate off and ADSR zeroed for
     sta mv_gate,x               ; the two ticks before the note
     lda #0
     sta mv_ad,x

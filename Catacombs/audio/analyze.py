@@ -188,7 +188,7 @@ def note_segments(timeline):
 
 
 def check_wav(scene, path, timeline, triggers, png):
-    sc_effect_ticks = {e['name']: e['len'] for e in score_module.build().effects}
+    sc_effect_ticks = {e['name']: e['len'] & 0x7F for e in score_module.build().effects}
     import numpy as np
     rate, x = read_wav(path)
     dur = len(x) / rate
@@ -239,6 +239,7 @@ def check_wav(scene, path, timeline, triggers, png):
     found = 0
     cents = []
     missing = []
+    levels = []
     for v, a, b, freq, wf in segs:
         f0 = sidmusic.reg_to_hz(freq)
         # Analyse the note itself: from just after its attack to its end,
@@ -252,6 +253,12 @@ def check_wav(scene, path, timeline, triggers, png):
         spec = np.abs(np.fft.rfft(seg, nfft))
         freqs = np.fft.rfftfreq(nfft, 1.0 / rate)
         lobe = 2.0 * rate / (hi - lo)              # half width of a Hann main lobe
+        # Level: the strongest of the first three harmonics, as a sine
+        # amplitude in dB of full scale. A voice the score has playing must
+        # be audible, not just "present" as leakage.
+        wsum = np.hanning(hi - lo).sum()
+        lvl = max(spec[(freqs > f0 * h * 0.97) & (freqs < f0 * h * 1.03)].max() for h in (1, 2, 3)) * 2 / wsum
+        levels.append((v, a, b, f0, 20 * np.log10(lvl + 1e-9)))
         hit = None
         # The fundamental or, for notes the filter or the pulse width
         # leaves without one, the next harmonics.
@@ -276,6 +283,16 @@ def check_wav(scene, path, timeline, triggers, png):
               % (found, total, c.mean(), np.abs(c).max()))
         for v, a, f0 in missing[:8]:
             print('           not found: voice %d at %.2f s, %.1f Hz' % (v + 1, tick_time(a), f0))
+        # Per voice: notes of 0.3 s or more that come out more than 40 dB
+        # under full scale -- a voice the score plays but nobody hears.
+        for v in range(3):
+            long_ = [l for l in levels if l[0] == v and l[2] - l[1] >= 15]
+            if not long_:
+                continue
+            quiet = [l for l in long_ if l[4] < -40]
+            print('         voice %d: %d notes >= 0.3 s, level median %.1f dB, quietest %.1f dB; %d under -40 dB%s'
+                  % (v + 1, len(long_), float(np.median([l[4] for l in long_])), min(l[4] for l in long_), len(quiet),
+                     (': ' + ', '.join('%.1f s' % tick_time(l[1]) for l in quiet[:8])) if quiet else ''))
 
     # --- stuck notes / tails: level while the model says every gate is off
     quiet = np.array([all(not (v[2] & 1) or not (v[2] & 0xF0) for v in fr.voices) for _, fr in timeline])

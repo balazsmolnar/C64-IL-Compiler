@@ -49,7 +49,7 @@ static class Monster
     // Index of the live monster guarding (x,y), or Count (never a valid
     // index) if there isn't one -- callers compare against Count directly
     // instead of needing a separate "found" bool.
-    static uint FindAt(uint x, uint y)
+    public static uint FindAt(uint x, uint y)
     {
         for (uint i = 0; i < Count; i++)
         {
@@ -202,46 +202,5 @@ static class Monster
         }
     }
 
-    // Simple silhouette: a body and two eyes. MatrixLow is a fixed color
-    // (LightRed) set once in Program.Main and never changed, so it's
-    // always safe to draw with here regardless of the current room's own
-    // Background color.
-    public static void Render()
-    {
-        C64.Screen.DrawCircle(160, 95, 35, true, true, BitmapColorSource.MatrixLow);
-        C64.Screen.DrawCircle(148, 85, 5, true, true, BitmapColorSource.ColorRam);
-        C64.Screen.DrawCircle(172, 85, 5, true, true, BitmapColorSource.ColorRam);
-    }
-
-    // ulong, not uint: this compiler's uint/int are 8-bit (see CLAUDE.md),
-    // and the right-hand bar's screen X (310) already doesn't fit one --
-    // every coordinate here follows DungeonView.cs's own convention of
-    // ulong for anything that touches Screen.Draw*.
-    const ulong BarWidth = 100;
-    const ulong BarHeight = 8;
-
-    // Player's bar top-left, the current monster's top-right -- both
-    // outlined (MatrixHigh, matching the walls) with a filled portion
-    // (MatrixLow) proportional to remaining HP. HP arrives as uint (that's
-    // what Program.cs's playerHp_ and HpAt above are), widened to ulong
-    // immediately: playerHp*BarWidth can reach 10000, which overflows an
-    // 8-bit uint multiply but fits comfortably in this compiler's 16-bit
-    // ulong.
-    public static void DrawHealthBars(uint playerHp, uint playerMaxHp, uint monsterHp)
-    {
-        ulong pHp = playerHp;
-        ulong pMax = playerMaxHp;
-        ulong mHp = monsterHp;
-
-        C64.Screen.DrawRectangle(10, 8, 10 + BarWidth, 8 + BarHeight, false, true, BitmapColorSource.MatrixHigh);
-        ulong playerFill = (pHp * BarWidth) / pMax;
-        if (playerFill > 0)
-            C64.Screen.DrawRectangle(10, 8, 10 + playerFill, 8 + BarHeight, true, true, BitmapColorSource.MatrixLow);
-
-        ulong right = 310;
-        C64.Screen.DrawRectangle(right - BarWidth, 8, right, 8 + BarHeight, false, true, BitmapColorSource.MatrixHigh);
-        ulong monsterFill = (mHp * BarWidth) / MaxHp;
-        if (monsterFill > 0)
-            C64.Screen.DrawRectangle(right - monsterFill, 8, right, 8 + BarHeight, true, true, BitmapColorSource.MatrixLow);
-    }
+    // The encounter picture and its health bar are Encounter.cs.
 }

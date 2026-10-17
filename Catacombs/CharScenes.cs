@@ -48,10 +48,7 @@ static class CharScenes
         C64.Screen.SetBorderColor(Colors.Black);
         C64.Screen.SetBackgroundColor(Colors.Black);
         C64.Screen.SetScreenMode(ScreenMode.MultiColor);
-        C64.Screen.BeginUpdate();
-        C64.Screen.ClearBitmap();
-        C64.Screen.DrawImage(0, 0, C64Address.FromLabel("img_StandIn"));
-        C64.Screen.EndUpdate();
+        DungeonView.Render(RoomX, RoomY); // the real room (the stand-in no longer fits next to the whole game)
 
         SpriteStage.Init();
 #if SCENE_CHAR_PARADE

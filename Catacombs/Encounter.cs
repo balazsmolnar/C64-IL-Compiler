@@ -1,25 +1,16 @@
 using C64Lib;
 
 // The encounter screen's assets (art/encounter_art.py makes all of them).
-// The portrait is symmetric: only its left half is stored, and the jaw is
-// apart from the rest so it can open. Pixels and colours are separate
-// images so the pixels can be put up unseen.
+// The portrait is symmetric: only its left half is stored, pixels and
+// colours as two images so the pixels can be put up unseen.
 [assembly: RawImage(Resource = "enc_base_px.img", Label = "EncPixels")]
 [assembly: RawImage(Resource = "enc_base_col.img", Label = "EncColours")]
-[assembly: RawImage(Resource = "enc_shut_px.img", Label = "EncShutPx")]
-[assembly: RawImage(Resource = "enc_shut_col.img", Label = "EncShutCol")]
-[assembly: RawImage(Resource = "enc_roar_px.img", Label = "EncRoarPx")]
-[assembly: RawImage(Resource = "enc_roar_col.img", Label = "EncRoarCol")]
-// Each guardian's own one-sided marks (full width, drawn after the mirror)
-// and name plate.
+// Each guardian's name plate and its own one-sided marks (full width, drawn
+// after the mirror).
 [assembly: RawImage(Resource = "enc_kind0.img", Label = "EncKind0")]
 [assembly: RawImage(Resource = "enc_kind1.img", Label = "EncKind1")]
 [assembly: RawImage(Resource = "enc_kind2.img", Label = "EncKind2")]
 [assembly: RawImage(Resource = "enc_kind3.img", Label = "EncKind3")]
-[assembly: RawImage(Resource = "enc_name0.img", Label = "EncName0")]
-[assembly: RawImage(Resource = "enc_name1.img", Label = "EncName1")]
-[assembly: RawImage(Resource = "enc_name2.img", Label = "EncName2")]
-[assembly: RawImage(Resource = "enc_name3.img", Label = "EncName3")]
 // Eight hi-res frames for sprites 6-7: 0 eye, 1 eye narrowed, 2-3 the
 // player's blade stroke, 4-5 the guardian's claws, 6 "MISS", 7 a spark.
 [assembly: RawSprites(Order = 20, Resource = "enc_sprites.spr", Label = "Enc")]
@@ -149,38 +140,20 @@ static class Encounter
         // cell is black on black).
         Pair(0, (Colors)C64.GetMemory(eyeRamp_, 0), EyeX, EyeY);
         C64.Screen.DrawImage(0, 0, C64Address.FromLabel("img_EncPixels"));
-        C64.Screen.DrawImage(0, 0, C64Address.FromLabel("img_EncShutPx"));
         C64.Screen.MirrorCells(0, 0, 40, 21);
         bar_ = MaxHp;
         Bar(hp);
         Idle(20);
-        // A shape looms out of the dark, and comes nearer...
-        C64.Screen.SetCellColors(4, 0, 32, 18, 0x66, Colors.Blue);
-        Idle(16);
-        C64.Screen.SetCellColors(4, 0, 32, 18, 0xB6, Colors.Grey1);
-        Idle(16);
+        // A shape looms out of the dark...
+        C64.Screen.SetCellColors(4, 0, 32, 18, 0xB6, Colors.Blue);
+        Idle(30);
         // ...and the torches catch.
         C64.Screen.BeginUpdate();
         C64.Screen.DrawImage(0, 0, C64Address.FromLabel("img_EncColours"));
-        C64.Screen.DrawImage(0, 0, C64Address.FromLabel("img_EncShutCol"));
         C64.Screen.RemapCellColors(4, 0, 16, 18, tint_);
         C64.Screen.MirrorCellColors(0, 0, 40, 21);
-        Marks();
-        ulong name = C64Address.FromLabel("img_EncName0");
-        if (kind_ == 1)
-            name = C64Address.FromLabel("img_EncName1");
-        if (kind_ == 2)
-            name = C64Address.FromLabel("img_EncName2");
-        if (kind_ == 3)
-            name = C64Address.FromLabel("img_EncName3");
-        C64.Screen.DrawImage(14, 18, name);
-        C64.Screen.EndUpdate();
-        eyes_ = true;
-    }
-
-    // This guardian's one-sided marks: cracks, a broken horn, a crown.
-    static void Marks()
-    {
+        // this guardian's name and its own marks (a broken horn, a third
+        // eye weeping blood), drawn over both halves
         ulong marks = C64Address.FromLabel("img_EncKind0");
         if (kind_ == 1)
             marks = C64Address.FromLabel("img_EncKind1");
@@ -189,19 +162,16 @@ static class Encounter
         if (kind_ == 3)
             marks = C64Address.FromLabel("img_EncKind3");
         C64.Screen.DrawImage(0, 0, marks);
+        C64.Screen.EndUpdate();
+        eyes_ = true;
     }
 
-    // The dark closes over it again, from the middle out.
+    // The dark closes over it again.
     static void Leave()
     {
         eyes_ = false;
         Hide();
-        for (uint i = 0; i < 11; i++)
-        {
-            C64.Screen.WaitForVBlank();
-            C64.Screen.SetCellColors(0, 10 - i, 40, 1, 0, Colors.Black);
-            C64.Screen.SetCellColors(0, 10 + i, 40, 1, 0, Colors.Black);
-        }
+        C64.Screen.SetCellColors(0, 0, 40, 21, 0, Colors.Black);
     }
 
     // ---- idle life ----
@@ -221,11 +191,9 @@ static class Encounter
             }
             if (eyes_ && (tick_ & 7) == 0)
             {
-                // dim, mid, hot, white-hot, hot, mid...
-                uint step = (tick_ >> 3) & 7;
-                if (step > 3)
-                    step = 7 - step;
-                Pair(0, (Colors)C64.GetMemory(eyeRamp_, step), EyeX, EyeY);
+                // mid, hot, white-hot, hot: the fire breathes
+                uint step = (tick_ >> 3) & 3;
+                Pair(0, (Colors)C64.GetMemory(eyeRamp_, step == 0 ? 1u : step == 3 ? 2u : step), EyeX, EyeY);
                 if (tick_ > 247)                       // a blink, every five seconds
                     Hide();
             }
@@ -239,9 +207,8 @@ static class Encounter
     }
 
     // Shows a frame on sprites 6 and 7, sprite 6 at (x, y). Frames 0-1 are
-    // the eyes: the same frame twice, at the sockets. MissText: sprite 7 is
-    // its black shadow. The others are two halves side by side, at double
-    // size.
+    // the eyes: the same frame twice, at the sockets. The others are two
+    // halves side by side, at double size.
     static void Pair(uint frame, Colors color, uint x, uint y)
     {
         uint sheet = (uint)C64Address.FromLabel("frm_Enc");
@@ -255,18 +222,9 @@ static class Encounter
         s.ExpandY = big;
         s.Visible = true;
         s = C64.Sprites.Sprite7;
-        if (frame == MissText)
-        {
-            x = x + 2;
-            y = y + 2;
-            color = Colors.Black;
-        }
-        else
-        {
-            x = x + (big ? 48u : EyeGap);
-            if (big)
-                frame = frame + 1;
-        }
+        x = x + (big ? 48u : EyeGap);
+        if (big)
+            frame = frame + 1;
         s.Frame = sheet + frame;
         s.X = x;
         s.Y = y;
@@ -294,28 +252,15 @@ static class Encounter
 
     // ---- blows ----
 
-    // Opens or shuts the jaw. Its cells go a flat colour first (white: the
-    // flash of a blow landing; black), the new pixels go up behind that,
-    // then their colours, so no half-drawn jaw is ever shown.
-    static void Jaw(bool open, uint flash)
-    {
-        C64.Screen.SetCellColors(14, 12, 12, 6, flash, (Colors)flash);
-        C64.Screen.DrawImage(0, 0, open ? C64Address.FromLabel("img_EncRoarPx") : C64Address.FromLabel("img_EncShutPx"));
-        C64.Screen.MirrorCells(14, 12, 12, 6);
-        C64.Screen.DrawImage(0, 0, open ? C64Address.FromLabel("img_EncRoarCol") : C64Address.FromLabel("img_EncShutCol"));
-        C64.Screen.RemapCellColors(14, 12, 6, 6, tint_);
-        C64.Screen.MirrorCellColors(14, 12, 12, 6);
-    }
-
     // Shakes the picture (above the HUD's split) for `frames` frames, dying
-    // away; the face flashes light-for-dark and the dark flashes `flash`
-    // for the first two.
+    // away; the dark flashes `flash` for the first three, and on a white
+    // flash (a blow landing) the face flashes light-for-dark for two.
     static void Shake(uint frames, Colors flash)
     {
         for (uint i = 0; i < frames; i++)
         {
             C64.Screen.WaitForVBlank();
-            if (i < 2)
+            if (i < 2 && flash == Colors.White)
                 C64.Screen.RemapCellColors(12, 5, 16, 7, C64Address.FromLabel("pal_EncFlash"));
             C64.Screen.SetBackgroundColor(i < 3 ? flash : Colors.Black);
             C64.Screen.SetScrollX((i & 1) == 0 ? (frames - i) >> 1 : 0u);
@@ -324,13 +269,14 @@ static class Encounter
         C64.Screen.SetScrollX(0);
     }
 
-    // The player missed: "MISS" rises over the guardian's head.
+    // The player missed: "MISS" rises into the dark over the guardian's head.
     static void Miss()
     {
         eyes_ = false;
         for (uint i = 0; i < 24; i++)
         {
-            Pair(MissText, Colors.White, 136, 86 - i);
+            Pair(MissText, Colors.White, 136, 76 - i);
+            C64.Sprites.Sprite7.Visible = false;
             Idle(1);
         }
         eyes_ = true;
@@ -344,7 +290,6 @@ static class Encounter
         Pair(Stroke, Colors.Yellow, 148, 92);
         Idle(1);
         Pair(Stroke, Colors.White, 136, 104);
-        Jaw(true, 0x11);
         Shake(10, Colors.White);
         Pair(Stroke, Colors.Grey2, 124, 116);
         Idle(2);
@@ -368,13 +313,12 @@ static class Encounter
         }
         else
         {
-            Jaw(false, 0);
             eyes_ = true;
         }
     }
 
-    // The guardian's answer: the eyes narrow and blaze, the jaw gapes, the
-    // claws rake down across the whole view. True when they connect.
+    // The guardian's answer: the eyes narrow and blaze, then the claws rake
+    // down across the whole view. True when they connect.
     static bool Lunge()
     {
         eyes_ = false;
@@ -383,7 +327,6 @@ static class Encounter
             Pair(1, (Colors)C64.GetMemory(eyeRamp_, i), EyeX, EyeY);
             Idle(6);
         }
-        Jaw(true, 0);
         bool hit = (C64.Random() & 3) != 0;
         for (uint i = 0; i < 6; i++)
         {
@@ -394,7 +337,6 @@ static class Encounter
                 Idle(2);
         }
         Hide();
-        Jaw(false, 0);
         eyes_ = true;
         return hit;
     }

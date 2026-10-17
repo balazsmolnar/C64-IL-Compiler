@@ -625,11 +625,13 @@ def mail(cv):
 
 
 ARCH_C, ARCH_Y = 0.0, 84.0
+ARCH = False
 
 
 def arch(cv):
-    """A dark stone arch behind the guardian, and the floor it stands on."""
-    for y in range(0, 124):
+    """The floor the guardian stands on. (A dark stone arch behind it was
+    tried, ARCH=True: it cost some 200 bytes the game does not have.)"""
+    for y in range(0, 124 if ARCH else 0):
         for x in range(16, HW):
             c = HW - 0.5 - x
             yy = y + 0.5
@@ -656,7 +658,7 @@ def arch(cv):
             elif warm:
                 col = BROWN if (x + y) & 1 else BLACK
             else:
-                col = BLUE if y % 3 == 0 and (x + y // 3) % 3 == 0 else BLACK
+                col = BLACK
             cv.px(x, y, col)
     # the floor: flagstones in perspective, lit where the torch is near
     for y in range(120, 144):
@@ -1109,25 +1111,15 @@ def fline(img, pts, c):
 def overlay(kind, f):
     """Draws guardian `kind`'s own marks on the full (mirrored, tinted)
     picture f, in place. One-sided, to break the mirror."""
-    if kind == 0:      # cracks across the right of the cranium
-        for pts in ([(84, 13), (86, 19), (85, 24), (88, 29), (87, 34), (90, 39), (89, 45), (92, 50)],
-                    [(88, 29), (92, 30), (96, 28)], [(87, 34), (83, 37)], [(90, 39), (95, 41), (98, 45)]):
-            fline(f, pts, BLACK)
-            fline(f, [(x + 1, y) for x, y in pts], DGREY if f[pts[0][1], pts[0][0] + 1] != BLACK else BLACK)
-    elif kind == 1:    # the left horn broken off; a rotted hole in the right cheek
+    if kind == 0:      # the Warden is the plain one
+        pass
+    elif kind == 1:    # the left horn broken off
         for y in range(0, 34):
             for x in range(18, 40):
                 cut = 22 + (y % 5) * 0.8 + (3 if y > 20 else 0)
                 if y < cut and f[y, x] not in (BLACK,):
                     if y < 26 - (x % 3):
                         f[y, x] = BLACK
-        for y in range(80, 94):
-            for x in range(98, 110):
-                r = math.hypot((x - 103.5) / 5.0, (y - 86.5) / 6.0) + 0.15 * math.sin(x * 2.1 + y * 1.3)
-                if r < 0.8:
-                    f[y, x] = BLACK
-                elif r < 1.05 and f[y, x] != BLACK:
-                    f[y, x] = BROWN
     elif kind == 2:    # a third eye, and blood running from the right socket
         for dy in range(-4, 5):
             w = 3 - abs(dy) // 2
@@ -1139,15 +1131,7 @@ def overlay(kind, f):
             fpx(f, x, y, RED)
             if y in (86, 87, 93, 94, 95):
                 fpx(f, x + 1, y, RED)
-    elif kind == 3:    # a crown band with spikes
-        for x in range(56, 104):
-            k = abs(x - 79.5)
-            for y in range(46, 52):
-                f[y, x] = YELLOW if y == 46 else (BROWN if y == 51 else (WHITE if k < 2 and y in (48, 49) else ORANGE))
-            spike_h = 10 - (k % 10)
-            if k % 10 < 3 and k < 24:
-                for y in range(int(46 - (11 if k < 2 else 7) + (k % 10) * 2), 46):
-                    f[y, x] = YELLOW if (x % 2 == 0) else ORANGE
+    # kind 3, the Lich King: its colours and name only (a crown cost 120 bytes)
 
 
 # ---------------------------------------------------------------------------
@@ -1226,20 +1210,10 @@ def main():
         to_png(base).save(png)
         c64img.convert(png, None)
         return
-    roar = render(jaw=10.0)
-    view(full(roar), os.path.join(preview, "enc_roar.png"))
+    # pixels and colours apart, so the pixels can go up unseen
+    save_img("enc_base_px", base, planes="b")
+    save_img("enc_base_col", base, planes="mc")
     jaw = cells_mask(base.shape, *JAW)
-    changed = diff_cells(base, roar)
-    assert not (changed & ~jaw).any(), "the open jaw changes cells outside JAW"
-
-    # the picture without its jaw, the jaw shut, the jaw open: pixels and
-    # colours apart, so each can go up unseen
-    save_img("enc_base_px", base, ~jaw, planes="b")
-    save_img("enc_base_col", base, ~jaw, planes="mc")
-    save_img("enc_shut_px", base, jaw, planes="b")
-    save_img("enc_shut_col", base, jaw, planes="mc")
-    save_img("enc_roar_px", roar, jaw, planes="b")
-    save_img("enc_roar_col", roar, jaw, planes="mc")
 
     # the four guardians: tables and overlays
     tables = []
@@ -1249,6 +1223,10 @@ def main():
         f = full(tinted(base, kind))
         g = f.copy()
         overlay(kind, g)
+        plate = name_plate(KINDS[kind][0]).convert("RGB")
+        for y in range(8):
+            for x in range(48):
+                g[144 + y, 56 + x] = c64img.nearest_color(plate.getpixel((x, y)))
         m = diff_cells(f, g)
         fj = np.zeros(f.shape, bool)
         fj[:, :80] = jaw
@@ -1267,11 +1245,6 @@ def main():
     sheet_img.save(png)
     c64spr.convert(png, os.path.join(OUT, "enc_sprites.spr"), preview=os.path.join(preview, "enc_sprites.png"))
 
-    for kind, (text, _) in enumerate(KINDS):
-        img = name_plate(text)
-        png = os.path.join(SRC, "enc_name%d.png" % kind)
-        img.save(png)
-        c64img.convert(png, os.path.join(OUT, "enc_name%d.img" % kind))
 
 
 if __name__ == "__main__":

@@ -93,11 +93,16 @@ def apply_event(model, sc, ev):
         model.play_effect(sc.fx_index[ev[1]])
 
 
+def polite(sc, ev):
+    return ev[0] == 'fx' and bool(sc.effects[sc.fx_index[ev[1]]]['len'] & 0x80)
+
+
 def check_dump(sc, scene, path):
     ticks, between = split_ticks(vice_record.read_dump(path))
     model = sidmusic.Player(sc)
     sid = [0] * 25
     pending = list(SCENES[scene])
+    skipped = []
     triggers = []
     mismatches = []
     timeline = []                         # per tick: (cycle, model Frame)
@@ -111,16 +116,24 @@ def check_dump(sc, scene, path):
         # What the program called between two ticks is not in the dump:
         # when the model stops matching, the next call the scene makes is
         # tried, and has to make it match again.
-        if model.sid != sid and pending:
+        # (A polite effect may have been refused by the player and left no
+        # trace, so the call after it is tried as well.)
+        for k in range(len(pending)):
+            if model.sid == sid:
+                break
+            if k and not polite(sc, pending[k - 1]):
+                break
             trial = copy.deepcopy(before)
-            apply_event(trial, sc, pending[0])
+            apply_event(trial, sc, pending[k])
             trial.tick()
             if trial.sid != sid:
                 # (a call made just after this tick, inside its 4000-cycle window)
                 trial = copy.deepcopy(model)
-                apply_event(trial, sc, pending[0])
+                apply_event(trial, sc, pending[k])
             if trial.sid == sid:
                 model = trial
+                for _ in range(k):
+                    skipped.append(' '.join(pending.pop(0)))
                 triggers.append((' '.join(pending.pop(0)), t, cyc))
         if model.sid != sid:
             if len(mismatches) < 5:
@@ -141,6 +154,8 @@ def check_dump(sc, scene, path):
         print('         %-18s at tick %4d (%.2f s)%s' % (name, t, cyc / sidmusic.PAL_CLOCK,
                                                           '' if last is None else '  +%d ticks' % (t - last)))
         last = t
+    if skipped:
+        print('         left no trace (a polite effect the player refused): %s' % ', '.join(skipped))
     if pending:
         print('         never seen: %s' % ', '.join(' '.join(e) for e in pending))
     for t, diff in mismatches[:5]:

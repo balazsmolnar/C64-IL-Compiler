@@ -1,9 +1,5 @@
 using C64Lib;
 
-#if SCENE_HUDFULL || SCENE_HUDMID || SCENE_HUDLOW
-// Stand-in viewport for the panel's own scene builds only (never in the game).
-[assembly: RawImage(Resource = "hud_backdrop.img", Label = "HudBackdrop")]
-#endif
 
 namespace Catacombs;
 
@@ -135,7 +131,7 @@ static class HudScene
         C64.Screen.SetBackgroundColor(Colors.Black);
         C64.Screen.SetScreenMode(ScreenMode.MultiColor);
         C64.Screen.BeginUpdate();
-        C64.Screen.DrawImage(0, 0, C64Address.FromLabel("img_HudBackdrop"));
+        DungeonView.Render(1, 1); // the real room (the stand-in no longer fits next to the whole game)
         Hud.Init();
 #if SCENE_HUDFULL
         Hud.SetHealth(100);

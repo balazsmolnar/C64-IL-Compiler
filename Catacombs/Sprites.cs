@@ -14,10 +14,6 @@ using C64Lib;
 [assembly: RawSprites(Order = 0, Resource = "chars_mc.spr", Label = "Chars")]
 [assembly: RawSprites(Order = 1, Resource = "chars_hi.spr", Label = "CharsHi")]
 
-#if SCENE_CHARS
-// The stand-in room the character scenes are judged on (CharScenes.cs).
-[assembly: RawImage(Resource = "standin_room.img", Label = "StandIn")]
-#endif
 
 #if SCENE_TECHDEMO
 [assembly: RawSprites(Order = 2, Resource = "techdemo_coin.spr", Label = "TechCoin")]

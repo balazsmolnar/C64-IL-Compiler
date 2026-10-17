@@ -118,14 +118,14 @@ static class CharScenes
     }
 
 #if SCENE_CHAR_PARADE
-    const uint McFrames = 34, Frames = 47;
+    const uint McFrames = 37, Frames = 47;
 
     // The own colour of every frame, in sheet order (art/characters_art.py).
     static readonly uint[] FrameColor =
     {
-        3, 3, 3, 3, 3, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 3,
-        1, 1, 1, 5, 5, 5, 14, 14, 14, 2, 2, 2, 2, 7, 15, 15,
-        7, 7, 7, 7, 7, 15, 15, 15, 10, 10, 10, 1, 1,
+        2, 2, 2, 2, 2, 2, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 2,
+        15, 15, 15, 5, 5, 5, 14, 14, 14, 4, 4, 4, 7, 15, 15, 2, 2, 2,
+        7, 7, 7, 7, 7, 7, 0, 0, 0, 1,
     };
     static readonly uint[] Bit = { 1, 2, 4, 8, 16, 32, 64, 128 };
 

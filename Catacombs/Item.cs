@@ -69,8 +69,10 @@ static class Item
     // the room has no guardian): the item itself with its shadow, and in
     // front of it a hi-res glint that flares and jumps about on it.
     const uint Glint = SpriteStage.Feature, Thing = SpriteStage.Feature + 4;
-    static readonly uint[] GlintDx = { 8, 15, 11, 17 };
-    static readonly uint[] GlintDy = { 28, 25, 33, 30 };
+    // The glint runs along the item in four steps, then rests.
+    static readonly uint[] GlintDx = { 4, 7, 10, 13 };
+    static readonly uint[] GlintDy = { 37, 36, 35, 34 };
+    static readonly uint[] GlintColor = { (uint)Colors.Grey3, (uint)Colors.White, (uint)Colors.Yellow, (uint)Colors.White };
 
     public static bool Setup(uint px, uint py)
     {
@@ -87,7 +89,8 @@ static class Item
             rx = Weapon.RoomX;
             depth = Weapon.RoomDepth;
         }
-        SpriteStage.Part(Glint, (uint)Colors.White, 12, 28);
+        SpriteStage.Part(Glint, (uint)Colors.White, 12, 0);
+        SpriteStage.Parts[Glint + SpriteStage.Frame] = SpriteStage.Hi + Frame.Spark;
         SpriteStage.Part(Thing, color, 12, 33);
         SpriteStage.Parts[Thing + SpriteStage.Frame] = SpriteStage.Mc + frame;
         SpriteStage.X[1] = RoomProjection.ScreenX(rx, depth);
@@ -95,19 +98,18 @@ static class Item
         return true;
     }
 
-    // Small, large, small, then somewhere else on the item.
+    // A glint travelling along the blade or across the coins every second
+    // or so; hidden in between (sprite Y 0 is above the screen).
     public static void Twinkle(uint tick)
     {
-        uint phase = (tick >> 3) & 3;
-        uint flare = 0;
-        if (phase == 1)
-            flare = 1;
-        SpriteStage.Parts[Glint + SpriteStage.Frame] = SpriteStage.Hi + Frame.Spark + flare;
-        if ((tick & 31) == 0)
+        uint step = (tick >> 2) & 15;
+        uint dy = 0 - SpriteStage.Y[1];
+        if (step < 4)
         {
-            uint spot = (tick >> 5) & 3;
-            SpriteStage.Parts[Glint] = GlintDx[spot];
-            SpriteStage.Parts[Glint + SpriteStage.Dy] = GlintDy[spot];
+            SpriteStage.Parts[Glint] = GlintDx[step];
+            SpriteStage.Parts[Glint + SpriteStage.Color] = GlintColor[step];
+            dy = GlintDy[step];
         }
+        SpriteStage.Parts[Glint + SpriteStage.Dy] = dy;
     }
 }

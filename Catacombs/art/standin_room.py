@@ -15,7 +15,7 @@ P = c64img.PALETTE
 BAYER = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]]
 W, H = 160, 168                      # multicolour pixels
 STONE = [0, 9, 11, 12]               # black, brown, dark grey, mid grey
-WARM = [0, 9, 8, 10]                 # black, brown, orange, light red
+WARM = [0, 9, 11, 8]                 # black, brown, dark grey, orange (dim torchlight)
 TORCHES = [(50, 60), (109, 60)]      # multicolour x, y
 
 
@@ -40,7 +40,7 @@ def surface(x, y):
         row = y // 8
         bx = (x + (6 if row & 1 else 0)) % 12
         joint = (y % 8 == 7) or bx == 11
-        return "wall", 0.30 + 0.62 * light(x, y), joint
+        return "wall", 0.22 + 0.45 * light(x, y), joint
     if y >= 120:                                             # floor
         t = (y - 120) / 47.0
         left = 32 - 32 * t
@@ -51,7 +51,7 @@ def surface(x, y):
         row = sum(1 for b in bands if (y - 120) >= b)
         joint = (y - 120) in bands or int(u * 7 + (0.5 if row & 1 else 0) + 100) != int(
             (x - 1 - left) / max(1.0, (159 - 2 * left)) * 7 + (0.5 if row & 1 else 0) + 100)
-        return "floor", 0.34 + 0.30 * t + 0.25 * light(x, 119), joint
+        return "floor", 0.26 + 0.22 * t + 0.20 * light(x, 119), joint
     if y < 24:                                               # ceiling
         t = (24 - y) / 24.0
         left = 32 - 32 * t

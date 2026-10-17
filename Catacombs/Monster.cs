@@ -28,27 +28,21 @@ static class Monster
     static bool[] alive_;
     static uint[] hp_;
 
-    // Per-monster patrol position within its room (room-space X, see
-    // RoomProjection.cs) -- bounces between PatrolMin/PatrolMax, same
-    // "flip direction at the edge" shape Spider.Animate uses. Depth stays
-    // fixed (see RoomDepth below), so this only ever drifts sideways,
-    // roughly guarding its spot rather than wandering to a door.
-    const uint PatrolCenter = 50, PatrolMin = 30, PatrolMax = 70;
-    static uint[] roomX_;
-    static bool[] movingRight_;
+    // The guardian paces across the middle of its room, in screen pixels
+    // (see Animate), at a fixed depth.
+    const uint PatrolCenter = 50;
+    const ulong PatrolLeft = 116, PatrolRight = 204;
+    static ulong guardX_;
+    static bool guardRight_;
 
     public static void Init()
     {
         alive_ = new bool[Count];
         hp_ = new uint[Count];
-        roomX_ = new uint[Count];
-        movingRight_ = new bool[Count];
         for (uint i = 0; i < Count; i++)
         {
             alive_[i] = true;
             hp_[i] = MaxHp;
-            roomX_[i] = PatrolCenter;
-            movingRight_[i] = true;
         }
     }
 
@@ -106,7 +100,7 @@ static class Monster
     public static uint CurrentRoomX(uint px, uint py)
     {
         uint i = FindAt(px, py);
-        return i < Count ? roomX_[i] : PatrolCenter;
+        return PatrolCenter;
     }
 
     // --- The room's Feature (SpriteStage actor 1): its guardian or, in a
@@ -118,9 +112,8 @@ static class Monster
     // (or the wraith's rags, or the spider's eight) step as they go.
     const uint NoRoom = 255;
     const uint Nothing = 0, Guardian = 1, Pickup = 2;
-    const uint GiantSpider = 3;
     const uint Front = SpriteStage.Feature, Back = SpriteStage.Feature + 4;    // its two sprites
-    static readonly uint[] KindColor = { 0x81, 0x85, 0x8E, 0x82 };  // white, green, light blue, red (+ multicolour)
+    static readonly uint[] KindColor = { 0x8F, 0x85, 0x8E, 0x84 };  // light grey, green, light blue, violet (+ multicolour)
 
     static uint room_ = NoRoom;     // the room the Feature was set up for
     static uint feature_;
@@ -159,36 +152,29 @@ static class Monster
         if (feature_ != Guardian)
             return;
 
-        uint i = guard_;
-        if ((tick_ & 3) == 0)
+        // A slow, heavy pace: a pixel every other frame, a step every 8
+        // frames, the body dipping as each foot lands.
+        if ((tick_ & 1) == 0)
         {
-            if (movingRight_[i])
+            if (guardRight_)
             {
-                roomX_[i] = roomX_[i] + 1;
-                if (roomX_[i] > PatrolMax)
-                    movingRight_[i] = false;
+                guardX_ = guardX_ + 1;
+                if (guardX_ > PatrolRight)
+                    guardRight_ = false;
             }
             else
             {
-                roomX_[i] = roomX_[i] - 1;
-                if (roomX_[i] < PatrolMin)
-                    movingRight_[i] = true;
+                guardX_ = guardX_ - 1;
+                if (guardX_ < PatrolLeft)
+                    guardRight_ = true;
             }
-            SpriteStage.X[1] = RoomProjection.ScreenX(roomX_[i], RoomDepth);
+            SpriteStage.X[1] = guardX_;
         }
-
         uint step = (tick_ >> 3) & 1;
-        uint first = SpriteStage.Mc + Frame.Guardian + i + i + i;
-        if (i == GiantSpider)
-        {
-            SpriteStage.Parts[Front + SpriteStage.Frame] = first + step;
-            SpriteStage.Parts[Back + SpriteStage.Frame] = first + 2 + step;
-        }
-        else
-        {
-            SpriteStage.Parts[Front + SpriteStage.Frame] = first;
-            SpriteStage.Parts[Back + SpriteStage.Frame] = first + 1 + step;
-        }
+        uint first = SpriteStage.Mc + Frame.Guardian + guard_ + guard_ + guard_;
+        SpriteStage.Parts[Front + SpriteStage.Frame] = first;
+        SpriteStage.Parts[Front + SpriteStage.Dy] = 12 + step;
+        SpriteStage.Parts[Back + SpriteStage.Frame] = first + 1 + step;
     }
 
     static void Setup(uint px, uint py)
@@ -198,17 +184,11 @@ static class Monster
         guard_ = FindAt(px, py);
         if (guard_ < Count)
         {
-            // Stacked: top above the legs. The spider: left and right halves.
-            uint dx = 12, dy = 12, dx2 = 12;
-            if (guard_ == GiantSpider)
-            {
-                dx = 0;
-                dy = 33;
-                dx2 = 24;
-            }
-            SpriteStage.Part(Front, KindColor[guard_], dx, dy);
-            SpriteStage.Part(Back, KindColor[guard_], dx2, 33);
-            SpriteStage.X[1] = RoomProjection.ScreenX(roomX_[guard_], RoomDepth);
+            // Two sprites stacked: the top above the legs.
+            SpriteStage.Part(Front, KindColor[guard_], 12, 12);
+            SpriteStage.Part(Back, KindColor[guard_], 12, 33);
+            guardX_ = 160;
+            SpriteStage.X[1] = guardX_;
             SpriteStage.Y[1] = (uint)RoomProjection.ScreenY(RoomDepth);
             feature_ = Guardian;
         }

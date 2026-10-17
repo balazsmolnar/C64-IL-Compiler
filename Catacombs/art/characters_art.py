@@ -21,7 +21,7 @@ are 12 double-wide pixels by 21; hi-res frames are 24 by 21.
 
 Colours. Every multicolour sprite on screen shares two colours:
     K  black   ($D025, CommonColor1): outlines, eye sockets, the ground shadow
-    O  orange  ($D026, CommonColor2): torch-lit skin, leather, wood, rust, embers
+    N  brown   ($D026, CommonColor2): shadow, leather, wood, rust
 and has one colour of its own (the third letter used in the frame).
 """
 import os
@@ -46,7 +46,7 @@ P = c64img.PALETTE
 # Letter -> C64 colour.
 COL = {"K": 0, "W": 1, "R": 2, "C": 3, "P": 4, "G": 5, "U": 6, "Y": 7, "O": 8, "N": 9,
        "S": 10, "D": 11, "M": 12, "g": 13, "B": 14, "L": 15}
-MC1, MC2 = 0, 8
+MC1, MC2 = 0, 9
 
 
 def check(name, rows, width):

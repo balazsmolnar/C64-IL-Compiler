@@ -10,7 +10,7 @@ namespace Catacombs;
 // Both are single hi-res sprites.
 static class Spider
 {
-    const uint FloorY = 152;                // the crawler's line on the floor
+    const uint FloorY = 152;                // the crawler's first line on the floor
     const ulong Left = 44, Right = 276;
 
     static ulong crawlerX_, flyerX_;
@@ -26,8 +26,8 @@ static class Spider
     {
         crawlerX_ = 90;
         flyerX_ = 200;
-        SpriteStage.Part(SpriteStage.Crawler, (uint)Colors.Grey3, 12, 31);
-        SpriteStage.Part(SpriteStage.Flyer, (uint)Colors.LightRed, 12, 40);
+        SpriteStage.Part(SpriteStage.Crawler, (uint)Colors.Black, 12, 31);
+        SpriteStage.Part(SpriteStage.Flyer, SpriteStage.Multi | (uint)Colors.Red, 12, 42);
         SpriteStage.Count[2] = 1;
         SpriteStage.Count[3] = 1;
         SpriteStage.Y[2] = FloorY;
@@ -51,6 +51,8 @@ static class Spider
             running_ = !running_;
             if (r > 127)
                 crawlerRight_ = !crawlerRight_;
+            if (running_)
+                SpriteStage.Y[2] = 130 + (r & 31);     // a new line across the floor each dash
         }
         run_ = run_ - 1;
 
@@ -90,7 +92,7 @@ static class Spider
             }
             SpriteStage.X[3] = flyerX_;
             SpriteStage.Y[3] = Swoop[(tick_ >> 2) & 15];
-            SpriteStage.Parts[SpriteStage.Flyer + SpriteStage.Frame] = SpriteStage.Hi + Frame.Flyer + Flap[(tick_ >> 2) & 3];
+            SpriteStage.Parts[SpriteStage.Flyer + SpriteStage.Frame] = SpriteStage.Mc + Frame.Flyer + Flap[(tick_ >> 2) & 3];
         }
     }
 }

@@ -57,10 +57,10 @@ static class SpriteStage
         for (uint i = 0; i < 4; i++)
             order_[i] = i;
 
-        // Shared by every multicolour sprite: black outlines and shadows,
-        // orange for torch-lit skin, leather, wood and rust.
+        // Shared by every multicolour sprite: black outlines and deep shadow,
+        // brown for shading, leather, wood and rust (key light upper left).
         C64.Sprites.CommonColor1 = Colors.Black;
-        C64.Sprites.CommonColor2 = Colors.Orange;
+        C64.Sprites.CommonColor2 = Colors.Brown;
     }
 
     public static void Part(uint part, uint color, uint dx, uint dy)

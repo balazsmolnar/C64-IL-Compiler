@@ -32,7 +32,8 @@ static class Weapon
         collected_ = new bool[Count];
     }
 
-    static uint FindAt(uint x, uint y)
+    // The weapon lying at (x,y): 0 sword, 1 axe; Count if there is none.
+    public static uint FindAt(uint x, uint y)
     {
         for (uint i = 0; i < Count; i++)
         {
@@ -58,17 +59,14 @@ static class Weapon
     {
         uint i = FindAt(x, y);
         if (i < Count)
+        {
             collected_[i] = true;
+            Monster.Refresh();
+        }
     }
 
-    // Small distinct marker (MatrixHigh/White -- the one BitmapColorSource
-    // channel neither Monster's silhouette (MatrixLow) nor Item's marker
-    // (ColorRam) already uses) drawn once as part of DungeonView's static
-    // room scene, same idea as Item.Render/Monster.RenderInRoom.
+    // Drawn as a sprite now (Item.Setup); kept for Program.EnterRoom.
     public static void Render()
     {
-        ulong x = RoomProjection.ScreenX(RoomX, RoomDepth);
-        ulong y = RoomProjection.ScreenY(RoomDepth);
-        C64.Screen.DrawRectangle(x - RoomRadius, y - RoomRadius, x + RoomRadius, y + RoomRadius, true, true, BitmapColorSource.MatrixHigh);
     }
 }

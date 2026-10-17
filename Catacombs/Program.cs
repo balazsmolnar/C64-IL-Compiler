@@ -16,11 +16,14 @@ class Program
     // deeper naturally drifts the ON-SCREEN sprite toward center without
     // this code ever computing that drift itself).
     static uint roomX_, roomDepth_;
+#if SCENE_TIMING || SCENE_TIMINGM
+    static uint timing_;
+#endif
     static uint playerHp_;
     static uint playerDamage_; // set in Main()/PlayerDied(), raised by Weapon.DamageAt on pickup
     const uint PlayerMaxHp = 100;
     const uint UnarmedDamage = 6;
-    const uint Speed = 4;
+    const uint Speed = 1;   // room units per video frame: 2-3 pixels across, a smooth walk
 
     // Cached once per room entry (EnterRoom) instead of recomputed every
     // frame -- HandleInput just reads these. Compass-absolute, matching
@@ -33,12 +36,6 @@ class Program
     // flash, without recomputing Maze.RoomColor every frame.
     static Colors roomColor_;
 
-    // Screen-pixel touch radius for the player-vs-spider check (see
-    // Spider.IsCollidingWith) -- same order of magnitude as Monster's own
-    // RoomRadius (20), which is the established precedent in this codebase
-    // for a screen-space, non-perspective-scaled hit radius.
-    const ulong SpiderCollisionRadius = 12;
-
     static void Main()
     {
         // Scene builds ("dotnet build -p:Scene=COMBAT", see Catacombs.csproj
@@ -47,10 +44,33 @@ class Program
 #if SCENE_TECHDEMO
         TechDemo.Run(); // never returns: the graphics tech showcase (TechDemo.cs)
 #endif
+#if SCENE_ROOM4 || SCENE_DEADEND || SCENE_THEME0 || SCENE_THEME1 || SCENE_THEME2 || SCENE_THEME3 || SCENE_THEME4 || SCENE_DOOROPEN || SCENE_ROOMTOUR
+        RoomScenes.Run(); // never returns: the room scenes (RoomScenes.cs)
+#endif
+#if SCENE_CHARS
+        CharScenes.Run(); // never returns: the sprite scenes, "-Scene CHAR_..." (CharScenes.cs)
+#endif
 #if SCENE_HUDFULL || SCENE_HUDMID || SCENE_HUDLOW
         HudScene.Run(); // never returns: the status panel in one fixed state (Hud.cs)
 #endif
-#if SCENE_COMBAT || SCENE_MONSTERROOM
+        // Title -> a run of the game -> game over / victory -> title, for
+        // ever (GameFlow.cs, TitleScreen.cs). Play() starts every run from
+        // scratch.
+        Audio.Init();
+        for (;;)
+        {
+            Audio.Title();
+            GameFlow.BeforeGame();
+            Play();
+            GameFlow.AfterGame(playerHp_);
+        }
+    }
+
+    // One run: sets the whole game up, then plays until GameFlow says it is
+    // over (the player died, or escaped with the relics).
+    static void Play()
+    {
+#if SCENE_COMBAT || SCENE_MONSTERROOM || SCENE_TIMINGM
         px_ = 5;
         py_ = 3;
 #else
@@ -59,6 +79,7 @@ class Program
 #endif
         playerHp_ = PlayerMaxHp;
         playerDamage_ = UnarmedDamage;
+        Audio.Explore();
 
         // MultiColor (not plain Bitmap) so doors can be a color distinct
         // from the lines: MatrixHigh=White (wall/outline lines),
@@ -75,17 +96,22 @@ class Program
         var colorRam = 0xD800UL;
         for (ulong offset = 0; offset < 1000UL; offset += 250UL)
             C64.FillMemory(colorRam + offset, (uint)Colors.Brown, 250);
+        SpriteStage.Init(); // before everything that puts sprites on it
         Spider.Init();
         Spider.SetRoomColor(Maze.RoomColorValue(px_, py_));
         Monster.Init();
         Item.Init();
         Weapon.Init();
-        SpriteStage.Init();
         Hud.Init();
         Hud.SetHealth(playerHp_);
         Hud.SetWeapon(playerDamage_);
 
         roomX_ = RoomProjection.Center;
+#if SCENE_TIMING
+        roomX_ = 18;
+#elif SCENE_TIMINGM
+        roomX_ = 5;     // along the left wall, clear of the room's guardian
+#endif
         roomDepth_ = 0;
         PlayerSprite.Init(RoomProjection.ScreenX(roomX_, roomDepth_), RoomProjection.ScreenY(roomDepth_));
 
@@ -93,16 +119,43 @@ class Program
 #if SCENE_COMBAT
         Combat();
 #endif
+#if SCENE_ENCOUNTER
+        Encounter.Scene(); // never returns: the encounter's states on a loop (Encounter.cs)
+#endif
 
-        for (;;)
+        while (GameFlow.Playing)
         {
             C64.Screen.WaitForVBlank();
+#if SCENE_TIMING || SCENE_TIMINGM
+            C64.Screen.SetBorderColor(Colors.White); // the loop's work shows as a white band in the border
+            TimingProbe.Start();
+#endif
+            DungeonView.Animate(); // torch flicker: first, while the beam is off screen
+#if SCENE_TIMING || SCENE_TIMINGM
+            TimingProbe.Mark(0);
+#endif
             Spider.Animate();
+#if SCENE_TIMING || SCENE_TIMINGM
+            TimingProbe.Mark(1);
+#endif
             Monster.Animate(px_, py_);
+#if SCENE_TIMING || SCENE_TIMINGM
+            TimingProbe.Mark(2);
+#endif
             UpdateZOrder();
-            UpdateBorderCue();
+#if SCENE_TIMING || SCENE_TIMINGM
+            TimingProbe.Mark(3);
+#endif
             Hud.Tick();
+#if SCENE_TIMING || SCENE_TIMINGM
+            TimingProbe.Mark(4);
+#endif
             HandleInput();
+#if SCENE_TIMING || SCENE_TIMINGM
+            C64.Screen.SetBorderColor(Colors.Black);
+            TimingProbe.Mark(5);
+            TimingProbe.Report();
+#endif
         }
     }
 
@@ -115,72 +168,14 @@ class Program
         Spider.SetRoomColor(Maze.RoomColorValue(px_, py_));
     }
 
-    // Border is the feedback channel for two things, checked every frame
-    // regardless of whether the player moved this frame (the spiders move
-    // on their own, and standing still at a door should still show the
-    // cue): red while touching a spider (danger -- see Spider.
-    // IsCollidingWith's own comment for why this is calculated in
-    // screen-space rather than trusting VIC-II hardware sprite collision),
-    // green while standing at an open door (AtDoor -- "press SPACE"),
-    // back to the room's own color otherwise. Collision takes priority
-    // over the door cue if somehow both were ever true at once.
-    static void UpdateBorderCue()
-    {
-        bool colliding = Spider.IsCollidingWith(PlayerSprite.X, PlayerSprite.BitmapY, SpiderCollisionRadius);
-        if (colliding)
-            C64.Screen.SetBorderColor(Colors.Red);
-        else if (AtDoor())
-            C64.Screen.SetBorderColor(Colors.Green);
-        else
-            C64.Screen.SetBorderColor(roomColor_);
-    }
+    // (The old green-border door cue is gone: the border stays black, see
+    // AAA-BRIEF.md. A door prompt belongs in the room art or the HUD.)
 
-    // Re-ranks the 3 moving creatures (player + 2 spiders) by depth (larger
-    // bitmap-space Y = nearer the viewer, same convention RoomProjection.
-    // ScreenY already uses) and writes each into the physical hardware
-    // sprite slot (0/1/2) that rank calls for -- see SpriteStage's own
-    // comment for why this has to happen fresh every frame rather than
-    // once. Spider1's own floor line (BitmapY1=195) is always nearer than
-    // Spider0's (BitmapY0=185), so only the player's depth is ever in
-    // question -- that collapses the 6 possible orderings of 3 items down
-    // to these 3 cases.
+    // Animates the player and hands every sprite out to the hardware,
+    // nearest first (SpriteStage.cs).
     static void UpdateZOrder()
     {
-        uint playerKey = PlayerSprite.BitmapY;
-
-        if (playerKey >= Spider.BitmapY1)
-        {
-            PlacePlayer(0);
-            PlaceSpider1(1);
-            PlaceSpider0(2);
-        }
-        else if (playerKey >= Spider.BitmapY0)
-        {
-            PlaceSpider1(0);
-            PlacePlayer(1);
-            PlaceSpider0(2);
-        }
-        else
-        {
-            PlaceSpider1(0);
-            PlaceSpider0(1);
-            PlacePlayer(2);
-        }
-    }
-
-    static void PlacePlayer(uint slot)
-    {
-        SpriteStage.Place(slot, PlayerSprite.X, PlayerSprite.RawY, PlayerSprite.Pointer, Colors.Black, true, true, true);
-    }
-
-    static void PlaceSpider0(uint slot)
-    {
-        SpriteStage.Place(slot, Spider.X0, Spider.RawY0, Spider.Pointer, Spider.Color, false, false, false);
-    }
-
-    static void PlaceSpider1(uint slot)
-    {
-        SpriteStage.Place(slot, Spider.X1, Spider.RawY1, Spider.Pointer, Spider.Color, false, false, false);
+        SpriteStage.Update();
     }
 
     // Draws the room's walls/doors ONCE (see DungeonView's own comment on
@@ -207,8 +202,7 @@ class Program
         itemHere_ = Item.IsPresentAt(px_, py_);
         weaponHere_ = Weapon.IsPresentAt(px_, py_);
 
-        C64.Screen.ClearBitmap();
-        DungeonView.Render(px_, py_);
+        DungeonView.Render(px_, py_); // a whole picture, drawn with the screen blanked: nothing to clear first
         if (itemHere_)
             Item.Render();
         if (weaponHere_)
@@ -237,6 +231,27 @@ class Program
         uint nx = roomX_, nd = roomDepth_;
         bool moved = false;
 
+#if SCENE_TIMING || SCENE_TIMINGM
+        // Timing scenes: walk diagonally back and forth by themselves, the
+        // most expensive frame (both coordinates re-projected every frame).
+        timing_ = timing_ + 1;
+        moved = true;
+        if ((timing_ & 64) == 0)
+        {
+            nd = roomDepth_ + Speed;
+#if SCENE_TIMING
+            nx = roomX_ + Speed;
+#endif
+        }
+        else
+        {
+            nd = roomDepth_ - Speed;
+#if SCENE_TIMING
+            nx = roomX_ - Speed;
+#endif
+        }
+        if (false)
+#endif
         if (C64.IsKeyPressed(Keys.W))
         {
             nd = roomDepth_ + Speed < RoomProjection.DepthMax ? roomDepth_ + Speed : RoomProjection.DepthMax;
@@ -263,9 +278,10 @@ class Program
             roomX_ = nx;
             roomDepth_ = nd;
         }
+        Audio.Step(moved);
 
         // Checked every frame, not just when moved: the player can stop
-        // right at a door (see the green border cue from UpdateBorderCue)
+        // right at a door (Audio.Door is the cue)
         // and press SPACE separately, same as how Combat's own SPACE
         // press works independently of movement.
         if (TryCrossDoor())
@@ -286,6 +302,7 @@ class Program
         else if (itemHere_ && Touching(Item.RoomX, Item.RoomDepth, Item.RoomRadius))
         {
             Item.CollectAt(px_, py_);
+            Audio.Pickup();
             itemHere_ = false;
             Hud.SetTreasure(Item.CollectedCount);
         }
@@ -293,6 +310,7 @@ class Program
         {
             playerDamage_ = Weapon.DamageAt(px_, py_);
             Weapon.CollectAt(px_, py_);
+            Audio.WeaponPickup();
             weaponHere_ = false;
             Hud.SetWeapon(playerDamage_);
         }
@@ -306,18 +324,15 @@ class Program
     // units against a pixel radius directly.
     static bool Touching(uint x, uint depth, ulong radius)
     {
-        ulong px = RoomProjection.ScreenX(roomX_, roomDepth_);
-        ulong py = RoomProjection.ScreenY(roomDepth_);
-        ulong tx = RoomProjection.ScreenX(x, depth);
-        ulong ty = RoomProjection.ScreenY(depth);
-        ulong dx = px > tx ? px - tx : tx - px;
-        ulong dy = py > ty ? py - ty : ty - py;
-        return dx < radius && dy < radius;
+        // What is at (x, depth) -- this room's guardian, treasure or weapon --
+        // is on the sprite stage, which already knows where both it and the
+        // player are on screen: no projecting anything again.
+        return SpriteStage.PlayerAtFeature(radius);
     }
 
     // True while standing right at an open door's crossing edge -- the
     // same position checks TryCrossDoor itself uses, split out so
-    // UpdateBorderCue can show the "press SPACE" cue without actually
+    // TryCrossDoor can sound the door without actually
     // crossing.
     static bool AtDoor()
     {
@@ -333,7 +348,7 @@ class Program
     }
 
     // Crossing is now a deliberate action (SPACE), not automatic on
-    // reaching the edge -- UpdateBorderCue's green flash is the signal
+    // reaching the edge -- standing at the door is the signal
     // that SPACE will do something here. Fixed orientation (see
     // DungeonView's own comment) means crossing any given wall always
     // lands at the SAME edge of the next room -- the one opposite the
@@ -345,6 +360,7 @@ class Program
     {
         if (!C64.IsKeyPressed(Keys.Space))
             return false;
+        if (AtDoor()) Audio.Door();
 
         if (roomDepth_ >= RoomProjection.DepthMax && northOpen_ && NearCenterX())
         {
@@ -376,33 +392,17 @@ class Program
         return dx < 20;
     }
 
-    // The north door panel's far (right) edge at each animation frame -- an
-    // x (receding from the closed door's right edge, 187, toward the
-    // hinge, 131) AND a top/bottom row pair (see DungeonView.
-    // RenderNorthDoorOpening/DrawTaperedPanel), shrinking symmetrically in
-    // from the door's own top (92) and bottom (173) toward its vertical
-    // center (132.5) at the same rate the edge recedes -- the two right
-    // corners trace inward AND toward the middle together, a real 3D
-    // swing rather than a flat edge sliding sideways, collapsing together
-    // at the hinge on the last frame (fully open). Row pairs sum to 265
-    // (92+173) by construction, keeping them symmetric around the center.
-    static readonly ulong[] NorthDoorOpenFarX = { 171, 155, 143, 135, 131 };
-    static readonly ulong[] NorthDoorOpenFarTopRow = { 104, 115, 124, 130, 132 };
-    static readonly ulong[] NorthDoorOpenFarBottomRow = { 161, 150, 141, 135, 133 };
-
-    // Plays the swing before the player actually steps through -- still
-    // viewing the CURRENT room, door hinged at its left edge, opening away.
-    // Not double-buffered (see EnterRoom's own comment on why nothing here
-    // is anymore): each frame is a plain ClearBitmap+redraw, the same
-    // one-off flicker tradeoff already accepted for an ordinary room
-    // transition, just spread over 5 frames instead of 1.
+    // Plays the north door swinging open (DungeonView.OpenNorthDoor: three
+    // steps, six frames apart) before the player steps through, with the
+    // room's own animation and the sprites kept going meanwhile.
     static void AnimateNorthDoorOpening()
     {
-        for (uint i = 0; i < 5; i++)
+        for (uint i = 0; i < 24; i++)
         {
             C64.Screen.WaitForVBlank();
-            C64.Screen.ClearBitmap();
-            DungeonView.RenderNorthDoorOpening(px_, py_, NorthDoorOpenFarX[i], NorthDoorOpenFarTopRow[i], NorthDoorOpenFarBottomRow[i]);
+            DungeonView.Animate();
+            if (i < 18 && i % 6 == 0)
+                DungeonView.OpenNorthDoor(i / 6);
             Spider.Animate();
             UpdateZOrder();
         }
@@ -415,6 +415,8 @@ class Program
     {
         px_ = newPx;
         py_ = newPy;
+        if (GameFlow.Escaped(px_, py_))
+            return; // out with every relic: the run is won
         roomX_ = entryRoomX;
         roomDepth_ = entryRoomDepth;
         ApplyRoomColor();
@@ -428,61 +430,31 @@ class Program
     // time this returns).
     static bool Combat()
     {
-        // Single loop condition, no break/return inside the loop body --
-        // a for(;;)/while with multiple early exits hits a real limitation
-        // in this compiler (ILMethodBuildEvaluationStackPass's traversal
-        // order over a loop with more than one exit edge).
-        bool monsterDied = false;
-        bool playerDied = false;
-        C64.Sprites.Sprite3.Visible = false; // the small patrol sprite -- Render() below draws its own, unrelated full-screen face
-        while (!monsterDied && !playerDied)
-        {
-            C64.Screen.ClearBitmap();
-            DungeonView.Render(px_, py_);
-            Monster.Render();
-            Monster.DrawHealthBars(playerHp_, PlayerMaxHp, Monster.HpAt(px_, py_));
-            Hud.SetHealth(playerHp_);
-            Hud.Render(); // ClearBitmap above wiped the panel
-
-            while (!C64.IsKeyPressed(Keys.Space))
-            {
-                C64.Screen.WaitForVBlank();
-                Spider.Animate();
-                UpdateZOrder();
-                Hud.Tick();
-            }
-            while (C64.IsKeyPressed(Keys.Space))
-                Delay.Wait(500);
-
-            Monster.DamageAt(px_, py_, playerDamage_);
-            if (!Monster.IsAliveAt(px_, py_))
-            {
-                monsterDied = true;
-            }
-            else
-            {
-                playerHp_ = playerHp_ <= Monster.MonsterDamage ? 0 : playerHp_ - Monster.MonsterDamage;
-                if (playerHp_ == 0)
-                    playerDied = true;
-            }
-        }
-
-        if (playerDied)
+        // The fight itself is Encounter's (Encounter.cs). The screen is
+        // blanked while the room comes back.
+        Audio.CombatStart();
+        Monster.HideSprite(); // the patrolling guardian: the encounter has its own sprites
+        playerHp_ = Encounter.Fight(px_, py_, playerHp_, playerDamage_);
+        C64.Screen.BeginUpdate();
+        if (playerHp_ == 0)
         {
             PlayerDied();
+            C64.Screen.EndUpdate();
             return false;
         }
+        ApplyRoomColor();
         EnterRoom(); // redraw without the now-dead monster
+        C64.Screen.EndUpdate();
         return true;
     }
 
-    // No separate game-over screen/state machine yet -- just enough that
-    // dying doesn't strand the player: a flash to signal it, then reset to
-    // full health back at the starting room. The monster that killed them
-    // stays alive (DamageAt was never reached this exchange), so the same
-    // fight is waiting on a second attempt.
+    // A flash, then the run is over: nothing is reset here, the next run's
+    // Play() sets everything up again.
     static void PlayerDied()
     {
+        Audio.PlayerDied();
+        PlayerSprite.Fall();
+        SpriteStage.Update();
         for (uint i = 0; i < 6; i++)
         {
             C64.Screen.SetBorderColor(Colors.Red);
@@ -490,15 +462,6 @@ class Program
             C64.Screen.SetBorderColor(Colors.Black);
             Delay.Wait(80);
         }
-        playerHp_ = PlayerMaxHp;
-        playerDamage_ = UnarmedDamage;
-        Hud.SetHealth(playerHp_);
-        Hud.SetWeapon(playerDamage_);
-        px_ = 1;
-        py_ = 1;
-        roomX_ = RoomProjection.Center;
-        roomDepth_ = 0;
-        ApplyRoomColor();
-        EnterRoom();
+        GameFlow.Lose(); // ends Play(); Main shows the game over screen, then the title
     }
 }

@@ -19,7 +19,11 @@ class ILMethodBuildEvaluationStackPass : ICompilerMethodPass
             var op = stack.Pop();
             if (op.StackContent != null)
                 continue;
-            if (op.PreviousInstructions.Count == 0)
+            // The method's first instruction starts with an empty stack even
+            // when it has predecessors: a method whose body begins with a
+            // loop ("for (;;) { ... }" as its first statement) has only the
+            // loop's back edge there, which has not been visited yet.
+            if (op.PreviousInstructions.Count == 0 || op == context.Lines[0])
                 op.StackContent = new List<Type>();
             else
                 op.StackContent = new List<Type>(op.PreviousInstructions.First(x => x.StackContent != null).StackContent);

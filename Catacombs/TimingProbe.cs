@@ -13,6 +13,7 @@ static class TimingProbe
     static uint jiffy0_;
     static ulong[] worst_ = new ulong[8];
     static uint count_;
+    static ulong heap0_;
 
     // Raster lines since the system interrupt (line 252), which also
     // advances the jiffy clock.
@@ -43,6 +44,13 @@ static class TimingProbe
         count_ = count_ + 1;
         if ((count_ & 63) != 0)
             return;
+        // The heap's bump pointer (zero page $FB/$FC), read before this
+        // report makes any strings: the first one is what a run needs.
+        ulong heap = C64.GetWord(0xFB, 0);
+        if (heap0_ == 0)
+            heap0_ = heap;
+        C64.Screen.DrawText(1, 24, heap0_.ToString(), 0x10);
+        C64.Screen.DrawText(8, 24, heap.ToString(), 0x10);
         for (uint k = 0; k < 6; k++)
         {
             ulong w = worst_[k];

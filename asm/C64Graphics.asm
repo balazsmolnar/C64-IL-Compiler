@@ -30,7 +30,11 @@ Flag_Screen_DrawBitmap = 0
 Flag_Screen_DrawImage = 0
 Flag_Screen_SetCellColors = 0
 Flag_Screen_RemapCellColors = 0
+Flag_Screen_MirrorCells = 0
+Flag_Screen_MirrorCellColors = 0
+Flag_Screen_SetScrollX = 0
 Flag_Screen_DrawText = 0
+Flag_Screen_DrawTiles = 0
 Flag_Screen_SetSplit = 0
 Flag_Screen_ClearSplit = 0
 ; 1 when the program uses double buffering (Screen.SetDrawBuffer/SwapBuffers):
@@ -149,7 +153,7 @@ Screen_WaitForVBlank:
 ; line) to pick which pixel format to plot. Declared here, gated broadly
 ; (writer OR every reader), so it exists whenever any of them are compiled,
 ; matching graphics_saved_d018's own pattern below.
-.if Flag_Screen_SetScreenMode | Flag_Screen_SetPixel | Flag_Screen_DrawLine | Flag_Screen_DrawRectangle | Flag_Screen_DrawTrapezoid | Flag_Screen_DrawCircle | Flag_Screen_DrawBitmap
+.if Flag_Screen_SetScreenMode | Flag_Screen_SetPixel | Flag_Screen_DrawLine | Flag_Screen_DrawRectangle | Flag_Screen_DrawTrapezoid | Flag_Screen_DrawCircle | Flag_Screen_DrawBitmap | Flag_Screen_MirrorCells | Flag_Screen_MirrorCellColors
 graphics_multicolor_active .byte 0
 .endif
 
@@ -2332,7 +2336,7 @@ Screen_DrawBitmap:
 ; addresses whole cells; their bitmap bytes, matrix byte and colour RAM byte
 ; all live at base + (y*40 + x) * (8 or 1), so one cell index serves all
 ; three.
-.if Flag_Screen_DrawImage | Flag_Screen_SetCellColors | Flag_Screen_RemapCellColors | Flag_Screen_DrawText
+.if Flag_Screen_DrawImage | Flag_Screen_SetCellColors | Flag_Screen_RemapCellColors | Flag_Screen_DrawText | Flag_Screen_DrawTiles | Flag_Screen_MirrorCells | Flag_Screen_MirrorCellColors
 
 ; In: zp_cell_x (0-39), zp_cell_y (0-24). Out: zp_cell_index_low/high =
 ; y*40 + x. Destroys A.
@@ -2360,7 +2364,7 @@ Cells_ComputeIndex:
 +   rts
 .endif
 
-.if Flag_Screen_SetCellColors | Flag_Screen_RemapCellColors | Flag_Screen_DrawText
+.if Flag_Screen_SetCellColors | Flag_Screen_RemapCellColors | Flag_Screen_DrawText | (Flag_Screen_MirrorCells | Flag_Screen_MirrorCellColors)
 
 ; In: zp_cell_x, zp_cell_y. Out: zp_cell_mptr / zp_cell_cptr = the matrix and
 ; colour RAM addresses of that cell. Destroys A.
@@ -2382,7 +2386,7 @@ Cells_RectSetup:
     rts
 .endif
 
-.if Flag_Screen_SetCellColors | Flag_Screen_RemapCellColors
+.if Flag_Screen_SetCellColors | Flag_Screen_RemapCellColors | (Flag_Screen_MirrorCells | Flag_Screen_MirrorCellColors)
 
 ; Moves both row pointers one screen row down. Destroys A.
 Cells_NextRow:
@@ -2501,6 +2505,201 @@ Screen_RemapCellColors_T3:
     dec zp_cell_h
     bne Screen_RemapCellColors_Row
 Screen_RemapCellColors_Done:
+    #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+; ---------------------------------------------------------------------------
+; Screen.MirrorCells(x, y, width, height): copies the left half of a cell
+; rectangle onto its right half, mirrored -- pixels and colours -- so a
+; symmetric picture needs only its left half stored. Pixels are reversed as
+; multicolour pixel pairs or as hi-res bits, whichever mode Screen.
+; SetScreenMode last set. The middle column of an odd width is left alone.
+; Screen.MirrorCellColors(x, y, width, height) is the same without the
+; pixels: only the matrix and colour RAM bytes are copied.
+; ---------------------------------------------------------------------------
+.if Flag_Screen_MirrorCells | Flag_Screen_MirrorCellColors
+.cerror (<Graphics_Bitmap) != 0, "Graphics_Bitmap must be page aligned"
+zp_mir_base_low  = zp_cell_index_low   ; $06  bitmap address of the row's first cell
+zp_mir_base_high = zp_cell_index_high  ; $07
+zp_mir_span_low  = zp_cell_x           ; $08  (width - 1) * 8: first cell -> last cell
+zp_mir_span_high = zp_cell_y           ; $09
+zp_mir_src_low   = zp_cell_val_m       ; $0E  cell being read (walks right)
+zp_mir_src_high  = zp_cell_val_c       ; $0F
+zp_mir_dst_low   = zp_gfx_sx           ; $12  cell being written (walks left)
+zp_mir_dst_high  = zp_gfx_sy           ; $13
+zp_mir_table     = zp_cell_tmp2        ; $11  0 = hi-res table, 16 = multicolour table
+zp_mir_i         = zp_gfx_err_low      ; $14  column within the left half
+zp_mir_half      = zp_gfx_err_high     ; $15  width / 2
+zp_mir_skip      = zp_gfx_cx_low       ; $16  nonzero: colours only
+
+; A nibble with its pixels in reverse order: four hi-res bits, then two
+; multicolour pixel pairs.
+Screen_MirrorCells_Table:
+    .byte 0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7, 15
+    .byte 0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15
+
+.if Flag_Screen_MirrorCellColors
+Screen_MirrorCellColors:
+    lda #1
+    .byte $2c                     ; BIT abs: skips the lda below
+.endif
+Screen_MirrorCells:
+    lda #0
+    sta zp_mir_skip
+    #stack_save_return_adress zp_tmp1_low
+    #stack_pull_int zp_cell_h
+    #stack_pull_int zp_cell_w
+    #stack_pull_int zp_cell_y
+    #stack_pull_int zp_cell_x
+    lda zp_cell_h
+    beq Screen_MirrorCells_Done
+    lda zp_cell_w
+    lsr
+    beq Screen_MirrorCells_Done
+    sta zp_mir_half
+    jsr Cells_RectSetup
+    asl zp_mir_base_low           ; cell index -> bitmap address
+    rol zp_mir_base_high
+    asl zp_mir_base_low
+    rol zp_mir_base_high
+    asl zp_mir_base_low
+    rol zp_mir_base_high
+    lda zp_mir_base_high
+    clc
+    adc #>Graphics_Bitmap
+    sta zp_mir_base_high
+    lda #0
+    sta zp_mir_span_high
+    ldx zp_cell_w
+    dex
+    txa
+    asl
+    asl
+    rol zp_mir_span_high
+    asl
+    rol zp_mir_span_high
+    sta zp_mir_span_low
+    lda #0
+    ldx graphics_multicolor_active
+    beq +
+    lda #16
++   sta zp_mir_table
+    #gfx_ram_on                   ; the bitmap is read back
+Screen_MirrorCells_Row:
+    lda zp_mir_base_low
+    sta zp_mir_src_low
+    clc
+    adc zp_mir_span_low
+    sta zp_mir_dst_low
+    lda zp_mir_base_high
+    sta zp_mir_src_high
+    adc zp_mir_span_high
+    sta zp_mir_dst_high
+    lda #0
+    sta zp_mir_i
+Screen_MirrorCells_Cell:
+    ldy zp_mir_i                  ; colours: column i -> column width-1-i
+    lda (zp_cell_mptr_low),y
+    pha
+    lda (zp_cell_cptr_low),y
+    tax
+    lda zp_cell_w
+    clc
+    sbc zp_mir_i
+    tay
+    txa
+    sta (zp_cell_cptr_low),y
+    pla
+    sta (zp_cell_mptr_low),y
+    lda zp_mir_skip
+    bne Screen_MirrorCells_NextCell
+    ldy #7                        ; pixels: each byte reversed
+Screen_MirrorCells_Byte:
+    lda (zp_mir_src_low),y
+    pha
+    and #$0f
+    ora zp_mir_table
+    tax
+    lda Screen_MirrorCells_Table,x
+    asl
+    asl
+    asl
+    asl
+    sta zp_cell_tmp
+    pla
+    lsr
+    lsr
+    lsr
+    lsr
+    ora zp_mir_table
+    tax
+    lda Screen_MirrorCells_Table,x
+    ora zp_cell_tmp
+    sta (zp_mir_dst_low),y
+    dey
+    bpl Screen_MirrorCells_Byte
+    lda zp_mir_src_low
+    clc
+    adc #8
+    sta zp_mir_src_low
+    bcc +
+    inc zp_mir_src_high
++   lda zp_mir_dst_low
+    sec
+    sbc #8
+    sta zp_mir_dst_low
+    bcs +
+    dec zp_mir_dst_high
++
+Screen_MirrorCells_NextCell:
+    inc zp_mir_i
+    lda zp_mir_i
+    cmp zp_mir_half
+    bne Screen_MirrorCells_Cell
+    jsr Cells_NextRow
+    lda zp_mir_base_low           ; one screen row down: 320 bytes
+    clc
+    adc #<320
+    sta zp_mir_base_low
+    lda zp_mir_base_high
+    adc #>320
+    sta zp_mir_base_high
+    dec zp_cell_h
+    bne Screen_MirrorCells_Row
+    #gfx_ram_off
+Screen_MirrorCells_Done:
+    #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+; ---------------------------------------------------------------------------
+; Screen.SetScrollX(pixels): the VIC's horizontal fine scroll -- the picture
+; is shown 0-7 pixels to the right (a screen shake, or the fine part of a
+; scroller). While a raster split is on (Screen.SetSplit) only the part above
+; the split moves, from the next frame on: the value goes into the $D016 the
+; split interrupt writes at the top of every frame.
+; ---------------------------------------------------------------------------
+.if Flag_Screen_SetScrollX
+Screen_SetScrollX:
+    #stack_save_return_adress zp_tmp1_low
+    #stack_pull_int zp_gfx_on
+    lda zp_gfx_on
+    and #%00000111
+    sta zp_gfx_on
+.if Flag_Screen_SetSplit
+    lda graphics_split_active
+    beq Screen_SetScrollX_Direct
+    lda graphics_split_upper
+    and #%11111000
+    ora zp_gfx_on
+    sta graphics_split_upper
+    jmp Screen_SetScrollX_Done
+Screen_SetScrollX_Direct:
+.endif
+    lda $d016
+    and #%11111000
+    ora zp_gfx_on
+    sta $d016
+Screen_SetScrollX_Done:
     #stack_return_to_saved_address zp_tmp1_low
 .endif
 
@@ -2789,6 +2988,92 @@ Screen_DrawText_Row:
 +   inc zp_text_index
     bne Screen_DrawText_Char
 Screen_DrawText_Done:
+    #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+; ---------------------------------------------------------------------------
+; Screen.DrawTiles(column, row, width, height, tiles, index): copies raw
+; 8-byte cells into the bitmap -- a width x height block of cells whose
+; top-left cell is (column, row), from consecutive tiles of a tile set,
+; row by row. `tiles` is the address of the set (8 bytes a tile, top pixel
+; row first), `index` the first tile to use: the source is tiles + index*8.
+; No colours are touched and nothing is read from the bitmap, so the tiles
+; mean whatever the cells' mode makes of the bits (hi-res or multicolour).
+; width is at most 31 (width*8 must fit a byte); width and height at least 1.
+; ---------------------------------------------------------------------------
+.if Flag_Screen_DrawTiles
+zp_tiles_src_low  = zp_gfx_endx_low   ; $0A  the next tile row's bytes
+zp_tiles_src_high = zp_gfx_endx_high
+zp_tiles_bytes    = zp_gfx_endy       ; $0C  bytes per cell row (width*8)
+zp_tiles_h        = zp_gfx_endy_high  ; $0D  cell rows left
+zp_tiles_dst_low  = zp_gfx_dx_low     ; $0E  bitmap address of the current cell row
+zp_tiles_dst_high = zp_gfx_dx_high
+zp_tiles_tmp      = zp_gfx_dy         ; $10
+
+Screen_DrawTiles:
+    #stack_save_return_adress zp_tmp1_low
+    #stack_pull_int zp_tiles_tmp  ; index
+    #stack_pull_pointer zp_tiles_src_low
+    lda #0                        ; source = tiles + index*8
+    asl zp_tiles_tmp
+    rol
+    asl zp_tiles_tmp
+    rol
+    asl zp_tiles_tmp
+    rol
+    tax
+    lda zp_tiles_tmp
+    clc
+    adc zp_tiles_src_low
+    sta zp_tiles_src_low
+    txa
+    adc zp_tiles_src_high
+    sta zp_tiles_src_high
+    #stack_pull_int zp_tiles_h
+    #stack_pull_int zp_tiles_bytes
+    #stack_pull_int zp_cell_y
+    #stack_pull_int zp_cell_x
+    asl zp_tiles_bytes
+    asl zp_tiles_bytes
+    asl zp_tiles_bytes
+    jsr Cells_ComputeIndex
+    lda zp_cell_index_high        ; bitmap address = Graphics_Bitmap + index*8
+    sta zp_tiles_dst_high
+    lda zp_cell_index_low
+    asl
+    rol zp_tiles_dst_high
+    asl
+    rol zp_tiles_dst_high
+    asl
+    rol zp_tiles_dst_high
+    sta zp_tiles_dst_low
+    lda zp_tiles_dst_high
+    clc
+    adc #>Graphics_Bitmap
+    sta zp_tiles_dst_high
+Screen_DrawTiles_Row:
+    ldy #0
+Screen_DrawTiles_Byte:
+    lda (zp_tiles_src_low),y
+    sta (zp_tiles_dst_low),y
+    iny
+    cpy zp_tiles_bytes
+    bne Screen_DrawTiles_Byte
+    tya                           ; next tile row; the cell row below (320 bytes on)
+    clc
+    adc zp_tiles_src_low
+    sta zp_tiles_src_low
+    bcc +
+    inc zp_tiles_src_high
++   lda zp_tiles_dst_low
+    clc
+    adc #<320
+    sta zp_tiles_dst_low
+    lda zp_tiles_dst_high
+    adc #>320
+    sta zp_tiles_dst_high
+    dec zp_tiles_h
+    bne Screen_DrawTiles_Row
     #stack_return_to_saved_address zp_tmp1_low
 .endif
 

@@ -8,10 +8,10 @@ namespace Catacombs;
 // the room alone, torches flickering, with no sprites and no HUD.
 //
 //   ROOM4      a room with all four exits, theme 0, bones and a banner
-//   DEADEND    a dead end: only the south exit, with chains and a grate
+//   DEADEND    a dead end: only the south exit, with chains, a grate and cobwebs
 //   THEME0-4   one per palette theme (moss, cold, rust, crypt, bone), each
-//              with different doors and props
-//   DOOROPEN   the north door opening, looping (closed, three steps, open)
+//              with different doors and props; THEME1 has its left torch out
+//   DOOROPEN   the north door opening, looping (closed, two steps 10 frames apart, open)
 //   ROOMTOUR   walks through the maze's rooms, a new one every 1.5 seconds:
 //              room entry transitions and the variety from room to room
 static class RoomScenes
@@ -25,17 +25,17 @@ static class RoomScenes
         C64.Screen.SetCellColors(0, 21, 40, 4, 0, Colors.Black);
 
 #if SCENE_ROOM4
-        Show(0, DungeonView.North | DungeonView.West | DungeonView.East | DungeonView.South, DungeonView.Bones | DungeonView.Banner);
+        Show(0, DungeonView.North | DungeonView.West | DungeonView.East | DungeonView.South, DungeonView.Bones | DungeonView.Banner | DungeonView.Webs);
 #elif SCENE_DEADEND
-        Show(0, DungeonView.South, DungeonView.Chains | DungeonView.Grate);
+        Show(0, DungeonView.South, DungeonView.Chains | DungeonView.Grate | DungeonView.Webs);
 #elif SCENE_THEME0
         Show(0, DungeonView.North | DungeonView.East, DungeonView.Puddle | DungeonView.Chains);
 #elif SCENE_THEME1
-        Show(1, DungeonView.North | DungeonView.West, DungeonView.Chains | DungeonView.Puddle);
+        Show(1, DungeonView.North | DungeonView.West, DungeonView.Dark | DungeonView.Puddle);
 #elif SCENE_THEME2
         Show(2, DungeonView.North | DungeonView.East | DungeonView.South, DungeonView.Bones | DungeonView.Grate);
 #elif SCENE_THEME3
-        Show(3, DungeonView.West | DungeonView.East, DungeonView.Banner | DungeonView.Bones);
+        Show(3, DungeonView.West | DungeonView.East, DungeonView.Banner | DungeonView.Bones | DungeonView.Webs);
 #elif SCENE_THEME4
         Show(4, DungeonView.North | DungeonView.West | DungeonView.South, DungeonView.Banner | DungeonView.Puddle);
 #elif SCENE_DOOROPEN
@@ -43,10 +43,10 @@ static class RoomScenes
         {
             DungeonView.Draw(0, DungeonView.North | DungeonView.West, DungeonView.Bones);
             Frames(40);
-            for (uint step = 0; step < 3; step++)
+            for (uint step = 0; step < 2; step++)
             {
                 DungeonView.OpenNorthDoor(step);
-                Frames(6);
+                Frames(10);
             }
             Frames(40);
         }

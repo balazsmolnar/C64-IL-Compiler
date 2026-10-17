@@ -8,25 +8,29 @@ namespace Catacombs;
 // the room is one full-viewport picture (rows 0-20) plus small overlay
 // pictures, all made by art/room_art.py and declared in RoomArt.cs.
 //
-//   Render / Draw   once per room entry: backdrop, then a door overlay on
-//                   each wall that has an exit, then the room's props, then
-//                   the room's palette theme (a colour remap of the whole
-//                   viewport). The screen is blanked while this happens, so
-//                   a half-drawn room is never visible.
-//   Animate         every video frame: flickers the two torches (a few cells
-//                   of flame, and the fire colours of the wall around them).
+//   Render / Draw   once per room entry: the old room fades out, then with
+//                   the screen blanked the backdrop, a door overlay on each
+//                   wall that has an exit, the room's props, and the room's
+//                   palette theme (a colour remap of the whole viewport). A
+//                   half-drawn room is never visible.
+//   Animate         every video frame: flickers the torches (a few cells of
+//                   flame, and the fire colours of the wall around them).
 //   OpenNorthDoor   the north door swinging open, one step per call.
 static class DungeonView
 {
     public const uint North = 1, West = 2, East = 4, South = 8;                     // door bits
     public const uint Chains = 1, Banner = 2, Bones = 4, Puddle = 8, Grate = 16;    // prop bits
+    public const uint Webs = 32, Dark = 64;     // cobwebs; Dark: the left torch is out
 
     // Indices into room_Table (RoomArt.cs): door overlays in door-bit order,
     // props in prop-bit order, the door-opening steps, four flame pictures,
-    // four glow states for each torch, then the theme colour tables.
-    const uint FirstDoor = 0, FirstProp = 4, FirstOpening = 9, FirstFlame = 12, FirstGlow = 16, FirstTheme = 23;
+    // four glow states for each torch, the theme colour tables, the fade.
+    const uint FirstDoor = 0, FirstProp = 4, FirstOpening = 11, FirstFlame = 13, FirstGlow = 17;
+    const uint FirstTheme = 24, Fade = 29;
 
     static uint tick_;
+    static bool leftOut_;
+    static bool shown_;
 
     public static void Render(uint px, uint py)
     {
@@ -39,19 +43,26 @@ static class DungeonView
             doors = doors | East;
         if (!Maze.SouthIsWall(px, py))
             doors = doors | South;
-        uint info = Maze.Info(px, py);
-        Draw((info >> 5) - 1, doors, info & 31);
+        Draw((Maze.Info(px, py) >> 5) - 1, doors, Maze.Props(px, py));
     }
 
     // theme 0..RoomArt.ThemeCount-1, doors and props as bit sets.
     public static void Draw(uint theme, uint doors, uint props)
     {
+        if (shown_)
+        {
+            // Fade the room on screen out (two steps darker) before blanking.
+            C64.Screen.RemapCellColors(0, 0, 40, 21, Entry(Fade));
+            C64.Screen.RemapCellColors(0, 0, 40, 21, Entry(Fade));
+        }
         C64.Screen.BeginUpdate();
         C64.Screen.DrawImage(0, 0, C64Address.FromLabel("img_Room"));
         Overlays(doors, FirstDoor);
         Overlays(props, FirstProp);
         if (theme != 0)
             C64.Screen.RemapCellColors(0, 0, 40, 21, Entry(FirstTheme + theme));
+        leftOut_ = (props & Dark) != 0;
+        shown_ = true;
         C64.Screen.EndUpdate();
     }
 
@@ -72,7 +83,7 @@ static class DungeonView
         return C64.GetWord(C64Address.FromLabel("room_Table"), index);
     }
 
-    // step 0..2: the door leaf swings further in. Drawn over the closed door
+    // step 0..1: the door leaf swings further in. Drawn over the closed door
     // (each picture only holds the cells that change).
     public static void OpenNorthDoor(uint step)
     {
@@ -88,6 +99,8 @@ static class DungeonView
         if ((tick_ & 3) != 0)
             return;
         uint torch = tick_ & 4;             // 0 = left, 4 = right
+        if (torch == 0 && leftOut_)
+            return;
         uint random = C64.Random();
         C64.Screen.DrawImage(torch == 0 ? RoomArt.FlameColumn0 : RoomArt.FlameColumn1, RoomArt.FlameRow, Entry(FirstFlame + (random & 3)));
         if ((random & 16) != 0)

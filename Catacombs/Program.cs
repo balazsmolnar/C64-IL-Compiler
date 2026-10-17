@@ -372,17 +372,19 @@ class Program
         return dx < 20;
     }
 
-    // Plays the north door swinging open (DungeonView.OpenNorthDoor: three
-    // steps, six frames apart) before the player steps through, with the
+    // Plays the north door swinging open (DungeonView.OpenNorthDoor: two
+    // steps, ten frames apart) before the player steps through, with the
     // room's own animation and the sprites kept going meanwhile.
     static void AnimateNorthDoorOpening()
     {
-        for (uint i = 0; i < 24; i++)
+        for (uint i = 0; i < 30; i++)
         {
             C64.Screen.WaitForVBlank();
             DungeonView.Animate();
-            if (i < 18 && i % 6 == 0)
-                DungeonView.OpenNorthDoor(i / 6);
+            if (i == 0)
+                DungeonView.OpenNorthDoor(0);
+            if (i == 10)
+                DungeonView.OpenNorthDoor(1);
             Spider.Animate();
             UpdateZOrder();
         }

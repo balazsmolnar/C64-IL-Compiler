@@ -53,8 +53,8 @@ TORCH_Y = 8.0
 TORCHES = [(-TORCH_X, TORCH_Y, ZF - 10.0), (TORCH_X, TORCH_Y, ZF - 10.0)]
 TORCH_SCREEN = [(CX - TORCH_X, CY + TORCH_Y), (CX + TORCH_X, CY + TORCH_Y)]
 FLAME_CELLS = [(13, 7), (25, 7)]     # top-left cell of each 2x2-cell flame
-LIGHT_R = 15.0                  # falloff length of the torch light
-HOT_R = 34.0                    # far wall: per-pixel shading within this many px of a flame
+LIGHT_R = 30.0                  # torch light: 1 / (1 + (d / LIGHT_R)^2)
+WARM_AT = float(os.environ.get("WARM_AT", "3.0"))   # a region at least this torch-lit takes the warm ramp
 ACCENT = 5                      # the theme accent (moss here; themes remap it)
 
 STONE, WOOD, IRON, VOID, WATER = range(5)
@@ -64,12 +64,11 @@ PLAIN = {'left', 'right'}        # surfaces whose stones get a plain bevel, no s
 # face sits at the light level, its shadow one entry below, its highlight one
 # above. (material, warmth 0 cold / 1 between / 2 torch-lit) -> ramp.
 COLD = (0, 6, 11, 12, 15, 1)
-MIDR = (0, 9, 11, 12, 15, 7)
-WARM = (0, 9, 8, 10, 7, 1)
+MIDR = (0, 6, 11, 12, 15, 7)
+WARM = (0, 9, 8, 7, 1)          # stone by a flame: faces brown (outer ring) or orange, yellow edges
 WOODR = (0, 9, 8, 10, 7)
-HOT = (0, 12, 8, 7)            # the far wall around a flame, by distance: grey, orange, pink, yellow
 IRONR = (0, 11, 12, 15, 1)
-WATERR = (0, 6, ACCENT)
+WATERR = (0, 6, 12, 15)
 RAMPS = {
     (STONE, 0): COLD, (STONE, 1): MIDR, (STONE, 2): WARM,
     (WOOD, 0): WOODR, (WOOD, 1): WOODR, (WOOD, 2): WOODR,
@@ -126,6 +125,8 @@ def door(du, dv, state, tag, planks=4):
         return ((tag, 'j', du < 8.0, k), STONE, du, dv, FRAME_BIAS)
     if dv >= 68.0:
         return ((tag, 'step'), STONE, du, dv, 0.6)
+    if planks == 2 and du < 13.0 and dv >= 20.0:
+        return ((tag, 'reveal'), STONE, du, dv, FIXED + 0.5)  # the jamb's depth, in shadow
     lw = OPEN_W[state]
     x = du - 8.0
     if x >= lw:
@@ -223,7 +224,7 @@ def sample(sx, sy, cfg):
         if cfg.south and abs(x) < 27.0 and w >= 105.0:
             if abs(x) < 21.0 and w >= 110.0:
                 k = int((w - 110.0) // 8.0)
-                return (('so', 'st', k), STONE, 8.0, 8.0, -0.4 - 0.75 * k) + pos
+                return (('so', 'st', k), STONE, 8.0, 8.0, FIXED + (3.0, 2.0, 1.0, 0.0)[min(k, 3)]) + pos
             side = 0 if w < 110.0 else (1 if x < 0 else 2)
             return (('so', 'curb', side, int(w // 14.0) if side else 0), STONE, 8.0, 8.0, 0.8) + pos
         if 'puddle' in cfg.props:
@@ -241,17 +242,20 @@ def sample(sx, sy, cfg):
                 return (('gr', 'bar', n), IRON, gx, gw, 0.6) + pos
             return (('gr', 'hole', n), VOID, gx, gw, 0.0) + pos
         row = int(w // 32.0)
-        off = 24.0 if row & 1 else 0.0
-        idx = int(math.floor((u + off) / 48.0))
-        return (('fl', row, idx), STONE, (u + off) % 48.0 / 3.0, w % 32.0 / 2.0, 0.0) + pos
+        slab = (48.0, 40.0, 56.0, 44.0, 52.0)[row % 5]
+        off = (24.0, 17.0, 9.0, 29.0, 5.0)[row % 5]
+        idx = int(math.floor((u + off) / slab))
+        return (('fl', row, idx), STONE, (u + off) % slab / (slab / 16.0), w % 32.0 / 2.0, 0.0) + pos
     if s == 'ceil':
         u = x + XW
-        return (('ce', int(u // 32.0), z > 230.0), WOOD, ZF - z, u, FIXED + (0.5 if z > 268.0 else 0.0)) + pos
+        return (('ce', int(u // 32.0), z > 230.0), WOOD, ZF - z, u, FIXED + 0.5) + pos
     kind, i = s
     u = x + XW
     if kind == 'beamF':
-        return (('bf', i, int((u + 40.0 * i) // 96.0)), WOOD, u, (y - YC) * 1.5, FIXED + (0.5, 0.5)[i]) + pos
-    return (('bb', i), WOOD, u, (z - BEAMS[i][0]), FIXED + (0.5, 1.5)[i]) + pos
+        return (('bf', i, int((u + 40.0 * i) // 96.0)), WOOD, u, (y - YC) * 1.5, FIXED + 1.0) + pos
+    if abs(abs(x) - TORCH_X) < 12.0 + 8.0 * i:
+        return (('bb', i, x > 0), WOOD, u, (z - BEAMS[i][0]), FIXED + 1.5) + pos     # lit from the torch below
+    return (('bb', i), WOOD, u, (z - BEAMS[i][0]), FIXED + 0.0) + pos
 
 
 # ---------------------------------------------------------------------------
@@ -300,36 +304,48 @@ AMBIENT = {'fw': 0.165, 'dn': 0.165, 'left': 0.19, 'right': 0.19, 'dw': 0.19, 'd
            'fl': 0.20, 'ce': 0.13, 'bf': 0.17, 'bb': 0.10}
 
 
-def light(pos, normal):
-    """Warm energy from the torches at a 3D point."""
+DARK = False                    # set while rendering the "left torch out" variant
+
+
+def torch_energy(pos, normal):
+    """Torch light at a 3D point (both torches)."""
     e = 0.0
-    for tx, ty, tz in TORCHES:
+    for tx, ty, tz in TORCHES[1:] if DARK else TORCHES:
         lx, ly, lz = tx - pos[0], ty - pos[1], tz - pos[2]
         d = math.sqrt(lx * lx + ly * ly + lz * lz) + 1e-6
         ndl = (lx * normal[0] + ly * normal[1] + lz * normal[2]) / d
-        if normal == (0, 0, -1):
-            e += math.exp(-d / LIGHT_R)
-        else:
-            e += 1.2 * math.exp(-d / 30.0) * max(0.0, 0.25 + 0.75 * ndl)
+        facing = 1.0 if normal == (0, 0, -1) else max(0.0, 0.15 + 0.85 * ndl) * (2.2 if normal == (0, -1, 0) else 1.25)
+        e += facing / (1.0 + (d / LIGHT_R) ** 2)
     return e
 
 
-def hot_light(sx, sy):
-    """Per-pixel torch light on the far wall, or None outside the hot zones."""
-    best = None
-    for tx, ty in TORCH_SCREEN:
-        d = math.hypot(sx - tx, (sy - ty) * 1.15)
-        if d < HOT_R:
-            p = 3.35 - 2.35 * (d / HOT_R) ** 0.9          # position on the HOT ramp
-            below = sy - (ty + 9.0)
-            if below > 0:                                 # the bracket's shadow
-                half = 5.0 + below * 0.45
-                k = abs(sx - tx) / half
-                if k < 1.0:
-                    p -= 1.0 * (1.0 - k * k)
-            p = max(1.0, min(3.0, p))
-            best = p if best is None else max(best, p)
-    return best
+def warm_level(e):
+    return 4.3 * e ** 0.7
+
+
+def ambient_level(kind, pos):
+    """The cold light that is not the torches: a little on the far wall, fading to nothing
+    toward the viewer on the floor and side walls."""
+    t = max(0.0, min(1.0, (pos[2] - 190.0) / 130.0))     # 0 at the near edge, 1 at the far wall
+    if kind in ('fw', 'dn'):
+        return 0.45 if pos[1] - YC > 16.0 else 0.15         # the top course sits in the ceiling's shadow
+    if kind in ('left', 'right', 'dw', 'de'):
+        return 0.15 + 1.0 * t * t
+    if kind == 'fl':
+        return 0.2 + 1.1 * t * t
+    return 0.0
+
+
+def face_level(cls, lit):
+    """The face position on the region's ramp for a light level: solid faces, and blue only
+    as a dither toward black."""
+    if cls == 2:                                          # per pixel: a radial falloff in half steps
+        return max(1.0, min(2.5, math.floor((lit - 1.6) * 2.0 + 0.5) / 2.0))
+    if lit < 0.6:
+        return 0.0
+    if lit < 1.55:
+        return 0.5
+    return 2.0
 
 
 def level_of(e):
@@ -364,86 +380,123 @@ def edge_dist(S, mx, my, dx, dy, rid, cap=4):
 FLAMES = [[
     "........",
     "....o...",
+    "....o...",
     "...oo...",
-    "...oWo..",
-    "...oWo..",
-    "..oWWo..",
-    "..oWWWo.",
-    ".oWWWWo.",
-    ".oWWWWo.",
-    ".oWWWWWo",
-    ".oWWWWWo",
-    ".oWWWWo.",
-    "..oWWWo.",
-    "..oooo..",
-    "KooooooK",
-    "KKKKKKKK",
+    "...oy...",
+    "...oyo..",
+    "...yyo..",
+    "..oyyo..",
+    "..oyWy..",
+    "..yWWy..",
+    "..yWWyo.",
+    "..oyWy..",
+    "..oyyo..",
+    "...oo...",
 ], [
     "........",
     "........",
-    ".o......",
+    "..o.....",
     "..o.....",
     "..oo....",
-    "..oWo...",
-    "..oWWo..",
-    ".oWWWo..",
-    ".oWWWWo.",
-    "oWWWWWo.",
-    "oWWWWWWo",
-    ".oWWWWWo",
-    ".oWWWWo.",
-    "..oooo..",
-    "KooooooK",
-    "KKKKKKKK",
+    "..oyo...",
+    "...yo...",
+    "..oyyo..",
+    "..yWyo..",
+    ".oyWWy..",
+    ".oyWWy..",
+    "..yWyo..",
+    "..oyyo..",
+    "...oo...",
 ], [
     ".....o..",
+    ".....o..",
     "....oo..",
-    "....oWo.",
-    "...oWWo.",
-    "...oWo..",
-    "..oWWo.o",
-    "..oWWWo.",
-    ".oWWWWo.",
-    ".oWWWWWo",
-    ".oWWWWWo",
-    "oWWWWWWo",
-    "oWWWWWo.",
-    ".oWWWWo.",
-    "..oooo..",
-    "KooooooK",
-    "KKKKKKKK",
+    "....oy..",
+    "...oyo..",
+    "...yyo..",
+    "...yy...",
+    "..oyWo..",
+    "..yWWy..",
+    "..yWWyo.",
+    "..yWWy..",
+    "..oyWy..",
+    "..oyyo..",
+    "...oo...",
+], [
+    "........",
+    "........",
+    "........",
+    "........",
+    "...o..o.",
+    "...oo.o.",
+    "..oyo.o.",
+    "..oyyoo.",
+    "..yWWy..",
+    ".oyWWyo.",
+    ".oyWWyo.",
+    "..yWWy..",
+    "..oyyo..",
+    "...oo...",
 ]]
+FLAME_FRAMES = len(FLAMES)
+CUP = ["KhhhhhhK", ".KKKKKK."]          # the cup's glowing rim: the flame pictures' bottom rows
 
 
 def flame_rows(frame):
-    """8x16 multicolour pixels over the lit wall: the flame and the cup's rim."""
-    return FLAMES[frame]
+    """8x16 multicolour pixels over the wall: soot around the flame, the flame, the cup's rim."""
+    rows = []
+    for fy, row in enumerate(FLAMES[frame] + CUP):
+        out = ""
+        for fx, ch in enumerate(row):
+            if ch == '.' and fy < 14:
+                if fy >= 1:
+                    ch = 'K'                              # soot on the stone behind the flame
+            out += ch
+        rows.append(out)
+    return rows
 
 
-FLAME_LEGEND = {'W': 1, 'o': 8}
+FLAME_LEGEND = {'W': 1, 'y': 7, 'o': 8, 'h': 'H'}
+
+DEAD_TORCH = [
+    "........",
+    "........",
+    "........",
+    "........",
+    "........",
+    "........",
+    "........",
+    "........",
+    "........",
+    "........",
+    "...K....",
+    "..KKs...",
+    "..KsK...",
+    "..KKKK..",
+    "KhhhhhhK",
+    ".KKKKKK.",
+]
 
 BRACKET = [
-    "KhhhhhhK",
-    "KKmmmmKK",
-    ".KKssKK.",
-    "..KKKK..",
-    "..KmsK..",
-    "..KmsK..",
-    ".KKKKKK.",
-    ".KhhhmK.",
-    ".KKKKKK.",
-    "..KmsK..",
-    "..KmsK..",
-    "..KmsK..",
-    "...KsK..",
+    "..KhhK..",
     "...KK...",
+    "...KsK..",
+    "...KsK..",
+    ".KKKKKK.",
+    ".KhhhhK.",
+    ".KKKKKK.",
+    "...KsK..",
+    "..KsKK..",
+    "..KsK...",
+    ".KsK....",
+    ".KKK....",
 ]
 BRACKET_LEGEND = {'h': 'H', 'm': 'M', 's': 'S'}
 
 SKULL = [
     "..KKKKK...........",
-    ".KwwwwwK..........",
-    "KwwwwwwgK.....KK..",
+    ".KWWwwwK..........",
+    "KWwwwwwgK.....KK..",
     "KwKKwKKgK...KKwwK.",
     "KwKKwKKgK.KKwwgKK.",
     "KwwwKwwgKKwwgKK...",
@@ -454,35 +507,39 @@ SKULL = [
     ".KwgKKKKKKKKK.....",
     ".KKK..............",
 ]
-SKULL_LEGEND = {'w': 15, 'g': 12}
+SKULL_LEGEND = {'w': 15, 'g': 12, 'W': 1}
 
 CHAIN = [
-    ".KKKK..........KKKK.",
-    "KhKKhK........KhKKhK",
-    "KhKKhK........KhKKhK",
-    ".KhhK..........KhhK.",
-    "..KK............KK..",
-    "..Kh............hK..",
-    "..Kh............hK..",
-    "..KK............KK..",
-    ".KhK............KhK.",
-    ".KhK............KhK.",
-    "..KK............KK..",
-    "..Kh............hK..",
-    "..Kh............hK..",
-    "..KK............KK..",
-    ".KhK............KhK.",
-    ".KhK............KhK.",
-    "..KK............KK..",
-    "..Kh............hK..",
-    "..Kh............hK..",
-    "..KK............KK..",
-    ".KhhK..........KhhK.",
-    "KhKKhK........KhKKhK",
-    "KhKKhK........KhKKhK",
-    "KhKKhK........KhKKhK",
-    ".KhhK..........KhhK.",
-    "..KK............KK..",
+    ".KK.......KK",
+    "KhhK......Kh",
+    "KhhK......Kh",
+    ".KK.......KK",
+    ".Kh.......KK",
+    ".Kh......Khh",
+    ".KK......Khh",
+    ".KK.......KK",
+    "KhhK......Kh",
+    "KhhK......Kh",
+    ".KK.......KK",
+    ".Kh.......KK",
+    ".Kh......Khh",
+    ".KK......Khh",
+    ".KK.......KK",
+    "KhhK......Kh",
+    "KhhK......Kh",
+    ".KK.......KK",
+    ".Kh.......KK",
+    ".Kh......Khh",
+    ".KK......Khh",
+    "..........KK",
+    "..........Kh",
+    "..........Kh",
+    "..........KK",
+    "..........KK",
+    ".........Khh",
+    "............",
+    "............",
+    "............",
 ]
 CHAIN_LEGEND = {'h': 'H'}
 
@@ -583,6 +640,8 @@ def base_info():
 
 def render(cfg):
     """Returns a 160x168 grid of C64 colour indices."""
+    global DARK
+    DARK = 'dark' in cfg.props
     S = [[sample(2 * mx + 1.0, my + 0.5, cfg) for mx in range(W + 1)] for my in range(H + 1)]
 
     acc = {}
@@ -598,21 +657,17 @@ def render(cfg):
             a[5] += my
     info = {}
     for rid, a in acc.items():
-        if cfg is not BASE_CFG and rid in base_info():
+        if cfg is not BASE_CFG and rid in base_info() and 'dark' not in cfg.props:
             info[rid] = base_info()[rid]                 # an overlay must not relight what it only covers part of
             continue
         n = a[0]
         pos = (a[1] / n, a[2] / n, a[3] / n)
         kind = KIND.get(rid[0], rid[0])
-        ew = light(pos, NORMALS[kind])
-        ec = AMBIENT[kind]
-        if kind in ('left', 'right', 'fl', 'dw', 'de'):
-            ec *= 0.5 + 0.5 * max(0.0, (pos[2] - 190.0) / 130.0)       # darker toward the viewer
-        if kind in ('ce', 'bf', 'bb'):
-            ec *= 0.45 + 0.55 * max(0.0, (pos[2] - 190.0) / 130.0)
+        ew = warm_level(torch_energy(pos, NORMALS[kind]))
+        ec = ambient_level(kind, pos)
         scx, scy = 2 * a[4] / n + 1, a[5] / n + 0.5
         tsx, tsy = min(TORCH_SCREEN, key=lambda t: (t[0] - scx) ** 2 + (t[1] - scy) ** 2)
-        info[rid] = (ew, ec, tsx >= scx, tsy >= scy, hash2('v', rid))
+        info[rid] = (ew, ec, tsx >= scx - 0.5, tsy >= scy - 0.5, hash2('v', rid))
 
     if cfg is BASE_CFG:
         _BASE_INFO.update(info)
@@ -625,7 +680,9 @@ def render(cfg):
             if mat == VOID:
                 continue
             joint = differs(rid, S[my][mx + 1][0]) or differs(rid, S[my + 1][mx][0])
-            if rid[0] in OVER and ((mx > 0 and S[my][mx - 1][0][0] not in OVER) or
+            if rid[0] == 'pu':
+                joint = False
+            if rid[0] in OVER and rid[0] != 'pu' and ((mx > 0 and S[my][mx - 1][0][0] not in OVER) or
                                    (my > 0 and S[my - 1][mx][0][0] not in OVER)):
                 joint = True
             ew, ec, lit_right, lit_down, hv = info[rid]
@@ -644,6 +701,8 @@ def render(cfg):
                 d_ = TILES[hv % len(TILES)][int(tb) & 15][int(ta) & 15]
                 if d_ and min(lv_, lh_, fv_, fh_) > 2:
                     tone = 2.0 + d_
+            elif mat == STONE and any(cx * 4 - 1 <= mx < cx * 4 + 9 for cx, cy in FLAME_CELLS) and 48 <= my < 80:
+                pass
             elif mat == STONE:
                 if lv_ == 2:
                     tone += 0.5
@@ -660,50 +719,57 @@ def render(cfg):
                 d_ = TILES[hv % len(TILES)][int(tb) & 15][int(ta) & 15]
                 if d_ and min(lv_, lh_, fv_, fh_) > 2:
                     tone = 2.0 + d_
-            elif mat == WOOD:
-                tone += wood_tex(ta, tb, rid)
+            elif mat == WOOD and rid[0] not in ('ce', 'bf', 'bb'):
+                tone = max(1.5, tone + wood_tex(ta, tb, rid) * 0.5)
             elif mat == WATER:
                 tone = 2.0 + (0.5 if (int(tb * 0.7) + rid[1]) % 3 == 0 else 0.0)
                 if lv_ == 1:
                     tone = 3.0
 
             sx, sy = 2 * mx + 1.0, my + 0.5
-            jitter = ((hv >> 8) % 100) / 100.0 * 0.44 - 0.22
-            hot = hot_light(sx, sy) if rid[0] == 'fw' else None
-            if hot is not None:
-                ramp = HOT
-                tone = float(round(tone))
-                tsx_, tsy_ = min(TORCH_SCREEN, key=lambda t: abs(t[0] - sx))
-                lv_, fv_ = (dd, du) if tsy_ > sy else (du, dd)
-                lh_, fh_ = (dr, dl) if tsx_ > sx else (dl, dr)
-                tone = 3.0 if (lv_ == 1 or lh_ == 1) else (1.0 if (fv_ == 1 or fh_ == 1) else 2.0)
-                ps, pm, ph = max(0.5, hot - 0.5), hot, min(3.0, hot + 0.5)
+            in_flame = any(cx * 4 <= mx < cx * 4 + 8 and cy * 8 <= my < cy * 8 + 16 for cx, cy in FLAME_CELLS)
+            if in_flame:
+                tone = float(round(tone)) if tone != 2.0 else 2.0
+            cls = 2 if ew >= {"fl": 2.6, "left": 2.4, "right": 2.4}.get(rid[0], WARM_AT) else (1 if ew >= 1.5 else 0)
+            if mat != STONE:
+                cls = 0
+            ramp = RAMPS[(mat, cls)]
+            top = len(ramp) - 1
+            lit_ = ew + ec + bias
+            if bias >= FIXED:
+                lv = bias - FIXED
+                if mat == STONE:
+                    ramp, top = COLD, len(COLD) - 1
+            elif mat == STONE and cls == 2:
+                pe = warm_level(torch_energy(s[5:8], NORMALS[KIND.get(rid[0], rid[0])]))
+                lv = face_level(2, pe + bias)
+            elif mat == STONE:
+                lv = face_level(cls, lit_)
             else:
-                wr = ew / (ew + ec)
-                warm = 2 if wr > 0.60 else (1 if wr > 0.30 else 0)
-                if rid[0] == 'fw':
-                    warm = min(warm, 1)                         # the hot zone does the warm part
-                ramp = RAMPS[(mat, warm)]
-                top = len(ramp) - 1
-                lv = level_of(ew + ec) + bias + jitter + LEVEL_SHIFT[mat]
-                if bias >= FIXED:
-                    lv = bias - FIXED
-                lv = max(0.0, min(top - 1.0, math.floor(lv * 2.0 + 0.5) / 2.0))
-                if mat == STONE and warm == 0 and lv == 1.0:
-                    lv = 1.5 if (hv >> 4) & 1 else 0.5          # never a flat blue face
-                if mat == WOOD:
-                    lv = min(lv, 1.5)
-                lo_, hi_ = math.floor(lv), math.ceil(lv)
-                ps = max(0.0, lo_ - 1.0)
-                if lo_ >= 2 and hi_ > lo_:
-                    ps = lo_
-                pm, ph = lv, min(top, hi_ + 1.0)
-                if mat == WOOD:
-                    ph = min(ph, 2.0 if lv >= 1.0 else 1.0)
-                if mat == IRON:
-                    ps, pm, ph = 0.0, 0.0, max(1.0, min(top, math.floor(lv + 1.0)))
-                elif mat == WATER:
-                    ps, pm, ph = 0.0, 0.5, 2.0
+                lv = max(0.0, min(top - 1.0, math.floor((lit_ + LEVEL_SHIFT[mat]) * 2.0 + 0.5) / 2.0))
+            if mat == WOOD:
+                lv = min(lv, 1.5)
+            if in_flame and not (DARK and mx < 80):
+                ramp, lv = WARM, 2.0                      # flame cells: solid orange, so the pictures fit
+            lo_, hi_ = math.floor(lv), math.ceil(lv)
+            ps = max(0.0, lo_ - 1.0)
+            if lo_ >= 2 and hi_ > lo_:
+                ps = lo_
+            pm, ph = lv, min(top, hi_ + 1.0)
+            if ramp is WARM:
+                ph = min(ph, 3.0)                         # yellow edges; white is the flame's alone
+            if mat == WOOD:
+                ph = min(ph, 2.0 if lv >= 1.0 else 1.0)
+                if rid[0] in ('ce', 'bf', 'bb'):
+                    tone = min(tone, 2.0)
+            if in_flame and not (DARK and mx < 80):
+                ps, ph = 2.0, 3.0
+            if mat == IRON:
+                ps, pm, ph = 0.0, 1.0, 1.0                 # dark iron: grey face, black outline
+                if rid[1] == 'stud':
+                    ramp, ps, pm, ph = WOODR, 2.0, 2.0, 2.0  # brass studs
+            elif mat == WATER:
+                ps, pm, ph = 0.0, 0.5, 2.5
             lit[my][mx] = (ramp, ps, pm, ph)
             if joint:
                 continue
@@ -739,20 +805,23 @@ def render(cfg):
                 if want[cyp][cxp + 1] is not None and lit[cyp][cxp + 1]:
                     want[cyp][cxp + 1] = tone_at(cxp + 1, cyp, 'H')
     # cobwebs in the far wall's top corners
-    for cxw, cyw, sign in ((32, 24, 1), (127, 24, -1)):
+    for cxw, cyw, sign in ((32, 24, 1), (127, 24, -1)) if 'webs' in cfg.props else ():
         for wx, wy in cobweb(cxw, cyw, sign):
             if 0 <= wx < W and 0 <= wy < H and lit[wy][wx] and S[wy][wx][0][0] == 'fw':
                 want[wy][wx] = tone_at(wx, wy, 'H')
     # props
     if 'chains' in cfg.props:
-        stamp(32, 40, CHAIN, CHAIN_LEGEND)
+        stamp(33, 33, CHAIN, CHAIN_LEGEND)
     if 'banner' in cfg.props:
         stamp(120, 34, banner_rows(), BANNER_LEGEND)
     if 'bones' in cfg.props:
         stamp(38, 124, SKULL, SKULL_LEGEND)
     # torches
-    for cxc, cyc in FLAME_CELLS:
-        stamp(cxc * 4, cyc * 8, flame_rows(cfg.flame), FLAME_LEGEND)
+    for t_, (cxc, cyc) in enumerate(FLAME_CELLS):
+        if t_ == 0 and 'dark' in cfg.props:
+            stamp(cxc * 4, cyc * 8, DEAD_TORCH, BRACKET_LEGEND)
+        else:
+            stamp(cxc * 4, cyc * 8, flame_rows(cfg.flame), FLAME_LEGEND)
         stamp(cxc * 4, cyc * 8 + 16, BRACKET, BRACKET_LEGEND)
     return quantise(want)
 
@@ -838,12 +907,14 @@ def theme(**m):
 
 THEMES = [
     ("Moss", theme()),                                   # the picture as drawn: grey stone, green moss
-    ("Cold", theme(c12=14, c15=3, c5=15)),               # blue-grey stone, pale lichen
-    ("Rust", theme(c6=9, c11=2, c12=10, c5=8)),          # red stone, rust stains
-    ("Crypt", theme(c6=4, c11=4, c12=14, c5=10)),        # violet crypt
-    ("Bone", theme(c6=9, c11=12, c12=15, c15=1, c5=9)),  # pale, dry stone
+    ("Cold", theme(c12=11, c15=14, c5=15)),              # dark stone, cold blue highlights, frost
+    ("Rust", theme(c6=9, c11=2, c12=11)),                # red-brown stone
+    ("Crypt", theme(c11=4, c12=11, c15=12, c5=4)),       # violet crypt
+    ("Bone", theme(c6=9, c11=9, c5=1)),                  # dry brown stone, pale growth
 ]
-PROPS = ['chains', 'banner', 'bones', 'puddle', 'grate']
+# fading a room out before the next is drawn (applied twice): every colour a step darker
+FADE = [0, 15, 9, 12, 6, 11, 0, 8, 9, 0, 8, 6, 11, 11, 4, 12]
+PROPS = ['chains', 'banner', 'bones', 'puddle', 'grate', 'webs', 'dark']
 
 
 def png(name):
@@ -927,16 +998,29 @@ def main():
     c64img.convert(png("room"), None, preview=os.path.join(SRC, "room.c64.png"), quiet=True)
     over = {}
     prev = "room"
-    for k, name in ((1, "door_n"), (2, "door_n2"), (3, "door_n3"), (4, "door_n4")):
+    for k, name in ((1, "door_n"), (2, "door_n2"), (3, "door_n3")):
         over[name] = convert(name, render(Cfg(north=k)), "DoorN" + ("" if k == 1 else str(k)), table, base=prev)
         prev = name
     over["door_w"] = convert("door_w", render(Cfg(west=True)), "DoorW", table, base="room")
     over["door_e"] = convert("door_e", render(Cfg(east=True)), "DoorE", table, base="room")
     over["door_s"] = convert("door_s", render(Cfg(south=True)), "DoorS", table, base="room")
     for prop in PROPS:
-        over[prop] = convert("prop_" + prop, render(Cfg(props=(prop,))), prop.capitalize(), table, base="room")
+        grid = render(Cfg(props=(prop,)))
+        if prop == 'dark':                                # only the cells the dead torch darkens
+            fx, fy = FLAME_CELLS[0]
+            keep = set()
+            for r in range(21):
+                for c in range(40):
+                    cellpx = [base[r * 8 + y][c * 4 + x] for y in range(8) for x in range(4)]
+                    near = abs(c - fx) <= 6 and abs(r - fy) <= 4 and not any(
+                        im.cells[r][c] for k_, im in over.items() if k_.startswith("door"))
+                    darkpx = [grid[r * 8 + y][c * 4 + x] for y in range(8) for x in range(4)]
+                    if near and darkpx != cellpx:
+                        keep.add((c, r))
+            grid = [[grid[y][x] if (x // 4, y // 8) in keep else base[y][x] for x in range(W)] for y in range(H)]
+        over[prop] = convert("prop_" + prop, grid, prop.capitalize(), table, base="room")
     flames = []
-    for f in range(3):
+    for f in range(FLAME_FRAMES):
         grid = base if f == 0 else render(Cfg(flame=f))
         cx, cy = FLAME_CELLS[0]
         img = convert("flame%d" % f, grid, "Flame%d" % f, table, crop=(cx, cy, 2, 2))
@@ -950,49 +1034,40 @@ def main():
     # with the orange in colour RAM. A colour-RAM-only picture then turns the
     # orange of exactly those cells brighter or darker, whatever theme has
     # recoloured the grey.
-    touched = {(c, r) for im in over.values() for r in range(im.rows) for c in range(im.cols) if im.cells[r][c]}
+    touched = {(c, r) for k_, im in over.items() if k_ != 'dark'
+               for r in range(im.rows) for c in range(im.cols) if im.cells[r][c]}
+    # The glow: the two matrix colours of each torch-lit cell near a flame
+    # (fire colours only, which no theme remaps) step one notch darker in the
+    # dim states (yellow to orange, orange to brown), the inner ring first.
+    DIM = {7: 8, 8: 9, 1: 7, 10: 8}
     glow = []
-    moved = 0
     for (cx, cy), (tx, ty) in zip(FLAME_CELLS, TORCH_SCREEN):
         cells = []
-        for r in range(cy - 5, cy + 8):
+        for r in range(cy - 5, cy + 7):
             for c in range(cx - 5, cx + 7):
                 if (c, r) in touched or (cx <= c < cx + 2 and cy <= r < cy + 2):
                     continue
                 bm, m, col = room.cells[r][c]
                 tab = (0, m >> 4, m & 15, col & 15)
-                px = [tab[(b_ >> s_) & 3] for b_ in bm for s_ in (6, 4, 2, 0)]
-                used = set(px) - {0}
-                if 8 not in used or not used <= {7, 8, 12}:
-                    continue
-                if tab[3] != 8:                           # not where the tool put it: re-encode this cell
-                    code = {0: 0, 7: 1, 12: 2, 8: 3}
-                    nb = bytes(sum(code[px[y * 4 + x]] << (6 - 2 * x) for x in range(4)) for y in range(8))
-                    room.cells[r][c] = (nb, 0x7C, 8)
-                    moved += 1
-                cells.append((c, r, math.hypot(c * 8 + 4 - tx, r * 8 + 4 - ty)))
+                used = {tab[(b_ >> s_) & 3] for b_ in bm for s_ in (6, 4, 2, 0)}
+                d = math.hypot(c * 8 + 4 - tx, r * 8 + 4 - ty)
+                if (m >> 4) in DIM and (m & 15) in DIM and d < 40:
+                    cells.append((c, r, d, m))
         glow.append(cells)
-    if moved:
-        payload, _ = c64img.encode_planes(room, 7)
-        c64img.verify(room, payload)
-        c64img.write_file(os.path.join(OUT, "room.img"), room, payload)
-        table[0] = ("room", "Room", room, len(payload))
-    print("glow cells %s, %d re-encoded, room %d bytes" % ([len(g) for g in glow], moved, table[0][3]))
+    print("glow cells", [len(g) for g in glow])
 
-    def glow_colour(state, d):
-        if state == 1:                                    # dim: the outer ring turns brown
-            return 9 if d > 24 else 8
-        if state == 2:                                    # dimmer: all but the cells next to the flame
-            return 9 if d > 15 else 8
-        return 8
+    def glow_colour(state, d, m):
+        if (state == 1 and d < 22) or state == 2:          # the inner ring dims, or everything
+            return (DIM[m >> 4] << 4) | DIM[m & 15]
+        return m
 
     glow_images = []
     for t_, cells in enumerate(glow):
         for state in range(3):
             im = c64img.Image(c64img.MODE_MC, 40, 21, 0)
-            for c, r, d in cells:
-                im.cells[r][c] = (bytes(8), 0, glow_colour(state, d))
-            pl, _ = c64img.encode_planes(im, c64img.PLANE_COLOR)
+            for c, r, d, col in cells:
+                im.cells[r][c] = (bytes(8), glow_colour(state, d, col), 0)
+            pl, _ = c64img.encode_planes(im, c64img.PLANE_MATRIX)
             c64img.verify(im, pl)
             name = "glow%d%d" % (t_, state)
             c64img.write_file(os.path.join(OUT, name + ".img"), im, pl)
@@ -1013,9 +1088,10 @@ def main():
         if i:
             asm.append("%-14s .byte %s" % ("pal_Theme%d" % i, ",".join(str(v) for v in t)) + "   ; " + name)
     order = ["DoorN", "DoorW", "DoorE", "DoorS"] + [p_.capitalize() for p_ in PROPS] + \
-            ["DoorN2", "DoorN3", "DoorN4", "Flame0", "Flame1", "Flame2", "Flame0"] + \
+            ["DoorN2", "DoorN3"] + ["Flame%d" % f for f in range(FLAME_FRAMES)] + \
             ["Glow%d%d" % (t_, st) for t_ in range(2) for st in (0, 1, 2, 0)]
-    words = ["img_" + o for o in order] + ["pal_Theme%d" % i for i in range(1, len(THEMES))]
+    words = ["img_" + o for o in order] + ["pal_Theme%d" % i for i in range(1, len(THEMES))] + ["pal_Fade"]
+    asm.append("%-14s .byte %s" % ("pal_Fade", ",".join(str(v) for v in FADE)) + "   ; room exit: every colour a step darker")
     asm.append("; pictures and tables by index (see DungeonView.cs): doors, props, door opening, flames,")
     asm.append("; glow states of torch 0 and of torch 1, theme tables 1..")
     asm.append("%-14s .word %s" % ("room_Table", ", ".join(words)))
@@ -1037,7 +1113,7 @@ def main():
             scr.draw(room)
             if 'n' in doors:
                 scr.draw(over["door_n"])
-                for k in range(2, door_frame + 1):
+                for k in range(2, min(door_frame, 3) + 1):
                     scr.draw(over["door_n%d" % k])
             for d in "wes":
                 if d in doors:
@@ -1047,18 +1123,20 @@ def main():
             if theme_i:
                 scr.remap(THEMES[theme_i][1])
             for t_, (cx, cy) in enumerate(FLAME_CELLS):
+                if t_ == 0 and 'dark' in props:
+                    continue
                 scr.draw(flames[flame], cx, cy)
                 gi = glow_images[t_ * 3 + state]
                 for r in range(gi.rows):
                     for c in range(gi.cols):
                         if gi.cells[r][c]:
-                            scr.cells[(c, r)] = (scr.cells[(c, r)][0], scr.cells[(c, r)][1], gi.cells[r][c][2])
+                            scr.cells[(c, r)] = (scr.cells[(c, r)][0], gi.cells[r][c][1], scr.cells[(c, r)][2])
             return scr.picture()
 
         shots = [scene(0, "nwes", PROPS), scene(1, "nw", ['chains', 'puddle']), scene(2, "ne", ['bones', 'banner']),
-                 scene(3, "s", ['grate', 'chains']), scene(4, "nes", ['banner', 'puddle']),
-                 scene(0, "nwe", [], flame=1, state=1), scene(0, "nwe", [], flame=2, state=2),
-                 scene(0, "n", [], door_frame=2), scene(0, "n", [], door_frame=3), scene(0, "n", [], door_frame=4)]
+                 scene(3, "s", ['grate', 'chains', 'webs']), scene(4, "nes", ['banner', 'puddle']),
+                 scene(0, "nwe", ['webs'], flame=1, state=1), scene(0, "nwe", [], flame=3, state=2),
+                 scene(0, "n", [], door_frame=2), scene(0, "n", [], door_frame=3), scene(1, "nw", ['dark', 'webs', 'bones'])]
         for i, im in enumerate(shots):
             im.save(os.path.join(SRC, "preview_%d.png" % i))
 

@@ -16,30 +16,53 @@ static class Maze
     static readonly byte[] Grid =
     {
           0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-          0, 32, 40, 36,  0,113,106,102,162,160,168,  0,
-          0, 34,  0, 40,  0, 97,  0,  0,  0,  0,160,  0,
-          0, 38,  0, 32,104,100,  0,113,170,166,162,  0,
-          0, 74,  0,  0,  0,136,  0,129,  0,  0, 38,  0,
-          0, 81, 74, 70,  0,128,136,132,  0, 49, 42,  0,
-          0,  0,  0, 74,  0,  0,  0,136,  0, 33,  0,  0,
-          0, 68, 65, 81,138,134,  0,128, 40, 36, 33,  0,
-          0,104,  0,  0,  0,170,  0,  0,  0,  0, 68,  0,
-          0, 96,104,100,  0,177,170,166, 66, 64, 72,  0,
-          0,  0,  0,104,164,161,  0,  0,  0,  0, 64,  0,
+          0, 42,105,140,  0,138,162,130,162, 41, 98,  0,
+          0, 67,  0,169,  0,165,  0,  0,  0,  0,138,  0,
+          0, 34,  0, 42, 96, 36,  0,132,102, 35, 76,  0,
+          0, 76,  0,  0,  0,136,  0, 75,  0,  0, 40,  0,
+          0, 33,101, 67,  0, 78,143, 38,  0,132, 78,  0,
+          0,  0,  0,129,  0,  0,  0,137,  0,166,  0,  0,
+          0, 97,175, 32, 79, 98,  0,109, 64,110,140,  0,
+          0,130,  0,  0,  0,138,  0,  0,  0,  0, 47,  0,
+          0, 69, 42,130,  0, 43, 67,130,171, 42,142,  0,
+          0,  0,  0, 99,173, 70,  0,  0,  0,  0,163,  0,
           0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
     };
 
     // What a floor cell's Grid value means: bits 5-7 are the room's palette
     // theme + 1 (themes 0 moss, 1 cold, 2 rust, 3 crypt, 4 bone -- see
-    // art/room_art.py; the + 1 keeps every floor cell nonzero), bits 0-4 its
-    // props (DungeonView's prop bits: 1 chains, 2 banner, 4 bones, 8 puddle,
-    // 16 grate). Themes go by region, 4x4 cells each, so walking the maze
-    // passes through differently coloured parts of the catacomb; props vary
-    // from room to room within a region. To carve a new room, give it its
-    // region's theme and any props.
+    // art/room_art.py; the + 1 keeps every floor cell nonzero), bits 0-4 an
+    // index into PropSets, the room's props (DungeonView's prop bits).
+    // Neighbouring rooms have different themes. To carve a new room, give
+    // it a theme and a prop set.
     public static uint Info(uint x, uint y)
     {
         return Grid[y * Width + x];
+    }
+
+    static readonly uint[] PropSets =
+    {
+        0,
+        DungeonView.Webs,
+        DungeonView.Chains | DungeonView.Webs,
+        DungeonView.Bones | DungeonView.Banner,
+        DungeonView.Puddle,
+        DungeonView.Grate | DungeonView.Chains,
+        DungeonView.Banner | DungeonView.Webs,
+        DungeonView.Bones,
+        DungeonView.Dark | DungeonView.Webs,
+        DungeonView.Puddle | DungeonView.Banner,
+        DungeonView.Dark | DungeonView.Bones,
+        DungeonView.Grate,
+        DungeonView.Chains | DungeonView.Puddle,
+        DungeonView.Webs | DungeonView.Bones | DungeonView.Grate,
+        DungeonView.Dark,
+        DungeonView.Banner,
+    };
+
+    public static uint Props(uint x, uint y)
+    {
+        return PropSets[Info(x, y) & 15];
     }
 
     // The screen background and border are black in every room (the room

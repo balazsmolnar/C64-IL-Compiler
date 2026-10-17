@@ -44,9 +44,9 @@ A = 160.0 - U
 # Materials: the colours from dark to bright, and the light level at which
 # each one starts (so the bright end can be kept for thin highlights).
 MAT = {
-    "bone":  ([0, 6, 11, 12, 15, 7, 1], [0, .08, .22, .42, .66, .98, 1.25]),
-    "metal": ([0, 6, 11, 12, 15],       [0, .14, .36, .62, .92]),
-    "horn":  ([0, 9, 8, 7],             [0, .18, .46, .92]),
+    "bone":  ([0, 9, 8, 12, 15, 7, 1], [0, .08, .22, .42, .66, .98, 1.25]),
+    "metal": ([0, 6, 11, 14, 1],       [0, .16, .48, 1.0, 1.4]),
+    "horn":  ([0, 9, 8, 7],            [0, .18, .46, .92]),
 }
 
 
@@ -60,7 +60,7 @@ def ramp_pos(mat, level):
     return 0.0
 
 
-TORCH = (22.0, 44.0, 55.0)      # the left torch's flame; the right one is its mirror
+TORCH = (16.0, 32.0, 55.0)      # the left torch's flame; the right one is its mirror
 FILL = 0.17
 
 
@@ -461,72 +461,6 @@ class Paint:
         return cv.nparts
 
 
-SKULL_OUTLINE = [(0, 10), (4, 10), (8, 12), (12, 15), (16, 19), (19, 24), (22, 31), (24, 39), (25, 48),
-                 (25, 57), (24, 63), (23, 68), (22.5, 76), (23.5, 83), (23.5, 89), (21, 93), (17, 96),
-                 (15, 99), (14, 103), (14, 112), (0, 112)]
-SOCKET = [(4.5, 67), (9, 64), (15, 62), (20.5, 63.5), (21.5, 70), (20, 77), (15, 82), (9, 82), (5.5, 78), (4, 72)]
-NOSE_HOLE = [(0, 84), (1.5, 84), (3.5, 88), (4.5, 94), (3.5, 98), (1, 98), (0, 96)]
-
-
-def paint_skull(cv):
-    p = Paint()
-    p.base(SKULL_OUTLINE, 3)
-    # cranium
-    p.poly([(0, 10), (4, 10), (8, 12), (12, 15), (10, 18), (5, 15), (0, 15)], 2)                    # falls away on top
-    p.poly([(0, 14), (4, 14), (6, 22), (7, 40), (6, 54), (0, 58)], 2.5)                             # the unlit middle
-    p.poly([(9, 15), (13, 17), (17, 22), (20, 28), (22, 36), (22.5, 50), (21, 55), (12, 54), (9, 40), (8, 24)], 4)
-    p.poly([(14, 20), (16, 19), (19, 24), (22, 31), (24, 39), (25, 48), (25, 57), (23, 57), (23, 48),
-            (22, 40), (20, 32), (17, 25)], 5)                                                       # rim light
-    p.poly([(23, 38), (24.5, 40), (25, 50), (23.5, 50)], 6)
-    # brow ridge, glabella
-    p.poly([(0, 60), (3, 60), (8, 58), (15, 56), (21, 56), (24, 60), (23, 64), (21, 62), (15, 61), (9, 63),
-            (4, 66), (0, 66)], 4)
-    p.poly([(15, 56), (21, 56), (24, 60), (23, 61), (20, 58), (15, 57.5)], 5)
-    p.poly([(0, 59), (3, 60), (4, 66), (3, 70), (0, 70)], 3)
-    p.poly([(0, 55), (7, 55), (12, 54), (21, 55), (21, 56), (15, 56), (8, 58), (3, 60), (0, 60)], 2.5)   # furrow above it
-    # outer rim of the socket
-    p.poly([(20.5, 63), (23, 66), (22.5, 76), (23.5, 83), (21.5, 84), (20.5, 77), (21.5, 70)], 4)
-    p.poly([(22, 66), (23, 66), (22.5, 76), (23.5, 83), (22.5, 83), (21.7, 76)], 5)
-    # nose bridge
-    p.poly([(1.5, 66), (3.5, 67), (4.5, 76), (4.5, 86), (2, 86), (1.5, 76)], 4)
-    p.poly([(0, 66), (1.5, 66), (1.5, 86), (0, 86)], 3)
-    # cheekbone and what hangs under it
-    p.poly([(6, 84), (16, 86), (21, 82), (23.5, 83), (23.5, 89), (21, 93), (15, 93), (9, 91), (6, 89)], 4)
-    p.poly([(21, 83), (23.5, 83), (23.5, 89), (22, 91), (21, 88)], 5)
-    p.poly([(9, 91), (15, 93), (21, 93), (17, 96), (15, 99), (12, 96), (9, 94)], 2)
-    # upper jaw
-    p.poly([(5, 90), (9, 92), (12, 96), (14, 100), (14, 104), (11, 104), (9, 98), (6, 94)], 3.5)
-    p.poly([(0, 98), (4, 98), (5, 104), (0, 104)], 2.5)
-    # holes
-    p.cut(SOCKET)
-    p.cut(NOSE_HOLE)
-    p.poly([(4.5, 70), (6, 69), (6.5, 76), (5.5, 78), (4, 74)], 1)                                  # far wall of the socket
-    p.poly([(6, 81), (9, 83.5), (15, 83.5), (20, 79), (21.5, 79), (21, 82), (16, 86), (9, 86), (6, 84)], 4)   # lower rim
-    p.soften()
-    part = p.put(cv, "bone", 40.0)
-    # the roots of the teeth show as ridges in the bone above them
-    for y in range(98, 104):
-        for c, tone in ((1, 4), (5, 4), (9, 4), (3, 2), (7, 2), (11, 2)):
-            x = HW - 1 - c
-            if cv.part[y, x] == part:
-                cv.direct[y, x] = tone
-    return part
-
-
-def paint_mandible(cv, jaw):
-    p = Paint()
-    d = jaw
-    p.base([(0, 118), (14, 118), (15.5, 108), (17, 99), (20.5, 97), (21.5, 105), (20.5, 116), (18.5, 125),
-            (14, 132), (8, 137), (0, 138)], 3, d)
-    p.poly([(15.5, 108), (17, 99), (20.5, 97), (21.5, 105), (20, 112), (16, 114)], 2, d)           # under the cheekbone
-    p.poly([(20, 99), (21.5, 105), (20.5, 116), (18.5, 125), (17, 125), (19, 116), (20, 106)], 4.5, d)   # lit edge
-    p.poly([(0, 118), (14, 118), (14, 121), (0, 121)], 2.5, d)
-    p.poly([(0, 123), (5, 123), (8, 126), (7, 131), (4, 133), (0, 133)], 4, d)                      # the chin
-    p.poly([(0, 134), (8, 133), (14, 128), (18.5, 125), (14, 132), (8, 137), (0, 138)], 2, d)       # its underside
-    p.soften()
-    return p.put(cv, "bone", 30.0)
-
-
 # ---------------------------------------------------------------------------
 # The guardian
 # ---------------------------------------------------------------------------
@@ -547,7 +481,7 @@ def stamp(cv, rows, right, top):
 # The mouth, drawn by hand; each row ends at the centre line. Upper teeth:
 # premolar, canine (the fang), two incisors. They are lit from the left.
 UPPER_TEETH = [
-    "mmdmmmdmmmdmmm",
+    "nnnnnnnnnnnnnn",
     "wldwlldwlldwll",
     "wldwlldwlldwll",
     "wldwlldwlldwll",
@@ -562,101 +496,319 @@ UPPER_TEETH = [
     "....w         ",
 ]
 LOWER_TEETH = [
+    ".l..l..l...l..",
     "lm.lm.lm.lm.lm",
     "lm.lm.lm.lm.lm",
-    "lmdlmdlmdlmdlm",
-    "mmdmmdmmdmmdmm",
+    "lm.lm.lm.lm.lm",
+    "mmnmmnmmnmmnmm",
 ]
 
 
-def stones(cv):
-    """The wall by the torch: blocks shaded flat, one tone per block."""
-    for y in range(H):
-        for x in range(16):
-            course = y // 12
-            off = 0 if course % 2 == 0 else 4
-            bx = (x + off) // 8
-            in_x, in_y = (x + off) % 8, y % 12
-            cxm = bx * 8 - off + 3.5
-            cym = course * 12 + 5.5
-            d = math.hypot((cxm * 2 + 1) - TORCH[0], (cym - (TORCH[1] + 6)) * 0.9)
-            tone = 3 if d < 22 else 2 if d < 40 else 1 if d < 58 else 0
-            if in_x == 7 or in_y == 11:
-                c = BLACK
-            elif tone == 3:
-                c = YELLOW if in_y == 0 else ORANGE
-            elif tone == 2:
-                c = ORANGE if in_y == 0 else (ORANGE if (x + y) & 1 else BROWN)
-            elif tone == 1:
-                c = BROWN if in_y == 0 else (BROWN if (x + y) & 1 else BLACK)
+def lerp_tone(c, y, pts):
+    """Tone from the nearest of a few (c, y, tone) anchors, blended by inverse distance."""
+    w = np.zeros_like(c)
+    t = np.zeros_like(c)
+    for pc, py, pt in pts:
+        d = 1.0 / (((c - pc) ** 2 + ((y - py) * 0.5) ** 2) + 4.0) ** 1.5
+        w += d
+        t += d * pt
+    return t / w
+
+
+CC = HW - 0.5 - XX          # each pixel's c (multicolour pixels left of the centre line)
+YC = YY + 0.5
+
+SKULL_OUTLINE = [(0, 10), (5, 10), (10, 12), (14, 15), (18, 20), (21, 26), (23, 33), (24.5, 42), (25, 50),
+                 (24.5, 58), (23.5, 63), (22, 67), (21.5, 74), (23, 80), (24.5, 85), (24, 89), (21, 91.5),
+                 (17, 94), (15, 97), (14, 101), (13.5, 104), (0, 104)]
+SOCKET = [(3.5, 69), (6, 65.5), (11, 64), (16, 64), (20, 66), (21, 70), (20, 76), (16.5, 80.5), (11, 82),
+          (6.5, 80.5), (4, 76)]
+NOSE_HOLE = [(0, 86), (1.5, 86), (3.5, 90), (4.5, 95), (3.5, 99.5), (1.5, 99), (0, 97.5)]
+EYE_C, EYE_Y = 11.0, 75.0      # the burning point in each socket (c, y)
+
+
+def paint_skull(cv):
+    p = Paint()
+    p.base(SKULL_OUTLINE, 3)
+    # the dome: brightest on its upper outer plane (toward the torch), mid in
+    # the middle, falling off toward the top and the lower sides
+    dome = lerp_tone(CC, YC, [(18, 28, 4.35), (11, 20, 3.8), (4, 15, 2.6), (0, 30, 3.0), (6, 44, 3.3),
+                              (16, 46, 3.8), (24, 40, 3.6), (24, 56, 2.0), (12, 56, 2.8), (0, 54, 2.6)])
+    m = p.mask(SKULL_OUTLINE) & (YC < 60)
+    p.tone = np.where(m, dome, p.tone)
+    # the temple, hollow under the dome's edge
+    p.poly([(24.5, 58), (23.5, 63), (22, 67), (21.5, 74), (20, 70), (20, 62), (22, 56)], 1.6)
+    # brow ridges: a heavy shelf, lit on top, black under its lip
+    p.poly([(0, 61), (4, 59), (9, 57), (15, 56.5), (20, 57.5), (23, 60), (23, 63.5), (20, 63), (15, 62.5),
+            (9, 63.5), (4, 66), (0, 66)], 4)
+    p.poly([(7, 57.5), (14, 56.5), (20, 57.5), (22.5, 60), (21, 60.5), (15, 58.5), (9, 59)], 5)
+    p.poly([(0, 58), (3, 59), (3.5, 66), (2.5, 72), (0, 72)], 3.2)                                   # glabella
+    # outer rim of the socket, down into the cheekbone
+    p.poly([(20, 63), (22.5, 64), (22, 70), (21.5, 76), (22.5, 80), (20.5, 81), (20, 76), (20.5, 69)], 3.6)
+    # nasal bones
+    p.poly([(1.2, 70), (3.5, 69), (4.5, 76), (4.8, 86), (2.5, 87), (1.2, 78)], 4)
+    p.poly([(0, 70), (1.2, 70), (1.2, 87), (0, 87)], 3)
+    # cheekbone: a flat shelf flaring out, lit along its top edge
+    p.poly([(5, 83), (12, 85), (18, 82), (22.5, 79.5), (24.5, 85), (24, 89), (21, 91), (14, 91), (8, 90), (5, 88)], 3.4)
+    p.poly([(12, 84.5), (18, 81.5), (22.5, 79.5), (24.5, 84.5), (23.5, 85.5), (21, 82.5), (17, 84)], 4.6)
+    p.poly([(7.5, 89.5), (14, 91), (21, 91.5), (17, 94.5), (14.5, 98.5), (11, 95), (8, 92.5)], 1.4)  # under it
+    # upper jaw, the bone the teeth sit in
+    p.poly([(4.5, 91), (8, 92), (11, 95), (13.5, 100), (13.5, 104), (0, 104), (0, 99.5), (3.5, 99.5)], 3)
+    p.poly([(8, 92), (11, 95), (13.5, 100), (13.5, 102), (11.5, 99), (9, 95)], 3.8)
+    p.poly([(0, 102.5), (13.5, 102.5), (13.5, 104), (0, 104)], 1.5)                                  # gum line
+    # holes
+    p.cut(SOCKET)
+    p.cut(NOSE_HOLE)
+    p.poly([(6, 81), (11, 83), (16.5, 81.5), (20, 77.5), (20.5, 79.5), (17, 83.5), (11, 85), (6, 83.5)], 4.3)   # lower rim
+    p.soften()
+    part = p.put(cv, "bone", 40.0)
+    # the fire inside the sockets: red, then orange toward the burning point
+    for y in range(66, 82):
+        for x in range(HW - 22, HW - 3):
+            if cv.fixed[y, x] != BLACK or cv.part[y, x] != 0:
+                continue
+            c = HW - 0.5 - x
+            r = math.hypot((c - EYE_C) / 4.2, (y + 0.5 - EYE_Y) / 3.6)
+            if r < 0.55:
+                cv.px(x, y, YELLOW)
+            elif r < 0.95:
+                cv.px(x, y, ORANGE if r < 0.8 or (x + y) & 1 else RED)
+            elif r < 1.45 and ((x + y) & 1 or r < 1.2):
+                cv.px(x, y, RED)
+    return part
+
+
+def paint_mandible(cv, jaw):
+    p = Paint()
+    d = jaw
+    outline = [(0, 117), (13, 117), (15.5, 110), (17.5, 101), (19, 96), (21, 96), (21.5, 102), (20.5, 112),
+               (18.5, 121), (15, 127.5), (10, 132), (5, 134.5), (0, 135)]
+    p.base(outline, 2.6, d)
+    p.poly([(19, 96), (21, 96), (21.5, 102), (20.5, 112), (18.5, 121), (17.3, 121), (19.2, 111), (19.8, 102)], 3.4, d)   # ramus edge
+    p.poly([(13, 117), (15.5, 110), (17.5, 101), (19, 96), (19.5, 103), (18.5, 112), (16, 118)], 1.3, d)       # inside the ramus
+    p.poly([(0, 118.5), (13.5, 118.5), (13.5, 120), (0, 120)], 1.5, d)                                       # under the teeth
+    p.poly([(0, 123), (4, 122.5), (8, 125), (8.5, 129), (5, 132), (0, 132.5)], 3.5, d)                         # the chin
+    p.poly([(4, 122.5), (8, 125), (8.5, 129), (7, 130), (6.5, 126)], 4.3, d)
+    p.poly([(0, 133), (5, 132.5), (10, 130), (15, 127.5), (10, 132), (5, 134.5), (0, 135)], 1.2, d)            # underside
+    p.soften()
+    return p.put(cv, "bone", 30.0)
+
+
+def paint_spine(cv):
+    """Neck vertebrae under the jaw."""
+    p = Paint()
+    for i in range(4):
+        y = 134 + i * 5
+        p.base([(0, y), (4.5, y + 0.5), (5.5, y + 2), (4.5, y + 3.5), (0, y + 4)], 3.2 - i * 0.45)
+        p.poly([(3, y + 0.5), (4.5, y + 0.5), (5.5, y + 2), (4.5, y + 3.5), (3, y + 3.5)], 4.0 - i * 0.5)
+    p.soften()
+    return p.put(cv, "bone", 20.0)
+
+
+def mail(cv):
+    """A collar of mail between the neck and the pauldrons, fading into the dark."""
+    for y in range(132, 152):
+        for x in range(HW - 40, HW - 4):
+            c = HW - 0.5 - x
+            top = 131 + c * 0.12
+            if y < top or cv.part[y, x] != 0 or cv.fixed[y, x] >= 0:
+                continue
+            fade = (151 - y) / 18.0
+            ring = (x + (y // 2) % 2 * 2) % 4
+            row = y % 2
+            if fade < 0.15:
+                continue
+            if row == 0 and ring in (1, 2):
+                cv.px(x, y, LBLUE if fade > 0.7 and ring == 1 and c > 18 else DGREY)
+            elif row == 1 and ring == 0:
+                cv.px(x, y, BLUE if fade > 0.35 else BLACK)
+
+
+ARCH_C, ARCH_Y = 0.0, 84.0
+
+
+def arch(cv):
+    """A dark stone arch behind the guardian, and the floor it stands on."""
+    for y in range(0, 124):
+        for x in range(16, HW):
+            c = HW - 0.5 - x
+            yy = y + 0.5
+            if yy < ARCH_Y:
+                ri = math.hypot(c / 44.0, (yy - ARCH_Y) / 72.0)
+                ro = math.hypot(c / 52.0, (yy - ARCH_Y) / 80.0)
+                inside = ri >= 1.0 and ro < 1.0
+                ang = math.atan2(ARCH_Y - yy, c * 1.6)
+                joint = (ang * 180 / math.pi) % 15 < 1.6 and ri > 1.02
+                edge = ri < 1.035
             else:
-                c = BLACK
-            cv.px(x, y, c)
+                inside = 44 <= c < 52
+                joint = int(yy - ARCH_Y) % 11 == 10
+                edge = c < 45
+            if not inside or cv.fixed[y, x] >= 0 or cv.part[y, x] != 0:
+                continue
+            u = 2 * x + 1
+            d = math.hypot(u - TORCH[0], (yy - TORCH[1]) * 0.8)
+            warm = d < 40
+            if joint:
+                col = BLACK
+            elif edge:
+                col = BROWN if warm else DGREY
+            elif warm:
+                col = BROWN if (x + y) & 1 else BLACK
+            else:
+                col = BLUE if y % 3 == 0 and (x + y // 3) % 3 == 0 else BLACK
+            cv.px(x, y, col)
+    # the floor: flagstones in perspective, lit where the torch is near
+    for y in range(120, 144):
+        for x in range(0, HW):
+            if cv.fixed[y, x] >= 0 or cv.part[y, x] != 0:
+                continue
+            yy = y + 0.5
+            depth = (yy - 112) / 32.0
+            c = HW - 0.5 - x
+            bed = y in (120, 124, 130, 138)
+            radial = int((c / depth) / 9.0 + 0.5) != int((c + 1) / depth / 9.0 + 0.5)
+            u = 2 * x + 1
+            d = math.hypot(u - TORCH[0], (yy - 118) * 2.0)
+            lvl = max(0.0, 1.0 - d / 70.0) * (1.2 - (yy - 120) / 40.0)
+            if bed or radial:
+                col = BLACK
+            elif lvl > 0.6:
+                col = ORANGE if (x + y) & 1 else BROWN
+            elif lvl > 0.35:
+                col = BROWN
+            elif lvl > 0.12:
+                col = BROWN if (x + y) & 1 else BLACK
+            elif lvl > 0.0 or (x + y) % 4 == 0:
+                col = BLUE if (x + y) & 1 and c > 30 else BLACK
+            else:
+                col = BLACK
+            cv.px(x, y, col)
 
 
-def guardian(jaw=0.0, horns="bull", eyes="open", crack=False, third_eye=False, body=True):
+def pillar(cv):
+    """The torch pillar: dressed stone, lit by the flame and falling off into the dark."""
+    for y in range(0, 128):
+        for x in range(0, 16):
+            yy = y + 0.5
+            course = y // 10
+            off = 0 if course % 2 == 0 else 4
+            in_x, in_y = (x + off) % 8, y % 10
+            u = 2 * x + 1
+            d = math.hypot(u - TORCH[0], (yy - TORCH[1]) * 0.75)
+            lvl = max(0.0, 1.0 - d / 46.0)
+            plinth = y >= 116
+            if plinth:
+                in_y = y - 116
+                lvl = max(0.0, 1.0 - math.hypot(u - TORCH[0], (yy - 100) * 0.6) / 60.0)
+                if in_y in (0, 11):
+                    col = BLACK if in_y == 11 else (ORANGE if lvl > 0.45 else BROWN if lvl > 0.2 else DGREY)
+                else:
+                    col = BROWN if lvl > 0.3 or (lvl > 0.12 and (x + y) & 1) else (BLUE if (x + y) & 1 else BLACK)
+                cv.px(x, y, col)
+                continue
+            if in_x == 7 or in_y == 9:
+                col = BLACK
+            elif in_y == 0 and lvl > 0.55:
+                col = YELLOW
+            elif lvl > 0.62:
+                col = ORANGE
+            elif lvl > 0.45:
+                col = ORANGE if (x + y) & 1 else BROWN
+            elif lvl > 0.28:
+                col = BROWN
+            elif lvl > 0.13:
+                col = BROWN if (x + y) & 1 else BLACK
+            elif lvl > 0.0:
+                col = BLUE if (x + y) % 4 == 0 else BLACK
+            else:
+                col = BLACK
+            cv.px(x, y, col)
+    # the niche the torch burns in: its own two cells, so its flicker
+    # (a colour cycle on just those cells) touches nothing else
+    for y in range(24, 40):
+        for x in range(4, 12):
+            cv.px(x, y, BLACK)
+    key = {"y": YELLOW, "o": ORANGE, "w": WHITE, ".": None}
+    for j, row in enumerate(FLAME):
+        for i, ch in enumerate(row):
+            if key[ch] is not None:
+                cv.px(5 + i, 25 + j, key[ch])
+    for j, row in enumerate(SCONCE):
+        for i, ch in enumerate(row):
+            if ch != ".":
+                cv.px(4 + i, 40 + j, {"n": BROWN, "o": ORANGE, "d": DGREY}[ch])
+
+
+FLAME = [  # 6 x 15, inside the niche
+    "...y..",
+    "..y...",
+    "..yy..",
+    ".yy...",
+    ".oyy..",
+    ".oyyo.",
+    "ooywyo",
+    "oywwyo",
+    "oywwyo",
+    "oywwyo",
+    "oyywyo",
+    ".oyyo.",
+    ".oyyo.",
+    "..oo..",
+    "..o...",
+]
+SCONCE = [
+    "nooooonn",
+    ".nooonn.",
+    "..nonn..",
+    "...nn...",
+    "...nd...",
+    "...nd...",
+    "..nnnd..",
+    ".......",
+]
+
+
+def guardian(jaw=0.0, body=True):
     cv = Canvas()
-    stones(cv)
+    pillar(cv)
 
     if body:
         def low_fade(a, v, z):
             return np.clip((150.0 - v) / 16.0, 0, 1)
-        cv.add(gorget, "metal", zoff=-30, gain=1.0, shade=low_fade)
 
         def paul_shade(a, v, z):
             rim = np.abs(np.hypot((a - 78) / 36.0, (v - 139) / 19.0) - 0.84) < 0.05
             return np.where(rim, 0.4, 1.0) * np.clip((150.0 - v) / 14.0, 0, 1)
-        cv.add(pauldron, "metal", zoff=-12, gain=1.2, shade=paul_shade)
-        cv.add(spike, "metal", zoff=-8, gain=1.3)
+        cv.add(pauldron, "metal", zoff=-12, gain=0.85, shade=paul_shade)
+        cv.add(spike, "metal", zoff=-8, gain=0.95)
 
-    if horns == "bull":
-        zh, th = horn(A, V)
+    zh, th = horn(A, V)
 
-        def horn_fn(a, v):
-            return horn(a, v)[0]
+    def horn_fn(a, v):
+        return horn(a, v)[0]
 
-        def horn_shade(a, v, z):
-            ring = (np.mod(th * 12.0, 1.0) < 0.10) & (th > 0.05) & (th < 0.92)
-            return np.where(ring, 0.55, 1.0)
-        cv.add(horn_fn, "horn", zoff=-4, gain=1.05, shade=horn_shade)
+    def horn_shade(a, v, z):
+        ring = (np.mod(th * 12.0, 1.0) < 0.10) & (th > 0.05) & (th < 0.92)
+        return np.where(ring, 0.55, 1.0)
+    cv.add(horn_fn, "horn", zoff=-4, gain=1.05, shade=horn_shade)
 
+    if body:
+        paint_spine(cv)
     jaw_part = paint_mandible(cv, jaw)
     skull_part = paint_skull(cv)
     gum = 104
     cv.outline()
 
-    low0 = int(gum + 10 + jaw)
+    low0 = int(gum + 9 + jaw)
     for y in range(gum, low0):                                  # the dark of the mouth
-        for x in range(HW - 14, HW):
+        for x in range(HW - 15, HW):
             cv.px(x, y, BLACK)
     stamp(cv, LOWER_TEETH, HW - 1, low0)
     stamp(cv, UPPER_TEETH, HW - 1, gum)
-
-    for pts in ([(69, 20), (70, 24), (69, 28), (71, 32), (70, 37), (72, 41), (71, 45)],
-                [(71, 32), (73, 34), (75, 35)], [(69, 28), (66, 30), (64, 33)]):
-        line(cv, pts, BLACK)
-    if crack:
-        for pts in ([(79, 16), (77, 22), (78, 28), (75, 36), (77, 44), (74, 52), (76, 60)],
-                    [(75, 36), (71, 39), (68, 38)], [(77, 44), (79, 48)], [(74, 52), (70, 56), (67, 55)]):
-            line(cv, pts, BLACK, wide=True)
-
-    ex, ey = HW - 1 - 11, 77
-    if eyes != "none":
-        for dy in range(-2, 3):
-            for dx in range(-2, 3):
-                if abs(dx) + abs(dy) <= 2:
-                    cv.px(ex + dx, ey + dy, RED)
-        if eyes == "open":
-            for dx, dy in ((0, 0), (-1, 0), (0, -1), (1, 0), (0, 1)):
-                cv.px(ex + dx, ey + dy, ORANGE if (dx, dy) != (0, 0) else YELLOW)
-    if third_eye:
-        for dy in range(-4, 5):
-            w = 2 - abs(dy) // 2
-            for dx in range(w):
-                cv.px(HW - 1 - dx, 44 + dy, RED if dx == w - 1 or abs(dy) > 2 else YELLOW)
-        cv.px(HW - 1, 44, WHITE)
-
-    torch(cv)
+    if body:
+        mail(cv)
+    arch(cv)
     return cv
 
 
@@ -669,40 +821,6 @@ def line(cv, pts, c, wide=False):
             cv.px(x, y, c)
             if wide:
                 cv.px(x + 1, y, c)
-
-
-FLAME = [  # 6 columns, rows downward; . = nothing
-    "..y...",
-    "..y...",
-    ".yy...",
-    ".yyo..",
-    ".oyy..",
-    ".oyyo.",
-    "ooyyo.",
-    "oyyyo.",
-    "oywyyo",
-    "oywwyo",
-    "oywwyo",
-    "oyywyo",
-    ".oyyo.",
-    ".oooo.",
-]
-
-
-def torch(cv):
-    x0, y0 = 8, 30
-    key = {"y": YELLOW, "o": ORANGE, "w": WHITE, "r": LRED}
-    for j, row in enumerate(FLAME):
-        for i, ch in enumerate(row):
-            if ch != ".":
-                cv.px(x0 + i, y0 + j, key[ch])
-    # iron cup and bracket
-    for y, (xa, xb) in enumerate([(8, 13), (8, 13), (9, 12), (9, 12), (10, 11), (10, 11), (10, 11), (10, 11)]):
-        for x in range(xa, xb + 1):
-            cv.px(x, y0 + len(FLAME) + y, BROWN if (x == xb or y > 3) else ORANGE if x == xa else BROWN)
-    for y in range(8):
-        cv.px(10, y0 + len(FLAME) + 8 + y, BROWN)
-        cv.px(11, y0 + len(FLAME) + 8 + y, BLACK)
 
 
 # ---------------------------------------------------------------------------
@@ -731,16 +849,16 @@ def readouts(cv):
         cv.px(inner_l - 2, y, ORANGE)
     # the fill: red, a light band on top, a dark foot, a notch every 5 points
     for x in range(inner_l, HW):
-        k = (cx - 1 - x)
-        notch = (k % 10) == 9
+        point = (x - inner_l) // 2                      # 0-14: 2 pixels a point
+        notch = (x - inner_l) % 10 == 0 and point > 0 or x == HW - 1
         for y in range(top + 2, bot - 1):
             c = RED
-            if y == top + 3:
+            if y == top + 2:
                 c = LRED
             if y >= bot - 3:
                 c = BROWN if (x + y) % 2 == 0 else RED
             if notch:
-                c = BLACK
+                c = BLACK if y > top + 2 else BROWN
             cv.px(x, y, c)
     # end cap: a pointed finial with a stud
     cap = [
@@ -780,10 +898,10 @@ FONT = {
     "G": [".##", "#..", "#..", "#.#", "#.#", "#.#", ".##"],
     "H": ["#.#", "#.#", "#.#", "###", "#.#", "#.#", "#.#"],
     "I": ["#", "#", "#", "#", "#", "#", "#"],
-    "K": ["#.#", "#.#", "##.", "#..", "##.", "#.#", "#.#"],
+    "K": ["#..#", "#.#.", "##..", "##..", "#.#.", "#..#", "#..#"],
     "L": ["#..", "#..", "#..", "#..", "#..", "#..", "###"],
     "N": ["#..#", "##.#", "##.#", "#.##", "#.##", "#..#", "#..#"],
-    "O": [".#.", "#.#", "#.#", "#.#", "#.#", "#.#", ".#."],
+    "O": ["###", "#.#", "#.#", "#.#", "#.#", "#.#", "###"],
     "P": ["##.", "#.#", "#.#", "##.", "#..", "#..", "#.."],
     "R": ["##.", "#.#", "#.#", "##.", "#.#", "#.#", "#.#"],
     "S": [".##", "#..", "#..", ".#.", "..#", "..#", "##."],
@@ -813,29 +931,30 @@ def name_plate(text, cells=12, hi=YELLOW, lo=ORANGE):
 # ---------------------------------------------------------------------------
 # Sprites 6-7: eight hi-res frames, 24x21, one colour each
 # ---------------------------------------------------------------------------
-# 0 eye (a burning almond with a slit pupil)   1 eye, narrowed
+# 0 eye: a hot core with sparks around it  1 eye, narrowed to a blazing slit
 # 2 3 the player's blade stroke, left and right half (shown double size)
 # 4 5 the guardian's claws, left and right half (shown double size)
-# 6 "MISS"                                      7 a spark burst
+# 6 "MISS" (sprite 7 shows it again in black, as its shadow)
+# 7 a spark burst
 
 EYE = [
     "........................",
     "........................",
     "........................",
     "........................",
-    "...........#............",
-    ".....#...........#......",
-    "........########........",
-    "...#..####.##.####..#...",
-    ".....#####....#####.....",
-    "..#.######....######.#..",
-    "....######....######....",
-    "..#.######....######.#..",
-    ".....#####....#####.....",
-    "...#..####.##.####..#...",
-    "........########........",
-    ".....#...........#......",
-    "...........#............",
+    "............#...........",
+    "........................",
+    ".......#.........#......",
+    "..........####..........",
+    ".........######.........",
+    "....#...########...#....",
+    "........##.##.##........",
+    "....#...########...#....",
+    ".........######.........",
+    "..........####..........",
+    ".......#.........#......",
+    "........................",
+    "............#...........",
     "........................",
     "........................",
     "........................",
@@ -850,11 +969,11 @@ EYE_NARROW = [
     "........................",
     "........................",
     "..#..................#..",
-    ".....##..........##.....",
-    "...#######....#######...",
-    ".#.#######....#######.#.",
-    "...#######....#######...",
-    ".....##..........##.....",
+    "......#..........#......",
+    "...#.###.######.###.#...",
+    ".##################.....",
+    "...#.###.######.###.#...",
+    "......#..........#......",
     "..#..................#..",
     "........................",
     "........................",
@@ -870,16 +989,16 @@ MISS = [
     "........................",
     "........................",
     "........................",
+    "##...##.##..####...####.",
+    "###.###.##.##.....##....",
+    "#######.##.##.....##....",
+    "##.#.##.##..###....###..",
+    "##...##.##....##.....##.",
+    "##...##.##....##.....##.",
+    "##...##.##.####...####..",
     "........................",
-    "#...#.###..####..####...",
-    "##.##..#..#.....#.......",
-    "##.##..#..#.....#.......",
-    "#.#.#..#...###...###....",
-    "#.#.#..#......#.....#...",
-    "#...#..#......#.....#...",
-    "#...#.###.####..####....",
     "........................",
-    "###################.....",
+    "........................",
     "........................",
     "........................",
     "........................",
@@ -911,14 +1030,14 @@ def sprite_sheet():
             d = abs(y - yc)
             if d <= half or (d <= half + 1.5 and (x + y) % 2 == 0 and 0.15 < t < 0.85):
                 sheet.putpixel((2 * 24 + x, y), on)
-    # claws: three gashes, top-left to bottom-right
+    # claws: three long tapering rakes, top-left to bottom-right across both frames
     for k in range(3):
         for x in range(48):
             t = x / 47.0
-            if not (0.04 + 0.05 * k < t < 0.9 + 0.03 * k):
+            yc = -6.0 + k * 6.0 + 24.0 * t
+            half = 0.35 + 1.6 * math.sin(math.pi * t) ** 0.8
+            if t < 0.06 + 0.05 * k or t > 0.97 - 0.04 * (2 - k):
                 continue
-            yc = -3.0 + k * 6.5 + 13.0 * t
-            half = 0.3 + 2.0 * math.sin(math.pi * min(1.0, t * 1.05)) ** 1.2
             for y in range(21):
                 if abs(y - yc) <= half:
                     sheet.putpixel((4 * 24 + x, y), on)
@@ -931,11 +1050,104 @@ def sprite_sheet():
             y = int(round(10 + math.sin(ang) * r))
             if 0 <= x < 24 and 0 <= y < 21:
                 sheet.putpixel((7 * 24 + x, y), on)
-    for y in range(8, 13):
-        for x in range(9, 15):
-            if abs(x - 11.5) + abs(y - 10) < 3.6:
-                sheet.putpixel((7 * 24 + x, y), on)
     return sheet
+
+
+# ---------------------------------------------------------------------------
+# The four guardians: a colour table each (Screen.RemapCellColors, applied
+# to the left half before it is mirrored) and a one-sided overlay
+# ---------------------------------------------------------------------------
+# Each table maps its results to themselves, so it can be applied again
+# over cells it already changed (the jaw is redrawn and re-tinted).
+
+KINDS = [
+    ("BONE WARDEN", {}),
+    ("CRYPT GHOUL", {8: 9, 12: 5, 15: 13, 2: 5}),               # rotten green bone, green fire
+    ("BLOOD FIEND", {6: 9, 11: 2, 14: 10}),                       # bone kept, iron and stone run red
+    ("LICH KING", {9: 6, 8: 4, 7: 15, 2: 4}),                     # cold pale bone, violet fire
+]
+EYE_RAMPS = [  # the eye sprites' colours, dim to hot, per guardian
+    (RED, ORANGE, YELLOW, WHITE),
+    (GREEN, LGREEN, YELLOW, WHITE),
+    (RED, LRED, YELLOW, WHITE),
+    (VIOLET, LBLUE, CYAN, WHITE),
+]
+TINT_COLS = (4, 20)    # the tint covers columns 4-19 (not the torch pillar) and rows 0-17
+TINT_ROWS = 18
+JAW = (14, 12, 6, 6)   # the jaw's cells in the left half: column, row, width, height
+
+
+def table(kind):
+    t = list(range(16))
+    for a, b in KINDS[kind][1].items():
+        t[a] = b
+    for a in range(16):
+        assert t[t[a]] == t[a], "table %d is not idempotent at %d" % (kind, a)
+    return t
+
+
+def tinted(half, kind):
+    t = table(kind)
+    out = half.copy()
+    region = out[:TINT_ROWS * 8, TINT_COLS[0] * 4:TINT_COLS[1] * 4]
+    out[:TINT_ROWS * 8, TINT_COLS[0] * 4:TINT_COLS[1] * 4] = np.vectorize(lambda c: t[c])(region)
+    return out
+
+
+def fpx(img, x, y, c):
+    if 0 <= x < img.shape[1] and 0 <= y < img.shape[0]:
+        img[y, x] = c
+
+
+def fline(img, pts, c):
+    for (x0, y0), (x1, y1) in zip(pts, pts[1:]):
+        n = max(abs(x1 - x0), abs(y1 - y0), 1)
+        for i in range(n + 1):
+            fpx(img, round(x0 + (x1 - x0) * i / n), round(y0 + (y1 - y0) * i / n), c)
+
+
+def overlay(kind, f):
+    """Draws guardian `kind`'s own marks on the full (mirrored, tinted)
+    picture f, in place. One-sided, to break the mirror."""
+    if kind == 0:      # cracks across the right of the cranium
+        for pts in ([(84, 13), (86, 19), (85, 24), (88, 29), (87, 34), (90, 39), (89, 45), (92, 50)],
+                    [(88, 29), (92, 30), (96, 28)], [(87, 34), (83, 37)], [(90, 39), (95, 41), (98, 45)]):
+            fline(f, pts, BLACK)
+            fline(f, [(x + 1, y) for x, y in pts], DGREY if f[pts[0][1], pts[0][0] + 1] != BLACK else BLACK)
+    elif kind == 1:    # the left horn broken off; a rotted hole in the right cheek
+        for y in range(0, 34):
+            for x in range(18, 40):
+                cut = 22 + (y % 5) * 0.8 + (3 if y > 20 else 0)
+                if y < cut and f[y, x] not in (BLACK,):
+                    if y < 26 - (x % 3):
+                        f[y, x] = BLACK
+        for y in range(80, 94):
+            for x in range(98, 110):
+                r = math.hypot((x - 103.5) / 5.0, (y - 86.5) / 6.0) + 0.15 * math.sin(x * 2.1 + y * 1.3)
+                if r < 0.8:
+                    f[y, x] = BLACK
+                elif r < 1.05 and f[y, x] != BLACK:
+                    f[y, x] = BROWN
+    elif kind == 2:    # a third eye, and blood running from the right socket
+        for dy in range(-4, 5):
+            w = 3 - abs(dy) // 2
+            for dx in range(-w + 1, w):
+                c = RED if abs(dy) > 2 or abs(dx) == w - 1 else (YELLOW if dx == 0 and dy == 0 else LRED)
+                fpx(f, 79 + dx + (1 if dx >= 0 else 0), 43 + dy, c)
+        for y in range(82, 96):
+            x = 92 + (1 if y > 88 else 0)
+            fpx(f, x, y, RED)
+            if y in (86, 87, 93, 94, 95):
+                fpx(f, x + 1, y, RED)
+    elif kind == 3:    # a crown band with spikes
+        for x in range(56, 104):
+            k = abs(x - 79.5)
+            for y in range(46, 52):
+                f[y, x] = YELLOW if y == 46 else (BROWN if y == 51 else (WHITE if k < 2 and y in (48, 49) else ORANGE))
+            spike_h = 10 - (k % 10)
+            if k % 10 < 3 and k < 24:
+                for y in range(int(46 - (11 if k < 2 else 7) + (k % 10) * 2), 46):
+                    f[y, x] = YELLOW if (x % 2 == 0) else ORANGE
 
 
 # ---------------------------------------------------------------------------
@@ -985,6 +1197,21 @@ def render(**kw):
     return cv.quantise()
 
 
+
+
+def cells_mask(shape, col, row, w, h):
+    m = np.zeros(shape, bool)
+    m[row * 8:(row + h) * 8, col * 4:(col + w) * 4] = True
+    return m
+
+
+def save_full(name, idx, alpha=None, planes="bmc"):
+    """Converts a full-width (160-pixel) picture."""
+    png = os.path.join(SRC, name + ".png")
+    to_png(idx, alpha).save(png)
+    return c64img.convert(png, os.path.join(OUT, name + ".img"), planes=planes)
+
+
 def main():
     os.makedirs(SRC, exist_ok=True)
     os.makedirs(OUT, exist_ok=True)
@@ -999,26 +1226,52 @@ def main():
         to_png(base).save(png)
         c64img.convert(png, None)
         return
-    save_img("enc_base_px", base, planes="b")
-    save_img("enc_base_col", base, planes="mc")
-
-    roar = render(jaw=11.0)
+    roar = render(jaw=10.0)
     view(full(roar), os.path.join(preview, "enc_roar.png"))
-    m = diff_cells(base, roar)
-    save_img("enc_roar", roar, m)
-    save_img("enc_shut", base, m)
+    jaw = cells_mask(base.shape, *JAW)
+    changed = diff_cells(base, roar)
+    assert not (changed & ~jaw).any(), "the open jaw changes cells outside JAW"
 
-    sheet = sprite_sheet()
+    # the picture without its jaw, the jaw shut, the jaw open: pixels and
+    # colours apart, so each can go up unseen
+    save_img("enc_base_px", base, ~jaw, planes="b")
+    save_img("enc_base_col", base, ~jaw, planes="mc")
+    save_img("enc_shut_px", base, jaw, planes="b")
+    save_img("enc_shut_col", base, jaw, planes="mc")
+    save_img("enc_roar_px", roar, jaw, planes="b")
+    save_img("enc_roar_col", roar, jaw, planes="mc")
+
+    # the four guardians: tables and overlays
+    tables = []
+    sheet = []
+    for kind in range(4):
+        tables.append(table(kind))
+        f = full(tinted(base, kind))
+        g = f.copy()
+        overlay(kind, g)
+        m = diff_cells(f, g)
+        fj = np.zeros(f.shape, bool)
+        fj[:, :80] = jaw
+        fj[:, 80:] = jaw[:, ::-1]
+        assert not (m & fj).any(), "overlay %d touches the jaw" % kind
+        save_full("enc_kind%d" % kind, g, m)
+        sheet.append(g)
+    view(np.concatenate([np.concatenate(sheet[:2], 1), np.concatenate(sheet[2:], 1)], 0),
+         os.path.join(preview, "enc_kinds.png"), scale=2)
+    with open(os.path.join(SRC, "enc_tables.txt"), "w") as fh:
+        for kind, t in enumerate(tables):
+            fh.write("kind %d: %s  eyes %s\n" % (kind, ",".join(map(str, t)), ",".join(map(str, EYE_RAMPS[kind]))))
+
+    sheet_img = sprite_sheet()
     png = os.path.join(SRC, "enc_sprites.png")
-    sheet.save(png)
+    sheet_img.save(png)
     c64spr.convert(png, os.path.join(OUT, "enc_sprites.spr"), preview=os.path.join(preview, "enc_sprites.png"))
 
-    for text, label in (("BONE WARDEN", "name0"), ("CRYPT GHOUL", "name1"),
-                        ("BLOOD FIEND", "name2"), ("LICH KING", "name3")):
+    for kind, (text, _) in enumerate(KINDS):
         img = name_plate(text)
-        png = os.path.join(SRC, "enc_" + label + ".png")
+        png = os.path.join(SRC, "enc_name%d.png" % kind)
         img.save(png)
-        c64img.convert(png, os.path.join(OUT, "enc_" + label + ".img"))
+        c64img.convert(png, os.path.join(OUT, "enc_name%d.img" % kind))
 
 
 if __name__ == "__main__":

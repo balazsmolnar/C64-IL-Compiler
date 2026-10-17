@@ -232,6 +232,21 @@ namespace C64Lib
             // 0.15-0.2 s. Draws into buffer 0 (ignores SetDrawBuffer).
             public static void DrawImage(uint column, uint row, ulong image) { }
 
+            // Copies raw 8-byte cells into the bitmap: a width x height block
+            // of cells with its top-left cell at (column, row), filled from
+            // consecutive tiles of a tile set, row by row. `tiles` is the
+            // set's address (8 bytes a tile, top pixel row first -- e.g. a
+            // [assembly: RawAssembly] .byte table), `index` the first tile
+            // to use. Pixels only: the cells keep their colours, so set
+            // those once (a picture, SetCellColors) and afterwards redraw
+            // just tiles. Nothing is erased first and nothing is read back,
+            // so swapping a tile never flickers: status-panel gauges, icons,
+            // custom digits, tile maps. Hi-res or multicolour: the bits are
+            // shown in whatever mode the cells are in. width is at most 31.
+            //
+            //     C64.Screen.DrawTiles(4, 22, 2, 2, C64Address.FromLabel("tiles_Hud"), heart * 4);
+            public static void DrawTiles(uint column, uint row, uint width, uint height, ulong tiles, uint index) { }
+
             // Sets the colours of every cell in a rectangle, without
             // touching a pixel: matrix = (high nibble colour << 4) | low
             // nibble colour, colorRam = the third (multicolour) colour.

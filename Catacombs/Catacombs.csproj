@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Torch.aas" />
+    <EmbeddedResource Include="audio\music.asm" />
     <!-- Converted art (tools/c64img.py -> .img, tools/c64spr.py -> .spr; see
          TECH.md). Embedded under the bare file name, so code says
          Resource = "room1.img". -->
@@ -23,8 +24,11 @@
     <OutputType>Exe</OutputType>
     <!-- "dotnet build -p:Scene=COMBAT" defines SCENE_COMBAT: a build that
          boots straight into one game state, for looking at it in VICE
-         without playing up to it (see tools/catacombs-shot.ps1). -->
-    <DefineConstants Condition="'$(Scene)' != ''">$(DefineConstants);SCENE_$(Scene)</DefineConstants>
+         without playing up to it (see tools/catacombs-shot.ps1). Every
+         scene build also defines SCENE (GameFlow skips the title then). -->
+    <DefineConstants Condition="'$(Scene)' != ''">$(DefineConstants);SCENE;SCENE_$(Scene)</DefineConstants>
+    <!-- Every "CHAR_..." scene also defines SCENE_CHARS (CharScenes.cs). -->
+    <DefineConstants Condition="$(Scene.StartsWith('CHAR_'))">$(DefineConstants);SCENE_CHARS</DefineConstants>
     <!-- Every ENC... scene (the encounter's states, see Encounter.cs) also defines SCENE_ENCOUNTER. -->
     <DefineConstants Condition="$(Scene.StartsWith('ENC'))">$(DefineConstants);SCENE_ENCOUNTER</DefineConstants>
   </PropertyGroup>

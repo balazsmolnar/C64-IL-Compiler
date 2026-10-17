@@ -72,11 +72,16 @@ static class Encounter
         bool over = false;
         while (!over)
         {
+#if SCENE_COMBAT
+            Idle(40); // the COMBAT scene fights by itself (no keypresses)
+#else
             while (!C64.IsKeyPressed(Keys.Space))
                 Idle(1);
             while (C64.IsKeyPressed(Keys.Space))
                 Idle(1);
+#endif
 
+            Audio.SwordHit();
             if ((C64.Random() & 7) == 0)
             {
                 Miss();
@@ -87,6 +92,8 @@ static class Encounter
                 uint hp = 0;
                 if (Monster.IsAliveAt(mx, my))
                     hp = Monster.HpAt(mx, my);
+                else
+                    Audio.MonsterDied();
                 Struck(hp);
                 over = hp == 0;
             }
@@ -95,6 +102,7 @@ static class Encounter
                 Idle(16);
                 if (Lunge())
                 {
+                    Audio.MonsterAttack();
                     playerHp = playerHp <= Monster.MonsterDamage ? 0 : playerHp - Monster.MonsterDamage;
                     PlayerHealth(playerHp);
                     over = playerHp == 0;
@@ -109,6 +117,7 @@ static class Encounter
     // the one place the encounter reports it: forward it to the HUD.
     static void PlayerHealth(uint hp)
     {
+        Hud.SetHealth(hp);
     }
 
     // ---- entrance and exit ----

@@ -55,7 +55,9 @@ class ILMethodEmitPass : ICompilerMethodPass
         // from some earlier, unrelated call.
         var local_refs = context.GetLocalRefPositions();
 
-        outputLine = $"    #init_locals_pull_parameters {context.GetLocalsSize()}, [{string.Join(',', ref_params)}], [{string.Join(',', local_refs)}]";
+        outputLine = context.IsFrameless
+            ? $"    #method_enter_frameless {context.GetLocalsSize()}, [{string.Join(',', local_refs)}]"
+            : $"    #init_locals_pull_parameters {context.GetLocalsSize()}, [{string.Join(',', ref_params)}], [{string.Join(',', local_refs)}]";
         output.WriteLine(outputLine);
 
         // PROTOTYPE (ILMethodPromoteParametersPass): the prologue just

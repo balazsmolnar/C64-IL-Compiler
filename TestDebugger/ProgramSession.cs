@@ -90,9 +90,17 @@ class ProgramSession : IDebugSession
     // call" by the time any of the callee's own code runs.
     private const int SoftwareStackPointerZp = 0x4b;
 
+    // Call depth = software stack pointer plus hardware stack use. A
+    // "frameless" method (static, void, no parameters -- see
+    // CompilerMethodContext.IsFrameless) keeps its return address on the
+    // hardware stack and may not raise the software one at all, so the
+    // software pointer alone would miss it.
+    private int CallDepth() =>
+        _target.GetMemory(SoftwareStackPointerZp) + (0xFF - _target.HardwareStackPointer);
+
     private SessionStop AdvanceToDepth(bool strictlyShallower)
     {
-        var startSp = _target.GetMemory(SoftwareStackPointerZp);
+        var startSp = CallDepth();
         var stopAt = _model.AllSequencePointAddresses().Concat(_userBreakpoints).ToHashSet();
         while (true)
         {
@@ -105,7 +113,7 @@ class ProgramSession : IDebugSession
             if (_userBreakpoints.Contains(stoppedAt))
                 return stop;
 
-            var currentSp = _target.GetMemory(SoftwareStackPointerZp);
+            var currentSp = CallDepth();
             bool farEnough = strictlyShallower ? currentSp < startSp : currentSp <= startSp;
             if (farEnough)
                 return stop;

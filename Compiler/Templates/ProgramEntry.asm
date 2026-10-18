@@ -183,6 +183,7 @@ rts
 .include "./helper/fault.asm"
 .include "./GC.asm"
 .include "./helper/object.asm"
+.include "./helper/frame.asm"
 .if GRAPHICS_DOUBLE_BUFFER
 ; The low, double-buffered layout (see the top of this file). Real
 ; (non-.virtual) bytes: these areas sit in the MIDDLE of the address space

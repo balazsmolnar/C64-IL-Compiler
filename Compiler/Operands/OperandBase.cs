@@ -1752,7 +1752,17 @@ class OpRet : OpBase
 
         refList.AddRange(context.GetLocalRefPositions());
 
+        if (context.IsFrameless)
+            return $"{context.GetLocalsSize()}, [{string.Join(',', refList)}]";
         return $"{context.GetLocalStackSize()}, [{string.Join(',', refList)}]";
+    }
+
+    // A frameless method (CompilerMethodContext.IsFrameless) leaves through
+    // #method_leave, whose parameter is just its locals size.
+    public override string Emit(CompilerMethodContext context, ILOperation operation)
+    {
+        var text = base.Emit(context, operation);
+        return context.IsFrameless ? text.Replace("#method_exit", "#method_leave") : text;
     }
 
     public override void SetNextInstructions(CompilerMethodContext context, ILOperation operation, ILOperation nextOperation)

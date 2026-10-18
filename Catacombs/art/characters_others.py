@@ -193,58 +193,69 @@ MC["wraith_leg1"] = grounded([
     ".......K....",
 ], half=4)
 
-# Giant spider, rearing: a glossy abdomen held high behind, the front legs
-# raised to strike, eight pinpoint eyes, fangs; the walking legs below.
-# Black and brown with violet gloss and eyes.
-MC["bspider_top"] = [
-    "K..........K",
-    "NK..KKKK..KN",
-    "KN.KPPPNK.NK",
-    ".KNKPKPPNKNK",
-    ".KNKPPKPNKN.",
-    "..KNKPPNKNK.",
-    "..KNKPNNKNK.",
-    "...KNKKKNK..",
-    "...KNNNNNK..",
-    "..KNPKNPNNK.",
-    "..KNNPNNPNK.",
-    "...KPNPPNK..",
-    "...KNNNNNK..",
-    "....KPKPK...",
-    "....KPKPK...",
-    "..KNK.K.KNK.",
-    ".KNK.....KNK",
-    ".KNK.....KNK",
-    "KNK.......KN",
-    "KNK.......KN",
-    "KK.........K",
-]
-MC["bspider_leg0"] = grounded([
-    "KNK.......KN",
-    "KNK..KKK..KN",
-    "KNK.KNNNK.KN",
-    "KNKKNKKKNKKN",
-    ".KNNK...KNN.",
-    "..KNK...KNK.",
-    ".KNK.....KNK",
-    ".KNK.....KNK",
-    "KNK.......KN",
-    "KNK.......KN",
-    "KK.........K",
-], half=6)
-MC["bspider_leg1"] = grounded([
-    ".KNK.....KNK",
-    ".KNK.KKK.KNK",
-    "..KNKNNNKNK.",
-    "..KNKKKKKNK.",
-    ".KNNK...KNNK",
-    "KNK.......KN",
-    "KNK.......KN",
-    ".KNK.....KNK",
-    "..KNK...KNK.",
-    "..KNK...KNK.",
-    "..KK.....KK.",
-], half=6)
+# Giant spider: wide and low, 48 pixels (two sprites side by side). A big
+# abdomen at the back with a gloss on its upper left, a black head with an
+# eye cluster and fangs in front, four bent legs a side splayed out, in the
+# spider's violet on black (brown only shades the abdomen). The legs swap in
+# pairs between the two frames.
+def _line(g, a, b, letter):
+    (x0, y0), (x1, y1) = a, b
+    n = max(abs(x1 - x0), abs(y1 - y0), 1)
+    for i in range(n + 1):
+        x = int(round(x0 + (x1 - x0) * i / n))
+        y = int(round(y0 + (y1 - y0) * i / n))
+        if 0 <= x < len(g[0]) and 0 <= y < 21:
+            g[y][x] = letter
+
+
+def _blob(g, cx, cy, rx, ry, letter):
+    for y in range(21):
+        for x in range(len(g[0])):
+            if ((x + 0.5 - cx) / rx) ** 2 + ((y + 0.5 - cy) / ry) ** 2 <= 1.0:
+                g[y][x] = letter
+
+
+def big_spider(step):
+    g = [["."] * 24 for _ in range(21)]
+    # (hip, knee, foot) of the left legs, front to back; mirrored for the right
+    legs = [((10, 12), (6, 10), (4, 17)), ((10, 11), (4, 7), (1, 14)),
+            ((10, 10), (4, 4), (0, 9)), ((10, 9), (6, 2), (3, 5))]
+    for i, (h, k, f) in enumerate(legs):
+        for side in (0, 1):
+            up = ((i + side + step) % 2) == 1
+            k2 = (k[0], k[1] - (1 if up else 0))
+            f2 = (f[0] + (1 if up else 0), f[1] - (2 if up else 0))
+            m = (lambda p: p) if side == 0 else (lambda p: (23 - p[0], p[1]))
+            _line(g, m(h), m(k2), "P")
+            _line(g, m(k2), m(f2), "P")
+    snap = [r[:] for r in g]
+    for y in range(21):
+        for x in range(24):
+            if snap[y][x] == "P":
+                for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                    nx, ny = x + dx, y + dy
+                    if 0 <= nx < 24 and 0 <= ny < 21 and g[ny][nx] == ".":
+                        g[ny][nx] = "K"
+    _blob(g, 12, 6.0, 5.6, 4.6, "K")
+    _blob(g, 12, 6.0, 4.6, 3.6, "N")
+    _blob(g, 11, 5.0, 3.0, 2.2, "P")
+    for x, y in ((12, 7), (13, 8), (11, 8)):
+        g[y][x] = "K"
+    _blob(g, 12, 12.0, 3.4, 2.8, "K")
+    for x, y in ((10, 11), (13, 11), (11, 12), (12, 12), (10, 13), (13, 13)):
+        g[y][x] = "P"
+    for x, y in ((11, 15), (12, 15)):
+        g[y][x] = "P"
+    for dy in range(3):
+        for x in range(4, 20):
+            if g[17 + dy][x] == "." and (x + dy) % 2 == 0:
+                g[17 + dy][x] = "K"
+    rows = done(g)
+    return [r[:12] for r in rows], [r[12:] for r in rows]
+
+
+for _i in range(2):
+    MC["bspider_l%d" % _i], MC["bspider_r%d" % _i] = big_spider(_i)
 
 # ------------------------------------------------------------------- pickups
 # Lying on the floor, at an angle; soles of the shadow on row 17.
@@ -302,17 +313,17 @@ MC["axe"] = [
     "............",
     "............",
     "............",
-    "............",
-    "............",
-    "............",
-    "........KKK.",
-    ".......KLLNK",
+    "........KK..",
+    ".......KLLK.",
     "......KLLLNK",
-    "..KK..KLLNNK",
-    ".KNNKKKKLNK.",
-    "KNNKKNNKKK..",
+    "......KLLNNK",
+    "..KK..KLNNNK",
+    ".KNNKKKNNNK.",
+    "KNNKKNKKKK..",
     "KNKKNNK.....",
-    ".KK.KK.K.K..",
+    ".KKKNK......",
+    "...KK.K.K...",
+    "..K.K.K.K.K.",
     "...K.K.K.K..",
     "............",
     "............",
@@ -377,8 +388,9 @@ _bat_glide = [
     ".KKNKKKKNKK.",
     "...K..KK....",
 ]
+_bat_fix = lambda rows: [r.replace("N", "M").replace("R", "N") for r in rows]
 for _n, _rows in (("bat0", _bat_up), ("bat1", _bat_level), ("bat2", _bat_down)):
-    MC[_n] = done([list(r) for r in _rows] + [list("............") for _ in range(21 - len(_rows))])
+    MC[_n] = done([list(r) for r in _bat_fix(_rows)] + [list("............") for _ in range(21 - len(_rows))])
 
 
 # -------------------------------------------------------------- hi-res frames
@@ -420,9 +432,26 @@ def _rim(rows, letter, first=0, last=20, width=1):
     return out
 
 
-MC["wraith_top"] = _rim(MC["wraith_top"], "B", 7, 20)
-MC["wraith_leg0"] = _rim(MC["wraith_leg0"], "B", 0, 4)
-MC["wraith_leg1"] = _rim(MC["wraith_leg1"], "B", 0, 4)
+def _robe(rows, eyes=()):
+    """The wraith's robe in its own dark grey: every brown or pale pixel
+    becomes grey, except the last one of each run (the shadow side, brown);
+    the eyes are dull embers (brown) in the void."""
+    out = []
+    for y, r in enumerate(rows):
+        r = list(r.replace("B", "N"))
+        for x in range(len(r)):
+            if r[x] == "N" and x + 1 < len(r) and r[x + 1] == "N":
+                r[x] = "D"
+        for ex, ey in eyes:
+            if ey == y:
+                r[ex] = "N"
+        out.append("".join(r))
+    return out
+
+
+MC["wraith_top"] = _robe(MC["wraith_top"], ((5, 6), (8, 6)))
+MC["wraith_leg0"] = _robe(MC["wraith_leg0"])
+MC["wraith_leg1"] = _robe(MC["wraith_leg1"])
 def _body(rows, letter, first, last):
     """Lights a body: in each run of brown, all but its last (shadow-side)
     pixel become the creature's own colour."""
@@ -438,13 +467,12 @@ def _body(rows, letter, first, last):
     return out
 
 
-MC["bspider_leg0"] = _rim(MC["bspider_leg0"], "P", 0, 4)
-MC["bspider_leg1"] = _rim(MC["bspider_leg1"], "P", 0, 4)
+
 
 MC_NAMES = ["skel_top", "skel_leg0", "skel_leg1",
             "ghoul_top", "ghoul_leg0", "ghoul_leg1",
             "wraith_top", "wraith_leg0", "wraith_leg1",
-            "bspider_top", "bspider_leg0", "bspider_leg1",
+            "bspider_l0", "bspider_l1", "bspider_r0", "bspider_r1",
             "treasure", "sword", "axe",
             "bat0", "bat1", "bat2"]
 HI_NAMES = ["spider0", "spider1", "spider2", "spark"]
@@ -456,8 +484,11 @@ def stack(n, step, bob=0):
 
 def preview_groups():
     out = []
-    for n in ("skel", "ghoul", "wraith", "bspider"):
+    for n in ("skel", "ghoul", "wraith"):
         out += [(n, stack(n, 0)), (n, stack(n, 1))]
+    for i in range(2):
+        out.append(("bspider", [("bspider_l%d" % i, 0, 12), ("bspider_r%d" % i, 24, 12)]))
+        out.append(("", []))
     out += [("treasure", [("spark", 2, 8), ("treasure", 0, 12)]),
             ("sword", [("spark", 6, 12), ("sword", 0, 12)]), ("axe", [("axe", 0, 12)])]
     out += [(n, [(n, 0, 12)]) for n in ("bat0", "bat1", "bat2", "spider0", "spider1", "spider2", "spark")]

@@ -16,7 +16,11 @@ static class PlayerSprite
     const uint Down = 0, Up = 1, Left = 2, Right = 3;
     const uint Walking = 0, Striking = 1, Fallen = 2;
     const uint Light = SpriteStage.Player, Top = SpriteStage.Player + 4, Legs = SpriteStage.Player + 8;
-    const uint Cloak = SpriteStage.Multi | (uint)Colors.Red;
+
+
+    // His cloak's colour: red, except in rooms that would swallow it (set
+    // per room by Monster.Setup).
+    public static uint Cloak = (uint)Colors.Red;
 
     static uint facing_, pose_;
     static uint step_;      // walk cycle position, one per step taken
@@ -30,7 +34,7 @@ static class PlayerSprite
     {
         facing_ = Up;
         SpriteStage.Part(Light, 0, 12, 15);
-        SpriteStage.Part(Top, Cloak, 12, 15);
+        SpriteStage.Part(Top, 0, 12, 15);
         SpriteStage.Part(Legs, SpriteStage.Multi | (uint)Colors.Grey2, 12, 36);
         SetPosition(x, y);
     }
@@ -104,13 +108,14 @@ static class PlayerSprite
             SpriteStage.Count[0] = 2;
             SpriteStage.Parts[Light + SpriteStage.Frame] = SpriteStage.Hi + Frame.Spark;
             SpriteStage.Parts[Light + SpriteStage.Color] = ember;
-            SpriteStage.Parts[Light + SpriteStage.Dy] = 40;
-            SpriteStage.Parts[Light] = 3;
+            SpriteStage.Parts[Top + SpriteStage.Color] = SpriteStage.Multi | Cloak;
+            SpriteStage.Parts[Light + SpriteStage.Dy] = 42;
+            SpriteStage.Parts[Light] = 0;
             SpriteStage.Parts[Top + SpriteStage.Frame] = SpriteStage.Mc + Frame.Fallen;
             SpriteStage.Parts[Top + SpriteStage.Dy] = 36;
             return;
         }
-        SpriteStage.Parts[Light] = 12;
+        uint lightX = 12;
 
         uint legs = 1;                          // standing
         uint bob = 15 + ((tick_ >> 5) & 1);     // breathing
@@ -126,14 +131,17 @@ static class PlayerSprite
         if (pose_ == Striking)
         {
             top = Frame.TopRaise;
-            if (strike_ > 9)
+            if (strike_ > 4)
+            {
                 top = Frame.TopSlash;
+                lightX = 20;        // the overlay moves right: the blade swings out past him
+            }
             else
                 strike_ = strike_ + 1;
         }
         else if (facing_ > Up)
             cycle = Frame.Legs - 4 + (facing_ << 2);
-        uint cloak = Cloak;
+        uint cloak = SpriteStage.Multi | Cloak;
         if (hurt_ != 0)
         {
             hurt_ = hurt_ - 1;
@@ -145,6 +153,7 @@ static class PlayerSprite
             light = (uint)Colors.LightRed;
 
         SpriteStage.Count[0] = 3;
+        SpriteStage.Parts[Light] = lightX;
         SpriteStage.Parts[Light + SpriteStage.Frame] = SpriteStage.Hi + Frame.Overlay + top;
         SpriteStage.Parts[Light + SpriteStage.Color] = light;
         SpriteStage.Parts[Light + SpriteStage.Dy] = bob;

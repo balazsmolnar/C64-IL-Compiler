@@ -79,15 +79,10 @@ static class SpriteStage
     // Feature (guardian or pickup), both ways.
     public static bool PlayerAtFeature(ulong radius)
     {
-        uint fy = Y[1];
-        if (fy == 0)
-            return false;
-        uint py = Y[0];
-        uint dy = py > fy ? py - fy : fy - py;
-        ulong px = X[0];
-        ulong fx = X[1];
-        ulong dx = px > fx ? px - fx : fx - px;
-        return dx < radius && dy < radius;
+        // |a - b| < r  is  a - b + r < 2r  in wrapping 8-bit arithmetic (the
+        // two are never 128 pixels apart when it matters).
+        uint r = (uint)radius;
+        return Y[1] != 0 && Y[0] - Y[1] + r < r + r && (uint)X[0] - (uint)X[1] + r < r + r;
     }
 
     // Once per video frame, right after the vertical blank.

@@ -25,7 +25,7 @@ namespace Catacombs;
 //                  every 2.5 s (6 pages)
 static class CharScenes
 {
-#if SCENE_CHAR_SKELETON
+#if SCENE_CHAR_SKELETON || SCENE_CHAR_TIMING   // (timing: in a guarded room, the heaviest case)
     const uint RoomX = 5, RoomY = 3;
 #elif SCENE_CHAR_GHOUL
     const uint RoomX = 9, RoomY = 5;
@@ -115,13 +115,13 @@ static class CharScenes
     }
 
 #if SCENE_CHAR_PARADE
-    const uint McFrames = 37, Frames = 47;
+    const uint McFrames = 38, Frames = 48;
 
     // The own colour of every frame, in sheet order (art/characters_art.py).
     static readonly uint[] FrameColor =
     {
         2, 2, 2, 2, 2, 2, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 2,
-        15, 15, 15, 5, 5, 5, 14, 14, 14, 4, 4, 4, 7, 15, 15, 2, 2, 2,
+        15, 15, 15, 5, 5, 5, 11, 11, 11, 4, 4, 4, 4, 7, 15, 15, 12, 12, 12,
         7, 7, 7, 7, 7, 7, 0, 0, 0, 1,
     };
     static readonly uint[] Bit = { 1, 2, 4, 8, 16, 32, 64, 128 };

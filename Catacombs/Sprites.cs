@@ -34,10 +34,10 @@ namespace Catacombs
         public const uint TopSlash = 5;
         public const uint Legs = 6;         // down/up 6-9, left 10-13, right 14-17
         public const uint Fallen = 18;
-        public const uint Guardian = 19;    // + 3 * kind: top, legs, legs
-        public const uint Treasure = 31;
-        public const uint Sword = 32;       // then the axe
-        public const uint Flyer = 34;       // wings up, level, down
+        public const uint Guardian = 19;    // + 3 * kind: top, legs, legs (the spider: left 2, right 2)
+        public const uint Treasure = 32;
+        public const uint Sword = 33;       // then the axe
+        public const uint Flyer = 35;       // wings up, level, down
 
         // CharsHi (hi-res, one colour)
         public const uint Overlay = 0;      // + facing; 4 raise, 5 slash

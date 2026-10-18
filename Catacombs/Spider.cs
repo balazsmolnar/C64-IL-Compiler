@@ -27,16 +27,15 @@ static class Spider
         crawlerX_ = 90;
         flyerX_ = 200;
         SpriteStage.Part(SpriteStage.Crawler, (uint)Colors.Black, 12, 31);
-        SpriteStage.Part(SpriteStage.Flyer, SpriteStage.Multi | (uint)Colors.Red, 12, 42);
+        SpriteStage.Part(SpriteStage.Flyer, SpriteStage.Multi | (uint)Colors.Grey2, 12, 42);
         SpriteStage.Count[2] = 1;
         SpriteStage.Count[3] = 1;
         SpriteStage.Y[2] = FloorY;
     }
 
-    // Called on entering a room: the vermin there are somewhere else.
+    // Called on entering a room (nothing to do: the vermin carry on).
     public static void SetRoomColor(uint roomColor)
     {
-        crawlerX_ = 60 + (ulong)(C64.Random() & 127);
     }
 
     // Once per video frame.

@@ -104,6 +104,7 @@ static class GameFlow
         if (x == StartX && y == StartY && Item.CollectedCount == Item.Count)
         {
             outcome_ = TitleScreen.Victory;
+            Audio.Victory();
             return true;
         }
         return false;

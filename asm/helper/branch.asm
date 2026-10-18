@@ -289,11 +289,17 @@ branch_greater_equal_unsigned_const .macro value, label
     beq \label
 .endm
 
-branch_greater_unsigned8 .macro label 
+; Strictly greater (here and in the _const / signed 8-bit forms below): the
+; compare leaves the "or equal" flag (C set / N clear) on a == b too, so
+; equality is excluded first. `if (a <= b)` compiles to this branch round the
+; then-part and `while (a > b)` to it (Test.Runtime/GreaterBranchEqualityTests).
+branch_greater_unsigned8 .macro label
     #stack_pull_int zp_param0_low
     #stack_pull_int_a
     cmp zp_param0_low
+    beq +
     bcs \label
++
 .endm
 
 branch_greater_unsigned16 .macro label
@@ -315,23 +321,29 @@ branch_greater_unsigned16 .macro label
 branch_greater_unsigned_const .macro value, label
     #stack_pull_int_a
     cmp #\value
+    beq +
     bcs \label
++
 .endm
 
-branch_greater8 .macro label 
+branch_greater8 .macro label
     #stack_pull_int zp_param0_low
     #stack_pull_int_a
     cmp zp_param0_low
+    beq +
     bpl \label
++
 .endm
 
 branch_greater_const .macro value, label 
     #stack_pull_int_a
     cmp #\value
+    beq +
     bpl \label
++
 .endm
 
-branch_greater_equal8 .macro label 
+branch_greater_equal8 .macro label
     #stack_pull_int zp_param0_low
     #stack_pull_int_a
     cmp zp_param0_low

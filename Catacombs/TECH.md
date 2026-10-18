@@ -183,6 +183,26 @@ mc2=None, transparent=None, count=None, preview=None, quiet=False)`.
   `C64Address.FromLabel("Graphics_Font")`, 8 bytes per character: copy your
   own glyphs over it for a custom font.
 
+### Tiles
+
+    C64.Screen.DrawTiles(uint column, uint row, uint width, uint height, ulong tiles, uint index)
+
+    [assembly: RawAssembly(Asm = "tiles_Hud .byte $00,$1c,$3e,...")]      // 8 bytes a tile
+    C64.Screen.DrawTiles(4, 22, 2, 2, C64Address.FromLabel("tiles_Hud"), heart * 4);
+
+- Copies raw 8-byte cells into the bitmap: a `width` x `height` block of
+  cells, filled row by row from consecutive tiles starting at tile `index`
+  of the set at `tiles` (8 bytes a tile, top pixel row first).
+- Pixels only. The cells keep their colours: set them once (a picture,
+  `SetCellColors`) and afterwards redraw just the tiles. Nothing is erased
+  first and nothing is read back, so swapping a tile cannot flicker; a
+  couple of cells cost a few hundred cycles. This is how the status panel
+  (`Hud.cs`) updates hearts, digits, the weapon icon and the minimap.
+- The bits mean what the cells' mode makes of them: hi-res tiles below a
+  split, multicolour tiles (bit pairs) elsewhere.
+- `width` is at most 31. Nothing is clipped. A tile set can be RAM the
+  program changes (the minimap is one: change bytes, draw it again).
+
 ### Raster split (hi-res status panel)
 
     C64.Screen.SetScreenMode(ScreenMode.MultiColor);
@@ -247,6 +267,7 @@ mc2=None, transparent=None, count=None, preview=None, quiet=False)`.
 | `SetCellColors` | 63 + 85 shared with `RemapCellColors` |
 | `RemapCellColors` | 109 + 85 shared |
 | `DrawText` (and the font copy) | 173 + 34 shared with the above |
+| `DrawTiles` | 129 + 34 shared with the above |
 | `SetSplit` + `ClearSplit` | about 260 |
 | `Sprite.Frame`, `MultiColorMask`, `BehindBackgroundMask` | about 15 each |
 

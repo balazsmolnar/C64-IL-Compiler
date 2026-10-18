@@ -68,7 +68,34 @@
 ; an emulator bug: objTableHigh[135] really is $d012 in this build, and
 ; reads of it never return the same thing twice.
 
+; OBJ_TABLES_LOW (set by the program entry template when $0800-$0fff is
+; free RAM -- everything but the double-buffered layout): the seven tables
+; and localsStack (exactly 2048 bytes) go there instead of after the code,
+; and the heap starts right after the code. The BASIC stub's bytes at
+; $0801-$080d land in objTableSize, which #initHeap clears; the rest of the
+; range is the PRG's zero-filled gap, so the tables that rely on load-time
+; zeros (see above) still get them. Page-aligned, too: no page-crossing
+; cycle on the indexed reads.
+.weak
+OBJ_TABLES_LOW = 0
+.endweak
+
+.if OBJ_TABLES_LOW
+.virtual OBJ_TABLES_LOW
+objTableSize        .fill 256
+objTableLow         .fill 256
+objTableHigh        .fill 256
+objTableRootCount   .fill 256
+objTableReferences  .fill 256
+objTableDescLow     .fill 256
+objTableDescHigh    .fill 256
+localsStack         .fill 256
+.cerror * > $1000, "object tables at OBJ_TABLES_LOW overlap the program"
+.endv
+.endif
+
 .virtual *
+.if !OBJ_TABLES_LOW
 objTableLow         .fill 256
 objTableHigh        .fill 256
 objTableSize        .fill 256
@@ -78,6 +105,7 @@ objTableDescLow     .fill 256
 objTableDescHigh    .fill 256
 
 localsStack         .fill 256
+.endif
 
 ; Shared scratch buffer for every NumberFormat_*ToString routine (asm/
 ; helper/tostring.asm, asm/helper/float.asm's Float_ToString) -- 16 bytes

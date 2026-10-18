@@ -74,6 +74,13 @@ PROGRAM_LIMIT = $d000
 #disable_basic_rom
 OBJ_TABLES_MAX_START = PROGRAM_LIMIT
 OBJ_TABLES_FALLBACK = PROGRAM_LIMIT
+; $0800-$0fff (below the code, which starts at $1000) holds only the BASIC
+; stub once the program runs: the object tables and localsStack go there
+; (asm/helper/objectTables.asm), leaving all the RAM after the code to the
+; heap. Not in the double-buffered layout, whose colour matrix is at $0c00.
+.if !GRAPHICS_DOUBLE_BUFFER
+OBJ_TABLES_LOW = $0800
+.endif
 
 ; Object allocation must stay below PROGRAM_LIMIT ($d000, the I/O area, or
 ; the video matrix / in-place sprite frames in the high graphics layout) --

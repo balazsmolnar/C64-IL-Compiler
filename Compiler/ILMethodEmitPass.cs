@@ -58,7 +58,10 @@ class ILMethodEmitPass : ICompilerMethodPass
         outputLine = context.IsFrameless
             ? $"    #method_enter_frameless {context.GetLocalsSize()}, [{string.Join(',', local_refs)}]"
             : $"    #init_locals_pull_parameters {context.GetLocalsSize()}, [{string.Join(',', ref_params)}], [{string.Join(',', local_refs)}]";
-        output.WriteLine(outputLine);
+        // Drops `ldy stackPointer` reloads Y already satisfies -- see
+        // YRegisterTracker.
+        var yTracker = new YRegisterTracker();
+        output.WriteLine(yTracker.Process(outputLine, false));
 
         // PROTOTYPE (ILMethodPromoteParametersPass): the prologue just
         // above is otherwise completely unmodified -- unlike a promoted
@@ -73,14 +76,22 @@ class ILMethodEmitPass : ICompilerMethodPass
         foreach (var (argIndex, slot) in context.PromotedParameters)
         {
             int relPos = context.GetParameterReferencePosition(argIndex);
-            output.WriteLine($"    #locals_push_value8 {relPos} ; (promoted parameter copy-in)");
-            output.WriteLine($"    #zp_pull_value8 {slot}");
+            output.WriteLine(yTracker.Process($"    #locals_push_value8 {relPos} ; (promoted parameter copy-in)", false));
+            output.WriteLine(yTracker.Process($"    #zp_pull_value8 {slot}", false));
         }
 
         foreach (var line in context.Lines)
         {
             context.CurrentIlOffset = line.Position;
-            outputLine = $"{(line.Label == null ? "" : line.Label + ":")}  {(line.Optimized ? "; OPT " : "")}  {line.Operation.Emit(context, line)} ; {line.OpCode}";
+            var code = line.Operation.Emit(context, line);
+            if (line.Optimized)
+            {
+                if (line.Label != null)
+                    yTracker.Reset();
+            }
+            else
+                code = yTracker.Process(code, line.Label != null);
+            outputLine = $"{(line.Label == null ? "" : line.Label + ":")}  {(line.Optimized ? "; OPT " : "")}  {code} ; {line.OpCode}";
             output.WriteLine(outputLine);
 
         }

@@ -176,9 +176,14 @@ method_leave .macro localsSize, ref_list
 .endm
 
 
-locals_pull_value8 .macro rel_pos, ref 
-
+locals_pull_value8 .macro rel_pos, ref
   ldy stackPointer
+  #locals_pull_value8_ky \rel_pos, \ref
+.endm
+
+; locals_pull_value8 with Y already holding stackPointer (ILMethodEmitPass's
+; YRegisterTracker proves it and drops the reload).
+locals_pull_value8_ky .macro rel_pos, ref
 
   ; deref
   .if \ref == 1
@@ -196,6 +201,12 @@ locals_pull_value8 .macro rel_pos, ref
 
 locals_push_value8 .macro rel_pos
   ldy stackPointer
+  #locals_push_value8_ky \rel_pos
+.endm
+
+; locals_push_value8 with Y already holding stackPointer (ILMethodEmitPass's
+; YRegisterTracker proves it and drops the reload).
+locals_push_value8_ky .macro rel_pos
   lda localsStack-\rel_pos,y
   #stack_push_int_a
 .endm
@@ -323,6 +334,12 @@ method_exit_inline_fallthrough .macro stackSize, ref_list
 
 locals_push_value16 .macro rel_pos
   ldy stackPointer
+  #locals_push_value16_ky \rel_pos
+.endm
+
+; locals_push_value16 with Y already holding stackPointer (ILMethodEmitPass's
+; YRegisterTracker proves it and drops the reload).
+locals_push_value16_ky .macro rel_pos
   lda localsStack-\rel_pos+1,y
   #stack_push_int_a
   lda localsStack-\rel_pos,y
@@ -331,6 +348,12 @@ locals_push_value16 .macro rel_pos
 
 locals_pull_value16 .macro rel_pos
   ldy stackPointer
+  #locals_pull_value16_ky \rel_pos
+.endm
+
+; locals_pull_value16 with Y already holding stackPointer (ILMethodEmitPass's
+; YRegisterTracker proves it and drops the reload).
+locals_pull_value16_ky .macro rel_pos
   #stack_pull_int_a
   sta localsStack-\rel_pos,y
   #stack_pull_int_a
@@ -394,12 +417,24 @@ locals_pull_valueflt .macro rel_pos
 ; that macro's own comment), so a plain copy is correct.
 locals_copy_value8 .macro rel_pos, target
   ldy stackPointer
+  #locals_copy_value8_ky \rel_pos, \target
+.endm
+
+; locals_copy_value8 with Y already holding stackPointer (ILMethodEmitPass's
+; YRegisterTracker proves it and drops the reload).
+locals_copy_value8_ky .macro rel_pos, target
   lda localsStack-\rel_pos,y
   sta \target
 .endm
 
 locals_copy_value16 .macro rel_pos, target
   ldy stackPointer
+  #locals_copy_value16_ky \rel_pos, \target
+.endm
+
+; locals_copy_value16 with Y already holding stackPointer (ILMethodEmitPass's
+; YRegisterTracker proves it and drops the reload).
+locals_copy_value16_ky .macro rel_pos, target
   lda localsStack-\rel_pos,y
   sta \target
   lda localsStack-\rel_pos+1,y

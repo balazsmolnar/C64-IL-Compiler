@@ -131,7 +131,7 @@ def door(du, dv, state, tag, planks=4):
     x = du - 8.0
     if x >= lw:
         # the passage beyond: black, with a few steps leading up
-        if dv >= 52.0:
+        if dv >= 52.0 and planks == 4:
             k = int((dv - 52.0) // 4.0)
             inset = 2.5 * (3 - k)
             if lw + 1.0 + inset * 0.4 <= x < 32.0 - inset * 0.4:
@@ -153,6 +153,8 @@ def door(du, dv, state, tag, planks=4):
             return ((tag, 'void'), VOID, du, dv, 0)
         ly = (dv - (8.0 + 8.0 * squeeze * t)) / (bot - (8.0 + 8.0 * squeeze * t)) * 60.0
     lx = t * 32.0
+    if planks == 2 and state > 1:
+        return ((tag, 'leaf'), WOOD, ly, lx, FIXED + 0.5)  # a side door's leaf swings into shadow
     dim = -0.8 * squeeze
     for n, by in enumerate((17.0, 43.0)):
         if by <= ly < by + 6.0:
@@ -210,8 +212,9 @@ def sample(sx, sy, cfg):
         return (('fw', course, idx), STONE, (u + off) % 32.0 / 2.0, v % 16.0, bias) + pos
     if s in ('left', 'right'):
         w, v = ZF - z, y - YC
-        if (cfg.west and s == 'left') or (cfg.east and s == 'right'):
-            d = door(w - 44.0, v - 24.0, 1, 'dw' if s == 'left' else 'de', planks=2)
+        side = cfg.west if s == 'left' else cfg.east
+        if side:
+            d = door((w - 36.0) * 0.75, v - 24.0, int(side), 'dw' if s == 'left' else 'de', planks=2)
             if d:
                 return d + pos
         course = int(v // 16.0)
@@ -224,7 +227,7 @@ def sample(sx, sy, cfg):
         if cfg.south and abs(x) < 27.0 and w >= 105.0:
             if abs(x) < 21.0 and w >= 110.0:
                 k = int((w - 110.0) // 8.0)
-                return (('so', 'st', k), STONE, 8.0, 8.0, FIXED + (3.0, 2.0, 1.0, 0.0)[min(k, 3)]) + pos
+                return (('so', 'st', k), STONE, 8.0, 8.0, FIXED + (2.0, 1.0, 0.0, 0.0)[min(k, 3)]) + pos
             side = 0 if w < 110.0 else (1 if x < 0 else 2)
             return (('so', 'curb', side, int(w // 14.0) if side else 0), STONE, 8.0, 8.0, 0.8) + pos
         if 'puddle' in cfg.props:
@@ -481,18 +484,20 @@ DEAD_TORCH = [
     "........",
     "........",
     "........",
-    "........",
-    "........",
-    "........",
-    "........",
-    "........",
-    "...K....",
-    "..KKs...",
-    "..KsK...",
-    "..KKKK..",
+    "...KK...",
+    "...KK...",
+    "..KKK...",
+    "..KsKK..",
+    ".KsesK..",
+    ".KseKsK.",
+    "..KsssK.",
+    "..KKsK..",
+    "..KsKK..",
     "KhhhhhhK",
     ".KKKKKK.",
 ]
+
+DEAD_LEGEND = {'h': 'H', 's': 9, 'e': 2}
 
 BRACKET = [
     "..KhhK..",
@@ -625,8 +630,8 @@ def crack_px(x, y, n, seed):
     return out
 
 
-CRACKS = [(40, 42, 11, 3), (87, 26, 10, 5), (118, 90, 12, 8), (61, 92, 9, 2), (106, 44, 9, 12),
-          (20, 62, 16, 4), (143, 84, 14, 6), (70, 133, 9, 7), (100, 150, 11, 9), (36, 144, 8, 1)]
+CRACKS = [(87, 26, 10, 5), (118, 90, 12, 8), (61, 92, 9, 2),
+          (20, 62, 16, 4), (143, 84, 14, 6), (70, 133, 9, 7)]
 MOSS = [(37, 115, 6, 6), (58, 118, 9, 3), (122, 116, 8, 5), (99, 118, 5, 3), (27, 122, 5, 9),
         (133, 121, 4, 8), (33, 30, 3, 8), (126, 28, 3, 6), (52, 124, 8, 2), (110, 124, 9, 2),
         (14, 138, 3, 10), (146, 132, 3, 9)]
@@ -844,8 +849,8 @@ def render(cfg):
         stamp(38, 124, SKULL, SKULL_LEGEND)
     # torches
     for t_, (cxc, cyc) in enumerate(FLAME_CELLS):
-        if t_ == 0 and 'dark' in cfg.props:
-            stamp(cxc * 4, cyc * 8, DEAD_TORCH, BRACKET_LEGEND)
+        if 'dead' in cfg.props:
+            stamp(cxc * 4, cyc * 8, DEAD_TORCH, DEAD_LEGEND)
         else:
             stamp(cxc * 4, cyc * 8, flame_rows(cfg.flame), FLAME_LEGEND)
         stamp(cxc * 4, cyc * 8 + 16, BRACKET, BRACKET_LEGEND)
@@ -932,15 +937,17 @@ def theme(**m):
 
 
 THEMES = [
-    ("Moss", theme()),                                   # the picture as drawn: grey stone, green moss
-    ("Cold", theme(c12=11, c15=14, c5=15)),              # dark stone, cold blue highlights, frost
-    ("Rust", theme(c6=9, c11=2, c12=11)),                # red-brown stone
-    ("Crypt", theme(c11=4, c12=11, c15=12, c5=4)),       # violet crypt
-    ("Bone", theme(c6=9, c11=9, c5=1)),                  # dry brown stone, pale growth
+    ("Moss", theme()),                                   # the picture as drawn: grey and blue stone, green moss
+    ("Cold", theme(c5=6)),                               # no moss: bare cold stone
+    ("Rust", theme(c11=2, c5=9)),                        # rust-red mid stone
+    ("Crypt", theme(c11=4, c5=4)),                       # violet mid stone
+    ("Bone", theme(c11=9, c5=9)),                        # dry brown mid stone
 ]
 # fading a room out before the next is drawn (applied twice): every colour a step darker
-FADE = [0, 15, 9, 12, 6, 11, 0, 8, 9, 0, 8, 6, 11, 11, 4, 12]
-PROPS = ['chains', 'banner', 'bones', 'puddle', 'grate', 'webs', 'dark']
+FADE = [0, 15, 9, 12, 6, 6, 0, 8, 9, 0, 8, 0, 11, 5, 6, 12]
+UNLIT = [0, 12, 9, 12, 6, 6, 0, 11, 6, 0, 6, 6, 11, 5, 6, 12]   # a torch gone out: fire colours to brown, greys down
+CUE = [0, 1, 2, 3, 4, 5, 14, 7, 9, 8, 10, 12, 11, 13, 6, 15]   # door cue: swaps brown/orange, greys, blue/light blue
+PROPS = ['banner', 'bones', 'puddle', 'grate']
 
 
 def png(name):
@@ -1027,25 +1034,23 @@ def main():
     for k, name in ((1, "door_n"), (2, "door_n2"), (3, "door_n3")):
         over[name] = convert(name, render(Cfg(north=k)), "DoorN" + ("" if k == 1 else str(k)), table, base=prev)
         prev = name
-    over["door_w"] = convert("door_w", render(Cfg(west=True)), "DoorW", table, base="room")
-    over["door_e"] = convert("door_e", render(Cfg(east=True)), "DoorE", table, base="room")
+    over["door_w"] = convert("door_w", render(Cfg(west=1)), "DoorW", table, base="room")
+    over["door_e"] = convert("door_e", render(Cfg(east=1)), "DoorE", table, base="room")
+    for side in ("w", "e"):
+        prev = "door_" + side
+        for k in (2, 3):
+            name = "door_%s%d" % (side, k)
+            over[name] = convert(name, render(Cfg(west=k) if side == "w" else Cfg(east=k)),
+                                 "Door%s%d" % (side.upper(), k), table, base=prev)
+            prev = name
     over["door_s"] = convert("door_s", render(Cfg(south=True)), "DoorS", table, base="room")
     for prop in PROPS:
         grid = render(Cfg(props=(prop,)))
-        if prop == 'dark':                                # only the cells the dead torch darkens
-            fx, fy = FLAME_CELLS[0]
-            keep = set()
-            for r in range(21):
-                for c in range(40):
-                    cellpx = [base[r * 8 + y][c * 4 + x] for y in range(8) for x in range(4)]
-                    near = abs(c - fx) <= 6 and abs(r - fy) <= 4 and not any(
-                        im.cells[r][c] for k_, im in over.items() if k_.startswith("door"))
-                    darkpx = [grid[r * 8 + y][c * 4 + x] for y in range(8) for x in range(4)]
-                    if near and darkpx != cellpx:
-                        keep.add((c, r))
-            grid = [[grid[y][x] if (x // 4, y // 8) in keep else base[y][x] for x in range(W)] for y in range(H)]
         over[prop] = convert("prop_" + prop, grid, prop.capitalize(), table, base="room")
     flames = []
+    dead = render(Cfg(props=('dead',)))
+    cx, cy = FLAME_CELLS[0]
+    convert("dead", dead, "Dead", table, crop=(cx, cy, 2, 2))
     for f in range(FLAME_FRAMES):
         grid = base if f == 0 else render(Cfg(flame=f))
         cx, cy = FLAME_CELLS[0]
@@ -1065,7 +1070,7 @@ def main():
     # The glow: the two matrix colours of each torch-lit cell near a flame
     # (fire colours only, which no theme remaps) step one notch darker in the
     # dim states (yellow to orange, orange to brown), the inner ring first.
-    DIM = {7: 8, 8: 9, 1: 7, 10: 8}
+    DIM = {7: 8, 8: 9, 1: 7, 10: 8, 9: 9}
     glow = []
     for (cx, cy), (tx, ty) in zip(FLAME_CELLS, TORCH_SCREEN):
         cells = []
@@ -1077,29 +1082,49 @@ def main():
                 tab = (0, m >> 4, m & 15, col & 15)
                 used = {tab[(b_ >> s_) & 3] for b_ in bm for s_ in (6, 4, 2, 0)}
                 d = math.hypot(c * 8 + 4 - tx, r * 8 + 4 - ty)
-                if (m >> 4) in DIM and (m & 15) in DIM and d < 40:
+                if (m >> 4) in DIM and (m & 15) in DIM and d < 30:
                     cells.append((c, r, d, m))
         glow.append(cells)
     print("glow cells", [len(g) for g in glow])
 
     def glow_colour(state, d, m):
-        if (state == 1 and d < 22) or state == 2:          # the inner ring dims, or everything
+        if state == 1:                                     # the light dims
             return (DIM[m >> 4] << 4) | DIM[m & 15]
         return m
 
     glow_images = []
     for t_, cells in enumerate(glow):
-        for state in range(3):
+        for state in range(2):
             im = c64img.Image(c64img.MODE_MC, 40, 21, 0)
             for c, r, d, col in cells:
                 im.cells[r][c] = (bytes(8), glow_colour(state, d, col), 0)
             pl, _ = c64img.encode_planes(im, c64img.PLANE_MATRIX)
             c64img.verify(im, pl)
             name = "glow%d%d" % (t_, state)
-            c64img.write_file(os.path.join(OUT, name + ".img"), im, pl)
-            table.append((name, "Glow%d%d" % (t_, state), im, len(pl)))
-            glow_images.append(im)
-    print("glow images: %d bytes" % sum(t[3] for t in table[-6:]))
+            glow_images.append(im)                         # (previews only: the game has no glow states)
+
+    # A torch gone out: Screen.RemapCellColors(UNLIT) over the cells its light
+    # reaches, as rectangles per course (two cell rows), so their edges are joints.
+    dark_rects = []
+    for (cx, cy) in FLAME_CELLS:
+        rects = []
+        for r0 in list(range(3, 15, 2)) + [15]:
+            cols_ = [c for c in range(max(0, cx - 7), min(40, cx + 9))
+                     for r in (r0, r0 + 1)
+                     if {base[r * 8 + y][c * 4 + x] for y in range(8) for x in range(4)} & {7, 8, 9, 10}
+                     ]
+            if cols_:
+                rects.append((min(cols_), r0, max(cols_) - min(cols_) + 1, 2))
+        dark_rects.append(rects)
+    print("dark rects", [len(r_) for r_ in dark_rects])
+
+    def bbox(im):
+        cells = [(c, r) for r in range(im.rows) for c in range(im.cols) if im.cells[r][c]]
+        c0 = min(c for c, r in cells); c1 = max(c for c, r in cells)
+        r0 = min(r for c, r in cells); r1 = max(r for c, r in cells)
+        return (c0, r0, c1 - c0 + 1, r1 - r0 + 1)
+    cue_rects = [(18, 7, 4, 8), bbox(over["door_w"]), bbox(over["door_e"]), bbox(over["door_s"])]
+    print("cue rects", cue_rects)
 
     total = sum(t[3] for t in table)
     print("images: %d bytes" % total)
@@ -1114,10 +1139,20 @@ def main():
         if i:
             asm.append("%-14s .byte %s" % ("pal_Theme%d" % i, ",".join(str(v) for v in t)) + "   ; " + name)
     order = ["DoorN", "DoorW", "DoorE", "DoorS"] + [p_.capitalize() for p_ in PROPS] + \
-            ["DoorN2", "DoorN3"] + ["Flame%d" % f for f in range(FLAME_FRAMES)] + \
-            ["Glow%d%d" % (t_, st) for t_ in range(2) for st in (0, 1, 2, 0)]
-    words = ["img_" + o for o in order] + ["pal_Theme%d" % i for i in range(1, len(THEMES))] + ["pal_Fade"]
+            ["DoorN2", "DoorN3", "DoorW2", "DoorW3", "DoorE2", "DoorE3"] + ["Flame%d" % f for f in range(FLAME_FRAMES)] + \
+            []
+    words = ["img_" + o for o in order] + ["img_Dead"] + ["pal_Theme%d" % i for i in range(1, len(THEMES))] + \
+            ["pal_Fade", "pal_Unlit", "pal_Cue", "room_DarkL", "room_DarkR"] +             ["room_Cue%s" % d for d in "NWWEEEES"]           # indexed 37 + the door bit
     asm.append("%-14s .byte %s" % ("pal_Fade", ",".join(str(v) for v in FADE)) + "   ; room exit: every colour a step darker")
+    asm.append("%-14s .byte %s" % ("pal_Unlit", ",".join(str(v) for v in UNLIT)) + "   ; a torch gone out")
+    asm.append("%-14s .byte %s" % ("pal_Cue", ",".join(str(v) for v in CUE)) + "   ; door cue (an involution: apply twice to undo)")
+    asm.append("; cell rectangle lists for Screen.RemapCellRects (a count, then column, row, width, height):")
+    asm.append("; what each torch lights, and each door's cue")
+    for name, rects in zip(("room_DarkL", "room_DarkR"), dark_rects):
+        flat = [len(rects)] + [v for rc in rects for v in rc]
+        asm.append("%-14s .byte %s" % (name, ",".join(str(v) for v in flat)))
+    for d, rc in zip("NWES", cue_rects):
+        asm.append("%-14s .byte 1,%s" % ("room_Cue" + d, ",".join(str(v) for v in rc)))
     asm.append("; pictures and tables by index (see DungeonView.cs): doors, props, door opening, flames,")
     asm.append("; glow states of torch 0 and of torch 1, theme tables 1..")
     asm.append("%-14s .word %s" % ("room_Table", ", ".join(words)))
@@ -1150,9 +1185,9 @@ def main():
                 scr.remap(THEMES[theme_i][1])
             for t_, (cx, cy) in enumerate(FLAME_CELLS):
                 if t_ == 0 and 'dark' in props:
-                    continue
+                    continue                                   # (preview only approximates the dark room)
                 scr.draw(flames[flame], cx, cy)
-                gi = glow_images[t_ * 3 + state]
+                gi = glow_images[t_ * 2 + min(state, 1)]
                 for r in range(gi.rows):
                     for c in range(gi.cols):
                         if gi.cells[r][c]:
@@ -1162,7 +1197,7 @@ def main():
         shots = [scene(0, "nwes", PROPS), scene(1, "nw", ['chains', 'puddle']), scene(2, "ne", ['bones', 'banner']),
                  scene(3, "s", ['grate', 'chains', 'webs']), scene(4, "nes", ['banner', 'puddle']),
                  scene(0, "nwe", ['webs'], flame=1, state=1), scene(0, "nwe", [], flame=3, state=2),
-                 scene(0, "n", [], door_frame=2), scene(0, "n", [], door_frame=3), scene(1, "nw", ['dark', 'webs', 'bones'])]
+                 scene(0, "n", [], door_frame=2), scene(0, "n", [], door_frame=3), scene(1, "nw", ['webs', 'bones'])]
         for i, im in enumerate(shots):
             im.save(os.path.join(SRC, "preview_%d.png" % i))
 

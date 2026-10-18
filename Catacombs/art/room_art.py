@@ -336,16 +336,32 @@ def ambient_level(kind, pos):
     return 0.0
 
 
-def face_level(cls, lit):
-    """The face position on the region's ramp for a light level: solid faces, and blue only
-    as a dither toward black."""
-    if cls == 2:                                          # per pixel: a radial falloff in half steps
-        return max(1.0, min(2.5, math.floor((lit - 1.6) * 2.0 + 0.5) / 2.0))
-    if lit < 0.6:
-        return 0.0
-    if lit < 1.55:
-        return 0.5
-    return 2.0
+RING0 = (0, 8, 10, 7)           # stones touching a flame: light red faces, orange shadows, yellow edges
+RING1 = (0, 9, 8, 10)           # the next ring: orange faces, brown shadows, light red edges
+
+
+def stone_style(rid, ew, lit):
+    """(ramp, shadow, face, highlight) for a stone region: rings of light around the
+    flames on the far wall (aligned to the stones), depth bands elsewhere. Faces are
+    solid; blue is the face of unlit stone, black the face of the darkest."""
+    kind = rid[0]
+    if kind in ('fw', 'dn'):
+        if ew >= 3.15:
+            return WARM, 1.0, 2.0, 3.0                    # touching the torch: orange, yellow edges
+        if ew >= 2.65:
+            return WARM, 0.0, 1.0, 2.0                    # next ring: brown, orange edges
+        if ew >= 2.4 and rid[1] != 0:
+            return COLD, 1.0, 2.0, 3.0                    # grey, within reach of the light
+        if rid[1] == 0 or ew < 0.9:
+            return COLD, 0.0, 0.0, 1.0                    # the top course, the far corners: black
+        return COLD, 0.0, 1.0, 2.0                        # blue, grey lit edge
+    if ew >= {"fl": 2.6}.get(kind, 2.4):
+        return WARM, 0.0, 1.0, 2.0                        # the floor / wall right under a torch
+    if lit >= 2.2:
+        return COLD, 1.0, 2.0, 3.0
+    if lit >= 1.3:
+        return COLD, 0.0, 1.0, 2.0
+    return COLD, 0.0, 0.0, 1.0
 
 
 def level_of(e):
@@ -445,18 +461,19 @@ CUP = ["KhhhhhhK", ".KKKKKK."]          # the cup's glowing rim: the flame pictu
 def flame_rows(frame):
     """8x16 multicolour pixels over the wall: soot around the flame, the flame, the cup's rim."""
     rows = []
+    tip = min(fy for fy, row in enumerate(FLAMES[frame]) if row.strip('.'))
     for fy, row in enumerate(FLAMES[frame] + CUP):
         out = ""
         for fx, ch in enumerate(row):
-            if ch == '.' and fy < 14:
-                if fy >= 1:
-                    ch = 'K'                              # soot on the stone behind the flame
+            if ch == '.' and 1 <= fy < tip and 3 <= fx <= 4:
+                if fy >= tip - 3 or (fx + fy) & 1:
+                    ch = 'K'                              # a thin plume of soot above the flame
             out += ch
         rows.append(out)
     return rows
 
 
-FLAME_LEGEND = {'W': 1, 'y': 7, 'o': 8, 'h': 'H'}
+FLAME_LEGEND = {'W': 1, 'y': 1, 'o': 7, 'h': 'H'}   # white flame, yellow tongues: it must read on orange stone
 
 DEAD_TORCH = [
     "........",
@@ -629,6 +646,11 @@ def in_moss(mx, my):
 # ---------------------------------------------------------------------------
 
 BASE_CFG = Cfg()
+_OWN = set()                    # regions that hold a torch
+
+
+def info_own(rid):
+    return rid in _OWN
 _BASE_INFO = {}
 
 
@@ -667,7 +689,13 @@ def render(cfg):
         ec = ambient_level(kind, pos)
         scx, scy = 2 * a[4] / n + 1, a[5] / n + 0.5
         tsx, tsy = min(TORCH_SCREEN, key=lambda t: (t[0] - scx) ** 2 + (t[1] - scy) ** 2)
-        info[rid] = (ew, ec, tsx >= scx - 0.5, tsy >= scy - 0.5, hash2('v', rid))
+        # Lit edges face the nearest torch; a stone straddling the torch's own
+        # column (or row) gets no lit edge on that axis, so a joint is never lit on both sides.
+        lr = None if abs(tsx - scx) < 12.0 and kind in ('fw', 'dn') else tsx >= scx - 0.5
+        ld = None if abs(tsy - scy) < 6.0 and kind in ('fw', 'dn') else tsy >= scy - 0.5
+        info[rid] = (ew, ec, lr, ld, hash2('v', rid))
+        if abs(tsx - scx) < 6.0 and abs(tsy - scy) < 10.0:
+            _OWN.add(rid)
 
     if cfg is BASE_CFG:
         _BASE_INFO.update(info)
@@ -692,6 +720,10 @@ def render(cfg):
             dr = edge_dist(S, mx + 1, my, 1, 0, rid)
             lv_, fv_ = (dd, du) if lit_down else (du, dd)
             lh_, fh_ = (dr, dl) if lit_right else (dl, dr)
+            if lit_down is None:
+                lv_ = fv_ = 9
+            if lit_right is None:
+                lh_ = fh_ = 9
             tone = 2.0
             if lv_ == 1 or lh_ == 1:
                 tone = 3.0
@@ -730,40 +762,34 @@ def render(cfg):
             in_flame = any(cx * 4 <= mx < cx * 4 + 8 and cy * 8 <= my < cy * 8 + 16 for cx, cy in FLAME_CELLS)
             if in_flame:
                 tone = float(round(tone)) if tone != 2.0 else 2.0
-            cls = 2 if ew >= {"fl": 2.6, "left": 2.4, "right": 2.4}.get(rid[0], WARM_AT) else (1 if ew >= 1.5 else 0)
-            if mat != STONE:
-                cls = 0
-            ramp = RAMPS[(mat, cls)]
-            top = len(ramp) - 1
+            ramp, top = RAMPS[(mat, 0)], len(RAMPS[(mat, 0)]) - 1
             lit_ = ew + ec + bias
-            if bias >= FIXED:
+            if mat == STONE and bias >= FIXED:
                 lv = bias - FIXED
-                if mat == STONE:
-                    ramp, top = COLD, len(COLD) - 1
-            elif mat == STONE and cls == 2:
-                pe = warm_level(torch_energy(s[5:8], NORMALS[KIND.get(rid[0], rid[0])]))
-                lv = face_level(2, pe + bias)
+                ramp, ps, pm, ph = COLD, max(0.0, lv - 1.0), lv, lv + 1.0
             elif mat == STONE:
-                lv = face_level(cls, lit_)
+                ramp, ps, pm, ph = stone_style(rid, ew, lit_)
             else:
-                lv = max(0.0, min(top - 1.0, math.floor((lit_ + LEVEL_SHIFT[mat]) * 2.0 + 0.5) / 2.0))
-            if mat == WOOD:
-                lv = min(lv, 1.5)
-            if in_flame and not (DARK and mx < 80):
-                ramp, lv = WARM, 2.0                      # flame cells: solid orange, so the pictures fit
-            lo_, hi_ = math.floor(lv), math.ceil(lv)
-            ps = max(0.0, lo_ - 1.0)
-            if lo_ >= 2 and hi_ > lo_:
-                ps = lo_
-            pm, ph = lv, min(top, hi_ + 1.0)
-            if ramp is WARM:
-                ph = min(ph, 3.0)                         # yellow edges; white is the flame's alone
-            if mat == WOOD:
-                ph = min(ph, 2.0 if lv >= 1.0 else 1.0)
+                lv = bias - FIXED if bias >= FIXED else                     max(0.0, min(top - 1.0, math.floor((lit_ + LEVEL_SHIFT[mat]) * 2.0 + 0.5) / 2.0))
+                if mat == WOOD:
+                    lv = min(lv, 1.5)
+                lo_, hi_ = math.floor(lv), math.ceil(lv)
+                ps = max(0.0, lo_ - 1.0)
+                pm, ph = lv, min(top, hi_ + 1.0)
+                if mat == WOOD:
+                    ph = min(ph, 2.0 if lv >= 1.0 else 1.0)
+                if rid[0] == 'ce':
+                    ramp, ps, pm, ph = WOODR, 0.0, 0.0, 1.0      # black planks, brown joints
+                elif rid[0] == 'bf':
+                    ramp, ps, pm, ph = WOODR, 1.0, 1.0, 2.0 if abs(abs(s[5]) - TORCH_X) < 18.0 else 1.0
+                elif rid[0] == 'bb':
+                    ramp, ps, pm, ph = WOODR, 0.0, (1.0 if len(rid) > 2 else 0.0), (2.0 if len(rid) > 2 else 0.0)
                 if rid[0] in ('ce', 'bf', 'bb'):
-                    tone = min(tone, 2.0)
+                    tone = min(tone, 2.0) if rid[0] != 'ce' else tone
+            if info_own(rid) and tone == 3.0:
+                tone = 2.0                                 # the stone holding the torch: no lit edge
             if in_flame and not (DARK and mx < 80):
-                ps, ph = 2.0, 3.0
+                ramp, ps, pm, ph = WARM, 2.0, 2.0, 3.0     # flame cells: solid orange, so the pictures fit
             if mat == IRON:
                 ps, pm, ph = 0.0, 1.0, 1.0                 # dark iron: grey face, black outline
                 if rid[1] == 'stud':

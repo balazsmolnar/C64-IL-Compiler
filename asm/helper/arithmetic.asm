@@ -87,15 +87,7 @@ sub16 .macro
 ; modular arithmetic mod 2^N either way), so one implementation serves
 ; both int and uint -- no _unsigned variant needed, unlike the compares.
 mul8_tail .macro
-    lda #0                         ; running product
-    ldx #8
--   lsr zp_param1_low
-    bcc +
-    clc
-    adc zp_param2_low
-+   asl zp_param2_low
-    dex
-    bne -
+    jsr Multiply8                  ; asm/helper/division.asm
     #stack_push_int_a
 .endm
 
@@ -113,25 +105,7 @@ mul8 .macro
 ; used anywhere else in arithmetic.asm -- see zeropage.asm's ownership
 ; comment for this macro's entry there.
 mul16_tail .macro
-    lda #0
-    sta zp_param0_low
-    sta zp_param0_high
-    ldx #16
--   lsr zp_param1_high
-    ror zp_param1_low
-    bcc +
-    lda zp_param0_low
-    clc
-    adc zp_param2_low
-    sta zp_param0_low
-    lda zp_param0_high
-    adc zp_param2_high
-    sta zp_param0_high
-+   asl zp_param2_low
-    rol zp_param2_high
-    dex
-    bne -
-
+    jsr Multiply16                 ; asm/helper/division.asm
     lda zp_param0_high
     #stack_push_int_a
     #stack_push_var zp_param0_low

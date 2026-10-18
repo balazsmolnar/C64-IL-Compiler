@@ -430,21 +430,19 @@ class Program
     // time this returns).
     static bool Combat()
     {
-        // The fight itself is Encounter's (Encounter.cs). The screen is
-        // blanked while the room comes back.
+        // The fight itself is Encounter's (Encounter.cs); it leaves the
+        // viewport black, and DungeonView redraws the room behind its own
+        // blank.
         Audio.CombatStart();
         Monster.HideSprite(); // the patrolling guardian: the encounter has its own sprites
         playerHp_ = Encounter.Fight(px_, py_, playerHp_, playerDamage_);
-        C64.Screen.BeginUpdate();
         if (playerHp_ == 0)
         {
             PlayerDied();
-            C64.Screen.EndUpdate();
             return false;
         }
         ApplyRoomColor();
         EnterRoom(); // redraw without the now-dead monster
-        C64.Screen.EndUpdate();
         return true;
     }
 

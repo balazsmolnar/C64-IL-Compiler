@@ -810,7 +810,7 @@ def guardian(jaw=0.0, body=True):
     stamp(cv, UPPER_TEETH, HW - 1, gum)
     if body:
         mail(cv)
-    arch(cv)
+    # arch(cv): the floor and an arch behind the guardian, ~300 bytes the game does not have
     return cv
 
 
@@ -1113,13 +1113,7 @@ def overlay(kind, f):
     picture f, in place. One-sided, to break the mirror."""
     if kind == 0:      # the Warden is the plain one
         pass
-    elif kind == 1:    # the left horn broken off
-        for y in range(0, 34):
-            for x in range(18, 40):
-                cut = 22 + (y % 5) * 0.8 + (3 if y > 20 else 0)
-                if y < cut and f[y, x] not in (BLACK,):
-                    if y < 26 - (x % 3):
-                        f[y, x] = BLACK
+    # kind 1, the Crypt Ghoul: its colours and name only (a broken horn cost 63 bytes)
     elif kind == 2:    # a third eye, and blood running from the right socket
         for dy in range(-4, 5):
             w = 3 - abs(dy) // 2

@@ -156,8 +156,8 @@ static class Encounter
         // A shape looms out of the dark...
         C64.Screen.SetCellColors(4, 0, 32, 18, 0xB6, Colors.Blue);
         Idle(30);
-        // ...and the torches catch.
-        C64.Screen.BeginUpdate();
+        // ...and the torches catch: the colours sweep in, left half then
+        // right (no screen blank: the HUD panel below must not blink).
         C64.Screen.DrawImage(0, 0, C64Address.FromLabel("img_EncColours"));
         C64.Screen.RemapCellColors(4, 0, 16, 18, tint_);
         C64.Screen.MirrorCellColors(0, 0, 40, 21);
@@ -171,7 +171,6 @@ static class Encounter
         if (kind_ == 3)
             marks = C64Address.FromLabel("img_EncKind3");
         C64.Screen.DrawImage(0, 0, marks);
-        C64.Screen.EndUpdate();
         eyes_ = true;
     }
 
@@ -276,6 +275,7 @@ static class Encounter
             Idle(1);
         }
         C64.Screen.SetScrollX(0);
+        C64.Screen.SetBackgroundColor(Colors.Black);
     }
 
     // The player missed: "MISS" rises into the dark over the guardian's head.
@@ -341,7 +341,7 @@ static class Encounter
         {
             Pair(Claws, hit ? (i < 3 ? Colors.White : Colors.LightRed) : Colors.Grey1, 40 + i * 20, 52 + i * 14);
             if (hit)
-                Shake(2, Colors.Red);
+                Shake(2, i < 2 ? Colors.Red : Colors.Black);
             else
                 Idle(2);
         }

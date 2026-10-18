@@ -85,6 +85,7 @@ static class PlayerSprite
     {
         pose_ = Fallen;
         strike_ = 0;
+        Animate();
     }
 
     // Once per video frame (SpriteStage.Update).

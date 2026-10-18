@@ -40,9 +40,16 @@ static class Spider
     }
 
     // Once per video frame.
+    // The two take turns, a video frame each (the work of a frame is
+    // spread out: see SpriteStage.Tick), so each moves every other frame.
     public static void Animate()
     {
         tick_ = tick_ + 1;
+        if ((SpriteStage.Tick & 1) == 0)
+        {
+            Fly();
+            return;
+        }
 
         if (run_ == 0)
         {
@@ -61,13 +68,13 @@ static class Spider
         {
             if (crawlerRight_)
             {
-                crawlerX_ = crawlerX_ + 2;
+                crawlerX_ = crawlerX_ + 4;
                 if (crawlerX_ > Right)
                     crawlerRight_ = false;
             }
             else
             {
-                crawlerX_ = crawlerX_ - 2;
+                crawlerX_ = crawlerX_ - 4;
                 if (crawlerX_ < Left)
                     crawlerRight_ = true;
             }
@@ -75,18 +82,21 @@ static class Spider
         }
         SpriteStage.X[2] = crawlerX_;
         SpriteStage.Parts[SpriteStage.Crawler + SpriteStage.Frame] = SpriteStage.Hi + Frame.Crawler + pose;
+    }
 
+    static void Fly()
+    {
         if (SpriteStage.Y[1] == 0)
         {
             if (flyerRight_)
             {
-                flyerX_ = flyerX_ + 1;
+                flyerX_ = flyerX_ + 2;
                 if (flyerX_ > Right)
                     flyerRight_ = false;
             }
             else
             {
-                flyerX_ = flyerX_ - 1;
+                flyerX_ = flyerX_ - 2;
                 if (flyerX_ < Left)
                     flyerRight_ = true;
             }

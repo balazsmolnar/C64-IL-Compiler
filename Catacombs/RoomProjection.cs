@@ -1,3 +1,20 @@
+using C64Lib;
+
+[assembly: RawAssembly(Asm = @"
+proj_Side  .byte 0,0,1,1,2,2,3,3,4,4,5,5,6,6,6,7,7,8,8,9
+           .byte 9,10,10,11,11,12,12,12,13,13,14,14,15,15,16,16,17,17,17,18
+           .byte 18,19,19,20,20,21,21,22,22,23,23,23,24,24,25,25,26,26,27,27
+           .byte 28,28,29,29,29,30,30,31,31,32,32,33,33,34,34,35,35,35,36,36
+           .byte 37,37,38,38,39,39,40,40,40,41,41,42,42,43,43,44,44,45,45,46
+           .byte 46
+proj_Rise  .byte 0,0,1,1,1,2,2,3,3,3,4,4,4,5,5,5,6,6,6,7
+           .byte 7,8,8,8,9,9,9,10,10,10,11,11,12,12,12,13,13,13,14,14
+           .byte 14,15,15,15,16,16,17,17,17,18,18,18,19,19,19,20,20,21,21,21
+           .byte 22,22,22,23,23,23,24,24,24,25,25,26,26,26,27,27,27,28,28,28
+           .byte 29,29,30,30,30,31,31,31,32,32,32,33,33,33,34,34,35,35,35,36
+           .byte 36
+")]
+
 namespace Catacombs;
 
 // Converts a logical position within a room into the screen position of
@@ -32,26 +49,20 @@ static class RoomProjection
     const ulong XLeftFar = 74, XRightFar = 245;
     const ulong ScreenYNear = 160, ScreenYFar = 124;
 
+    // Called every frame the player moves, so no division by 100 per
+    // call: both edges and the floor line move linearly with depth, the
+    // sides by 46 pixels over the whole depth and y by 36, read from two
+    // 101-byte tables (proj_Side[d] = round(46 d / 100), proj_Rise[d] =
+    // round(36 d / 100), see the RawAssembly above the namespace).
     public static ulong ScreenX(uint roomX, uint depth)
     {
-        ulong left = Lerp(XLeftNear, XLeftFar, depth);
-        ulong right = Lerp(XRightNear, XRightFar, depth);
-        return left + (right - left) * roomX / Width;
+        ulong side = C64.GetMemory(C64Address.FromLabel("proj_Side"), depth);
+        ulong width = XRightNear - XLeftNear - side - side;
+        return XLeftNear + side + width * roomX / Width;
     }
 
     public static ulong ScreenY(uint depth)
     {
-        return Lerp(ScreenYNear, ScreenYFar, depth);
-    }
-
-    // from at depth=0, to at depth=DepthMax, straight line between --
-    // ulong-safe (no underflow) regardless of whether from<to or from>to.
-    static ulong Lerp(ulong from, ulong to, uint depth)
-    {
-        if (depth >= DepthMax)
-            return to;
-        if (to > from)
-            return from + (to - from) * depth / DepthMax;
-        return from - (from - to) * depth / DepthMax;
+        return ScreenYNear - C64.GetMemory(C64Address.FromLabel("proj_Rise"), depth);
     }
 }

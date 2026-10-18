@@ -147,6 +147,9 @@ static class Monster
             Setup(px, py);
         }
 
+        // Every other video frame only (see SpriteStage.Tick).
+        if ((SpriteStage.Tick & 1) != 0)
+            return;
         if (feature_ == Pickup)
             Item.Twinkle(tick_);
         if (feature_ != Guardian)
@@ -154,7 +157,6 @@ static class Monster
 
         // A slow, heavy pace: a pixel every other frame, a step every 8
         // frames, the body dipping as each foot lands.
-        if ((tick_ & 1) == 0)
         {
             if (guardRight_)
             {

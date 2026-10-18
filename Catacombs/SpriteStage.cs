@@ -41,6 +41,11 @@ static class SpriteStage
     public static uint[] Count;             //   how many parts
     public static uint[] Parts;
 
+    // Counts video frames. The per-frame work is spread over two frames:
+    // the player's animation and the bat on even ones, the spider and the
+    // guardian or pickup on odd ones (positions are written every frame).
+    public static uint Tick;
+
     static uint[] order_;                   // the actors (/ 16), nearest first
     static uint pair_;
     static readonly uint[] Shown = { 0, 1, 3, 7, 15, 31, 63 };
@@ -88,7 +93,9 @@ static class SpriteStage
     // Once per video frame, right after the vertical blank.
     public static void Update()
     {
-        PlayerSprite.Animate();
+        Tick = Tick + 1;
+        if ((Tick & 1) == 0)
+            PlayerSprite.Animate();
 
         uint i = pair_ + 1;
         if (i == 3)

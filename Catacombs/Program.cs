@@ -436,15 +436,14 @@ class Program
         Monster.HideSprite(); // the patrolling guardian: the encounter has its own sprites
         playerHp_ = Encounter.Fight(px_, py_, playerHp_, playerDamage_);
         C64.Screen.BeginUpdate();
+        ApplyRoomColor();
+        EnterRoom(); // redraw (without the monster, if it died)
+        C64.Screen.EndUpdate();
         if (playerHp_ == 0)
         {
-            PlayerDied();
-            C64.Screen.EndUpdate();
+            PlayerDied(); // he falls where he stood, in the room
             return false;
         }
-        ApplyRoomColor();
-        EnterRoom(); // redraw without the now-dead monster
-        C64.Screen.EndUpdate();
         return true;
     }
 
@@ -454,7 +453,11 @@ class Program
     {
         Audio.PlayerDied();
         PlayerSprite.Fall();
-        SpriteStage.Update();
+        for (uint f = 0; f < 120; f++) // he lies there, the torch's ember cooling off
+        {
+            C64.Screen.WaitForVBlank();
+            SpriteStage.Update();
+        }
         for (uint i = 0; i < 6; i++)
         {
             C64.Screen.SetBorderColor(Colors.Red);

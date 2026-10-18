@@ -532,8 +532,8 @@ def paint_skull(cv):
     p.base(SKULL_OUTLINE, 3)
     # the dome: brightest on its upper outer plane (toward the torch), mid in
     # the middle, falling off toward the top and the lower sides
-    dome = lerp_tone(CC, YC, [(18, 28, 4.35), (11, 20, 3.8), (4, 15, 2.6), (0, 30, 3.0), (6, 44, 3.3),
-                              (16, 46, 3.8), (24, 40, 3.6), (24, 56, 2.0), (12, 56, 2.8), (0, 54, 2.6)])
+    dome = lerp_tone(CC, YC, [(18, 28, 4.35), (11, 20, 3.8), (4, 15, 3.0), (0, 30, 3.1), (6, 44, 3.3),
+                              (16, 46, 3.8), (24, 40, 3.6), (24, 56, 2.0), (12, 56, 3.0), (0, 54, 3.0)])
     m = p.mask(SKULL_OUTLINE) & (YC < 60)
     p.tone = np.where(m, dome, p.tone)
     # the temple, hollow under the dome's edge
@@ -581,15 +581,15 @@ def paint_skull(cv):
 def paint_mandible(cv, jaw):
     p = Paint()
     d = jaw
-    outline = [(0, 117), (13, 117), (15.5, 110), (17.5, 101), (19, 96), (21, 96), (21.5, 102), (20.5, 112),
-               (18.5, 121), (15, 127.5), (10, 132), (5, 134.5), (0, 135)]
-    p.base(outline, 2.6, d)
-    p.poly([(19, 96), (21, 96), (21.5, 102), (20.5, 112), (18.5, 121), (17.3, 121), (19.2, 111), (19.8, 102)], 3.4, d)   # ramus edge
-    p.poly([(13, 117), (15.5, 110), (17.5, 101), (19, 96), (19.5, 103), (18.5, 112), (16, 118)], 1.3, d)       # inside the ramus
-    p.poly([(0, 118.5), (13.5, 118.5), (13.5, 120), (0, 120)], 1.5, d)                                       # under the teeth
-    p.poly([(0, 123), (4, 122.5), (8, 125), (8.5, 129), (5, 132), (0, 132.5)], 3.5, d)                         # the chin
-    p.poly([(4, 122.5), (8, 125), (8.5, 129), (7, 130), (6.5, 126)], 4.3, d)
-    p.poly([(0, 133), (5, 132.5), (10, 130), (15, 127.5), (10, 132), (5, 134.5), (0, 135)], 1.2, d)            # underside
+    outline = [(0, 117), (13, 117), (14.5, 110), (16, 101), (17, 96), (19, 96), (19.5, 102), (18.5, 112),
+               (17, 121), (14, 127.5), (9.5, 132), (5, 134.5), (0, 135)]
+    p.base(outline, 3.4, d)
+    p.poly([(17, 96), (19, 96), (19.5, 102), (18.5, 112), (17, 121), (16, 121), (17.5, 111), (18, 102)], 4.2, d)    # ramus edge
+    p.poly([(14.5, 110), (16, 101), (17, 96), (17.3, 101), (16, 110), (14.6, 116)], 2.0, d)                   # 1-px shadow inside the ramus
+    p.poly([(0, 118.5), (13.5, 118.5), (13.5, 119.6), (0, 119.6)], 2.6, d)                                   # under the teeth
+    p.poly([(0, 123), (4, 122.5), (8, 125), (8.5, 129), (5, 132), (0, 132.5)], 3.8, d)                         # the chin
+    p.poly([(4, 122.5), (8, 125), (8.5, 129), (7, 130), (6.5, 126)], 4.4, d)
+    p.poly([(0, 133.5), (5, 133.2), (9.5, 131), (14, 127.5), (9.5, 132), (5, 134.5), (0, 135)], 2.4, d)        # underside
     p.soften()
     return p.put(cv, "bone", 30.0)
 
@@ -698,15 +698,16 @@ def pillar(cv):
             in_x, in_y = (x + off) % 8, y % 10
             u = 2 * x + 1
             d = math.hypot(u - TORCH[0], (yy - TORCH[1]) * 0.75)
-            lvl = max(0.0, 1.0 - d / 46.0)
-            plinth = y >= 116
-            if plinth:
-                in_y = y - 116
-                lvl = max(0.0, 1.0 - math.hypot(u - TORCH[0], (yy - 100) * 0.6) / 60.0)
-                if in_y in (0, 11):
-                    col = BLACK if in_y == 11 else (ORANGE if lvl > 0.45 else BROWN if lvl > 0.2 else DGREY)
+            lvl = max(0.16, 1.0 - d / 46.0)
+            if y >= 104:                     # the plinth: one row, lit along its top
+                if y >= 111:
+                    col = BLACK
+                elif y == 104:
+                    col = YELLOW if x % 8 != 7 else ORANGE
+                elif y == 105:
+                    col = ORANGE
                 else:
-                    col = BROWN if lvl > 0.3 or (lvl > 0.12 and (x + y) & 1) else (BLUE if (x + y) & 1 else BLACK)
+                    col = BROWN if (x + y) & 1 or y < 108 else BLACK
                 cv.px(x, y, col)
                 continue
             if in_x == 7 or in_y == 9:
@@ -721,8 +722,6 @@ def pillar(cv):
                 col = BROWN
             elif lvl > 0.13:
                 col = BROWN if (x + y) & 1 else BLACK
-            elif lvl > 0.0:
-                col = BLUE if (x + y) % 4 == 0 else BLACK
             else:
                 col = BLACK
             cv.px(x, y, col)
@@ -1064,7 +1063,7 @@ def sprite_sheet():
 
 KINDS = [
     ("BONE WARDEN", {}),
-    ("CRYPT GHOUL", {8: 9, 12: 5, 15: 13, 2: 5}),               # rotten green bone, green fire
+    ("CRYPT GHOUL", {8: 9, 7: 13, 2: 5}),                        # grey-green bone, green fire
     ("BLOOD FIEND", {6: 9, 11: 2, 14: 10}),                       # bone kept, iron and stone run red
     ("LICH KING", {9: 6, 8: 4, 7: 15, 2: 4}),                     # cold pale bone, violet fire
 ]

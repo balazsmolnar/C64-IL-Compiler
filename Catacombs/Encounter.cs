@@ -26,7 +26,7 @@ using C64Lib;
 //   pal_EncFade  one step darker; applied over and over it ends in black.
 [assembly: RawAssembly(Asm = @"
 pal_EncKind  .byte 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
-             .byte 0,1,5,3,4,5,6,7,9,9,10,11,5,13,14,13
+             .byte 0,1,5,3,4,5,6,13,9,9,10,11,12,13,14,15
              .byte 0,1,2,3,4,5,9,7,8,9,10,2,12,13,10,15
              .byte 0,1,4,3,4,5,6,15,4,6,10,11,12,13,14,15
 pal_EncEyes  .byte 2,8,7,1, 5,13,7,1, 2,10,7,1, 4,14,3,1
@@ -147,7 +147,7 @@ static class Encounter
 
         // Two eyes burn in the dark while the picture goes up unseen (every
         // cell is black on black).
-        Pair(0, (Colors)C64.GetMemory(eyeRamp_, 0), EyeX, EyeY);
+        Pair(1, (Colors)C64.GetMemory(eyeRamp_, 0), EyeX, EyeY);
         C64.Screen.DrawImage(0, 0, C64Address.FromLabel("img_EncPixels"));
         C64.Screen.MirrorCells(0, 0, 40, 21);
         bar_ = MaxHp;
@@ -215,8 +215,10 @@ static class Encounter
     }
 
     // Shows a frame on sprites 6 and 7, sprite 6 at (x, y). Frames 0-1 are
-    // the eyes: the same frame twice, at the sockets. The others are two
-    // halves side by side, at double size.
+    // the eyes: the same frame twice, at the sockets. MissText: sprite 7
+    // shows it again in black, 2 pixels down and right, as its shadow (it is
+    // behind sprite 6). The others are two halves side by side, at double
+    // size.
     static void Pair(uint frame, Colors color, uint x, uint y)
     {
         uint sheet = (uint)C64Address.FromLabel("frm_Enc");
@@ -230,9 +232,18 @@ static class Encounter
         s.ExpandY = big;
         s.Visible = true;
         s = C64.Sprites.Sprite7;
-        x = x + (big ? 48u : EyeGap);
-        if (big)
-            frame = frame + 1;
+        if (frame == MissText)
+        {
+            x = x + 2;
+            y = y + 2;
+            color = Colors.Black;
+        }
+        else
+        {
+            x = x + (big ? 48u : EyeGap);
+            if (big)
+                frame = frame + 1;
+        }
         s.Frame = sheet + frame;
         s.X = x;
         s.Y = y;
@@ -278,16 +289,17 @@ static class Encounter
         C64.Screen.SetBackgroundColor(Colors.Black);
     }
 
-    // The player missed: "MISS" rises into the dark over the guardian's head.
+    // The player missed: "MISS", with a drop shadow, rises up over the
+    // guardian's head into the dark.
     static void Miss()
     {
         eyes_ = false;
-        for (uint i = 0; i < 24; i++)
+        for (uint i = 0; i < 28; i++)
         {
-            Pair(MissText, Colors.White, 136, 76 - i);
-            C64.Sprites.Sprite7.Visible = false;
+            Pair(MissText, Colors.Yellow, 160, 68 - i);
             Idle(1);
         }
+        Hide();
         eyes_ = true;
     }
 
@@ -314,7 +326,7 @@ static class Encounter
                 Idle(1);
             }
             Hide();
-            for (uint i = 0; i < 5; i++)
+            for (uint i = 0; i < 6; i++)
             {
                 C64.Screen.RemapCellColors(0, 0, 40, 21, C64Address.FromLabel("pal_EncFade"));
                 Idle(8);
@@ -339,7 +351,7 @@ static class Encounter
         bool hit = (C64.Random() & 3) != 0;
         for (uint i = 0; i < 6; i++)
         {
-            Pair(Claws, hit ? (i < 3 ? Colors.White : Colors.LightRed) : Colors.Grey1, 40 + i * 20, 52 + i * 14);
+            Pair(Claws, hit ? Colors.White : Colors.Grey1, 24 + i * 36, 40 + i * 24);   // corner to corner
             if (hit)
                 Shake(2, i < 2 ? Colors.Red : Colors.Black);
             else

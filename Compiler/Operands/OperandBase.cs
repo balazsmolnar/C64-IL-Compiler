@@ -997,7 +997,7 @@ class OpLdConst : OpPushBase
 
     public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
     {
-        if (operation.NextInstructions[0].OpCode == ILOpCode.Conv_i8 || operation.NextInstructions[0].OpCode == ILOpCode.Conv_u8)
+        if (WidenedByNext(operation))
             operation.StackContent.Add(typeof(long));
         else
             operation.StackContent.Add(typeof(int));
@@ -1005,9 +1005,20 @@ class OpLdConst : OpPushBase
 
     public override bool Is16BitSupported => true;
 
-    public override bool Is16Bit(CompilerMethodContext context, ILOperation operation)
+    public override bool Is16Bit(CompilerMethodContext context, ILOperation operation) => WidenedByNext(operation);
+
+    // A constant directly followed by Conv_i8/Conv_u8 is pushed 16 bits wide
+    // and the Conv then has nothing to do -- but only when this constant is
+    // the Conv's sole producer. A labelled Conv is a branch target (e.g.
+    // `x = c ? 136u : 149u` passed as a ulong: one Conv after the join), and
+    // its other predecessor still pushes 8 bits, so the Conv stays a real
+    // widening and this constant must stay 8 bits too -- otherwise this path
+    // pushed three bytes for a two-byte value and leaked one on the hardware
+    // stack every time it ran.
+    private static bool WidenedByNext(ILOperation operation)
     {
-        return operation.NextInstructions[0].OpCode == ILOpCode.Conv_i8 || operation.NextInstructions[0].OpCode == ILOpCode.Conv_u8;
+        var next = operation.NextInstructions[0];
+        return (next.OpCode == ILOpCode.Conv_i8 || next.OpCode == ILOpCode.Conv_u8) && string.IsNullOrEmpty(next.Label);
     }
 
 }

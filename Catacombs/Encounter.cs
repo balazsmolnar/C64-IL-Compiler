@@ -32,7 +32,7 @@ pal_EncKind  .byte 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
 pal_EncEyes  .byte 2,8,7,1, 5,13,7,1, 2,10,7,1, 4,14,3,1
 pal_EncTorch .byte 0,7,2,3,4,5,6,8,1,9,10,11,12,13,14,15
 pal_EncFlash .byte 0,9,10,11,5,4,14,12,15,1,2,3,7,13,6,8
-pal_EncFade  .byte 0,15,9,14,6,11,0,8,9,0,2,6,11,5,4,12
+pal_EncFade  .byte 0,15,9,14,6,11,0,8,9,0,2,0,11,5,4,12
 ")]
 
 namespace Catacombs;
@@ -147,12 +147,12 @@ static class Encounter
 
         // Two eyes burn in the dark while the picture goes up unseen (every
         // cell is black on black).
-        Pair(1, (Colors)C64.GetMemory(eyeRamp_, 0), EyeX, EyeY);
         C64.Screen.DrawImage(0, 0, C64Address.FromLabel("img_EncPixels"));
+        Pair(1, (Colors)C64.GetMemory(eyeRamp_, 0), EyeX, EyeY);
         C64.Screen.MirrorCells(0, 0, 40, 21);
         bar_ = MaxHp;
         Bar(hp);
-        Idle(20);
+        Idle(2);
         // A shape looms out of the dark...
         C64.Screen.SetCellColors(4, 0, 32, 18, 0xB6, Colors.Blue);
         Idle(30);
@@ -192,7 +192,7 @@ static class Encounter
         {
             C64.Screen.WaitForVBlank();
             tick_ = tick_ + 1;
-            if ((C64.Random() & 3) == 0)
+            if ((C64.Random() & 3) == 0 && bar_ != 0)       // (still while it dies)
             {
                 C64.Screen.RemapCellColors(1, 3, 2, 2, C64Address.FromLabel("pal_EncTorch"));
                 C64.Screen.RemapCellColors(37, 3, 2, 2, C64Address.FromLabel("pal_EncTorch"));
@@ -326,7 +326,7 @@ static class Encounter
                 Idle(1);
             }
             Hide();
-            for (uint i = 0; i < 6; i++)
+            for (uint i = 0; i < 5; i++)
             {
                 C64.Screen.RemapCellColors(0, 0, 40, 21, C64Address.FromLabel("pal_EncFade"));
                 Idle(8);
@@ -351,7 +351,14 @@ static class Encounter
         bool hit = (C64.Random() & 3) != 0;
         for (uint i = 0; i < 6; i++)
         {
-            Pair(Claws, hit ? Colors.White : Colors.Grey1, 24 + i * 36, 40 + i * 24);   // corner to corner
+            // A blow rakes from the top-left corner across the brow and horns
+            // and out to the right, clear of the sockets (white on the face
+            // is the player's blade); a dodged one swipes past in grey,
+            // over the horn and pillar beside the skull.
+            if (hit)
+                Pair(Claws, Colors.White, 24 + i * 36, 30 + i * 8);
+            else
+                Pair(Claws, Colors.Grey1, 24 + i * 12, 50 + i * 8);
             if (hit)
                 Shake(2, i < 2 ? Colors.Red : Colors.Black);
             else

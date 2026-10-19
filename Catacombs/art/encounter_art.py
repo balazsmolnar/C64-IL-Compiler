@@ -698,7 +698,7 @@ def pillar(cv):
             in_x, in_y = (x + off) % 8, y % 10
             u = 2 * x + 1
             d = math.hypot(u - TORCH[0], (yy - TORCH[1]) * 0.75)
-            lvl = max(0.16, 1.0 - d / 46.0)
+            lvl = max(0.16 if y < 84 else 0.32, 1.0 - d / 46.0)   # dark but solid where it meets the plinth
             if y >= 104:                     # the plinth: one row, lit along its top
                 if y >= 111:
                     col = BLACK

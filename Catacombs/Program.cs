@@ -442,6 +442,7 @@ class Program
             C64.Screen.EndUpdate();
             return false;
         }
+        Hud.MonsterSlain();
         ApplyRoomColor();
         EnterRoom(); // redraw without the now-dead monster
         C64.Screen.EndUpdate();

@@ -49,8 +49,7 @@ CHEST_COL = 12            # treasure: chest 12-13, "n/3" 14-16
 COUNT_COL = 14
 WEAPON_COL = 18           # weapon: icon 18-19, power 20-21
 POWER_COL = 20
-SKULL_COL = 23            # monsters slain: skull 23-24, "n/4" 25-27
-KILLS_COL = 25
+SKULL_COL = 24            # a skull in a niche: 24-25 (compartment 23-27)
 MAPBOX_COL = 29           # minimap: carved stone block 29-38 ...
 MAP_COL = 31              # ... with the map window in 31-36
 
@@ -160,7 +159,7 @@ GLYPHS = {                 # 3x10, drawn in the upper colour, lower colour below
     '/': ["..#", "..#", "..#", ".#.", ".#.", ".#.", ".#.", "#..", "#..", "#.."],
     ' ': ["..."] * 10,
 }
-DIGIT_ORDER = "0123456789/ "
+DIGIT_ORDER = "0123456789/"
 
 
 def digit_tile(ch):
@@ -267,17 +266,17 @@ def draw_frame(p):
     for x in range(W):
         p.px[1][x] = 3
         for y in (2, 3):
-            j = (x + (5 if y == 3 else 0)) % 10
-            p.px[y][x] = 1 if j == 9 else 3 if j == 0 else 2
+            j = (x + (4 if y == 3 else 0)) % 8
+            p.px[y][x] = 1 if j == 7 else 3 if j == 0 else 2
         p.px[4][x] = 1
         p.px[5][x] = 2 if x % 2 == 0 else 0
         p.px[6][x] = 1 if x % 2 == 0 else 0
     # Sill, lines 28-31: lit top edge, stone, dark bottom.
     for x in range(W):
         p.px[28][x] = 3
-        j = x % 12
-        p.px[29][x] = 1 if j == 11 else 2
-        p.px[30][x] = 1 if j == 11 else 2
+        j = x % 8
+        p.px[29][x] = 1 if j == 7 else 2
+        p.px[30][x] = 1 if j == 7 else 2
         p.px[31][x] = 1
     for c in PILLARS:
         x = c * 4
@@ -305,12 +304,9 @@ def draw_static(p):
             j = (x - x0 + (4 if y >= 18 else 0)) % 8
             if y in (17, 27) or j == 7:
                 p.px[y][x] = 1
-            elif y in (8, 18) or j == 0:
+            elif y in (8, 18):
                 p.px[y][x] = 3
     p.fill(x0, 27, x1, 27, 1)
-    for rx in (x0 + 3, x1 - 4):
-        for ry in (12, 21):
-            p.put(rx, ry, ["32", "21"])   # rivets
     # The window (its cells are all map: Minimap keeps them in RAM, nothing
     # explored = all black): a dark inset on its left, a lit edge on its
     # right, both in the stone block's cells.
@@ -323,7 +319,7 @@ def draw_static(p):
 
 def draw_totals(p):
     """The fixed halves of "n/3" (treasures, Item.Count) and "n/4" (guardians)."""
-    for col, text in ((COUNT_COL + 1, "/3"), (KILLS_COL + 1, "/4")):
+    for col, text in ((COUNT_COL + 1, "/3"),):
         for i, ch in enumerate(text):
             p.put((col + i) * 4, 8, digit_tile(ch))
 
@@ -333,7 +329,6 @@ def set_dynamic_colours(p):
     p.colour(COUNT_COL, 1, COUNT_COL + 2, 2, DIGIT_PAL)
     p.colour(WEAPON_COL, 1, WEAPON_COL + 1, 2, WEAPON_PAL)
     p.colour(POWER_COL, 1, POWER_COL + 1, 2, DIGIT_PAL)
-    p.colour(KILLS_COL, 1, KILLS_COL + 2, 2, DIGIT_PAL)
 
 
 def build_panel():
@@ -363,7 +358,7 @@ def tile_bytes(rows):
 
 
 # Tile numbers (Hud.cs): hearts 0-7 (full left/right, empty left/right),
-# digits 8-31 ("0"-"9", "/", blank), weapons 32-43 (fist, sword, axe).
+# digits 8-29 ("0"-"9", "/"), weapons 30-41 (fist, sword, axe).
 def tile_sets(panel):
     tiles = []
     for art in (HEART_FULL, HEART_EMPTY):
@@ -377,12 +372,12 @@ def tile_sets(panel):
     # 2 lines tall from line 2y+6 of the panel; the map's first cell row is
     # panel row 1).
     rows = []
-    for y in range(12):
-        line = max(8, min(26, 2 * y + 6))
+    for y in range(1, 11):              # rows 1-10 only: the outer ring is never a room
+        line = 2 * y + 6
         rows.append(((line >> 3) - 1) * 48 + (line & 7))
     # (The rooms' rows: line 2y+6 of the panel, so maze rows 1-10 fill lines 8-27.)
     # hud_MapCellRow[y]: the screen row of the cell holding maze row y.
-    cellrows = [21 + (max(8, min(26, 2 * y + 6)) >> 3) for y in range(12)]
+    cellrows = [21 + ((2 * y + 6) >> 3) for y in range(1, 11)]
     return tiles, rows, cellrows
 
 
@@ -437,9 +432,8 @@ def mock(panel, hp, treasure, weapon, power, kills, seen, here, bright=True):
         p.put((COUNT_COL + i) * 4, 8, digit_tile(ch))
     p.put(WEAPON_COL * 4, 8, WEAPONS[weapon])
     for i, ch in enumerate("%2d" % power):
-        p.put((POWER_COL + i) * 4, 8, digit_tile(ch))
-    for i, ch in enumerate("%d/4" % kills):
-        p.put((KILLS_COL + i) * 4, 8, digit_tile(ch))
+        if ch != " ":
+            p.put((POWER_COL + i) * 4, 8, digit_tile(ch))
     for (mx, my) in seen:
         if MAZE[my][mx] != '1':
             continue

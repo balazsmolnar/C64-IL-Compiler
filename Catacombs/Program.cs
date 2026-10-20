@@ -50,7 +50,7 @@ class Program
 #if SCENE_CHARS
         CharScenes.Run(); // never returns: the sprite scenes, "-Scene CHAR_..." (CharScenes.cs)
 #endif
-#if SCENE_HUDFULL || SCENE_HUDMID || SCENE_HUDLOW
+#if SCENE_HUDFULL || SCENE_HUDMID || SCENE_HUDLOW || SCENE_HUDHALF
         HudScene.Run(); // never returns: the status panel in one fixed state (Hud.cs)
 #endif
         // Title -> a run of the game -> game over / victory -> title, for
@@ -102,7 +102,7 @@ class Program
         Monster.Init();
         Item.Init();
         Weapon.Init();
-        Hud.Init();
+        Minimap.Init(); // the HUD: a new run's map
         Hud.SetHealth(playerHp_);
         Hud.SetWeapon(playerDamage_);
 
@@ -442,7 +442,6 @@ class Program
             C64.Screen.EndUpdate();
             return false;
         }
-        Hud.MonsterSlain();
         ApplyRoomColor();
         EnterRoom(); // redraw without the now-dead monster
         C64.Screen.EndUpdate();

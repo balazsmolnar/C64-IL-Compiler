@@ -23,14 +23,17 @@ static class Minimap
     {
         C64.FillMemory(C64Address.FromLabel("hud_Map-1"), 0, 144); // FillMemory writes bytes 1..size
         mask_ = 0;
+#if SCENE_TIMING || SCENE_TIMINGM
+        C64.Screen.SetSplit(21, ScreenMode.Bitmap); // the timing readout is hi-res text
+#endif
     }
 
     public static void Enter(uint x, uint y)
     {
         if (mask_ != 0)
-            Store((Get() | mask_) ^ blink_);        // the room left behind: dim
-        index_ = C64.GetMemory(C64Address.FromLabel("hud_MapRow"), y) + (x & 0xFE) * 4;
-        row_ = C64.GetMemory(C64Address.FromLabel("hud_MapCellRow"), y);
+            Store((C64.GetMemory(C64Address.FromLabel("hud_Map"), index_) | mask_) ^ blink_);        // the room left behind: dim
+        index_ = C64.GetMemory(C64Address.FromLabel("hud_MapRow-1"), y) + (x & 0xFE) * 4;
+        row_ = C64.GetMemory(C64Address.FromLabel("hud_MapCellRow-1"), y);
         column_ = 31 + (x >> 1);
         mask_ = 0xF0;
         blink_ = 0x50;
@@ -39,23 +42,13 @@ static class Minimap
             mask_ = 0x0F;
             blink_ = 0x05;
         }
-        Store(Get() | mask_);                       // this one: bright
+        Store(C64.GetMemory(C64Address.FromLabel("hud_Map"), index_) | mask_);                       // this one: bright
     }
 
     // The mark's blink.
     public static void Flip()
     {
-        Store(Get() ^ blink_);
-    }
-
-    public static void Draw()
-    {
-        C64.Screen.DrawTiles(31, 22, 6, 3, C64Address.FromLabel("hud_Map"), 0);
-    }
-
-    static uint Get()
-    {
-        return C64.GetMemory(C64Address.FromLabel("hud_Map"), index_);
+        Store(C64.GetMemory(C64Address.FromLabel("hud_Map"), index_) ^ blink_);
     }
 
     static void Store(uint value)

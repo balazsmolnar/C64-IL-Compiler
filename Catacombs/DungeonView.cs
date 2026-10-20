@@ -56,8 +56,13 @@ static class DungeonView
     {
         if (shown_)
         {
-            // Fade the room on screen out (a step darker) before blanking.
+            // The room on screen goes a step darker (recoloured while
+            // blanked, so no tear), shows for a few frames, then blanks.
+            C64.Screen.BeginUpdate();
             Recolour(Fade);
+            C64.Screen.EndUpdate();
+            C64.Screen.WaitForVBlank();
+            C64.Screen.WaitForVBlank();
             C64.Screen.WaitForVBlank();
         }
         C64.Screen.BeginUpdate();

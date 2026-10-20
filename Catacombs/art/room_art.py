@@ -353,8 +353,6 @@ def stone_style(rid, ew, lit):
             return WARM, 1.0, 2.0, 3.0                    # touching the torch: orange, yellow edges
         if ew >= 2.65:
             return WARM, 0.0, 1.0, 2.0                    # next ring: brown, orange edges
-        if ew >= 2.4 and rid[1] != 0:
-            return COLD, 1.0, 2.0, 3.0                    # grey, within reach of the light
         if rid[1] == 0 or ew < 0.9:
             return COLD, 0.0, 0.0, 1.0                    # the top course, the far corners: black
         return COLD, 0.0, 1.0, 2.0                        # blue, grey lit edge
@@ -729,6 +727,8 @@ def render(cfg):
                 lv_ = fv_ = 9
             if lit_right is None:
                 lh_ = fh_ = 9
+            if lh_ == 1 and rid[0] == 'fw' and min(abs(2 * mx + 1 - t[0]) for t in TORCH_SCREEN) < 8:
+                lh_ = 9                                    # no lit edge in a flame's own column
             tone = 2.0
             if lv_ == 1 or lh_ == 1:
                 tone = 3.0
@@ -939,13 +939,13 @@ def theme(**m):
 THEMES = [
     ("Moss", theme()),                                   # the picture as drawn: grey and blue stone, green moss
     ("Cold", theme(c5=6)),                               # no moss: bare cold stone
-    ("Rust", theme(c11=2, c5=9)),                        # rust-red mid stone
-    ("Crypt", theme(c11=4, c5=4)),                       # violet mid stone
+    ("Rust", theme(c6=2, c5=9)),                         # the cold stone rust-red
+    ("Crypt", theme(c6=4, c11=6, c5=4)),                 # the cold stone violet
     ("Bone", theme(c11=9, c5=9)),                        # dry brown mid stone
 ]
 # fading a room out before the next is drawn (applied twice): every colour a step darker
-FADE = [0, 15, 9, 12, 6, 6, 0, 8, 9, 0, 8, 0, 11, 5, 6, 12]
-UNLIT = [0, 12, 9, 12, 6, 6, 0, 11, 6, 0, 6, 6, 11, 5, 6, 12]   # a torch gone out: fire colours to brown, greys down
+FADE = [0, 12, 9, 12, 6, 6, 0, 8, 9, 0, 8, 6, 11, 5, 6, 12]
+UNLIT = [0, 12, 9, 12, 6, 6, 0, 11, 6, 6, 6, 6, 6, 5, 6, 12]   # a torch gone out: fire colours to brown, greys down
 CUE = [0, 1, 2, 3, 4, 5, 14, 7, 9, 8, 10, 12, 11, 13, 6, 15]   # door cue: swaps brown/orange, greys, blue/light blue
 PROPS = ['banner', 'bones', 'puddle', 'grate']
 
@@ -1194,10 +1194,10 @@ def main():
                             scr.cells[(c, r)] = (scr.cells[(c, r)][0], gi.cells[r][c][1], scr.cells[(c, r)][2])
             return scr.picture()
 
-        shots = [scene(0, "nwes", PROPS), scene(1, "nw", ['chains', 'puddle']), scene(2, "ne", ['bones', 'banner']),
-                 scene(3, "s", ['grate', 'chains', 'webs']), scene(4, "nes", ['banner', 'puddle']),
-                 scene(0, "nwe", ['webs'], flame=1, state=1), scene(0, "nwe", [], flame=3, state=2),
-                 scene(0, "n", [], door_frame=2), scene(0, "n", [], door_frame=3), scene(1, "nw", ['webs', 'bones'])]
+        shots = [scene(0, "nwes", PROPS), scene(1, "nw", ['puddle']), scene(2, "ne", ['bones', 'banner']),
+                 scene(3, "s", ['grate']), scene(4, "nes", ['banner', 'puddle']),
+                 scene(0, "nwe", [], flame=1), scene(0, "nwe", [], flame=3),
+                 scene(0, "n", [], door_frame=2), scene(0, "n", [], door_frame=3), scene(1, "nw", ['bones'])]
         for i, im in enumerate(shots):
             im.save(os.path.join(SRC, "preview_%d.png" % i))
 

@@ -27,7 +27,7 @@ static class Spider
         crawlerX_ = 90;
         flyerX_ = 200;
         SpriteStage.Part(SpriteStage.Crawler, (uint)Colors.Black, 12, 31);
-        SpriteStage.Part(SpriteStage.Flyer, SpriteStage.Multi | (uint)Colors.Grey2, 12, 42);
+        SpriteStage.Part(SpriteStage.Flyer, SpriteStage.Multi | (uint)Colors.LightRed, 12, 42);
         SpriteStage.Count[2] = 1;
         SpriteStage.Count[3] = 1;
         SpriteStage.Y[2] = FloorY;

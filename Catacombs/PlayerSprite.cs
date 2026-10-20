@@ -131,7 +131,7 @@ static class PlayerSprite
         if (pose_ == Striking)
         {
             top = Frame.TopRaise;
-            if (strike_ > 4)
+            if (strike_ > 3)
             {
                 top = Frame.TopSlash;
                 lightX = 20;        // the overlay moves right: the blade swings out past him
@@ -151,6 +151,8 @@ static class PlayerSprite
         uint light = (uint)Colors.Yellow;
         if (C64.Random() < 20)
             light = (uint)Colors.LightRed;
+        if (lightX == 20)
+            light = (uint)Colors.White;     // the slash: a white blade
 
         SpriteStage.Count[0] = 3;
         SpriteStage.Parts[Light] = lightX;

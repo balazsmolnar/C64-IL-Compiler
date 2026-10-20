@@ -238,11 +238,14 @@ def big_spider(step):
                         g[ny][nx] = "K"
     _blob(g, 12, 6.0, 5.6, 4.6, "K")
     _blob(g, 12, 6.0, 4.6, 3.6, "N")
-    _blob(g, 11, 5.0, 3.0, 2.2, "P")
+    for y in range(21):                         # the gloss: a crescent, upper left
+        for x in range(24):
+            if g[y][x] == "N" and ((x + 0.5 - 13.2) / 4.6) ** 2 + ((y + 0.5 - 7.0) / 3.6) ** 2 > 1.0:
+                g[y][x] = "P"
     for x, y in ((12, 7), (13, 8), (11, 8)):
         g[y][x] = "K"
     _blob(g, 12, 12.0, 3.4, 2.8, "K")
-    for x, y in ((10, 11), (13, 11), (11, 12), (12, 12), (10, 13), (13, 13)):
+    for x, y in ((10, 11), (13, 11), (11, 12), (12, 12)):
         g[y][x] = "P"
     for x, y in ((11, 15), (12, 15)):
         g[y][x] = "P"
@@ -313,15 +316,15 @@ MC["axe"] = [
     "............",
     "............",
     "............",
-    "........KK..",
-    ".......KLLK.",
-    "......KLLLNK",
-    "......KLLNNK",
-    "..KK..KLNNNK",
-    ".KNNKKKNNNK.",
-    "KNNKKNKKKK..",
-    "KNKKNNK.....",
-    ".KKKNK......",
+    "..KK........",
+    ".KLLK.......",
+    "KLNNLK......",
+    "KLNNNKKK....",
+    "KLNNKNNKK...",
+    ".KLKKKKNNKK.",
+    "..KK...KKNNK",
+    "........KKNK",
+    ".........KK.",
     "...KK.K.K...",
     "..K.K.K.K.K.",
     "...K.K.K.K..",
@@ -388,7 +391,7 @@ _bat_glide = [
     ".KKNKKKKNKK.",
     "...K..KK....",
 ]
-_bat_fix = lambda rows: [r.replace("N", "M").replace("R", "N") for r in rows]
+_bat_fix = lambda rows: [r.replace("N", "K").replace("R", "S") for r in rows]
 for _n, _rows in (("bat0", _bat_up), ("bat1", _bat_level), ("bat2", _bat_down)):
     MC[_n] = done([list(r) for r in _bat_fix(_rows)] + [list("............") for _ in range(21 - len(_rows))])
 
@@ -449,7 +452,13 @@ def _robe(rows, eyes=()):
     return out
 
 
-MC["wraith_top"] = _robe(MC["wraith_top"], ((5, 6), (8, 6)))
+MC["wraith_top"] = _robe(MC["wraith_top"])
+MC["wraith_top"][5:9] = [
+    "..KDKKKKKDK.",
+    ".KDKKNKNKKDK",
+    ".KDKKKKKKKDK",
+    ".KDDKKKKKDNK",
+]
 MC["wraith_leg0"] = _robe(MC["wraith_leg0"])
 MC["wraith_leg1"] = _robe(MC["wraith_leg1"])
 def _body(rows, letter, first, last):

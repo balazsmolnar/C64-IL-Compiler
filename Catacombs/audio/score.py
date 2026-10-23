@@ -130,6 +130,16 @@ def build():
                  wave=[(NOISE, 'c-7'), (PULSE, 'e-6'), (0, 'b-6'), ('jump', 1)])
     s.effect('weapon', 'fx_weapon', 'e-6', 38)
 
+    # Sword: two ticks of swish, then the clang -- re-gated at full level,
+    # a ring-modulated triangle (voice 3 multiplied by voice 2's
+    # oscillator: inharmonic, metallic) moving between B6 and F7, ringing
+    # off. (With voice 2 silent the ring has nothing to multiply by and
+    # it is a plain triangle.)
+    s.instrument('fx_sword', ad=0x09, sr=0x07, gate=10,
+                 wave=[(NOISE, 'c-7'), (0, 'c-7'), (0x14, 'b-6'), (0x15, 'b-6'), (0, 'f-7'), (0, 'c-7'),
+                       (0, 'f#7'), ('jump', 3)])
+    s.effect('sword', 'fx_sword', 'b-6', 26)
+
     # Growl: a low sawtooth with a slow, uneven pitch wobble and breaths of
     # noise in it, sinking; swells in and dies away.
     s.instrument('fx_growl', ad=0x4A, sr=0xD7, wspd=3, slide=-2, gate=14,
@@ -141,16 +151,6 @@ def build():
     s.instrument('fx_hurt', ad=0x08, sr=0x00, pw=0x600, pws=0x30, slide=-100,
                  wave=[(NOISE, 'c-6'), (0, 'c-6'), (PULSE, 'f-3')])
     s.effect('hurt', 'fx_hurt', 'e-3', 16)
-
-    # Sword: two ticks of swish, then the clang -- re-gated at full level,
-    # a ring-modulated triangle (voice 3 multiplied by voice 2's
-    # oscillator: inharmonic, metallic) moving between B6 and F7, ringing
-    # off. (With voice 2 silent the ring has nothing to multiply by and
-    # it is a plain triangle.)
-    s.instrument('fx_sword', ad=0x09, sr=0x07, gate=10,
-                 wave=[(NOISE, 'c-7'), (0, 'c-7'), (0x14, 'b-6'), (0x15, 'b-6'), (0, 'f-7'), (0, 'c-7'),
-                       (0, 'f#7'), ('jump', 3)])
-    s.effect('sword', 'fx_sword', 'b-6', 26)
 
     # Monster death: a sawtooth roar with noise in it, falling away.
     s.instrument('fx_mdeath', ad=0x0A, sr=0xE7, wspd=2, slide=-14, gate=14,

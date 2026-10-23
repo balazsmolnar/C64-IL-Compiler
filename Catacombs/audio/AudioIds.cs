@@ -16,9 +16,9 @@ static class AudioIds
     public const uint FxDoor = 2;
     public const uint FxPickup = 3;
     public const uint FxWeapon = 4;
-    public const uint FxGrowl = 5;
-    public const uint FxHurt = 6;
-    public const uint FxSword = 7;
+    public const uint FxSword = 5;
+    public const uint FxGrowl = 6;
+    public const uint FxHurt = 7;
     public const uint FxMonsterDeath = 8;
     public const uint FxPlayerDeath = 9;
 }

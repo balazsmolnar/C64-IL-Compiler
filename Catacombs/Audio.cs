@@ -18,6 +18,24 @@ static class Audio
     static bool walking_;
     static bool stepLeft_;
 
+    // The title screen's tune (it hands over to the exploration tune by
+    // itself), and the exploration tune at the start of a run.
+    public static void Title()
+    {
+        C64.Music.Play(AudioIds.SongTitle);
+    }
+
+    public static void Explore()
+    {
+        C64.Music.Play(AudioIds.SongExplore);
+    }
+
+    // Out with every relic: the fanfare (it resumes the exploration tune).
+    public static void Victory()
+    {
+        C64.Music.Interrupt(AudioIds.SongVictory);
+    }
+
     // Once, at boot.
     public static void Init()
     {
@@ -51,8 +69,6 @@ static class Audio
 #elif SCENE_AUDIO_SFXGATED
         C64.Music.Play(AudioIds.SongHold);
         EffectReel();
-#else
-        C64.Music.Play(AudioIds.SongTitle); // hands over to the exploration tune by itself
 #endif
     }
 
@@ -86,12 +102,10 @@ static class Audio
         C64.Music.PlayEffect(AudioIds.FxDoor);
     }
 
-    // A treasure was just collected (Item.CollectedCount already counts it).
+    // A treasure was just collected.
     public static void Pickup()
     {
         C64.Music.PlayEffect(AudioIds.FxPickup);
-        if (Item.CollectedCount == Item.Count)
-            C64.Music.Interrupt(AudioIds.SongVictory); // the last one; the tune resumes after the fanfare
     }
 
     public static void WeaponPickup()
@@ -107,12 +121,12 @@ static class Audio
         C64.Music.PlayEffect(AudioIds.FxGrowl);
     }
 
-    // The player's blow. It outranks the monster's sounds, so it is never
-    // dropped; then waits for it to land before whatever comes next.
+    // The player's blow. No wait (the encounter's animation follows); the
+    // monster's growl outranks it, so the growl that answers it is never
+    // dropped (it takes over the sword's ringing tail).
     public static void SwordHit()
     {
         C64.Music.PlayEffect(AudioIds.FxSword);
-        Wait(28);                   // its 26 ticks and the tick of hard restart before
     }
 
     // The monster strikes back: its growl, then the player's cry.

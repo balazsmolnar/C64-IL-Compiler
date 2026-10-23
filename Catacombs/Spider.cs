@@ -10,7 +10,7 @@ namespace Catacombs;
 // Both are single hi-res sprites.
 static class Spider
 {
-    const uint FloorY = 152;                // the crawler's line on the floor
+    const uint FloorY = 152;                // the crawler's first line on the floor
     const ulong Left = 44, Right = 276;
 
     static ulong crawlerX_, flyerX_;
@@ -26,23 +26,29 @@ static class Spider
     {
         crawlerX_ = 90;
         flyerX_ = 200;
-        SpriteStage.Part(SpriteStage.Crawler, (uint)Colors.Grey3, 12, 31);
-        SpriteStage.Part(SpriteStage.Flyer, (uint)Colors.LightRed, 12, 40);
+        SpriteStage.Part(SpriteStage.Crawler, (uint)Colors.Black, 12, 31);
+        SpriteStage.Part(SpriteStage.Flyer, SpriteStage.Multi | (uint)Colors.LightRed, 12, 42);
         SpriteStage.Count[2] = 1;
         SpriteStage.Count[3] = 1;
         SpriteStage.Y[2] = FloorY;
     }
 
-    // Called on entering a room: the vermin there are somewhere else.
+    // Called on entering a room (nothing to do: the vermin carry on).
     public static void SetRoomColor(uint roomColor)
     {
-        crawlerX_ = 60 + (ulong)(C64.Random() & 127);
     }
 
     // Once per video frame.
+    // The two take turns, a video frame each (the work of a frame is
+    // spread out: see SpriteStage.Tick), so each moves every other frame.
     public static void Animate()
     {
         tick_ = tick_ + 1;
+        if ((SpriteStage.Tick & 1) == 0)
+        {
+            Fly();
+            return;
+        }
 
         if (run_ == 0)
         {
@@ -51,6 +57,8 @@ static class Spider
             running_ = !running_;
             if (r > 127)
                 crawlerRight_ = !crawlerRight_;
+            if (running_)
+                SpriteStage.Y[2] = 130 + (r & 31);     // a new line across the floor each dash
         }
         run_ = run_ - 1;
 
@@ -59,13 +67,13 @@ static class Spider
         {
             if (crawlerRight_)
             {
-                crawlerX_ = crawlerX_ + 2;
+                crawlerX_ = crawlerX_ + 4;
                 if (crawlerX_ > Right)
                     crawlerRight_ = false;
             }
             else
             {
-                crawlerX_ = crawlerX_ - 2;
+                crawlerX_ = crawlerX_ - 4;
                 if (crawlerX_ < Left)
                     crawlerRight_ = true;
             }
@@ -73,24 +81,27 @@ static class Spider
         }
         SpriteStage.X[2] = crawlerX_;
         SpriteStage.Parts[SpriteStage.Crawler + SpriteStage.Frame] = SpriteStage.Hi + Frame.Crawler + pose;
+    }
 
+    static void Fly()
+    {
         if (SpriteStage.Y[1] == 0)
         {
             if (flyerRight_)
             {
-                flyerX_ = flyerX_ + 1;
+                flyerX_ = flyerX_ + 2;
                 if (flyerX_ > Right)
                     flyerRight_ = false;
             }
             else
             {
-                flyerX_ = flyerX_ - 1;
+                flyerX_ = flyerX_ - 2;
                 if (flyerX_ < Left)
                     flyerRight_ = true;
             }
             SpriteStage.X[3] = flyerX_;
             SpriteStage.Y[3] = Swoop[(tick_ >> 2) & 15];
-            SpriteStage.Parts[SpriteStage.Flyer + SpriteStage.Frame] = SpriteStage.Hi + Frame.Flyer + Flap[(tick_ >> 2) & 3];
+            SpriteStage.Parts[SpriteStage.Flyer + SpriteStage.Frame] = SpriteStage.Mc + Frame.Flyer + Flap[(tick_ >> 2) & 3];
         }
     }
 }

@@ -16,7 +16,11 @@ static class PlayerSprite
     const uint Down = 0, Up = 1, Left = 2, Right = 3;
     const uint Walking = 0, Striking = 1, Fallen = 2;
     const uint Light = SpriteStage.Player, Top = SpriteStage.Player + 4, Legs = SpriteStage.Player + 8;
-    const uint Cloak = SpriteStage.Multi | (uint)Colors.Cyan;
+
+
+    // His cloak's colour: red, except in rooms that would swallow it (set
+    // per room by Monster.Setup).
+    public static uint Cloak = (uint)Colors.Red;
 
     static uint facing_, pose_;
     static uint step_;      // walk cycle position, one per step taken
@@ -24,13 +28,14 @@ static class PlayerSprite
     static uint tick_;
     static uint xLow_;      // low byte of the last x: enough to see a step
     static uint hurt_;      // frames left of the white hurt flash
+    static uint strike_;    // frames since the strike began
 
     public static void Init(ulong x, ulong y)
     {
         facing_ = Up;
         SpriteStage.Part(Light, 0, 12, 15);
-        SpriteStage.Part(Top, Cloak, 12, 15);
-        SpriteStage.Part(Legs, SpriteStage.Multi | (uint)Colors.Grey3, 12, 36);
+        SpriteStage.Part(Top, 0, 12, 15);
+        SpriteStage.Part(Legs, SpriteStage.Multi | (uint)Colors.Grey2, 12, 36);
         SetPosition(x, y);
     }
 
@@ -72,16 +77,19 @@ static class PlayerSprite
         hurt_ = 12;
     }
 
-    // Sword arm up, until he next moves.
+    // Wind-up, then the slash; held until he next moves.
     public static void Strike()
     {
         pose_ = Striking;
+        strike_ = 0;
     }
 
     // Slain, until he is next placed.
     public static void Fall()
     {
         pose_ = Fallen;
+        strike_ = 0;
+        Animate();
     }
 
     // Once per video frame (SpriteStage.Update).
@@ -91,12 +99,23 @@ static class PlayerSprite
 
         if (pose_ == Fallen)
         {
-            SpriteStage.Count[0] = 1;
-            SpriteStage.Parts[Light + SpriteStage.Frame] = SpriteStage.Mc + Frame.Fallen;
-            SpriteStage.Parts[Light + SpriteStage.Color] = Cloak;
-            SpriteStage.Parts[Light + SpriteStage.Dy] = 36;
+            // On the floor; by his head the dropped torch's ember cools off.
+            uint ember = (uint)Colors.Orange;
+            if (strike_ < 30)
+                strike_ = strike_ + 1;
+            else
+                ember = (uint)Colors.Brown;
+            SpriteStage.Count[0] = 2;
+            SpriteStage.Parts[Light + SpriteStage.Frame] = SpriteStage.Hi + Frame.Spark;
+            SpriteStage.Parts[Light + SpriteStage.Color] = ember;
+            SpriteStage.Parts[Top + SpriteStage.Color] = SpriteStage.Multi | Cloak;
+            SpriteStage.Parts[Light + SpriteStage.Dy] = 42;
+            SpriteStage.Parts[Light] = 0;
+            SpriteStage.Parts[Top + SpriteStage.Frame] = SpriteStage.Mc + Frame.Fallen;
+            SpriteStage.Parts[Top + SpriteStage.Dy] = 36;
             return;
         }
+        uint lightX = 12;
 
         uint legs = 1;                          // standing
         uint bob = 15 + ((tick_ >> 5) & 1);     // breathing
@@ -110,10 +129,19 @@ static class PlayerSprite
         uint top = facing_;
         uint cycle = Frame.Legs;
         if (pose_ == Striking)
-            top = Frame.TopAttack;
+        {
+            top = Frame.TopRaise;
+            if (strike_ > 3)
+            {
+                top = Frame.TopSlash;
+                lightX = 20;        // the overlay moves right: the blade swings out past him
+            }
+            else
+                strike_ = strike_ + 1;
+        }
         else if (facing_ > Up)
             cycle = Frame.Legs - 4 + (facing_ << 2);
-        uint cloak = Cloak;
+        uint cloak = SpriteStage.Multi | Cloak;
         if (hurt_ != 0)
         {
             hurt_ = hurt_ - 1;
@@ -122,9 +150,12 @@ static class PlayerSprite
         // The flame gutters now and then: the light on him dims with it.
         uint light = (uint)Colors.Yellow;
         if (C64.Random() < 20)
-            light = (uint)Colors.Orange;
+            light = (uint)Colors.LightRed;
+        if (lightX == 20)
+            light = (uint)Colors.White;     // the slash: a white blade
 
         SpriteStage.Count[0] = 3;
+        SpriteStage.Parts[Light] = lightX;
         SpriteStage.Parts[Light + SpriteStage.Frame] = SpriteStage.Hi + Frame.Overlay + top;
         SpriteStage.Parts[Light + SpriteStage.Color] = light;
         SpriteStage.Parts[Light + SpriteStage.Dy] = bob;

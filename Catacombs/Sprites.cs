@@ -28,19 +28,20 @@ namespace Catacombs
     // Frame numbers within the two sheets (add SpriteStage.Mc / SpriteStage.Hi).
     static class Frame
     {
-        // Chars (multicolour; shared colours black and orange)
+        // Chars (multicolour; shared colours black and brown)
         public const uint Top = 0;          // + facing: down, up, left, right
-        public const uint TopAttack = 4;
-        public const uint Legs = 5;         // down/up 5-8, left 9-12, right 13-16
-        public const uint Fallen = 17;
-        public const uint Guardian = 18;    // + 3 * kind: top, legs, legs (the spider: left, left, right, right)
-        public const uint Treasure = 31;
-        public const uint Sword = 32;       // then the axe
+        public const uint TopRaise = 4;     // striking: wind-up, then the slash
+        public const uint TopSlash = 5;
+        public const uint Legs = 6;         // down/up 6-9, left 10-13, right 14-17
+        public const uint Fallen = 18;
+        public const uint Guardian = 19;    // + 3 * kind: top, legs, legs (the spider: left 2, right 2)
+        public const uint Treasure = 32;
+        public const uint Sword = 33;       // then the axe
+        public const uint Flyer = 35;       // wings up, level, down
 
         // CharsHi (hi-res, one colour)
-        public const uint Overlay = 0;      // + facing; 4 = attack
-        public const uint Crawler = 5;      // two running stances, then at rest
-        public const uint Flyer = 8;        // wings up, level, down
-        public const uint Spark = 11;       // small, large
+        public const uint Overlay = 0;      // + facing; 4 raise, 5 slash
+        public const uint Crawler = 6;      // two running stances, then at rest
+        public const uint Spark = 9;
     }
 }

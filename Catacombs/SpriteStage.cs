@@ -41,6 +41,11 @@ static class SpriteStage
     public static uint[] Count;             //   how many parts
     public static uint[] Parts;
 
+    // Counts video frames. The per-frame work is spread over two frames:
+    // the player's animation and the bat on even ones, the spider and the
+    // guardian or pickup on odd ones (positions are written every frame).
+    public static uint Tick;
+
     static uint[] order_;                   // the actors (/ 16), nearest first
     static uint pair_;
     static readonly uint[] Shown = { 0, 1, 3, 7, 15, 31, 63 };
@@ -57,10 +62,10 @@ static class SpriteStage
         for (uint i = 0; i < 4; i++)
             order_[i] = i;
 
-        // Shared by every multicolour sprite: black outlines and shadows,
-        // orange for torch-lit skin, leather, wood and rust.
+        // Shared by every multicolour sprite: black outlines and deep shadow,
+        // brown for shading, leather, wood and rust (key light upper left).
         C64.Sprites.CommonColor1 = Colors.Black;
-        C64.Sprites.CommonColor2 = Colors.Orange;
+        C64.Sprites.CommonColor2 = Colors.Brown;
     }
 
     public static void Part(uint part, uint color, uint dx, uint dy)
@@ -74,21 +79,18 @@ static class SpriteStage
     // Feature (guardian or pickup), both ways.
     public static bool PlayerAtFeature(ulong radius)
     {
-        uint fy = Y[1];
-        if (fy == 0)
-            return false;
-        uint py = Y[0];
-        uint dy = py > fy ? py - fy : fy - py;
-        ulong px = X[0];
-        ulong fx = X[1];
-        ulong dx = px > fx ? px - fx : fx - px;
-        return dx < radius && dy < radius;
+        // |a - b| < r  is  a - b + r < 2r  in wrapping 8-bit arithmetic (the
+        // two are never 128 pixels apart when it matters).
+        uint r = (uint)radius;
+        return Y[1] != 0 && Y[0] - Y[1] + r < r + r && (uint)X[0] - (uint)X[1] + r < r + r;
     }
 
     // Once per video frame, right after the vertical blank.
     public static void Update()
     {
-        PlayerSprite.Animate();
+        Tick = Tick + 1;
+        if ((Tick & 1) == 0)
+            PlayerSprite.Animate();
 
         uint i = pair_ + 1;
         if (i == 3)

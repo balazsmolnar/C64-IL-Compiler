@@ -76,7 +76,8 @@ static class GameFlow
         outcome_ = 0;
     }
 
-    // `health`: what the player has left (shown on the victory screen).
+    // `health` is unused now (the victory screen no longer shows a number
+    // that meant nothing to the player); kept so Program.Main is unchanged.
     public static void AfterGame(uint health)
     {
 #if SCENE_RESTART
@@ -87,9 +88,9 @@ static class GameFlow
 #if SCENE_FLOW
         TitleScreen.Timer = 300;
 #endif
-        if (outcome_ == TitleScreen.GameOver)
-            health = Item.CollectedCount;
-        TitleScreen.Show(outcome_, health);
+        if (outcome_ == TitleScreen.Victory)
+            Audio.Victory();
+        TitleScreen.Show(outcome_, Item.CollectedCount);
     }
 
     public static void Lose()

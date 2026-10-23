@@ -594,6 +594,15 @@ OnInterrupt
     pha
     lda zp_field_value_high
     pha
+    ; Run the subscriber's frames well above whatever frame the interrupted
+    ; code was in the middle of building or tearing down (a prologue
+    ; writes its slots before it raises stackPointer, an epilogue reads its
+    ; return address after lowering it).
+    lda stackPointer
+    pha
+    clc
+    adc #48
+    sta stackPointer
 
     lda #> On_Interrupt_Ret-1
     pha
@@ -601,6 +610,8 @@ OnInterrupt
     pha
     jmp (zp_interrupt_address_low)
 On_Interrupt_Ret
+    pla
+    sta stackPointer
     pla
     sta zp_field_value_high
     pla

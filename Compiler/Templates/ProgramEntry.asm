@@ -74,6 +74,21 @@ PROGRAM_LIMIT = $d000
 #disable_basic_rom
 OBJ_TABLES_MAX_START = PROGRAM_LIMIT
 OBJ_TABLES_FALLBACK = PROGRAM_LIMIT
+; $0800-$0fff (below the code, which starts at $1000) holds only the BASIC
+; stub once the program runs: the object tables and localsStack go there
+; (asm/helper/objectTables.asm), leaving all the RAM after the code to the
+; heap. Not in the double-buffered layout, whose colour matrix is at $0c00.
+; Screen.DrawText's font occupies $0800-$0bff: then only half the tables
+; fit, at $0c00.
+.if !GRAPHICS_DOUBLE_BUFFER
+.if Flag_Screen_DrawText
+OBJ_TABLES_LOW = $0c00
+OBJ_TABLES_LOW_ALL = 0
+.else
+OBJ_TABLES_LOW = $0800
+OBJ_TABLES_LOW_ALL = 1
+.endif
+.endif
 
 ; Object allocation must stay below PROGRAM_LIMIT ($d000, the I/O area, or
 ; the video matrix / in-place sprite frames in the high graphics layout) --
@@ -183,6 +198,7 @@ rts
 .include "./helper/fault.asm"
 .include "./GC.asm"
 .include "./helper/object.asm"
+.include "./helper/frame.asm"
 .if GRAPHICS_DOUBLE_BUFFER
 ; The low, double-buffered layout (see the top of this file). Real
 ; (non-.virtual) bytes: these areas sit in the MIDDLE of the address space

@@ -68,16 +68,52 @@
 ; an emulator bug: objTableHigh[135] really is $d012 in this build, and
 ; reads of it never return the same thing twice.
 
+; OBJ_TABLES_LOW (set by the program entry template when RAM below the
+; program, which starts at $1000, is free -- everything but the
+; double-buffered layout): some or all of the seven tables and localsStack
+; go there instead of after the code, so the heap gets that much more.
+; OBJ_TABLES_LOW_ALL = 1: all eight pages ($0800-$0fff); 0: only the four
+; #initHeap clears (a program using Screen.DrawText keeps its font at
+; $0800-$0bff, so only $0c00-$0fff is free). The BASIC stub's bytes at
+; $0801-$080d land in objTableSize, which #initHeap clears; the rest of the
+; range is the PRG's zero-filled gap, so the tables that rely on load-time
+; zeros (see above) still get them. Page-aligned, too: no page-crossing
+; cycle on the indexed reads.
+.weak
+OBJ_TABLES_LOW = 0
+OBJ_TABLES_LOW_ALL = 0
+.endweak
+
+.if OBJ_TABLES_LOW
+.virtual OBJ_TABLES_LOW
+objTableSize        .fill 256
+objTableLow         .fill 256
+objTableHigh        .fill 256
+objTableRootCount   .fill 256
+.if OBJ_TABLES_LOW_ALL
+objTableReferences  .fill 256
+objTableDescLow     .fill 256
+objTableDescHigh    .fill 256
+localsStack         .fill 256
+.endif
+.cerror * > $1000, "object tables at OBJ_TABLES_LOW overlap the program"
+.endv
+.endif
+
 .virtual *
+.if !OBJ_TABLES_LOW
 objTableLow         .fill 256
 objTableHigh        .fill 256
 objTableSize        .fill 256
-objTableReferences  .fill 256
 objTableRootCount   .fill 256
+.endif
+.if !OBJ_TABLES_LOW_ALL
+objTableReferences  .fill 256
 objTableDescLow     .fill 256
 objTableDescHigh    .fill 256
 
 localsStack         .fill 256
+.endif
 
 ; Shared scratch buffer for every NumberFormat_*ToString routine (asm/
 ; helper/tostring.asm, asm/helper/float.asm's Float_ToString) -- 16 bytes

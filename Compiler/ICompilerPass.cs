@@ -267,6 +267,21 @@ class CompilerMethodContext
         return parameters[index - (isInstance ? 1 : 0)].ParameterType;
     }
 
+    // A static, void, parameterless method keeps its jsr return address on
+    // the hardware stack instead of moving it into localsStack (a void
+    // method's evaluation stack is empty at every ret, so the address is on
+    // top again by then): no prologue beyond reserving its locals, and an
+    // rts (or a jmp to a shared Method_Leave_N) for every ret -- see
+    // method_enter_frameless/method_leave in asm/helper/localsStack.asm.
+    // Nothing else changes: locals are addressed relative to stackPointer
+    // from the top, and the return-address slot a normal frame has sits
+    // below them.
+    public bool IsFrameless =>
+        Method is MethodInfo info
+        && info.IsStatic
+        && info.ReturnType == typeof(void)
+        && info.GetParameters().Length == 0;
+
     public int GetLocalStackSize()
     {
         bool isInstance = !Method.IsStatic;

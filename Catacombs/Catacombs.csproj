@@ -7,6 +7,7 @@
   <ItemGroup>
     <EmbeddedResource Include="Torch.aas" />
     <EmbeddedResource Include="audio\music.asm" />
+    <EmbeddedResource Include="audio\music_test.asm" />
     <!-- Converted art (tools/c64img.py -> .img, tools/c64spr.py -> .spr; see
          TECH.md). Embedded under the bare file name, so code says
          Resource = "room1.img". -->

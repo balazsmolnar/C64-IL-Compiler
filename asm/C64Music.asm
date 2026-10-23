@@ -199,6 +199,7 @@ m_frame     .byte 0         ; counts ticks (C64.Music.Frame)
 m_saved     .byte 0         ; nonzero: music_save holds an interrupted song
 m_flo       .byte 0
 m_fhi       .byte 0
+m_oct       .byte 0
 music_vars_end
 .if MUSIC_RESUMABLE
 music_save  .fill music_state_end - music_state
@@ -207,26 +208,48 @@ music_save  .fill music_state_end - music_state
 music_regofs .byte 0, 7, 14, music_sfx_reg
 music_regbit .byte 1, 2, 4, music_sfx_bit
 
-; PAL SID frequency values for C-0 .. B-7 (hz * 2^24 / 985248; B-7 is past
-; the top of the register and clipped).
-music_freq_lo
-    .byte $16, $27, $39, $4b, $5f, $74, $8a, $a1, $ba, $d4, $f0, $0e
-    .byte $2d, $4e, $71, $96, $be, $e7, $14, $42, $74, $a9, $e0, $1b
-    .byte $5a, $9c, $e2, $2d, $7b, $cf, $27, $85, $e8, $51, $c1, $37
-    .byte $b4, $38, $c4, $59, $f7, $9d, $4e, $0a, $d0, $a2, $81, $6d
-    .byte $67, $70, $89, $b2, $ed, $3b, $9c, $13, $a0, $45, $02, $da
-    .byte $ce, $e0, $11, $64, $da, $76, $39, $26, $40, $89, $04, $b4
+; PAL SID frequency values for octave 6, C-6 .. B-6 (hz * 2^24 / 985248).
+; Lower octaves are these halved (music_freq), octave 7 doubled (the LSB is
+; lost there; B-7 is past the top of the register and clipped).
+music_f6_lo
     .byte $9c, $c0, $23, $c8, $b4, $eb, $72, $4c, $80, $12, $08, $68
-    .byte $39, $80, $45, $90, $68, $d6, $e3, $99, $00, $24, $10, $ff
-music_freq_hi
-    .byte $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $02
-    .byte $02, $02, $02, $02, $02, $02, $03, $03, $03, $03, $03, $04
-    .byte $04, $04, $04, $05, $05, $05, $06, $06, $06, $07, $07, $08
-    .byte $08, $09, $09, $0a, $0a, $0b, $0c, $0d, $0d, $0e, $0f, $10
-    .byte $11, $12, $13, $14, $15, $17, $18, $1a, $1b, $1d, $1f, $20
-    .byte $22, $24, $27, $29, $2b, $2e, $31, $34, $37, $3a, $3e, $41
+music_f6_hi
     .byte $45, $49, $4e, $52, $57, $5c, $62, $68, $6e, $75, $7c, $83
-    .byte $8b, $93, $9c, $a5, $af, $b9, $c4, $d0, $dd, $ea, $f8, $ff
+
+; Frequency of note Y (0 = C-0 .. 95) -> m_flo/m_fhi. Destroys A and Y.
+music_freq
+    tya
+    ldy #$ff
+    sec
+-   iny                         ; Y = octave, A = semitone
+    sbc #12
+    bcs -
+    adc #12
+    sty m_oct
+    tay
+    lda music_f6_lo,y
+    sta m_flo
+    lda music_f6_hi,y
+    sta m_fhi
+    ldy m_oct
+    cpy #7
+    bne _down
+    asl m_flo
+    rol m_fhi
+    bcc _done
+    lda #$ff
+    sta m_flo
+    sta m_fhi
+    rts
+_down
+    cpy #6
+    beq _done
+    lsr m_fhi
+    ror m_flo
+    iny
+    bne _down
+_done
+    rts
 
 ; ---------------------------------------------------------------------------
 ; C64.Music.Install() -- silence the SID, clear the player, hook the
@@ -789,11 +812,12 @@ _wavedone
     bpl _vibdone
 _vibrate
     ldy mv_cur,x                ; step = frequency / 256, about 7 cents
+    jsr music_freq
     lda mv_vdir,x
     bne _vibdown
     clc
     lda mv_vlo,x
-    adc music_freq_hi,y
+    adc m_fhi
     sta mv_vlo,x
     bcc _vibcount
     inc mv_vhi,x
@@ -801,7 +825,7 @@ _vibrate
 _vibdown
     sec
     lda mv_vlo,x
-    sbc music_freq_hi,y
+    sbc m_fhi
     sta mv_vlo,x
     bcs _vibcount
     dec mv_vhi,x
@@ -852,11 +876,12 @@ _pwdown
 _pwdone
 
     ldy mv_cur,x
+    jsr music_freq
     clc
-    lda music_freq_lo,y
+    lda m_flo
     adc mv_vlo,x
     sta m_flo
-    lda music_freq_hi,y
+    lda m_fhi
     adc mv_vhi,x
     sta m_fhi
 

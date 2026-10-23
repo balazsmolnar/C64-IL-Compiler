@@ -38,7 +38,8 @@ def bars(pattern, chords):
     return out
 
 
-def build():
+def build(test=False):
+    """test=True adds the SFXGATED scene's fixture song (music_test.asm)."""
     s = Score(sfx_voice=2, max_rows=28)
 
     # ------------------------------------------------------------------
@@ -73,8 +74,9 @@ def build():
         s.instrument('pad' + q, ad=0x79, sr=0x5B, pw=0x500, pws=0x1C, filt='keep', gate=18,
                      wave=[(PULSE, 0), (0, top), (0, third), ('jump', 0)])
     # (the SFXGATED test fixture's chord: never lets go)
-    s.instrument('padHold', ad=0x79, sr=0x5B, pw=0x500, pws=0x1C, filt='keep',
-                 wave=[(PULSE, 0), (0, 7), (0, 3), ('jump', 0)])
+    if test:
+        s.instrument('padHold', ad=0x79, sr=0x5B, pw=0x500, pws=0x1C, filt='keep',
+                     wave=[(PULSE, 0), (0, 7), (0, 3), ('jump', 0)])
     # Bell: struck an octave high, rings off by itself.
     s.instrument('bell', ad=0x0A, sr=0x0A, wave=[(PULSE, 12), (TRI, 12), (0, 0)], pw=0x200)
 
@@ -243,8 +245,8 @@ def build():
            voices=[explore_bass, explore_lead, explore_chords])
 
     # ------------------------------------------------------------------
-    # Combat: "Teeth in the Dark". D minor with a Phrygian Eb, 24 bars
-    # (31 s), 188 BPM, bass in 3+3+2 with kick and snare on its own notes.
+    # Combat: "Teeth in the Dark". D minor with a Phrygian Eb, 16 bars
+    # (20 s), 188 BPM, bass in 3+3+2 with kick and snare on its own notes.
     #   bars 1-8    Dm Dm Eb Dm | Dm Dm Eb A    the riff and its answers;
     #               bass riff D D(8va) | D C A D
     #   bars 9-14   Dm Ebm Em Fm F#m Gm: bass and chords climb by semitone,
@@ -252,20 +254,10 @@ def build():
     #               (an octave up for 13-14)
     #   bar 15      G#dim: the peak, a diminished arpeggio up to F6
     #   bar 16      A: a falling/rising A7 run and a snare fill
-    #   bars 17-24  half time: Gm Gm Bb A | Gm Eb G#dim A -- long lead
-    #               notes with vibrato, a walking bass, a snare roll home
     # ------------------------------------------------------------------
     s.pattern('cbass', '@ckick d-2:3 @cbass d-3:3 @csnare d-2:2 | @ckick d-2:3 @cbass c-3:3 @csnare a-2:1 @cbass d-3:1')
     s.pattern('cbassClimb', '@ckick d-2:3 @cbass d-3:1 @csnare d-2:2 @cbass d-3:2 |'
                             ' @ckick d-2:2 @csnare d-2:2 @cbass c-3:2 @csnare d-2:1 d-2:1')
-    s.pattern('cbassB', '@ckick g-2:4 @cbass g-3:4 @csnare g-2:4 @cbass g-3:4 | g-2:4 bb2:4 @csnare g-2:4 @cbass a-2:4 |'
-                        ' @ckick bb1:4 @cbass bb2:4 @csnare bb1:4 @cbass f-2:4 | @ckick a-1:4 @cbass a-2:4 @csnare a-1:4 @cbass e-2:4 |'
-                        ' @ckick g-2:4 @cbass g-3:4 @csnare g-2:4 @cbass d-3:4 | @ckick eb2:4 @cbass eb3:4 @csnare eb2:4 @cbass bb2:4 |'
-                        ' @ckick g#2:4 @cbass g#3:4 @csnare g#2:4 @cbass d-3:4 | @ckick a-2:4 @csnare a-2:2 a-2:2 l1 a-2 a-2 a-2 a-2 a-2 a-2 a-2 a-2')
-    s.pattern('cstabB', '@arpm g-3:12 g-3:4 | g-3:12 g-3:4 | @arpM bb3:12 bb3:4 | a-3:12 a-3:4 |'
-                        ' @arpm g-3:12 g-3:4 | @arpM eb3:12 eb3:4 | @arpd g#3:12 g#3:4 | @arpM a-3:16')
-    s.pattern('cleadB1', '@clead g-5:8 bb5:8 | a-5:6 g-5:2 d-5:8 | f-5:8 d-5:4 bb4:4 | c#5:8 e-5:8')
-    s.pattern('cleadB2', '@clead g-5:4 a-5:4 bb5:8 | g-5:6 f-5:2 eb5:8 | f-5:6 d-5:2 b-4:8 | c#5:4 e-5:4 a-5:8')
     s.pattern('cbassFill', '@csnare d-2:1 d-2:1 @ckick d-2:2 @csnare d-2:1 d-2:1 @ckick d-2:2 |'
                            ' @csnare l1 d-2 d-2 d-2 d-2 d-2 d-2 d-2 d-2')
     for q in 'mMd':
@@ -288,10 +280,10 @@ def build():
     s.song('combat', tempo=4, end='loop', volume=15,
            filter=dict(res=13, mode='lp', cut=(0x18, 0x78)),
            voices=[
-               bars('cbass', combat[:8]) + bars('cbassClimb', combat[8:]) + [T(-5), 'cbassFill', T(0), 'cbassB'],
+               bars('cbass', combat[:8]) + bars('cbassClimb', combat[8:]) + [T(-5), 'cbassFill'],
                ['cleadA', 'cleadB', 'cleadA', 'cleadC', 'cped', 'cped', 'cped', 'cped', T(12), 'cped', 'cped',
-                T(0), 'cpeak', 'cfill', 'cleadB1', 'cleadB2'],
-               bars('cstab%', combat) + [T(-5), 'cstabM', T(0), 'cstabB'],
+                T(0), 'cpeak', 'cfill'],
+               bars('cstab%', combat) + [T(-5), 'cstabM'],
            ])
 
     # ------------------------------------------------------------------
@@ -323,18 +315,21 @@ def build():
     s.song('victory', tempo=5, end='resume', filter=flt,
            voices=[['winBass'], ['winLead'], ['winChords']])
 
-    # Test fixture for the SFXGATED scene: voice 3 holding a chord, gate
-    # on, nothing else -- the worst case for starting an effect.
-    s.pattern('holdRest', 'r:24')
-    s.pattern('holdPad', '@padHold a-3:24')
-    s.song('hold', tempo=9, end='loop', filter=flt, voices=[['holdRest'], ['holdRest'], ['holdPad']])
+    if test:
+        # Test fixture for the SFXGATED scene: voice 3 holding a chord, gate
+        # on, nothing else -- the worst case for starting an effect.
+        s.pattern('holdRest', 'r:24')
+        s.pattern('holdPad', '@padHold a-3:24')
+        s.song('hold', tempo=9, end='loop', filter=flt, voices=[['holdRest'], ['holdRest'], ['holdPad']])
     return s
 
 
 if __name__ == '__main__':
     score = build()
     score.write_asm(os.path.join(HERE, 'music.asm'), 'Catacombs/audio/score.py')
-    score.write_cs(os.path.join(HERE, 'AudioIds.cs'), 'Catacombs', 'AudioIds', 'Catacombs/audio/score.py')
+    test = build(test=True)     # the same plus a fixture song, for the SFXGATED scene build only
+    test.write_asm(os.path.join(HERE, 'music_test.asm'), 'Catacombs/audio/score.py (test=True)')
+    test.write_cs(os.path.join(HERE, 'AudioIds.cs'), 'Catacombs', 'AudioIds', 'Catacombs/audio/score.py')
     print('music data: %d bytes' % score.data_size())
     for song in score.songs:
         ticks = song['rows'] * song['tempo']

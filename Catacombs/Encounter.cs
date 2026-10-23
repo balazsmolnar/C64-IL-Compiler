@@ -77,7 +77,7 @@ static class Encounter
                 Idle(1);
 #endif
 
-            Audio.SwordHit();
+            Audio.Fx(AudioIds.FxSword);
             if ((C64.Random() & 7) == 0)
             {
                 Miss();

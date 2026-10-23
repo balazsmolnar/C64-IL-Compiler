@@ -109,7 +109,17 @@ def freq_value(n):
     return min(round(440.0 * 2 ** ((n - 57) / 12) * 16777216 / PAL_CLOCK), 65535)
 
 
-FREQ = [freq_value(n) for n in range(96)]
+def _player_freq(n):
+    """What the player computes: octave 6 from its table, other octaves
+    by halving (truncating) or doubling it."""
+    f6 = freq_value(72 + n % 12)
+    octave = n // 12
+    if octave == 7:
+        return min(f6 << 1, 0xFFFF)
+    return f6 >> (6 - octave)
+
+
+FREQ = [_player_freq(n) for n in range(96)]
 
 
 def reg_to_hz(v):

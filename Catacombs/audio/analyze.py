@@ -405,7 +405,7 @@ if __name__ == '__main__':
     ap.add_argument('scenes', nargs='*')
     ap.add_argument('--dir', default=os.path.join(ROOT, '.debug-tmp', 'audio'))
     a = ap.parse_args()
-    sc = score_module.build()
+    sc = score_module.build(test=True)
     all_ok = True
     levels = {}
     for scene in ([s.upper() for s in a.scenes] or list(SCENES)):

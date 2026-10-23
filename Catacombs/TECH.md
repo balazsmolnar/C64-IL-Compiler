@@ -229,9 +229,10 @@ mc2=None, transparent=None, count=None, preview=None, quiet=False)`.
 
 | Range | Use |
 |---|---|
-| $0800-$0BFF | `DrawText` font (only if `DrawText` is used) |
+| $0800-$0BFF | `DrawText` font if `DrawText` is used; otherwise object tables |
+| $0C00-$0FFF | object tables (four of the seven: size, address low/high, root count) |
 | $1000-... | runtime, compiled code, assets: one contiguous block |
-| ...-$CBFF | object tables (2104 bytes), then the heap |
+| ...-$CBFF | with `DrawText`: the other three object tables and the locals stack (1024 bytes), then 56 bytes of string buffers, then the heap; without `DrawText` all tables are below $1000 and only the 56 bytes come first |
 | below $CC00 | sprite frames 65-112, if any (64 bytes each) |
 | $CC00-$CFE7 | video matrix (`Graphics_ColorMatrix`); sprite pointers at $CFF8 |
 | $D000-$DFFF | I/O; the RAM underneath holds sprite frames 1-64 |
@@ -241,8 +242,12 @@ mc2=None, transparent=None, count=None, preview=None, quiet=False)`.
 - The VIC is switched to bank 3 by `SetScreenMode(Bitmap/MultiColor)` and
   back to bank 0 by `SetScreenMode(Character)`.
 - **Free memory.** The build prints the segment map; the single `Data:` line
-  from $1000 ends where free memory starts. Free = $CC00 - that end - 2104
-  (object tables) - what the heap needs - 64 per sprite frame beyond 64.
+  from $1000 ends where free memory starts (the build may print a few
+  short `Data:` lines for aligned runtime pieces; take the last one's end).
+  Free = $CC00 - that end - 1080 (object tables, locals stack and string
+  buffers left above the code when `DrawText` is used; 56 without it) -
+  what the heap needs - 64 per sprite frame beyond 64. The runtime owns
+  $0800-$0FFF: nothing else may use it.
   With the prototype game as committed the block ends at $5FA4, of which the
   last 192 bytes are sprite frames that are moved at startup: **25,827 bytes
   ($671D-$CBFF) for more code, all assets and the heap** (before this

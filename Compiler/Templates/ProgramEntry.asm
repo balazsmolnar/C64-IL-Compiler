@@ -78,8 +78,16 @@ OBJ_TABLES_FALLBACK = PROGRAM_LIMIT
 ; stub once the program runs: the object tables and localsStack go there
 ; (asm/helper/objectTables.asm), leaving all the RAM after the code to the
 ; heap. Not in the double-buffered layout, whose colour matrix is at $0c00.
+; Screen.DrawText's font occupies $0800-$0bff: then only half the tables
+; fit, at $0c00.
 .if !GRAPHICS_DOUBLE_BUFFER
+.if Flag_Screen_DrawText
+OBJ_TABLES_LOW = $0c00
+OBJ_TABLES_LOW_ALL = 0
+.else
 OBJ_TABLES_LOW = $0800
+OBJ_TABLES_LOW_ALL = 1
+.endif
 .endif
 
 ; Object allocation must stay below PROGRAM_LIMIT ($d000, the I/O area, or

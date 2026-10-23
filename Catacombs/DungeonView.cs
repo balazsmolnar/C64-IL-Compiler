@@ -8,25 +8,34 @@ namespace Catacombs;
 // the room is one full-viewport picture (rows 0-20) plus small overlay
 // pictures, all made by art/room_art.py and declared in RoomArt.cs.
 //
-//   Render / Draw   once per room entry: backdrop, then a door overlay on
-//                   each wall that has an exit, then the room's props, then
-//                   the room's palette theme (a colour remap of the whole
-//                   viewport). The screen is blanked while this happens, so
-//                   a half-drawn room is never visible.
-//   Animate         every video frame: flickers the two torches (a few cells
-//                   of flame, and the fire colours of the wall around them).
-//   OpenNorthDoor   the north door swinging open, one step per call.
+//   Render / Draw   once per room entry: the old room fades out, then with
+//                   the screen blanked the backdrop, a door overlay on each
+//                   wall that has an exit, the room's props, a torch put
+//                   out if the room has one, and the room's palette theme (a
+//                   colour remap of the whole viewport). A half-drawn room
+//                   is never visible.
+//   Animate         every video frame: flickers the torches and pulses the
+//                   door cue. At most one small picture or one small remap
+//                   per frame.
+//   Cue             which door the player stands at (a door bit, 0 = none):
+//                   that door's colours pulse, "SPACE goes through here".
+//   OpenDoor        a door swinging open, one step per call.
 static class DungeonView
 {
     public const uint North = 1, West = 2, East = 4, South = 8;                     // door bits
-    public const uint Chains = 1, Banner = 2, Bones = 4, Puddle = 8, Grate = 16;    // prop bits
+    public const uint Banner = 1, Bones = 2, Puddle = 4, Grate = 8;                  // prop bits
+    public const uint Dark = 64, DarkRight = 128;             // the left / right torch is out
 
-    // Indices into room_Table (RoomArt.cs): door overlays in door-bit order,
-    // props in prop-bit order, the door-opening steps, four flame pictures,
-    // four glow states for each torch, then the theme colour tables.
-    const uint FirstDoor = 0, FirstProp = 4, FirstOpening = 9, FirstFlame = 12, FirstGlow = 16, FirstTheme = 23;
+    // Indices into room_Table (RoomArt.cs).
+    // (art/room_art.py's `order` list; RoomArt.cs shows the table.)
+    const uint FirstProp = 4, FirstOpening = 8, FirstFlame = 14, DeadTorch = 18;
+    const uint FirstTheme = 18, Fade = 23, Unlit = 24, CueTable = 25, DarkRects = 26, CueRects = 27;
 
     static uint tick_;
+    static uint out_;           // Dark / DarkRight bits of the room on screen
+    static bool shown_;
+    static uint cue_;           // the door the player is at
+    static uint cueShown_;      // the door whose colours are swapped right now (0 = none)
 
     public static void Render(uint px, uint py)
     {
@@ -39,20 +48,50 @@ static class DungeonView
             doors = doors | East;
         if (!Maze.SouthIsWall(px, py))
             doors = doors | South;
-        uint info = Maze.Info(px, py);
-        Draw((info >> 5) - 1, doors, info & 31);
+        Draw((Maze.Info(px, py) >> 5) - 1, doors, Maze.Props(px, py));
     }
 
     // theme 0..RoomArt.ThemeCount-1, doors and props as bit sets.
     public static void Draw(uint theme, uint doors, uint props)
     {
+        if (shown_)
+        {
+            // The room on screen goes a step darker (recoloured while
+            // blanked, so no tear), shows for a few frames, then blanks.
+            C64.Screen.BeginUpdate();
+            Recolour(Fade);
+            C64.Screen.EndUpdate();
+            C64.Screen.WaitForVBlank();
+            C64.Screen.WaitForVBlank();
+            C64.Screen.WaitForVBlank();
+        }
         C64.Screen.BeginUpdate();
         C64.Screen.DrawImage(0, 0, C64Address.FromLabel("img_Room"));
-        Overlays(doors, FirstDoor);
-        Overlays(props, FirstProp);
+        Overlays(doors, 0);
+        Overlays(props & 15, FirstProp);
+        out_ = props >> 6;
+        // A torch gone out: a charred stub for the flame, its light taken
+        // off the stones it reached (rectangles along the joints).
+        if ((out_ & 1) != 0)
+            PutOut(RoomArt.FlameColumn0, DarkRects);
+        if ((out_ & 2) != 0)
+            PutOut(RoomArt.FlameColumn1, DarkRects + 1);
         if (theme != 0)
-            C64.Screen.RemapCellColors(0, 0, 40, 21, Entry(FirstTheme + theme));
+            Recolour(FirstTheme + theme);
+        shown_ = true;
+        cueShown_ = 0;
         C64.Screen.EndUpdate();
+    }
+
+    static void Recolour(uint table)
+    {
+        C64.Screen.RemapCellColors(0, 0, 40, 21, Entry(table));
+    }
+
+    static void PutOut(uint column, uint rects)
+    {
+        C64.Screen.DrawImage(column, RoomArt.FlameRow, Entry(DeadTorch));
+        C64.Screen.RemapCellRects(Entry(rects), Entry(Unlit));
     }
 
     // Draws the overlay of every set bit of mask; bit 0 is picture `index`.
@@ -72,25 +111,51 @@ static class DungeonView
         return C64.GetWord(C64Address.FromLabel("room_Table"), index);
     }
 
-    // step 0..2: the door leaf swings further in. Drawn over the closed door
-    // (each picture only holds the cells that change).
-    public static void OpenNorthDoor(uint step)
+    // door North, West or East; step 0..1: the leaf swings further in. Each
+    // picture holds only the cells that change from the step before.
+    public static void OpenDoor(uint door, uint step)
     {
-        C64.Screen.DrawImage(0, 0, Entry(FirstOpening + step));
+        Cue(0);
+        CueUpdate(0);
+        C64.Screen.DrawImage(0, 0, Entry(FirstOpening + step + (door & 6)));
     }
 
-    // Call once per frame, right after WaitForVBlank. Every fourth frame one
-    // of the two torches (they take turns) gets a new flame picture, and
-    // half the time a new state for the glow on the wall around it.
+    public static void Cue(uint door)
+    {
+        cue_ = door;
+    }
+
+    // Shows the cue on `door` (0 = none): its colours swapped by an
+    // involution, so swapping again restores them.
+    static void CueUpdate(uint door)
+    {
+        if (door == cueShown_)
+            return;
+        if (cueShown_ != 0)
+            C64.Screen.RemapCellRects(Entry(CueRects + cueShown_), Entry(CueTable));
+        if (door != 0)
+            C64.Screen.RemapCellRects(Entry(CueRects + door), Entry(CueTable));
+        cueShown_ = door;
+    }
+
+    // Call once per frame, right after WaitForVBlank. Frames take turns:
+    // a new flame for one torch (each torch every 8 frames), then the door
+    // cue (swapped for 16 frames, normal for 16) -- never both in one frame.
+    // At most a 2x2-cell picture or a one-door remap per frame.
     public static void Animate()
     {
         tick_ = tick_ + 1;
-        if ((tick_ & 3) != 0)
+        uint phase = tick_ & 3;
+        if (phase == 1)
+        {
+            CueUpdate((tick_ & 16) != 0 ? cue_ : 0);
+            return;
+        }
+        if (phase != 0)
             return;
         uint torch = tick_ & 4;             // 0 = left, 4 = right
-        uint random = C64.Random();
-        C64.Screen.DrawImage(torch == 0 ? RoomArt.FlameColumn0 : RoomArt.FlameColumn1, RoomArt.FlameRow, Entry(FirstFlame + (random & 3)));
-        if ((random & 16) != 0)
-            C64.Screen.DrawImage(0, 0, Entry(FirstGlow + torch + (random >> 6)));
+        if ((out_ & (1 + (torch >> 2))) != 0)
+            return;
+        C64.Screen.DrawImage(RoomArt.FlameColumn0 + torch * 3, RoomArt.FlameRow, Entry(FirstFlame + (C64.Random() & 3)));
     }
 }

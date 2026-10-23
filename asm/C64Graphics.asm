@@ -30,6 +30,7 @@ Flag_Screen_DrawBitmap = 0
 Flag_Screen_DrawImage = 0
 Flag_Screen_SetCellColors = 0
 Flag_Screen_RemapCellColors = 0
+Flag_Screen_RemapCellRects = 0
 Flag_Screen_MirrorCells = 0
 Flag_Screen_MirrorCellColors = 0
 Flag_Screen_SetScrollX = 0
@@ -2336,7 +2337,7 @@ Screen_DrawBitmap:
 ; addresses whole cells; their bitmap bytes, matrix byte and colour RAM byte
 ; all live at base + (y*40 + x) * (8 or 1), so one cell index serves all
 ; three.
-.if Flag_Screen_DrawImage | Flag_Screen_SetCellColors | Flag_Screen_RemapCellColors | Flag_Screen_DrawText | Flag_Screen_DrawTiles | Flag_Screen_MirrorCells | Flag_Screen_MirrorCellColors
+.if Flag_Screen_DrawImage | Flag_Screen_SetCellColors | Flag_Screen_RemapCellColors | Flag_Screen_RemapCellRects | Flag_Screen_DrawText | Flag_Screen_DrawTiles | Flag_Screen_MirrorCells | Flag_Screen_MirrorCellColors
 
 ; In: zp_cell_x (0-39), zp_cell_y (0-24). Out: zp_cell_index_low/high =
 ; y*40 + x. Destroys A.
@@ -2364,7 +2365,7 @@ Cells_ComputeIndex:
 +   rts
 .endif
 
-.if Flag_Screen_SetCellColors | Flag_Screen_RemapCellColors | Flag_Screen_DrawText | (Flag_Screen_MirrorCells | Flag_Screen_MirrorCellColors)
+.if Flag_Screen_SetCellColors | Flag_Screen_RemapCellColors | Flag_Screen_RemapCellRects | Flag_Screen_DrawText | (Flag_Screen_MirrorCells | Flag_Screen_MirrorCellColors)
 
 ; In: zp_cell_x, zp_cell_y. Out: zp_cell_mptr / zp_cell_cptr = the matrix and
 ; colour RAM addresses of that cell. Destroys A.
@@ -2386,7 +2387,7 @@ Cells_RectSetup:
     rts
 .endif
 
-.if Flag_Screen_SetCellColors | Flag_Screen_RemapCellColors | (Flag_Screen_MirrorCells | Flag_Screen_MirrorCellColors)
+.if Flag_Screen_SetCellColors | Flag_Screen_RemapCellColors | Flag_Screen_RemapCellRects | (Flag_Screen_MirrorCells | Flag_Screen_MirrorCellColors)
 
 ; Moves both row pointers one screen row down. Destroys A.
 Cells_NextRow:
@@ -2447,35 +2448,34 @@ Screen_SetCellColors_Done:
 ; address is patched into the three lookups below (program code is RAM),
 ; which leaves X free to index the table and Y to walk the row.
 ; ---------------------------------------------------------------------------
-.if Flag_Screen_RemapCellColors
-Screen_RemapCellColors:
-    #stack_save_return_adress zp_tmp1_low
-    pla                           ; table, low byte
-    sta Screen_RemapCellColors_T1+1
-    sta Screen_RemapCellColors_T2+1
-    sta Screen_RemapCellColors_T3+1
-    pla
-    sta Screen_RemapCellColors_T1+2
-    sta Screen_RemapCellColors_T2+2
-    sta Screen_RemapCellColors_T3+2
-    #stack_pull_int zp_cell_h
-    #stack_pull_int zp_cell_w
-    #stack_pull_int zp_cell_y
-    #stack_pull_int zp_cell_x
+.if Flag_Screen_RemapCellColors | Flag_Screen_RemapCellRects
+; In: the table address in A (low) / X (high). Points the three lookups at it.
+Cells_RemapTable:
+    sta Cells_Remap_T1+1
+    sta Cells_Remap_T2+1
+    sta Cells_Remap_T3+1
+    stx Cells_Remap_T1+2
+    stx Cells_Remap_T2+2
+    stx Cells_Remap_T3+2
+    rts
+
+; In: zp_cell_x/y/w/h, the table set by Cells_RemapTable. Recolours the
+; rectangle; an empty one is skipped.
+Cells_Remap:
     lda zp_cell_w
-    beq Screen_RemapCellColors_Done
+    beq Cells_Remap_Done
     lda zp_cell_h
-    beq Screen_RemapCellColors_Done
+    beq Cells_Remap_Done
     jsr Cells_RectSetup
-Screen_RemapCellColors_Row:
+Cells_Remap_Row:
     ldy zp_cell_w
     dey
-Screen_RemapCellColors_Cell:
+Cells_Remap_Cell:
     lda (zp_cell_mptr_low),y
     pha
     and #$0f
     tax
-Screen_RemapCellColors_T1:
+Cells_Remap_T1:
     lda $ffff,x
     and #$0f
     sta zp_cell_tmp
@@ -2485,7 +2485,7 @@ Screen_RemapCellColors_T1:
     lsr
     lsr
     tax
-Screen_RemapCellColors_T2:
+Cells_Remap_T2:
     lda $ffff,x
     asl
     asl
@@ -2496,16 +2496,78 @@ Screen_RemapCellColors_T2:
     lda (zp_cell_cptr_low),y      ; colour RAM: only the low nibble is real
     and #$0f
     tax
-Screen_RemapCellColors_T3:
+Cells_Remap_T3:
     lda $ffff,x
     sta (zp_cell_cptr_low),y
     dey
-    bpl Screen_RemapCellColors_Cell
+    bpl Cells_Remap_Cell
     jsr Cells_NextRow
     dec zp_cell_h
-    bne Screen_RemapCellColors_Row
-Screen_RemapCellColors_Done:
+    bne Cells_Remap_Row
+Cells_Remap_Done:
+    rts
+.endif
+
+.if Flag_Screen_RemapCellColors
+Screen_RemapCellColors:
+    #stack_save_return_adress zp_tmp1_low
+    pla                           ; table
+    tay
+    pla
+    tax
+    tya
+    jsr Cells_RemapTable
+    #stack_pull_int zp_cell_h
+    #stack_pull_int zp_cell_w
+    #stack_pull_int zp_cell_y
+    #stack_pull_int zp_cell_x
+    jsr Cells_Remap
     #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+; ---------------------------------------------------------------------------
+; Screen.RemapCellRects(rects, table): RemapCellColors over a list of
+; rectangles: rects = a count, then column, row, width, height per rectangle.
+; ---------------------------------------------------------------------------
+.if Flag_Screen_RemapCellRects
+Screen_RemapCellRects:
+    #stack_save_return_adress zp_tmp1_low
+    pla                           ; table
+    tay
+    pla
+    tax
+    tya
+    jsr Cells_RemapTable
+    #stack_pull_pointer zp_param4_low
+    ldy #0
+    lda (zp_param4_low),y
+    beq Screen_RemapCellRects_Done
+    sta Screen_RemapCellRects_Count
+Screen_RemapCellRects_Next:
+    ldy #1
+    lda (zp_param4_low),y
+    sta zp_cell_x
+    iny
+    lda (zp_param4_low),y
+    sta zp_cell_y
+    iny
+    lda (zp_param4_low),y
+    sta zp_cell_w
+    iny
+    lda (zp_param4_low),y
+    sta zp_cell_h
+    jsr Cells_Remap
+    lda zp_param4_low
+    clc
+    adc #4
+    sta zp_param4_low
+    bcc +
+    inc zp_param4_low+1
++   dec Screen_RemapCellRects_Count
+    bne Screen_RemapCellRects_Next
+Screen_RemapCellRects_Done:
+    #stack_return_to_saved_address zp_tmp1_low
+Screen_RemapCellRects_Count .byte 0
 .endif
 
 ; ---------------------------------------------------------------------------

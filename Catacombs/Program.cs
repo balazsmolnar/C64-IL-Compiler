@@ -44,7 +44,7 @@ class Program
 #if SCENE_TECHDEMO
         TechDemo.Run(); // never returns: the graphics tech showcase (TechDemo.cs)
 #endif
-#if SCENE_ROOM4 || SCENE_DEADEND || SCENE_THEME0 || SCENE_THEME1 || SCENE_THEME2 || SCENE_THEME3 || SCENE_THEME4 || SCENE_DOOROPEN || SCENE_ROOMTOUR
+#if SCENE_ROOM4 || SCENE_DEADEND || SCENE_THEME0 || SCENE_THEME1 || SCENE_THEME2 || SCENE_THEME3 || SCENE_THEME4 || SCENE_DOOROPEN || SCENE_SIDEOPEN || SCENE_ROOMTOUR
         RoomScenes.Run(); // never returns: the room scenes (RoomScenes.cs)
 #endif
 #if SCENE_CHARS
@@ -131,6 +131,7 @@ class Program
             TimingProbe.Start();
 #endif
             DungeonView.Animate(); // torch flicker: first, while the beam is off screen
+            DungeonView.Cue(DoorAt()); // the door the player stands at pulses
 #if SCENE_TIMING || SCENE_TIMINGM
             TimingProbe.Mark(0);
 #endif
@@ -336,15 +337,21 @@ class Program
     // crossing.
     static bool AtDoor()
     {
+        return DoorAt() != 0;
+    }
+
+    // Which door (DungeonView's door bit) the player stands at, 0 if none.
+    static uint DoorAt()
+    {
         if (roomDepth_ >= RoomProjection.DepthMax && northOpen_ && NearCenterX())
-            return true;
+            return DungeonView.North;
         if (roomDepth_ == 0 && southOpen_ && NearCenterX())
-            return true;
+            return DungeonView.South;
         if (roomX_ == 0 && westOpen_)
-            return true;
+            return DungeonView.West;
         if (roomX_ >= RoomProjection.Width && eastOpen_)
-            return true;
-        return false;
+            return DungeonView.East;
+        return 0;
     }
 
     // Crossing is now a deliberate action (SPACE), not automatic on
@@ -364,7 +371,7 @@ class Program
 
         if (roomDepth_ >= RoomProjection.DepthMax && northOpen_ && NearCenterX())
         {
-            AnimateNorthDoorOpening();
+            AnimateDoorOpening(DungeonView.North);
             Step(px_, py_ - 1, RoomProjection.Center, 0);
             return true;
         }
@@ -375,11 +382,13 @@ class Program
         }
         if (roomX_ == 0 && westOpen_)
         {
+            AnimateDoorOpening(DungeonView.West);
             Step(px_ - 1, py_, RoomProjection.Width, 0);
             return true;
         }
         if (roomX_ >= RoomProjection.Width && eastOpen_)
         {
+            AnimateDoorOpening(DungeonView.East);
             Step(px_ + 1, py_, 0, 0);
             return true;
         }
@@ -392,17 +401,19 @@ class Program
         return dx < 20;
     }
 
-    // Plays the north door swinging open (DungeonView.OpenNorthDoor: three
-    // steps, six frames apart) before the player steps through, with the
+    // Plays a door (north, west or east) swinging open (DungeonView.OpenDoor:
+    // two steps, ten frames apart) before the player steps through, with the
     // room's own animation and the sprites kept going meanwhile.
-    static void AnimateNorthDoorOpening()
+    static void AnimateDoorOpening(uint door)
     {
-        for (uint i = 0; i < 24; i++)
+        for (uint i = 0; i < 30; i++)
         {
             C64.Screen.WaitForVBlank();
             DungeonView.Animate();
-            if (i < 18 && i % 6 == 0)
-                DungeonView.OpenNorthDoor(i / 6);
+            if (i == 0)
+                DungeonView.OpenDoor(door, 0);
+            if (i == 10)
+                DungeonView.OpenDoor(door, 1);
             Spider.Animate();
             UpdateZOrder();
         }

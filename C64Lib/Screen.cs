@@ -267,6 +267,11 @@ namespace C64Lib
             // frames, a small area is nothing.
             public static void RemapCellColors(uint column, uint row, uint width, uint height, ulong table) { }
 
+            // RemapCellColors over a list of rectangles: rects is the address
+            // of a count, then column, row, width, height for each
+            // rectangle (e.g. a RawAssembly ".byte 2, 0,0,4,2, 8,0,4,2").
+            public static void RemapCellRects(ulong rects, ulong table) { }
+
             // Copies the left half of a cell rectangle onto its right half,
             // mirrored, pixels and colours: a symmetric picture (a face, a
             // doorway, a frame) needs only its left half stored and drawn.

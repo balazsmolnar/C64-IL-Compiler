@@ -21,6 +21,8 @@ namespace Catacombs;
 //                      on a timer, for ever (no input needed)
 //   RESTART            200 runs back to back, then the title: a run that
 //                      leaked heap would stop with an OUT OF MEMORY fault
+//   DEATH              (in Program.Play) the player dies in the first room:
+//                      the fall, the fade, game over, then the title
 static class GameFlow
 {
     const uint StartX = 1, StartY = 1;  // the entrance, and the way out
@@ -42,7 +44,7 @@ static class GameFlow
                 outcome_ = (runs_ & 1) == 1 ? TitleScreen.GameOver : TitleScreen.Victory;
 #endif
 #if SCENE_RESTART
-            if (runs_ < 200)
+            if (runs_ <= 200)
                 outcome_ = TitleScreen.GameOver;
 #endif
             return outcome_ == 0;

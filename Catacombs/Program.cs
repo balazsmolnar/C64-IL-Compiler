@@ -119,6 +119,9 @@ class Program
 #if SCENE_COMBAT
         Combat();
 #endif
+#if SCENE_DEATH
+        PlayerDied(); // the death in the room, then game over and the title (GameFlow.cs)
+#endif
 #if SCENE_ENCOUNTER
         Encounter.Scene(); // never returns: the encounter's states on a loop (Encounter.cs)
 #endif
@@ -436,32 +439,28 @@ class Program
         Monster.HideSprite(); // the patrolling guardian: the encounter has its own sprites
         playerHp_ = Encounter.Fight(px_, py_, playerHp_, playerDamage_);
         C64.Screen.BeginUpdate();
+        ApplyRoomColor();
+        EnterRoom(); // the room again: without the monster if it died, with it if the player did
+        C64.Screen.EndUpdate();
         if (playerHp_ == 0)
         {
             PlayerDied();
-            C64.Screen.EndUpdate();
             return false;
         }
-        ApplyRoomColor();
-        EnterRoom(); // redraw without the now-dead monster
-        C64.Screen.EndUpdate();
         return true;
     }
 
-    // A flash, then the run is over: nothing is reset here, the next run's
-    // Play() sets everything up again.
+    // The player falls in the room, by the guardian that killed them, and
+    // lies there for two seconds; then the run is over (the game over screen
+    // fades in from this). Nothing is reset here: the next run's Play() sets
+    // everything up again.
     static void PlayerDied()
     {
         Audio.PlayerDied();
         PlayerSprite.Fall();
         SpriteStage.Update();
-        for (uint i = 0; i < 6; i++)
-        {
-            C64.Screen.SetBorderColor(Colors.Red);
-            Delay.Wait(80);
-            C64.Screen.SetBorderColor(Colors.Black);
-            Delay.Wait(80);
-        }
+        for (uint i = 0; i < 100; i++)
+            C64.Screen.WaitForVBlank();
         GameFlow.Lose(); // ends Play(); Main shows the game over screen, then the title
     }
 }

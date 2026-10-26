@@ -132,3 +132,21 @@ class OpCompare : OpArithmetic2
         return base.SizeSuffix(context, operation);
     }
 }
+// Unsigned divide/remainder by a constant 3..255 (ILMethodDivConstOptimizer):
+// calls DivConst8_<d> / DivConst16_<d>, a routine specialised for that
+// divisor which ILStringResourcesPass emits once per divisor actually used
+// (CompilerContext.DivConstRoutines).
+class OpDivConst : OpArithmetic2
+{
+    public OpDivConst(string command) : base(command)
+    {
+    }
+
+    public override string Emit(CompilerMethodContext context, ILOperation operation)
+    {
+        var text = base.Emit(context, operation);
+        int width = Is16Bit(context, operation) ? 16 : 8;
+        context.CompilerContext.DivConstRoutines.Add((width, (int)operation.RawParameter));
+        return text;
+    }
+}

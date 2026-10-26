@@ -22,7 +22,7 @@ static class Minimap
     public static void Init()
     {
         C64.FillMemory(C64Address.FromLabel("hud_Map-1"), 0, 144); // FillMemory writes bytes 1..size
-        C64.CopyMemory(C64Address.FromLabel("hud_Map+100"), C64Address.FromLabel("hud_MapSill-1"), 42); // the window's sill (CopyMemory copies bytes 1..size)
+        C64.CopyMemory(C64Address.FromLabel("hud_Map+99"), C64Address.FromLabel("hud_MapSill-1"), 44); // the window's sill (CopyMemory copies bytes 1..size)
         mask_ = 0;
 #if SCENE_TIMING || SCENE_TIMINGM
         C64.Screen.SetSplit(21, ScreenMode.Bitmap); // the timing readout is hi-res text

@@ -120,15 +120,15 @@ def pad(rows, width=8, height=16, top=0):
 # ---------------------------------------------------------------------------
 # Tiles: pictures 16 lines tall (cell rows 22-23), stored top cell row first.
 # ---------------------------------------------------------------------------
-HEART_FULL = pad([         # the full 8 pixels of its two cells; the half split is the cell boundary
-    ".11..11.",
-    "1332.221",
-    "1322.221",
-    "12222221",
-    ".122221.",
-    ".122221.",
-    "..1221..",
-    "...11...",
+HEART_FULL = pad([         # 7 wide in its 8: column 7 stays black, a gap between hearts
+    ".11.11..",
+    "1332221.",
+    "1322221.",
+    "1222221.",
+    "1222221.",
+    ".12221..",
+    "..121...",
+    "...1....",
 ], top=4)
 
 
@@ -243,8 +243,8 @@ SKULL_ICON = pad([          # lit from above: white only on the cranium
     "..3333..",
     ".332222.",
     "32222221",
-    "21122112",
-    "21122112",
+    "2..22..2",
+    "2..22..2",
     "2222.221",
     ".222221.",
     ".2.2.2..",
@@ -302,12 +302,13 @@ def draw_static(p):
     p.colour(CHEST_COL, 1, CHEST_COL + 1, 2, CHEST_PAL)
     # The skull's niche: a dark arch with a lit rim on the right, in stone.
     nx0, nx1 = SKULL_COL * 4 - 2, SKULL_COL * 4 + 9
-    for y in range(9, 28):
+    p.put(SKULL_COL * 4, 8, SKULL_ICON)
+    for y in range(10, 28):                   # after the skull: its padding is black
         p.px[y][nx0] = 1
         p.px[y][nx1] = 3
-    p.put(nx0, 8, [".1111111111."])
-    p.put(nx0, 9, ["1..........3"])
-    p.put(SKULL_COL * 4, 8, SKULL_ICON)
+    p.put(nx0, 8, ["...111111..."])           # a round arch over three lines
+    p.put(nx0, 9, [".11......11."])
+    p.put(nx0, 10, ["1..........3"])
     p.colour(SKULL_COL, 1, SKULL_COL + 1, 2, SKULL_PAL)
 
     # The minimap's stone block: carved border, rivets, recessed window.
@@ -392,9 +393,10 @@ def tile_sets(panel):
     # (The rooms' rows: line 2y+6 of the panel, so maze rows 1-10 fill lines 8-27.)
     # hud_MapCellRow[y]: the screen row of the cell holding maze row y.
     cellrows = [21 + ((2 * y + 6) >> 3) for y in range(1, 11)]
-    # hud_MapSill: hud_Map bytes 101-142 as a new run starts -- the window's
-    # own sill (lines 29-30 of its bottom cells, colour 2), black between.
-    sill = [0xAA if (101 + i) % 8 in (5, 6) else 0 for i in range(42)]
+    # hud_MapSill: hud_Map bytes 100-143 as a new run starts -- the window's
+    # own sill (lines 28-30 of its bottom cells): a yellow top line, grey
+    # stone, grey with a black rivet every four pixels; black between.
+    sill = [{4: 0xFF, 5: 0xAA, 6: 0xA2}.get((100 + i) % 8, 0) for i in range(44)]
     return tiles, rows, cellrows, sill
 
 
@@ -448,7 +450,10 @@ def mock(panel, hp, treasure, weapon, power, kills, seen, here, bright=True):
     for i, ch in enumerate("%d/3" % treasure):
         p.put((COUNT_COL + i) * 4, 8, digit_tile(ch))
     p.put(WEAPON_COL * 4, 8, WEAPONS[weapon])
-    p.fill(MAP_COL * 4, 29, MAP_COL * 4 + 23, 30, 2)     # the window's sill, as Minimap.Init makes it
+    p.fill(MAP_COL * 4, 28, MAP_COL * 4 + 23, 28, 3)     # the window's sill, as Minimap.Init makes it
+    p.fill(MAP_COL * 4, 29, MAP_COL * 4 + 23, 30, 2)
+    for x in range(MAP_COL * 4 + 3, MAP_COL * 4 + 24, 4):
+        p.px[30][x] = 0
     for i, ch in enumerate("%2d" % power):
         if ch != " ":
             p.put((POWER_COL + i) * 4, 8, digit_tile(ch))

@@ -104,7 +104,7 @@ static class GameFlow
         if (x == StartX && y == StartY && Item.CollectedCount == Item.Count)
         {
             outcome_ = TitleScreen.Victory;
-            Audio.Victory();
+            C64.Music.Interrupt(AudioIds.SongVictory); // fanfare; resumes the exploration tune
             return true;
         }
         return false;

@@ -404,16 +404,8 @@ Music_PlayEffect
     beq +
     cpy m_sfx                   ; one is sounding: only an equal or higher number replaces it
     bcc _skip
-+   lda music_sfx_len,y
-    bpl +                       ; bit 7: only if the music isn't sounding a note on the voice
-    lda m_playing
-    beq +
-    lda mv_gate + music_sfx_reg / 7
-    lsr
-    bcs _skip
 +   sty m_sfx
     lda music_sfx_len,y
-    and #$7f
     sta mv_count+3
     sta m_sfxhr                 ; (nonzero) first a tick with the voice's envelope killed
     lda music_sfx_note,y

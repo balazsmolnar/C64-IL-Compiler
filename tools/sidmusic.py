@@ -331,15 +331,11 @@ class Score:
             res=f['res'] << 4, modevol=(mode << 4) | volume,
             cutmin=cmin, cutmax=cmax, rows=lengths[0][0], loop_rows=lengths[0][1]))
 
-    def effect(self, name, ins, note, ticks, polite=False):
-        """polite: only play while the music's note on the borrowed voice
-        has its gate off (or no song plays) -- for frequent, unimportant
-        sounds that must not chop the music."""
-        if not 1 <= ticks <= 127:
-            raise ValueError('%s: effect length must be 1..127 ticks' % name)
+    def effect(self, name, ins, note, ticks):
+        if not 1 <= ticks <= 255:
+            raise ValueError('%s: effect length must be 1..255 ticks' % name)
         self.fx_index[name] = len(self.effects)
-        self.effects.append(dict(name=name, ins=self.ins_index[ins], note=note_number(note),
-                                 len=ticks | (0x80 if polite else 0)))
+        self.effects.append(dict(name=name, ins=self.ins_index[ins], note=note_number(note), len=ticks))
 
     # -- compile -----------------------------------------------------------
     def compile(self):
@@ -578,11 +574,8 @@ class Player:
         d = self.d
         if self.count[3] and e < self.sfx:
             return
-        n = d['music_sfx_len'][e]
-        if n & 0x80 and self.playing and self.gate[self.regofs[3] // 7] & 1:
-            return
         self.sfx = e
-        self.count[3] = self.sfxhr = n & 0x7F
+        self.count[3] = self.sfxhr = d['music_sfx_len'][e]
         self.note_init(3, d['music_sfx_note'][e], d['music_sfx_ins'][e])
 
     def note_init(self, x, note, y):

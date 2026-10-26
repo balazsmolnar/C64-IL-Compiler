@@ -51,6 +51,7 @@ SCENES = {
     'RESUME': [('play', 'explore'), ('interrupt', 'combat'), ('resume',)],
     'SFX': ALL_FX,
     'SFXMIX': [('play', 'explore')] + ALL_FX,
+    'SFXCOMBAT': [('play', 'combat')] + ALL_FX,
     'SFXGATED': [('play', 'hold')] + ALL_FX,
 }
 
@@ -94,7 +95,7 @@ def apply_event(model, sc, ev):
 
 
 def polite(sc, ev):
-    return ev[0] == 'fx' and bool(sc.effects[sc.fx_index[ev[1]]]['len'] & 0x80)
+    return False                # (the player no longer has polite effects)
 
 
 def check_dump(sc, scene, path):
@@ -203,7 +204,7 @@ def note_segments(timeline):
 
 
 def check_wav(scene, path, timeline, triggers, png):
-    sc_effect_ticks = {e['name']: e['len'] & 0x7F for e in score_module.build().effects}
+    sc_effect_ticks = {e['name']: e['len'] for e in score_module.build().effects}
     import numpy as np
     rate, x = read_wav(path)
     dur = len(x) / rate

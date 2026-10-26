@@ -49,48 +49,54 @@ def build(test=False):
     # ------------------------------------------------------------------
     # Drone: a narrow pulse that never re-attacks (legato); each note
     # starts with the filter nearly shut and lets it open slowly.
-    s.instrument('drone', ad=0x69, sr=0x7A, wave=[(PULSE, 0)], pw=0x380, pws=0x0C,
+    s.instrument('drone', ad=0x69, sr=0x5A, wave=[(PULSE, 0)], pw=0x380, pws=0x0C,
                  legato=True, filt=0x0C, fdel=1)
     # Plucked bass: octave click, then the filter closing on the note.
-    s.instrument('bass', ad=0x08, sr=0x67, wave=[(PULSE, 12), (0, 0)], pw=0x300, pws=0x18,
+    s.instrument('bass', ad=0x08, sr=0x47, wave=[(PULSE, 12), (0, 0)], pw=0x300, pws=0x18,
                  filt=0x50, fdel=-4)
     # Heartbeat: the same bass note with a kick for an attack.
-    s.instrument('kbass', ad=0x08, sr=0x67, pw=0x300, pws=0x18, filt=0x60, fdel=-5,
+    s.instrument('kbass', ad=0x08, sr=0x47, pw=0x300, pws=0x18, filt=0x60, fdel=-5,
                  wave=[(NOISE, 'a-4'), (PULSE, 'c-3'), (0, 'f-2'), (PULSE, 0)])
     # Lead: slow-ish attack, vibrato once a note is held. 'leadL' is the
     # same voice slurred from the note before (the motif's falling sigh).
-    s.instrument('lead', ad=0x38, sr=0x69, wave=[(PULSE, 0)], pw=0x780, pws=0x14, vib=(5, 16))
-    s.instrument('leadL', ad=0x38, sr=0x69, wave=[(PULSE, 0)], pw=0x780, pws=0x14, vib=(5, 10),
+    s.instrument('lead', ad=0x38, sr=0x49, wave=[(PULSE, 0)], pw=0x780, pws=0x14, vib=(5, 16))
+    # The A' section's lead: the same voice louder and with a livelier
+    # pulse sweep, so the return of the theme lifts instead of sinking.
+    s.instrument('leadA', ad=0x38, sr=0x89, wave=[(PULSE, 0)], pw=0x780, pws=0x30, vib=(5, 16))
+    s.instrument('leadL', ad=0x38, sr=0x49, wave=[(PULSE, 0)], pw=0x780, pws=0x14, vib=(5, 10),
                  legato=True)
     # Flute for the bridge.
-    s.instrument('flute', ad=0x58, sr=0xA9, wave=[(TRI, 0)], vib=(6, 20))
+    s.instrument('flute', ad=0x58, sr=0x89, wave=[(TRI, 0)], vib=(6, 20))
     # Chords: one voice cycling through the chord 17 times a second, with
     # a moving pulse width, heard through whatever the bass is doing to
     # the filter. m minor, M major, d diminished, s dominant seventh.
     # Each chord lets go of its gate for the last 18 ticks (a beat and
-    # a half) and rings on in its long release: that is the only time a
-    # footstep may borrow the voice (the step effect is 'polite').
+    # a half) and rings on in its long release. A fast attack: when a
+    # footstep borrows the voice, the chord is back 40 ms later instead of
+    # swelling in again (the moving pulse width still makes it bloom).
     for q, (third, top) in dict(m=(3, 7), M=(4, 7), d=(3, 6), s=(4, 10)).items():
-        s.instrument('pad' + q, ad=0x79, sr=0x5B, pw=0x500, pws=0x1C, filt='keep', gate=18,
+        s.instrument('pad' + q, ad=0x09, sr=0x3B, pw=0x500, pws=0x1C, filt='keep', gate=18,
                      wave=[(PULSE, 0), (0, top), (0, third), ('jump', 0)])
     # (the SFXGATED test fixture's chord: never lets go)
     if test:
         s.instrument('padHold', ad=0x79, sr=0x5B, pw=0x500, pws=0x1C, filt='keep',
                      wave=[(PULSE, 0), (0, 7), (0, 3), ('jump', 0)])
     # Bell: struck an octave high, rings off by itself.
-    s.instrument('bell', ad=0x0A, sr=0x0A, wave=[(PULSE, 12), (TRI, 12), (0, 0)], pw=0x200)
+    s.instrument('bell', ad=0x0A, sr=0x1A, wave=[(PULSE, 12), (TRI, 12), (0, 0)], pw=0x200)
 
     # ------------------------------------------------------------------
     # Combat instruments: louder, brighter, everything through the filter,
     # which every bass note kicks open and lets fall shut again.
     # ------------------------------------------------------------------
-    s.instrument('cbass', ad=0x08, sr=0xB8, wave=[(SAW, 12), (PULSE, 0)], pw=0x400, pws=0x50,
+    s.instrument('cbass', ad=0x08, sr=0x98, wave=[(SAW, 12), (PULSE, 0)], pw=0x400, pws=0x50,
                  legato=True, filt=0x78, fdel=-8)
-    s.instrument('ckick', ad=0x08, sr=0xB8, pw=0x400, pws=0x50, filt=0x78, fdel=-8,
+    s.instrument('ckick', ad=0x08, sr=0x98, pw=0x400, pws=0x50, filt=0x78, fdel=-8,
                  wave=[(NOISE, 'a-5'), (PULSE, 'e-3'), (0, 'a-2'), (PULSE, 0)])
-    s.instrument('csnare', ad=0x08, sr=0xB8, pw=0x400, pws=0x50,
+    s.instrument('csnare', ad=0x08, sr=0x98, pw=0x400, pws=0x50,
                  wave=[(NOISE, 'd-6'), (PULSE, 'a-3'), (NOISE, 'a-5'), (0, 'f-5'), (PULSE, 0)])
-    s.instrument('clead', ad=0x08, sr=0xC8, wave=[(SAW, 0)], vib=(4, 8), filt='keep')
+    s.instrument('clead', ad=0x08, sr=0xA8, wave=[(SAW, 0)], vib=(4, 8), filt='keep')
+    # The climb's last bars and peak: louder, unfiltered, wider vibrato.
+    s.instrument('cleadHi', ad=0x08, sr=0xD8, wave=[(SAW, 0)], vib=(5, 6))
     # Fanfare lead: the same saw, louder still and never filtered.
     s.instrument('vlead', ad=0x08, sr=0xE8, wave=[(SAW, 0)], vib=(4, 12))
     for q, (third, top) in dict(m=(3, 7), M=(4, 7), d=(3, 6)).items():
@@ -103,14 +109,13 @@ def build(test=False):
     # envelopes: gate=N releases the note N ticks before the effect ends.
     # Numbers double as priorities (see sidmusic.py): later = wins.
     # ------------------------------------------------------------------
-    # Footsteps, two alternating: a tick of high noise (the scuff), two of
-    # low noise (the weight).
-    # Polite: they only take voice 3 while its chord is ringing off (see
-    # the pads), so they never chop the harmony.
-    s.instrument('fx_stepA', ad=0x02, sr=0x00, wave=[(NOISE, 'a-6'), (NOISE, 'c-3'), (0, 'c-3')])
-    s.instrument('fx_stepB', ad=0x02, sr=0x00, wave=[(NOISE, 'f-6'), (NOISE, 'a-2'), (0, 'a-2')])
-    s.effect('step a', 'fx_stepA', 'c-3', 4, polite=True)
-    s.effect('step b', 'fx_stepB', 'c-3', 4, polite=True)
+    # Footsteps, two alternating: a tick of high noise (the scuff), a tick
+    # of low noise (the weight). Two ticks, so taking voice 3 from the
+    # chords costs them a 40 ms blip (the pads attack fast).
+    s.instrument('fx_stepA', ad=0x01, sr=0x00, wave=[(NOISE, 'a-6'), (NOISE, 'c-3')])
+    s.instrument('fx_stepB', ad=0x01, sr=0x00, wave=[(NOISE, 'f-6'), (NOISE, 'a-2')])
+    s.effect('step a', 'fx_stepA', 'c-3', 2)
+    s.effect('step b', 'fx_stepB', 'c-3', 2)
 
     # Door: a narrow pulse creaking upwards from 90 Hz, two steps up and
     # one back, a breath, then the slam -- re-gated noise dropping an
@@ -137,7 +142,7 @@ def build(test=False):
     # oscillator: inharmonic, metallic) moving between B6 and F7, ringing
     # off. (With voice 2 silent the ring has nothing to multiply by and
     # it is a plain triangle.)
-    s.instrument('fx_sword', ad=0x09, sr=0x07, gate=10,
+    s.instrument('fx_sword', ad=0x09, sr=0x87, gate=10,
                  wave=[(NOISE, 'c-7'), (0, 'c-7'), (0x14, 'b-6'), (0x15, 'b-6'), (0, 'f-7'), (0, 'c-7'),
                        (0, 'f#7'), ('jump', 3)])
     s.effect('sword', 'fx_sword', 'b-6', 26)
@@ -150,7 +155,7 @@ def build(test=False):
     s.effect('growl', 'fx_growl', 'a-1', 60)
 
     # Hurt: a crack of noise, then a pulse falling more than an octave.
-    s.instrument('fx_hurt', ad=0x08, sr=0x00, pw=0x600, pws=0x30, slide=-100,
+    s.instrument('fx_hurt', ad=0x08, sr=0xA4, pw=0x600, pws=0x30, slide=-100, gate=6,
                  wave=[(NOISE, 'c-6'), (0, 'c-6'), (PULSE, 'f-3')])
     s.effect('hurt', 'fx_hurt', 'e-3', 16)
 
@@ -196,7 +201,8 @@ def build(test=False):
     s.pattern('fluteC1', '@flute r:4 a-4:4 f-5:8 | e-5:4 d-5:8 r:4 | r:4 d-5:4 bb5:8 | a-5:4 g-5:2 f-5:2 e-5:8')
     s.pattern('fluteC2', '@flute r:4 g-4:4 eb5:8 | d-5:8 a-4:8 | r:4 b-4:4 f-5:6 e-5:2 | g#4:12 r:4')
     s.pattern('answer', '@lead f-5:6 e-5:2 d-5:4 c-5:4 | b-4:8 c-5:4 e-5:4')
-    s.pattern('ending', '@lead f-5:4 d-5:4 bb4:4 g#4:4 | a-4:2 g#4:2 e-4:12')
+    s.pattern('motifA', '@leadA e-4:4 c-5:6 b-4:2 bb4:8 @leadL a-4:8 r:4')
+    s.pattern('ending', '@leadA f-5:4 d-5:4 bb4:4 g#4:4 | a-4:2 g#4:2 e-4:12')
 
     s.pattern('drone2', '@drone a-2:16 | a-1:8 a-2:8')
     s.pattern('drone1', '@drone a-2:16')
@@ -228,7 +234,7 @@ def build(test=False):
         bars('bassB', [(0, ''), (0, ''), (5, ''), (5, ''), (0, ''), (-1, ''), (1, '')]) + [T(-5), 'bassFill'])
     explore_lead = (
         ['motif', T(5), 'motif', T(0), 'motifInv', 'cadence', 'leadB1', 'leadB2', 'fluteC1', 'fluteC2',
-         'motif', 'answer', T(12), 'motif', T(0), 'ending'])
+         'motifA', 'answer', T(12), 'motifA', T(0), 'ending'])
     explore_chords = (
         # A: Am | Bb/A Am | Dm | Eb Dm | Am | G#dim Am | Bb | E7
         ['padBellm', T(1), 'quarterM', T(0), 'pad12m', T(5), 'padBellm', T(6), 'halfM', T(5), 'halfm',
@@ -272,7 +278,9 @@ def build(test=False):
     # its own 4+4+2+2+4 rhythm against the 3+3+2 grid) and jumps the
     # octave for the last two bars before the peak.
     s.pattern('cped', '@clead d-5:4 f-5:4 e-5:2 d-5:2 e-5:4')
-    s.pattern('cpeak', '@clead g#5:3 b-5:3 d-6:2 f-6:3 d-6:3 b-5:2')
+    s.pattern('cans', '@clead c-5:4 e-5:4 d-5:2 c-5:2 d-5:4')
+    s.pattern('cpedHi', '@cleadHi d-5:4 f-5:4 e-5:2 d-5:2 e-5:4')
+    s.pattern('cpeak', '@cleadHi g#5:3 b-5:3 d-6:2 f-6:3 d-6:3 b-5:2')
     s.pattern('cfill', '@clead l1 a-5 g-5 e-5 c#5 a-4 c#5 e-5 g-5 a-5 r a-5 r a-5 a-5 r r')
 
     combat = [(0, 'm'), (0, 'm'), (1, 'M'), (0, 'm'), (0, 'm'), (0, 'm'), (1, 'M'), (-5, 'M'),
@@ -281,7 +289,7 @@ def build(test=False):
            filter=dict(res=13, mode='lp', cut=(0x18, 0x78)),
            voices=[
                bars('cbass', combat[:8]) + bars('cbassClimb', combat[8:]) + [T(-5), 'cbassFill'],
-               ['cleadA', 'cleadB', 'cleadA', 'cleadC', 'cped', 'cped', 'cped', 'cped', T(12), 'cped', 'cped',
+               ['cleadA', 'cleadB', 'cleadA', 'cleadC', 'cped', 'cped', 'cans', 'cans', T(12), 'cpedHi', 'cpedHi',
                 T(0), 'cpeak', 'cfill'],
                bars('cstab%', combat) + [T(-5), 'cstabM'],
            ])

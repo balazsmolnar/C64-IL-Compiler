@@ -39,6 +39,7 @@ SCENES = {
     'RESUME': 30,     # 10 s of exploration, 5 s of combat, exploration resumed where it was
     'SFX': 28,        # every effect in turn, 2 s apart, no music
     'SFXMIX': 28,     # the same over the exploration tune
+    'SFXCOMBAT': 28,  # the same over the combat tune
     'SFXGATED': 28,   # the same while voice 3 holds a chord (gate on)
 }
 

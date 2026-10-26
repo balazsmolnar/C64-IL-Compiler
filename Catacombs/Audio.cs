@@ -23,7 +23,9 @@ static class Audio
     static bool stepLeft_;
 
     // A song from its start (the title tune hands over to the exploration
-    // tune by itself), and a sound effect: for the moments that need
+    // tune by itself after 8.6 s -- on purpose: a player idling on the
+    // title screen hears the game's main tune, and Song(SongExplore) at
+    // the start of a run restarts it from bar 1), and a sound effect: for the moments that need
     // nothing more (door, pickups, the sword's blow -- which the monster's
     // growl outranks, so the growl answering it is never dropped).
     public static void Song(uint song)
@@ -34,12 +36,6 @@ static class Audio
     public static void Fx(uint effect)
     {
         C64.Music.PlayEffect(effect);
-    }
-
-    // Out with every relic: the fanfare (it resumes the exploration tune).
-    public static void Victory()
-    {
-        C64.Music.Interrupt(AudioIds.SongVictory);
     }
 
     // Once, at boot.
@@ -72,6 +68,9 @@ static class Audio
 #elif SCENE_AUDIO_SFXMIX
         C64.Music.Play(AudioIds.SongExplore);
         EffectReel();
+#elif SCENE_AUDIO_SFXCOMBAT
+        C64.Music.Play(AudioIds.SongCombat);
+        EffectReel();
 #elif SCENE_AUDIO_SFXGATED
         C64.Music.Play(AudioIds.SongHold);
         EffectReel();
@@ -81,9 +80,7 @@ static class Audio
     // Every pass of the main loop: did the player move? Footsteps come
     // at most two a second (timed in real frames, however long a pass
     // takes), left and right alternating, the first as soon as the player
-    // sets off. A step is polite (see audio/score.py): it only sounds
-    // while the chord on voice 3 is ringing off, so it is tried every
-    // pass until one actually plays.
+    // sets off.
     public static void Step(bool moved)
     {
         if (!moved)
@@ -94,13 +91,10 @@ static class Audio
         uint now = C64.Music.Frame;
         if (walking_ && (uint)(now - lastStep_) < StepEvery)
             return;
+        walking_ = true;
+        lastStep_ = now;
         C64.Music.PlayEffect(stepLeft_ ? AudioIds.FxStepA : AudioIds.FxStepB);
-        if (C64.Music.EffectPlaying)
-        {
-            walking_ = true;
-            lastStep_ = now;
-            stepLeft_ = !stepLeft_;
-        }
+        stepLeft_ = !stepLeft_;
     }
 
     // The exploration tune is put aside, not stopped: MonsterDied picks it
@@ -140,7 +134,7 @@ static class Audio
             C64.Screen.WaitForVBlank();
     }
 
-#if SCENE_AUDIO_EXPLORE || SCENE_AUDIO_COMBAT || SCENE_AUDIO_TITLE || SCENE_AUDIO_DEATH || SCENE_AUDIO_VICTORY || SCENE_AUDIO_RESUME || SCENE_AUDIO_SFX || SCENE_AUDIO_SFXMIX || SCENE_AUDIO_SFXGATED
+#if SCENE_AUDIO_EXPLORE || SCENE_AUDIO_COMBAT || SCENE_AUDIO_TITLE || SCENE_AUDIO_DEATH || SCENE_AUDIO_VICTORY || SCENE_AUDIO_RESUME || SCENE_AUDIO_SFX || SCENE_AUDIO_SFXMIX || SCENE_AUDIO_SFXCOMBAT || SCENE_AUDIO_SFXGATED
     // Audio scene builds (see audio/README.md): play one thing from boot and
     // stay there, for recording.
     static void Hold(uint song)

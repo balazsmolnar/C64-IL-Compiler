@@ -248,10 +248,11 @@ mc2=None, transparent=None, count=None, preview=None, quiet=False)`.
   buffers left above the code when `DrawText` is used; 56 without it) -
   what the heap needs - 64 per sprite frame beyond 64. The runtime owns
   $0800-$0FFF: nothing else may use it.
-  With the prototype game as committed the block ends at $5FA4, of which the
-  last 192 bytes are sprite frames that are moved at startup: **25,827 bytes
-  ($671D-$CBFF) for more code, all assets and the heap** (before this
-  layout: 16,379).
+  After the rooms/characters/combat/HUD round-3 integration the block ends
+  at $B8CD, of which the last 4096 bytes ($A8CE-) are the 64 sprite frames
+  that are moved at startup: the tables take $A8CE-$AD05 and the heap
+  starts at $AD06, so **7,930 bytes ($AD06-$CBFF) are left for more code,
+  assets and the heap** (the prototype had 25,827).
 - Sprite frames 1-64 are free: they load at the end of the program and are
   copied under the I/O area at startup; the object tables and heap then
   reuse that space. (The loaded file must still end below $CC00, which the

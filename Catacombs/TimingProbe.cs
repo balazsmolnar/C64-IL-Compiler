@@ -35,6 +35,8 @@ static class TimingProbe
     {
         uint frames = C64.GetMemory(0xA2, 0) - jiffy0_;
         ulong t = Line() + 312UL * frames - line0_;
+        if (t >= 0x8000) // read just after line 252, before the interrupt advanced the jiffy clock
+            t = t + 312;
         if (t > worst_[k])
             worst_[k] = t;
     }

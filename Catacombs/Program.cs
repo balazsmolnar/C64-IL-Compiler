@@ -295,19 +295,19 @@ class Program
         if (!moved)
             return;
 
-        if (monsterHere_ && Touching(Monster.CurrentRoomX(px_, py_), Monster.RoomDepth, Monster.RoomRadius))
+        if (monsterHere_ && Touching(Monster.RoomRadius))
         {
             if (!Combat())
                 return; // player died -- PlayerDied already reset everything
         }
-        else if (itemHere_ && Touching(Item.RoomX, Item.RoomDepth, Item.RoomRadius))
+        else if (itemHere_ && Touching(Item.RoomRadius))
         {
             Item.CollectAt(px_, py_);
             Audio.Pickup();
             itemHere_ = false;
             Hud.SetTreasure(Item.CollectedCount);
         }
-        else if (weaponHere_ && Touching(Weapon.RoomX, Weapon.RoomDepth, Weapon.RoomRadius))
+        else if (weaponHere_ && Touching(Weapon.RoomRadius))
         {
             playerDamage_ = Weapon.DamageAt(px_, py_);
             Weapon.CollectAt(px_, py_);
@@ -320,14 +320,12 @@ class Program
     }
 
     // Touch radius is given in SCREEN pixels (matching how big the marker
-    // actually looks), so the comparison projects the player's room-space
-    // position to screen-space first rather than comparing room-space
-    // units against a pixel radius directly.
-    static bool Touching(uint x, uint depth, ulong radius)
+    // actually looks). What is in the room -- its guardian, treasure or
+    // weapon -- is on the sprite stage, which already knows where both it
+    // and the player are on screen: nothing to look up or project here
+    // (looking the guardian up every moving frame cost ~8 raster lines).
+    static bool Touching(ulong radius)
     {
-        // What is at (x, depth) -- this room's guardian, treasure or weapon --
-        // is on the sprite stage, which already knows where both it and the
-        // player are on screen: no projecting anything again.
         return SpriteStage.PlayerAtFeature(radius);
     }
 

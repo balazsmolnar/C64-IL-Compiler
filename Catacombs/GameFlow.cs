@@ -86,7 +86,7 @@ static class GameFlow
         if (runs_ <= 200)
             return;
 #endif
-        TitleScreen.FadeOut();
+        TitleScreen.FadeOut(2);
 #if SCENE_FLOW
         TitleScreen.Timer = 300;
 #endif

@@ -93,7 +93,7 @@ static class PlayerSprite
         {
             SpriteStage.Count[0] = 1;
             SpriteStage.Parts[Light + SpriteStage.Frame] = SpriteStage.Mc + Frame.Fallen;
-            SpriteStage.Parts[Light + SpriteStage.Color] = Cloak;
+            SpriteStage.Parts[Light + SpriteStage.Color] = SpriteStage.Multi | (uint)Colors.LightRed; // the body stands out as the room darkens
             SpriteStage.Parts[Light + SpriteStage.Dy] = 36;
             return;
         }

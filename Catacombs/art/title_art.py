@@ -136,7 +136,7 @@ LEVELS = {
     4: (ORANGE, BROWN, BLUE),         # shadows go cold away from the flames
     3: (GREY1, BROWN, BLUE),
     2: (GREY1, BLUE, BLUE),
-    1: (BLUE, BLUE, BLUE),            # silhouettes
+    1: (BLUE, BLACK, BLACK),          # only the lit rims of the bones show
     0: (BLACK, BLACK, BLACK),
 }
 
@@ -158,7 +158,7 @@ BAYER = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]]
 # ---------------------------------------------------------------------------
 # Wall tiles, 8x16 (16x16 hi-res pixels), lit from the top left
 # ---------------------------------------------------------------------------
-FEMUR = ["..aaab..",
+FEMUR = ["..a.ab..",
          ".aaaabb.",
          "aaaabbbc",
          "aaabbbbc",
@@ -170,7 +170,7 @@ FEMUR = ["..aaab..",
          "abbbbccc",
          ".bbbccc.",
          ".bbbccc.",
-         "..bccc..",
+         "..b.cc..",
          "........"]
 CONDYLE = [".aab.ab.",
            "aaabaabc",
@@ -275,7 +275,9 @@ def wall():
         for t in range(-1, COLS // 2 + 1):
             c = t * 2 + shift           # the tile's first cell
             name = seq[(t + n * 3) % len(seq)]
-            lv = light(c * 4 + 4, r * 8 + 8) + (rnd('l', t, n) - 0.5) * 0.8 - n * 0.12
+            lv = light(c * 4 + 4, r * 8 + 8) - n * 0.12
+            edge = min(c + 1, COLS - 1 - c)     # cells from the nearer screen edge
+            lv = min(lv, (edge - 1) * 0.7) if edge < 5 else max(lv, 2.0)
             set_pal(c, r, c + 1, r + 1, level_pal(lv))
             if TILES[name] is not None:
                 stamp(c * 4, r * 8, TILES[name])
@@ -294,25 +296,40 @@ def cornice():
         pal[4][c] = level_pal(max(2.0, light(c * 4 + 2, 48) - 0.5))
 
 
+FLOOR_LEVELS = {                      # the floor's own ramp: grey on black, warm in the pools
+    5: (LRED, ORANGE, BROWN),
+    4: (ORANGE, BROWN, BLACK),
+    3: (GREY2, GREY1, BLACK),
+    2: (GREY1, GREY1, BLACK),
+    1: (GREY1, BLACK, BLACK),
+    0: (BLACK, BLACK, BLACK),
+}
+
+
 def floor():
     """Rows 18-20: flagstones in perspective, joints converging on the gate,
-    warm pools under the sconces, black towards the viewer."""
+    warm pools under the sconces, grey on black elsewhere. Each stone is
+    shaded inside: dark on its far part, dithered towards its lit front edge;
+    the front course dithers away into black."""
     vx, vy = CX, 96.0
     rows_y = (144, 149, 156, 168)
     for r in range(18, ROWS):
         for c in range(COLS):
             x, y = c * 4 + 2, r * 8 + 4
-            pool = max(math.exp(-((x - tx) * 2.0) ** 2 / 3000.0) for tx in TORCH_X)
+            pool = max(math.exp(-((x - tx) * 2.0) ** 2 / 2600.0) for tx in TORCH_X)
             gate = math.exp(-((x - CX) * 2.0) ** 2 / 2500.0)
-            lv = 1.6 + 3.4 * pool + 1.2 * gate - (r - 18) * 1.0
-            pal[r][c] = level_pal(max(1.0 if r < 20 else 0.0, lv))
+            lv = 1.2 + 3.8 * pool + 1.4 * gate - (r - 18) * 0.9
+            pal[r][c] = FLOOR_LEVELS[max(1 if r < 20 else 0, min(5, int(lv)))]
     for y in range(FLOOR_Y, H):
         for x in range(W):
             band = next(i for i in range(3) if y < rows_y[i + 1])
-            if y == rows_y[band]:
-                v = 1 if y != 144 else 3                 # lit front edge of each course
+            y0, y1 = rows_y[band], rows_y[band + 1]
+            p_ = (y - y0) / float(y1 - y0)       # 0 at the far (top) edge, 1 at the front
+            if y == y0:
+                v = 1 if y != 144 else 3                 # lit front edge of the course behind
+            elif y == y1 - 1:
+                v = 0                                     # joint under each course
             else:
-                # radial joints: the stone's position along its course
                 u = (x + 0.5 - vx) * (168 - vy) / (y - vy)
                 u = u / 26.0 + (0.5 if band & 1 else 0.0)
                 f = u - math.floor(u)
@@ -321,10 +338,14 @@ def floor():
                     v = 0
                 elif f < spread * 2.2:
                     v = 1
+                elif p_ < 0.34:
+                    v = 2 if (x + y) & 1 else 0          # the far third: dark
+                elif p_ < 0.67:
+                    v = 2 if ((x + y) & 1 or (y & 1)) else 1
                 else:
-                    v = 2
-                if y == rows_y[band + 1] - 1:
-                    v = 0                                 # joint under each course
+                    v = 1 if (x + y) & 1 else 2           # towards the lit front edge
+                if band == 2 and v and BAYER[y & 3][x & 3] < (y - 158) * 2:
+                    v = 0                                 # the front course melts into black
             put(x, y, v)
     # the threshold in front of the gate
     for y in (144, 145):
@@ -362,12 +383,10 @@ def void(x, y):
         if y == ty and abs(dx) < half:
             return 3                                      # a tread's lit edge
     d = math.hypot(dx * 0.8, (y - 117) * 0.7)
-    if d < 4:
+    if d < 5:
         return 3
-    if d < 8:
-        return 3 if (x + y) & 1 else 0
-    if d < 12:
-        return 3 if (x & 1) and (y & 1) else 0
+    if d < 10:
+        return 2
     return 0
 
 
@@ -390,8 +409,13 @@ def gate():
                         r_ = 0 if abs(dx) >= 16 else 1
                     elif y >= 77:
                         r_ = 3
+                    elif (y in (62, 63) and 4 < x - 64 < 8) or (y in (70, 71) and 22 < x - 64 < 26):
+                        r_ = 3                                  # chisel marks
+                    elif dx >= 10:
+                        r_ = 3
                     else:
-                        r_ = 2 if dx < 10 else 3
+                        # lit at the top, dithered into shadow towards the arch
+                        r_ = 3 if (y - 57) > 4 + BAYER[y & 3][x & 3] * 1.2 else 2
                 else:
                     ang = math.degrees(math.atan2(-dy, dx))
                     seg = ang / 20.0
@@ -402,6 +426,8 @@ def gate():
                         r_ = 1 if dx < 12 else 2
                     elif u < R_IN + 2.5:
                         r_ = 3
+                    elif u < R_IN + 5.5:
+                        r_ = 3 if (x + y) & 1 else 2            # darker towards the inner end
                     else:
                         r_ = 2
             else:
@@ -648,8 +674,8 @@ SPRITE_FRAMES = [
      "..xooyyoox..", "...xoooox...", "............"],
     # 3: the hooded figure, a black silhouette rimmed by the glow, lantern out
     ["............", ".....o......", "....oxx.....", "...oxxxx....", "...oxxxx....", "...oxx.x....",
-     "..oxxxxxx...", ".oxxxxxxxx..", ".oxxxxxxxxx.", ".oxxxxxxx.x.", ".oxxxxxxx.o.", ".oxxxxxxxoyo",
-     ".oxxxxxxx.y.", ".oxxxxxxx...", ".oxxxxxxxx..", "oxxxxxxxxx..", "oxxxxxxxxx..", "oxxxxxxxxxx.",
+     "..oxxxxxx...", ".oxxxxxxxx..", ".oxxxxxxxxx.", ".oxxxxxxx.x.", ".oxxxxxxx.yy", ".oxxxxxxxoyy",
+     ".oxxxxxxx.yy", ".oxxxxxxx...", ".oxxxxxxxx..", "oxxxxxxxxx..", "oxxxxxxxxx..", "oxxxxxxxxxx.",
      "oxxxxxxxxxx.", "oxxxxxxxxxxx", "............"],
     # 4: eyes for the keystone skull's sockets
     ["............", "............", "............", "............", "............", "............",
@@ -658,8 +684,8 @@ SPRITE_FRAMES = [
      "............", "............", "............"],
     # 5: the figure again, the lantern swung
     ["............", ".....o......", "....oxx.....", "...oxxxx....", "...oxxxx....", "...oxx.x....",
-     "..oxxxxxx...", ".oxxxxxxxx..", ".oxxxxxxxxx.", ".oxxxxxxx.x.", ".oxxxxxxx..x", ".oxxxxxxx..o",
-     ".oxxxxxxx.oyo", ".oxxxxxxx..y", ".oxxxxxxxx..", "oxxxxxxxxx..", "oxxxxxxxxx..", "oxxxxxxxxxx.",
+     "..oxxxxxx...", ".oxxxxxxxx..", ".oxxxxxxxxx.", ".oxxxxxxx.x.", ".oxxxxxxx..x", ".oxxxxxxx.yy",
+     ".oxxxxxxx.yy", ".oxxxxxxx.yy", ".oxxxxxxxx..", "oxxxxxxxxx..", "oxxxxxxxxx..", "oxxxxxxxxxx.",
      "oxxxxxxxxxx.", "oxxxxxxxxxxx", "............"],
     # 6: embers (own colour only: the code cools them as they rise)
     ["............", ".....x......", "............", "............", "........x...", "............",

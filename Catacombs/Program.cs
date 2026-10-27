@@ -120,6 +120,8 @@ class Program
         Combat();
 #endif
 #if SCENE_DEATH
+        playerHp_ = 0;
+        Hud.SetHealth(0);
         PlayerDied(); // the death in the room, then game over and the title (GameFlow.cs)
 #endif
 #if SCENE_ENCOUNTER
@@ -450,17 +452,16 @@ class Program
         return true;
     }
 
-    // The player falls in the room, by the guardian that killed them, and
-    // lies there for two seconds; then the run is over (the game over screen
-    // fades in from this). Nothing is reset here: the next run's Play() sets
+    // The player falls in the room, by the guardian that killed them, and the
+    // room slowly darkens around the body; then the run is over (the game
+    // over screen fades in from the black). Nothing is reset here: the next run's Play() sets
     // everything up again.
     static void PlayerDied()
     {
         Audio.PlayerDied();
         PlayerSprite.Fall();
         SpriteStage.Update();
-        for (uint i = 0; i < 100; i++)
-            C64.Screen.WaitForVBlank();
+        TitleScreen.FadeOut(20); // the room dies around the body, two seconds
         GameFlow.Lose(); // ends Play(); Main shows the game over screen, then the title
     }
 }

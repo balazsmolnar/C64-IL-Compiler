@@ -70,7 +70,8 @@ static class TitleScreen
     static uint fire_;                  // frames fire has been held; 255 = not yet released
     static uint info_;
     static uint column_;
-    static ulong inner_, outer_, table_;
+    static uint sweep_;                 // columns either side the light spreads over
+    static ulong inner_, table_;
 #if SCENE
     // Scene builds: leave the screen by itself after this many video frames
     // (0 = stay). Set before Show().
@@ -93,17 +94,19 @@ static class TitleScreen
         C64.Screen.SetCellColors(0, Rows, 40, 4, 0, Colors.Black);
         C64.Screen.DrawImage(0, 0, C64Address.FromLabel("img_Title"));
         inner_ = C64Address.FromLabel("pal_Bright");
-        outer_ = inner_;
+        sweep_ = 20;
         if (kind == GameOver)
         {
             C64.Screen.RemapCellColors(0, 0, 40, Rows, C64Address.FromLabel("pal_GoDim"));
             inner_ = C64Address.FromLabel("pal_GoBright");
-            outer_ = inner_;
         }
         else
             C64.Screen.RemapCellColors(0, 0, 40, Rows, C64Address.FromLabel("pal_Dim"));
         if (kind == Victory)
+        {
             inner_ = C64Address.FromLabel("pal_Dawn");
+            sweep_ = 8;
+        }
         C64.Screen.SetSplit(Rows, ScreenMode.Bitmap);
 
         // Sprites: positions, colours (and a black border and background),
@@ -115,21 +118,19 @@ static class TitleScreen
         C64.CopyMemory(C64Address.FromLabel("ttl_PtrDst"), C64Address.FromLabel("ttl_PtrSrc"), 8);
         C64.Screen.EndUpdate();
 
-        // Light spreads from the gate outwards (the gate's own 16 columns
-        // get the victory light).
-        for (column_ = 0; column_ < 20; column_++)
+        // Light spreads from the gate outwards. On the victory screen only
+        // the gate's own 16 columns fill with daylight: the burnt-out torches
+        // leave the rest of the wall dim.
+        for (column_ = 0; column_ < sweep_; column_++)
         {
             C64.Screen.WaitForVBlank();
             C64.Screen.WaitForVBlank();
-            table_ = outer_;
-            if (column_ < 8)
-                table_ = inner_;
-            C64.Screen.RemapCellColors(19 - column_, 0, 1, Rows, table_);
-            C64.Screen.RemapCellColors(20 + column_, 0, 1, Rows, table_);
+            C64.Screen.RemapCellColors(19 - column_, 0, 1, Rows, inner_);
+            C64.Screen.RemapCellColors(20 + column_, 0, 1, Rows, inner_);
         }
 
         // on: title = flames, embers, figure; game over = embers, eyes;
-        // victory = the title's plus the relic.
+        // victory = the figure and the relic.
         if (kind == Title)
         {
             C64.FillMemory(SpriteEnable, 0x5E, 1);
@@ -144,7 +145,9 @@ static class TitleScreen
         }
         else
         {
-            C64.FillMemory(SpriteEnable, 0x5F, 1);
+            C64.FillMemory(SpriteEnable, 0x41, 1);   // the torches have burnt out
+            C64.Screen.RemapCellColors(0, 0, 12, 4, C64Address.FromLabel("pal_Bright"));   // the logo in full gold
+            C64.Screen.RemapCellColors(28, 0, 12, 4, C64Address.FromLabel("pal_Bright"));
             C64.Screen.DrawText(7, PromptRow, "YOU ESCAPED THE CATACOMBS", 0x70);
             C64.Screen.DrawText(9, InfoRow, "ALL 3 RELICS RECOVERED", 0xF0);
         }
@@ -155,7 +158,7 @@ static class TitleScreen
         while (Animate())
         {
         }
-        FadeOut();
+        FadeOut(2);
     }
 
     // One video frame of the screen's life. False when it is time to leave.
@@ -164,7 +167,7 @@ static class TitleScreen
         C64.Screen.WaitForVBlank();
         tick_++;
 
-        if (kind_ != GameOver)
+        if (kind_ == Title)
         {
             // Torch light: the cells hugging a flame's bowl drop a step and come back, at random intervals.
             // First thing in the frame, ahead of the beam.
@@ -245,16 +248,18 @@ static class TitleScreen
     // (the game keeps border and background black). Leaves the display blanked, with an
     // empty bitmap, no split and no sprites: whatever comes next draws
     // unseen and shows itself.
-    public static void FadeOut()
+    // `frames` video frames per step: 2 between screens, 20 for the death.
+    // Sprites stay up until the screen is black.
+    public static void FadeOut(uint frames)
     {
-        C64.FillMemory(SpriteEnable, 0, 1);
         table_ = C64Address.FromLabel("pal_Darken");
         for (column_ = 0; column_ < 5; column_++)
         {
-            C64.Screen.WaitForVBlank();
-            C64.Screen.WaitForVBlank();
+            for (tick_ = 0; tick_ < frames; tick_++)
+                C64.Screen.WaitForVBlank();
             C64.Screen.RemapCellColors(0, 0, 40, 25, table_);
         }
+        C64.FillMemory(SpriteEnable, 0, 1);
         C64.Screen.BeginUpdate();
         C64.Screen.SetBorderColor(Colors.Black);
         C64.Screen.SetBackgroundColor(Colors.Black);

@@ -374,18 +374,34 @@ Multiply16 .proc
     sta zp_param0_low
     sta zp_param0_high
     ldx zp_param1_high
-    beq loop
+    beq byte
     ldx zp_param2_high
-    bne loop
+    bne wide
     ldx zp_param2_low           ; swap
     lda zp_param1_low
     sta zp_param2_low
     stx zp_param1_low
     lda zp_param1_high
     sta zp_param2_high
-    lda #0
-    sta zp_param1_high
-loop
+byte                            ; multiplier below 256
+    lda zp_param1_low
+    beq done
+-   lsr zp_param1_low
+    bcc +
+    clc
+    lda zp_param0_low
+    adc zp_param2_low
+    sta zp_param0_low
+    lda zp_param0_high
+    adc zp_param2_high
+    sta zp_param0_high
++   asl zp_param2_low
+    rol zp_param2_high
+    lda zp_param1_low
+    bne -
+done
+    rts
+wide
     lda zp_param1_low
     ora zp_param1_high
     beq done
@@ -401,7 +417,5 @@ loop
     sta zp_param0_high
 +   asl zp_param2_low
     rol zp_param2_high
-    jmp loop
-done
-    rts
+    jmp wide
 .pend

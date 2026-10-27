@@ -896,6 +896,20 @@ _write
     lda mv_ad,x
     sta $d405,y
     lda mv_sr,x
+    cpx #3
+    bcs _sr
+    pha                         ; a music voice while an effect sounds: ducked,
+    lda mv_count+3              ; its sustain 4 steps lower (the envelope falls to
+    beq _full                   ; it; it comes back with the voice's next note)
+    pla
+    sec
+    sbc #$40
+    bcs _sr
+    and #$0f
+    bcc _sr
+_full
+    pla
+_sr
     sta $d406,y
     lda mv_wave,x
     and mv_gate,x

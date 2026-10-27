@@ -759,7 +759,10 @@ class Player:
         self.sid[y + 2] = self.pwlo[x]
         self.sid[y + 3] = self.pwhi[x]
         self.sid[y + 5] = self.ad[x]
-        self.sid[y + 6] = self.sr[x]
+        sr = self.sr[x]
+        if x != 3 and self.count[3]:
+            sr = sr - 0x40 if sr >= 0x40 else sr & 0x0F
+        self.sid[y + 6] = sr
         self.sid[y + 4] = self.wave[x] & self.gate[x]
 
     def frame(self):

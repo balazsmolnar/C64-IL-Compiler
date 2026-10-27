@@ -23,10 +23,11 @@
 - Effects: footsteps (two, alternating), door, treasure pickup, weapon pickup, monster growl, player hurt, sword hit, monster death, player death.
 
 Voice 1 is bass and percussion (each drum is the attack of a bass note),
-voice 2 the lead, voice 3 chords, pads and bell. Effects borrow voice 3;
+voice 2 the lead, voice 3 chords, pads and bell. While an effect sounds, voices 1 and 2 are ducked (their sustain
+drops 4 steps; it comes back with each voice's next note). Effects borrow voice 3;
 the music on it keeps counting silently and comes back in time, re-attacked,
-when the effect ends. Footsteps are polite: they only take voice 3 while
-its chord is ringing off, so walking never chops the harmony.
+when the effect ends. Footsteps are two ticks long and the pads attack
+fast, so a step costs the chords a 40 ms blip.
 
 ## Changing the music
 
@@ -65,7 +66,8 @@ straight into that sound and stays there; see `Audio.Init`):
 | `VICTORY` | 5 s of exploration, the victory fanfare breaking in, exploration resuming |
 | `RESUME` | 10 s of exploration, 5 s of combat, exploration resumed where it was |
 | `SFX` | Every effect in turn, 2 s apart, no music. Order: step a, step b, door, pickup, weapon, growl, hurt, sword, monster death, player death |
-| `SFXMIX` | The same effects over the exploration tune (polite steps only sound when voice 3 is free) |
+| `SFXMIX` | The same effects over the exploration tune |
+| `SFXCOMBAT` | The same effects over the combat tune |
 | `SFXGATED` | The same effects while voice 3 holds a chord: each must sound as it does alone |
 
 To build one scene by hand and run it:

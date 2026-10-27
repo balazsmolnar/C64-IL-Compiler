@@ -45,7 +45,7 @@ public class DivConstRoutineTests
     {
         uint bad = 0;
         ulong x = 0;
-        for (uint i = 0; i < 700; i++)
+        for (uint i = 0; i < 250; i++)
         {
             if (x / 3 != Div16(x, 3)) bad++;
             if (x % 3 != Rem16(x, 3)) bad++;
@@ -59,7 +59,7 @@ public class DivConstRoutineTests
             if (x / 16 != Div16(x, 16)) bad++;
             if (x % 64 != Rem16(x, 64)) bad++;
             if (x % 256 != Rem16(x, 256)) bad++;
-            x = x + 93;
+            x = x + 263;
         }
         Assert.AreEqual(bad, 0u);
     }

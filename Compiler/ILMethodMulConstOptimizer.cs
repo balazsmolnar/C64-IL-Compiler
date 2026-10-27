@@ -22,7 +22,15 @@ class ILMethodMulConstOptimizer : PeepholeOptimizerPass
         [1] = 0,
         [2] = 1,
         [4] = 2,
+        [8] = 3,
+        [16] = 4,
+        [32] = 5,
+        [64] = 6,
+        [128] = 7,
     };
+
+    private static bool IsNarrowResult(ILOperation l) =>
+        l.StackContent != null && l.StackContent.Count > 0 && l.StackContent[^1].GetStorageBytes() == 1;
 
     protected override IEnumerable<PeepholeRule> Rules => new[]
     {
@@ -45,10 +53,28 @@ class ILMethodMulConstOptimizer : PeepholeOptimizerPass
         // with #mul16.
         new PeepholeRule(
             (ctx, w) => new OpArithmetic2("#mul_shift_const"),
-            l => l.Operation is OpLdConst && l.RawParameter is int v && ShiftForValue.ContainsKey(v),
-            l => l.OpCode == ILOpCode.Conv_i8 || l.OpCode == ILOpCode.Conv_u8,
+            l => l.Operation is OpLdConst && l.RawParameter is int v && ShiftForValue.ContainsKey(v) && v <= 8,
+            l => (l.OpCode == ILOpCode.Conv_i8 || l.OpCode == ILOpCode.Conv_u8) && string.IsNullOrEmpty(l.Label),
             l => l.OpCode == ILOpCode.Mul && string.IsNullOrEmpty(l.Label))
             .WithRawParameter((ctx, w) => ShiftForValue[(int)w[0].RawParameter])
+            .AllowInlinedWindows(),
+
+        // x << n / x >> n by a constant 1..7 (8-bit values): an unrolled
+        // shift instead of #shift_left8/#shift_right8's counted loop (which
+        // also pushes and pulls the count). Shr shifts logically like
+        // #shift_right8 always has.
+        new PeepholeRule(
+            (ctx, w) => new OpArithmetic2("#mul_shift_const"),
+            l => l.Operation is OpLdConst && l.RawParameter is int v && v >= 1 && v <= 7,
+            l => l.OpCode == ILOpCode.Shl && string.IsNullOrEmpty(l.Label) && IsNarrowResult(l))
+            .WithRawParameter((ctx, w) => (int)w[0].RawParameter)
+            .AllowInlinedWindows(),
+
+        new PeepholeRule(
+            (ctx, w) => new OpArithmetic2("#div_shift_const"),
+            l => l.Operation is OpLdConst && l.RawParameter is int v && v >= 1 && v <= 7,
+            l => (l.OpCode == ILOpCode.Shr || l.OpCode == ILOpCode.Shr_un) && string.IsNullOrEmpty(l.Label) && IsNarrowResult(l))
+            .WithRawParameter((ctx, w) => (int)w[0].RawParameter)
             .AllowInlinedWindows(),
     };
 }

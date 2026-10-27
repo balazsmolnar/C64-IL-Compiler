@@ -249,9 +249,9 @@ mc2=None, transparent=None, count=None, preview=None, quiet=False)`.
   what the heap needs - 64 per sprite frame beyond 64. The runtime owns
   $0800-$0FFF: nothing else may use it.
   After the rooms/characters/combat/HUD round-3 integration the block ends
-  at $B8CD, of which the last 4096 bytes ($A8CE-) are the 64 sprite frames
-  that are moved at startup: the tables take $A8CE-$AD05 and the heap
-  starts at $AD06, so **7,930 bytes ($AD06-$CBFF) are left for more code,
+  at $B8A9, of which the last 4096 bytes ($A8AA-) are the 64 sprite frames
+  that are moved at startup: the tables take $A8AA-$ACE1 and the heap
+  starts at $ACE2, so **7,966 bytes ($ACE2-$CBFF) are left for more code,
   assets and the heap** (the prototype had 25,827).
 - Sprite frames 1-64 are free: they load at the end of the program and are
   copied under the I/O area at startup; the object tables and heap then

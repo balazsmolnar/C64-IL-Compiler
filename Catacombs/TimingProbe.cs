@@ -33,8 +33,14 @@ static class TimingProbe
 
     public static void Mark(uint k)
     {
+        // No multiply (it cost 4 lines a call). Every Mark's own time is counted
+        // in all the later parts. Measured: ~18 raster lines a call, so the
+        // printed total (all six marks) reads ~90 lines high; for the real
+        // frame time keep only Mark(5).
         uint frames = C64.GetMemory(0xA2, 0) - jiffy0_;
-        ulong t = Line() + 312UL * frames - line0_;
+        ulong t = Line() - line0_;
+        for (; frames != 0; frames--)
+            t = t + 312;
         if (t >= 0x8000) // read just after line 252, before the interrupt advanced the jiffy clock
             t = t + 312;
         if (t > worst_[k])

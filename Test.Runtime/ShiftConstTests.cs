@@ -19,7 +19,8 @@ public class ShiftConstTests
     public void Constant_Shifts_Match_Variable_Shifts()
     {
         uint bad = 0;
-        for (uint x = 0; x < 256; x++)
+        uint x = 0;
+        do                                  // every byte: uint is 8-bit, so x wraps to 0 after 255
         {
             if (((x << 1) & 255) != (Shl(x, 1) & 255)) bad++;
             if (((x << 3) & 255) != (Shl(x, 3) & 255)) bad++;
@@ -31,7 +32,8 @@ public class ShiftConstTests
             if (((x * 8) & 255) != (Mul(x, 8) & 255)) bad++;
             if (((x * 32) & 255) != (Mul(x, 32) & 255)) bad++;
             if (((x * 128) & 255) != (Mul(x, 128) & 255)) bad++;
-        }
+            x++;
+        } while (x != 0);
         Assert.AreEqual(bad, 0u);
     }
 

@@ -21,7 +21,8 @@ public class DivConstRoutineTests
     public void Byte_Division_By_Constants_Matches_General_Division()
     {
         uint bad = 0;
-        for (uint x = 0; x < 256; x++)
+        uint x = 0;
+        do                                  // every byte: uint is 8-bit, so x wraps to 0 after 255
         {
             if (x / 3 != Div8(x, 3)) bad++;
             if (x % 3 != Rem8(x, 3)) bad++;
@@ -36,7 +37,8 @@ public class DivConstRoutineTests
             if (x % 16 != Rem8(x, 16)) bad++;
             if (x / 128 != Div8(x, 128)) bad++;
             if (x % 128 != Rem8(x, 128)) bad++;
-        }
+            x++;
+        } while (x != 0);
         Assert.AreEqual(bad, 0u);
     }
 

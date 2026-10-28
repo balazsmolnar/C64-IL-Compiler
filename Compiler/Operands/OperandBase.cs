@@ -1000,7 +1000,16 @@ class OpLdConst : OpPushBase
         if (WidenedByNext(operation))
             operation.StackContent.Add(typeof(long));
         else
+        {
+            // int/uint (and bool, char, byte...) are one byte here: a
+            // literal outside -128..255 used as one would silently lose its
+            // high bits (or fail later in the assembler).
+            if (operation.RawParameter is int v && (v < -128 || v > 255))
+                throw new UnsupportedFeatureException(DiagnosticCodes.ConstantOutOfRange,
+                    $"The constant {v} does not fit in 8 bits: int and uint are 8-bit values on the C64 (0..255, or -128..127), so it would become {v & 255}.",
+                    $"Use ulong/long (16-bit, 0..65535) where this value is used, e.g. a ulong variable or {v}UL.");
             operation.StackContent.Add(typeof(int));
+        }
     }
 
     public override bool Is16BitSupported => true;

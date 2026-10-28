@@ -256,10 +256,10 @@ public class LanguageFeatureTests
         string none = null;
         uint result = 0;
         if (s != null) result += 1;
-        if (s == null) result += 10;
-        if (none == null) result += 100;
-        if (none != null) result += 1000;
-        Assert.AreEqual(result, 101u);
+        if (s == null) result += 2;
+        if (none == null) result += 4;
+        if (none != null) result += 8;
+        Assert.AreEqual(result, 5u);
     }
 
     // Overloads used to share one asm label (a 64tass "duplicate

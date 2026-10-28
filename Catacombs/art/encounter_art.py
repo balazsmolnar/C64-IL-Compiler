@@ -625,7 +625,7 @@ def mail(cv):
 
 
 ARCH_C, ARCH_Y = 0.0, 84.0
-ARCH = False
+ARCH = True
 
 
 def arch(cv):
@@ -641,11 +641,11 @@ def arch(cv):
                 inside = ri >= 1.0 and ro < 1.0
                 ang = math.atan2(ARCH_Y - yy, c * 1.6)
                 joint = (ang * 180 / math.pi) % 15 < 1.6 and ri > 1.02
-                edge = ri < 1.035
+                edge = ri < 1.06 or ro > 0.985
             else:
                 inside = 44 <= c < 52
                 joint = int(yy - ARCH_Y) % 11 == 10
-                edge = c < 45
+                edge = c < 45.5 or c >= 51
             if not inside or cv.fixed[y, x] >= 0 or cv.part[y, x] != 0:
                 continue
             u = 2 * x + 1
@@ -658,33 +658,45 @@ def arch(cv):
             elif warm:
                 col = BROWN if (x + y) & 1 else BLACK
             else:
-                col = BLACK
+                col = DGREY if (x + y) % 4 == 0 and y % 2 == 0 else BLACK
             cv.px(x, y, col)
-    # the floor: flagstones in perspective, lit where the torch is near
-    for y in range(120, 144):
+    floor(cv)
+
+
+FLOOR_BEDS = (112, 116, 121, 128, 137)   # the joints between the rows of flagstones, receding upward
+
+
+def floor(cv):
+    """Flagstones in perspective (rows 14-17), the torchlight pooling under
+    each pillar and fading into cold dark toward the middle."""
+    for y in range(112, 144):
         for x in range(0, HW):
             if cv.fixed[y, x] >= 0 or cv.part[y, x] != 0:
                 continue
             yy = y + 0.5
-            depth = (yy - 112) / 32.0
             c = HW - 0.5 - x
-            bed = y in (120, 124, 130, 138)
-            radial = int((c / depth) / 9.0 + 0.5) != int((c + 1) / depth / 9.0 + 0.5)
+            depth = (yy - 100.0) / 44.0                  # 0.27 at the back, 1 at the front
+            bed = y in FLOOR_BEDS
+            radial = int(c * depth / 10.0) != int((c + 1) * depth / 10.0)
             u = 2 * x + 1
-            d = math.hypot(u - TORCH[0], (yy - 118) * 2.0)
-            lvl = max(0.0, 1.0 - d / 70.0) * (1.2 - (yy - 120) / 40.0)
+            d = math.hypot((u - TORCH[0]) * 0.8, (yy - 116) * 1.6)
+            lvl = max(0.0, 1.0 - d / 64.0) * (0.75 + depth * 0.4)
             if bed or radial:
-                col = BLACK
-            elif lvl > 0.6:
-                col = ORANGE if (x + y) & 1 else BROWN
-            elif lvl > 0.35:
+                col = BLACK if lvl < 0.55 or bed else BROWN
+            elif lvl > 0.62:
+                col = ORANGE if (x + y) & 1 or lvl > 0.8 else BROWN
+            elif lvl > 0.4:
                 col = BROWN
-            elif lvl > 0.12:
+            elif lvl > 0.2:
                 col = BROWN if (x + y) & 1 else BLACK
-            elif lvl > 0.0 or (x + y) % 4 == 0:
-                col = BLUE if (x + y) & 1 and c > 30 else BLACK
+            elif (x + y) % 4 == 0 and y > 120:
+                col = BLUE if c > 24 else DGREY
             else:
                 col = BLACK
+            if x >= 16:
+                # inside the area each guardian's colour table recolours:
+                # stone greys, which no table touches
+                col = {ORANGE: LGREY, BROWN: MGREY, BLUE: BLACK, DGREY: MGREY}.get(col, col)
             cv.px(x, y, col)
 
 
@@ -809,7 +821,7 @@ def guardian(jaw=0.0, body=True):
     stamp(cv, UPPER_TEETH, HW - 1, gum)
     if body:
         mail(cv)
-    # arch(cv): the floor and an arch behind the guardian, ~300 bytes the game does not have
+    arch(cv)
     return cv
 
 
@@ -1063,9 +1075,9 @@ def sprite_sheet():
 
 KINDS = [
     ("BONE WARDEN", {}),
-    ("CRYPT GHOUL", {8: 9, 7: 13, 2: 5}),                        # grey-green bone, green fire
+    ("CRYPT GHOUL", {8: 9, 7: 13, 2: 5, 6: 9, 14: 5}),           # grey-green bone, green fire, mossy iron
     ("BLOOD FIEND", {6: 9, 11: 2, 14: 10}),                       # bone kept, iron and stone run red
-    ("LICH KING", {9: 6, 8: 4, 7: 15, 2: 4}),                     # cold pale bone, violet fire
+    ("LICH KING", {9: 6, 8: 4, 7: 15, 2: 4, 14: 4}),              # cold pale bone, violet fire and iron
 ]
 EYE_RAMPS = [  # the eye sprites' colours, dim to hot, per guardian
     (RED, ORANGE, YELLOW, WHITE),
@@ -1112,7 +1124,14 @@ def overlay(kind, f):
     picture f, in place. One-sided, to break the mirror."""
     if kind == 0:      # the Warden is the plain one
         pass
-    # kind 1, the Crypt Ghoul: its colours and name only (a broken horn cost 63 bytes)
+    elif kind == 1:    # a rotted hole eaten through the right cheek
+        for y in range(80, 95):
+            for x in range(97, 111):
+                r = math.hypot((x - 103.5) / 5.5, (y - 87.0) / 6.5) + 0.18 * math.sin(x * 2.1 + y * 1.3)
+                if r < 0.75:
+                    f[y, x] = BLACK
+                elif r < 1.0 and f[y, x] != BLACK:
+                    f[y, x] = BROWN if (x + y) & 1 else LGREEN
     elif kind == 2:    # a third eye, and blood running from the right socket
         for dy in range(-4, 5):
             w = 3 - abs(dy) // 2

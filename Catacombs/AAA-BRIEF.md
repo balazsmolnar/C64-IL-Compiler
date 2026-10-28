@@ -64,6 +64,9 @@ straight into that state (see `Program.Main`), then
 
     & "<root>\tools\catacombs-shot.ps1" -Root "<root>" -Scene NAME -OutPrefix "<root>\.debug-tmp\name" -Shots 3 -IntervalMs 500
 
+(write `<root>` out as the literal absolute path every time: no `$wt`/`$root`
+variables, no `cd <dir> &&`, no `Join-Path` — any path computed at run time
+makes the sandbox stop and ask the user for permission; see CLAUDE.md)
 builds, runs it in its own VICE instance, and writes cropped screenshots
 (`name1.png`, ...) to read with the Read tool. No `-Scene` = the real game
 from power-on. Several of these can run at once; never call

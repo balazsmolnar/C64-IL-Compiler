@@ -241,7 +241,7 @@ for i in range(4):
     MC["p_leg_right%d" % i] = _S[i]
     MC["p_leg_left%d" % i] = mirror(_S[i])
 
-# Slain: a heap of cloak, the torch gone out beside it.
+# Slain: lying on his front, arm flung out, head (lit by the dying torch) to the right.
 MC["p_fallen"] = [
     "............",
     "............",
@@ -251,15 +251,15 @@ MC["p_fallen"] = [
     "............",
     "............",
     "............",
-    "....KKKK....",
-    "..KKCCCCKK..",
-    ".KCCCCCCCCK.",
-    "KCCKCCCCCCCK",
-    "KCOKCCCKCCCK",
-    "KOOKCCKCCCCK",
-    ".KKKKKKKKKK.",
-    "K.K.K.K.K.K.",
-    ".K.K.K.K.K.K",
+    ".........KK.",
+    "KK......KOOK",
+    "CCKKKKKKKOOK",
+    ".KCCCCCCKKOK",
+    ".KCCCKCCCKK.",
+    "KCCCCCCCCK..",
+    ".KKKKKKKK...",
+    "K.K.K.K.K...",
+    ".K.K.K.K....",
     "............",
     "............",
     "............",

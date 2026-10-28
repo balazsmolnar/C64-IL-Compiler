@@ -148,6 +148,9 @@ static class TitleScreen
             C64.FillMemory(SpriteEnable, 0x41, 1);   // the torches have burnt out
             C64.Screen.RemapCellColors(0, 0, 12, 4, C64Address.FromLabel("pal_Bright"));   // the logo in full gold
             C64.Screen.RemapCellColors(28, 0, 12, 4, C64Address.FromLabel("pal_Bright"));
+            // with the torches out, the wall beyond the gate's light goes cold
+            C64.Screen.RemapCellColors(0, 4, 12, 17, C64Address.FromLabel("pal_GoDim"));
+            C64.Screen.RemapCellColors(28, 4, 12, 17, C64Address.FromLabel("pal_GoDim"));
             C64.Screen.DrawText(7, PromptRow, "YOU ESCAPED THE CATACOMBS", 0x70);
             C64.Screen.DrawText(9, InfoRow, "ALL 3 RELICS RECOVERED", 0xF0);
         }
@@ -245,6 +248,7 @@ static class TitleScreen
     }
 
     // Any screen to black, the game's rooms included: five darkening passes
+    // (the last shows a whole black screen), sprite colours with them
     // (the game keeps border and background black). Leaves the display blanked, with an
     // empty bitmap, no split and no sprites: whatever comes next draws
     // unseen and shows itself.
@@ -258,6 +262,11 @@ static class TitleScreen
             for (tick_ = 0; tick_ < frames; tick_++)
                 C64.Screen.WaitForVBlank();
             C64.Screen.RemapCellColors(0, 0, 40, 25, table_);
+            // the sprites' colours ($D025-$D02E) go dark with the screen
+            for (phase_ = 0x25; phase_ < 0x2F; phase_++)
+                C64.FillMemory(0xCFFFUL + phase_, C64.GetMemory(table_, C64.GetMemory(0xD000UL, phase_) & 15), 1);
+            if (column_ == 3)
+                C64.FillMemory(SpriteEnable, 0, 1);   // nothing left lit for the last, black step
         }
         C64.FillMemory(SpriteEnable, 0, 1);
         C64.Screen.BeginUpdate();

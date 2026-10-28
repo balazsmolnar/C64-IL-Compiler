@@ -66,8 +66,10 @@ GO_BRIGHT = {v: k for k, v in GO_DIM.items()}
 # Victory: the gate (and only the gate's columns) fills with daylight.
 VICTORY = {BLUE: BROWN, GREY1: ORANGE, GREY2: LRED, GREY3: YELLOW, VIOLET: WHITE}
 # Fade to black, applied repeatedly; works on any screen (the game's too).
-DARKEN = {WHITE: GREY3, GREY3: GREY2, GREY2: GREY1, GREY1: BLUE, BLUE: BLACK,
-          YELLOW: LRED, LRED: ORANGE, ORANGE: BROWN, BROWN: BLACK, RED: BLACK,
+# Every chain reaches black in at most four steps, so the fifth pass shows a
+# whole black screen before the next one comes up.
+DARKEN = {WHITE: GREY2, GREY3: GREY1, GREY2: GREY1, GREY1: BLUE, BLUE: BLACK,
+          YELLOW: ORANGE, LRED: ORANGE, ORANGE: BROWN, BROWN: BLACK, RED: BLACK,
           CYAN: LBLUE, LBLUE: BLUE, VIOLET: BLUE, LGREEN: GREEN, GREEN: GREY1}
 # The logo's glint: a column of the gold one step brighter.
 GLINT = {YELLOW: WHITE, ORANGE: YELLOW, BROWN: ORANGE}
@@ -158,9 +160,9 @@ BAYER = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]]
 # ---------------------------------------------------------------------------
 # Wall tiles, 8x16 (16x16 hi-res pixels), lit from the top left
 # ---------------------------------------------------------------------------
-FEMUR = ["..a.ab..",
-         ".aaaabb.",
-         "aaaabbbc",
+FEMUR = [".aa..ab.",
+         "aaab.abb",
+         "aaab.bbc",
          "aaabbbbc",
          "aabbbbbc",
          "aabbbbcc",
@@ -169,8 +171,8 @@ FEMUR = ["..a.ab..",
          "abbbbccc",
          "abbbbccc",
          ".bbbccc.",
-         ".bbbccc.",
-         "..b.cc..",
+         ".bb..cc.",
+         "..b..c..",
          "........"]
 CONDYLE = [".aab.ab.",
            "aaabaabc",
@@ -277,9 +279,9 @@ def wall():
             name = seq[(t + n * 3) % len(seq)]
             lv = light(c * 4 + 4, r * 8 + 8) - n * 0.12
             edge = min(c + 1, COLS - 1 - c)     # cells from the nearer screen edge
-            lv = min(lv, (edge - 1) * 0.7) if edge < 5 else max(lv, 2.0)
+            lv = (0.0 if edge < 3 else 2.0) if edge < 5 else max(lv, 2.0)
             set_pal(c, r, c + 1, r + 1, level_pal(lv))
-            if TILES[name] is not None:
+            if TILES[name] is not None and 0 < c and c + 1 < COLS - 1:
                 stamp(c * 4, r * 8, TILES[name])
     # the foot of the wall: rubble in the shadow
     for t in range(COLS // 2):
@@ -341,11 +343,18 @@ def floor():
                 elif p_ < 0.34:
                     v = 2 if (x + y) & 1 else 0          # the far third: dark
                 elif p_ < 0.67:
-                    v = 2 if ((x + y) & 1 or (y & 1)) else 1
+                    v = 2
                 else:
                     v = 1 if (x + y) & 1 else 2           # towards the lit front edge
                 if band == 2 and v and BAYER[y & 3][x & 3] < (y - 158) * 2:
                     v = 0                                 # the front course melts into black
+                # a warm pool's edge dithers away instead of ending on the cell edge
+                c, r = x // 4, y // 8
+                if v and pal[r][c] in (FLOOR_LEVELS[5], FLOOR_LEVELS[4]):
+                    for nc, d in ((c - 1, x & 3), (c + 1, 3 - (x & 3))):
+                        if 0 <= nc < COLS and pal[r][nc] not in (FLOOR_LEVELS[5], FLOOR_LEVELS[4]):
+                            if d == 0 or (d == 1 and (x + y) & 1):
+                                v = 0
             put(x, y, v)
     # the threshold in front of the gate
     for y in (144, 145):
@@ -383,9 +392,13 @@ def void(x, y):
         if y == ty and abs(dx) < half:
             return 3                                      # a tread's lit edge
     d = math.hypot(dx * 0.8, (y - 117) * 0.7)
-    if d < 5:
+    if d < 6:
         return 3
-    if d < 10:
+    if d < 9:
+        return 3 if (x + y) & 1 else 1
+    if d < 12:
+        return 1
+    if d < 15:
         return 2
     return 0
 

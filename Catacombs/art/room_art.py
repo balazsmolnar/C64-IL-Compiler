@@ -266,24 +266,29 @@ def sample(sx, sy, cfg):
 # ---------------------------------------------------------------------------
 
 def make_tiles():
-    """16x16 texels of pits and specks for a stone face, a few variants."""
+    """16x16 texels of pits and specks for a stone face, a few variants: small clusters
+    of shadow with a lit speck on their upper rim, and a few loose specks."""
+    shapes = [((0, 0), (1, 0)), ((0, 0), (0, 1), (1, 1)), ((0, 0), (1, 0), (1, 1)), ((0, 0),)]
     tiles = []
     for variant in range(6):
-        rnd = random.Random(1000 + variant)
+        rnd = random.Random(2000 + variant)
         t = [[0.0] * 17 for _ in range(17)]
-        for _ in range(1 + variant % 3):
-            a, b = rnd.randrange(3, 12), rnd.randrange(3, 11)
-            t[b][a] = -1.0
-            if rnd.random() < 0.6:
-                t[b][a + 1] = -1.0
-            t[b + 1][a] = 1.0
-        for _ in range(1 + variant % 2):
-            a, b = rnd.randrange(2, 13), rnd.randrange(2, 13)
-            t[b][a] = 1.0
+        for _ in range(TEX_PITS + variant % 2):
+            a, b = rnd.randrange(3, 12), rnd.randrange(3, 12)
+            for dx, dy in rnd.choice(shapes):
+                t[b + dy][a + dx] = -1.0
+            if t[b - 1][a] == 0.0:
+                t[b - 1][a] = 1.0
+        for _ in range(TEX_SPECKS):
+            a, b = rnd.randrange(2, 14), rnd.randrange(2, 14)
+            if t[b][a] == 0.0:
+                t[b][a] = 1.0
         tiles.append(t)
     return tiles
 
 
+TEX_PITS = int(os.environ.get("TEX_PITS", "3"))
+TEX_SPECKS = int(os.environ.get("TEX_SPECKS", "2"))
 TILES = make_tiles()
 
 

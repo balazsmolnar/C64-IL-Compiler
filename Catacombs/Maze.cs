@@ -43,13 +43,13 @@ static class Maze
     static readonly uint[] PropSets =
     {
         0,
-        DungeonView.Grate,
+        DungeonView.Niche,
         DungeonView.Bones | DungeonView.Puddle,
         DungeonView.Bones | DungeonView.Banner,
         DungeonView.Puddle,
         DungeonView.Grate | DungeonView.Banner,
         DungeonView.Banner | DungeonView.Grate,
-        DungeonView.Bones,
+        DungeonView.Bones | DungeonView.Niche,
         DungeonView.Dark | DungeonView.Puddle,
         DungeonView.Puddle | DungeonView.Banner,
         DungeonView.DarkRight | DungeonView.Bones,
@@ -57,7 +57,7 @@ static class Maze
         DungeonView.Grate | DungeonView.Puddle,
         DungeonView.Bones | DungeonView.Grate,
         DungeonView.DarkRight | DungeonView.Banner,
-        DungeonView.Banner,
+        DungeonView.Banner | DungeonView.Niche,
     };
 
     public static uint Props(uint x, uint y)

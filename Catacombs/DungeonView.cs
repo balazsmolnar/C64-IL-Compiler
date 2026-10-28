@@ -23,13 +23,14 @@ namespace Catacombs;
 static class DungeonView
 {
     public const uint North = 1, West = 2, East = 4, South = 8;                     // door bits
-    public const uint Banner = 1, Bones = 2, Puddle = 4, Grate = 8;                  // prop bits
+    public const uint Banner = 1, Bones = 2, Puddle = 4, Grate = 8, Niche = 16;      // prop bits
     public const uint Dark = 64, DarkRight = 128;             // the left / right torch is out
 
-    // Indices into room_Table (RoomArt.cs).
-    // (art/room_art.py's `order` list; RoomArt.cs shows the table.)
-    const uint FirstProp = 4, FirstOpening = 8, FirstFlame = 14, DeadTorch = 18;
-    const uint FirstTheme = 18, Fade = 23, Unlit = 24, CueTable = 25, DarkRects = 26, CueRects = 27;
+    // Indices into room_Table: RoomArt.FirstProp etc., generated with the table.
+    const uint FirstProp = RoomArt.FirstProp, FirstOpening = RoomArt.FirstOpening, FirstFlame = RoomArt.FirstFlame;
+    const uint FirstGlow = RoomArt.FirstGlow;
+    const uint DeadTorch = RoomArt.DeadTorch, FirstTheme = RoomArt.FirstTheme, Fade = RoomArt.Fade;
+    const uint Unlit = RoomArt.Unlit, CueTable = RoomArt.CueTable, DarkRects = RoomArt.DarkRects, CueRects = RoomArt.CueRects;
 
     static uint tick_;
     static uint out_;           // Dark / DarkRight bits of the room on screen
@@ -68,7 +69,7 @@ static class DungeonView
         C64.Screen.BeginUpdate();
         C64.Screen.DrawImage(0, 0, C64Address.FromLabel("img_Room"));
         Overlays(doors, 0);
-        Overlays(props & 15, FirstProp);
+        Overlays(props & 31, FirstProp);
         out_ = props >> 6;
         // A torch gone out: a charred stub for the flame, its light taken
         // off the stones it reached (rectangles along the joints).
@@ -139,9 +140,10 @@ static class DungeonView
     }
 
     // Call once per frame, right after WaitForVBlank. Frames take turns:
-    // a new flame for one torch (each torch every 8 frames), then the door
-    // cue (swapped for 16 frames, normal for 16) -- never both in one frame.
-    // At most a 2x2-cell picture or a one-door remap per frame.
+    // a new flame for one torch (each torch every 8 frames), the door cue
+    // (swapped for 16 frames, normal for 16), then the colours of the stones
+    // that torch lights (one time in four dimmed) -- never two in one frame.
+    // At most one small picture or a one-door remap per frame.
     public static void Animate()
     {
         tick_ = tick_ + 1;
@@ -151,11 +153,15 @@ static class DungeonView
             CueUpdate((tick_ & 16) != 0 ? cue_ : 0);
             return;
         }
-        if (phase != 0)
+        if (phase == 3)
             return;
         uint torch = tick_ & 4;             // 0 = left, 4 = right
         if ((out_ & (1 + (torch >> 2))) != 0)
             return;
-        C64.Screen.DrawImage(RoomArt.FlameColumn0 + torch * 3, RoomArt.FlameRow, Entry(FirstFlame + (C64.Random() & 3)));
+        uint random = C64.Random();
+        if (phase == 0)
+            C64.Screen.DrawImage(RoomArt.FlameColumn0 + torch * 3, RoomArt.FlameRow, Entry(FirstFlame + (random & 3)));
+        else
+            C64.Screen.DrawImage(0, 0, Entry(FirstGlow + torch + (random >> 6)));     // the lit stones dim now and then
     }
 }

@@ -532,6 +532,30 @@ SKULL = [
     ".KwgKKKKKKKKK.....",
     ".KKK..............",
 ]
+NICHE = [                        # a burial niche cut into the far wall, a skull on its sill
+    "..hhhh..",
+    ".hKKKKh.",
+    "hKKKKKKs",
+    "hKKKKKKs",
+    "hKKKKKKs",
+    "hKKKKKKs",
+    "hKKKKKKs",
+    "hKKKKKKs",
+    "hKKKKKKs",
+    "hKKKKKKs",
+    "hKKKKKKs",
+    "hKKwwKKs",
+    "hKwwwwKs",
+    "hKwKKwKs",
+    "hKwwwwKs",
+    "hKKwgKKs",
+    "hKKgwKKs",
+    "hhhhhhhs",
+    "ssssssss",
+    "KKKKKKKK",
+]
+NICHE_LEGEND = {'h': 'H', 's': 'S', 'w': 12, 'g': 11}
+
 SKULL_LEGEND = {'w': 15, 'g': 12, 'W': 1}
 
 CHAIN = [
@@ -701,6 +725,8 @@ def render(cfg):
         # column (or row) gets no lit edge on that axis, so a joint is never lit on both sides.
         lr = None if abs(tsx - scx) < 12.0 and kind in ('fw', 'dn') else tsx >= scx - 0.5
         ld = None if abs(tsy - scy) < 6.0 and kind in ('fw', 'dn') else tsy >= scy - 0.5
+        if kind == 'bf':
+            ld = False                                     # a beam's lit edge is its top, above the torches
         info[rid] = (ew, ec, lr, ld, hash2('v', rid))
         if abs(tsx - scx) < 6.0 and abs(tsy - scy) < 10.0:
             _OWN.add(rid)
@@ -795,7 +821,7 @@ def render(cfg):
                 elif rid[0] == 'bb':
                     ramp, ps, pm, ph = WOODR, 0.0, (1.0 if len(rid) > 2 else 0.0), (2.0 if len(rid) > 2 else 0.0)
                 if rid[0] in ('ce', 'bf', 'bb'):
-                    tone = min(tone, 2.0) if rid[0] != 'ce' else tone
+                    tone = min(tone, 2.0) if rid[0] == 'bb' else tone
             if info_own(rid) and tone == 3.0:
                 tone = 2.0                                 # the stone holding the torch: no lit edge
             if in_flame and not (DARK and mx < 80):
@@ -852,6 +878,8 @@ def render(cfg):
         stamp(120, 34, banner_rows(), BANNER_LEGEND)
     if 'bones' in cfg.props:
         stamp(38, 124, SKULL, SKULL_LEGEND)
+    if 'niche' in cfg.props:
+        stamp(36, 75, NICHE, NICHE_LEGEND)
     # torches
     for t_, (cxc, cyc) in enumerate(FLAME_CELLS):
         if 'dead' in cfg.props:
@@ -952,7 +980,7 @@ THEMES = [
 FADE = [0, 12, 9, 12, 6, 6, 0, 8, 9, 0, 8, 6, 11, 5, 6, 12]
 UNLIT = [0, 12, 9, 12, 6, 6, 0, 11, 6, 6, 6, 6, 6, 5, 6, 12]   # a torch gone out: fire colours to brown, greys down
 CUE = [0, 1, 2, 3, 4, 5, 14, 7, 9, 8, 10, 12, 11, 13, 6, 15]   # door cue: swaps brown/orange, greys, blue/light blue
-PROPS = ['banner', 'bones', 'puddle', 'grate']
+PROPS = ['banner', 'bones', 'puddle', 'grate', 'niche']
 
 
 def png(name):
@@ -1106,7 +1134,10 @@ def main():
             pl, _ = c64img.encode_planes(im, c64img.PLANE_MATRIX)
             c64img.verify(im, pl)
             name = "glow%d%d" % (t_, state)
-            glow_images.append(im)                         # (previews only: the game has no glow states)
+            c64img.write_file(os.path.join(OUT, name + ".img"), im, pl)
+            table.append((name, "Glow%d%d" % (t_, state), im, len(pl)))
+            glow_images.append(im)
+    print("glow cells %s, images %d bytes" % ([len(g) for g in glow], sum(t[3] for t in table[-4:])))
 
     # A torch gone out: Screen.RemapCellColors(UNLIT) over the cells its light
     # reaches, as rectangles per course (two cell rows), so their edges are joints.
@@ -1145,7 +1176,7 @@ def main():
             asm.append("%-14s .byte %s" % ("pal_Theme%d" % i, ",".join(str(v) for v in t)) + "   ; " + name)
     order = ["DoorN", "DoorW", "DoorE", "DoorS"] + [p_.capitalize() for p_ in PROPS] + \
             ["DoorN2", "DoorN3", "DoorW2", "DoorW3", "DoorE2", "DoorE3"] + ["Flame%d" % f for f in range(FLAME_FRAMES)] + \
-            []
+            ["Glow%d%d" % (t_, st) for t_ in range(2) for st in (0, 1, 0, 0)]
     words = ["img_" + o for o in order] + ["img_Dead"] + ["pal_Theme%d" % i for i in range(1, len(THEMES))] + \
             ["pal_Fade", "pal_Unlit", "pal_Cue", "room_DarkL", "room_DarkR"] +             ["room_Cue%s" % d for d in "NWWEEEES"]           # indexed 37 + the door bit
     asm.append("%-14s .byte %s" % ("pal_Fade", ",".join(str(v) for v in FADE)) + "   ; room exit: every colour a step darker")
@@ -1169,6 +1200,13 @@ def main():
               "    public const uint ThemeCount = %d;" % len(THEMES),
               "    public const uint FlameColumn0 = %d, FlameColumn1 = %d, FlameRow = %d;"
               % (FLAME_CELLS[0][0], FLAME_CELLS[1][0], FLAME_CELLS[0][1]),
+              "    // indices into room_Table",
+              "    public const uint FirstProp = %d, FirstOpening = %d, FirstFlame = %d, FirstGlow = %d, DeadTorch = %d;"
+              % (words.index("img_" + PROPS[0].capitalize()), words.index("img_DoorN2"),
+                 words.index("img_Flame0"), words.index("img_Glow00"), words.index("img_Dead")),
+              "    public const uint FirstTheme = %d, Fade = %d, Unlit = %d, CueTable = %d, DarkRects = %d, CueRects = %d;"
+              % (words.index("pal_Theme1") - 1, words.index("pal_Fade"), words.index("pal_Unlit"),
+                 words.index("pal_Cue"), words.index("room_DarkL"), words.index("room_CueN") - 1),
               "}", ""]
     with open(os.path.join(HERE, "..", "RoomArt.cs"), "w", newline="\n") as f:
         f.write("\n".join(lines))

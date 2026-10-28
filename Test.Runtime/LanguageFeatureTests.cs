@@ -261,4 +261,34 @@ public class LanguageFeatureTests
         if (none != null) result += 1000;
         Assert.AreEqual(result, 101u);
     }
+
+    // Overloads used to share one asm label (a 64tass "duplicate
+    // definition"); the program's own overloaded methods now carry their
+    // parameter types in the label.
+    static uint fadeLevel;
+    static void Fade() { fadeLevel = 1; }
+    static void Fade(uint level) { fadeLevel = level; }
+    static uint Scale(uint x) => x * 2;
+    static ulong Scale(ulong x) => x * 3;
+
+    class Pair
+    {
+        public uint A, B;
+        public uint Sum() => A + B;
+        public uint Sum(uint extra) => A + B + extra;
+    }
+
+    [Test]
+    public void Overloaded_Methods_And_Constructors_Are_Distinct()
+    {
+        Fade();
+        Assert.AreEqual(fadeLevel, 1u);
+        Fade(7);
+        Assert.AreEqual(fadeLevel, 7u);
+        Assert.AreEqual(Scale(5u), 10u);
+        Assert.IsTrue(Scale(500UL) == 1500);
+        var p = new Pair { A = 1, B = 2 };
+        Assert.AreEqual(p.Sum(), 3u);
+        Assert.AreEqual(p.Sum(10), 13u);
+    }
 }

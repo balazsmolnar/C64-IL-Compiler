@@ -47,6 +47,7 @@ class Program
         var isUnitTest = args.Length > 3 && args[3] == "unittest";
         var emitDebugInfo = args.Length > 4 && args[4] == "debug";
         var asm = Assembly.LoadFrom(asmLocation);
+        MethodBaseExtension.ProgramAssembly = asm;
 
         using (var outputFile = File.CreateText(Path.Combine(output, "generated.asm")))
         {

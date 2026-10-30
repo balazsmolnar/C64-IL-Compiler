@@ -66,9 +66,10 @@ GO_BRIGHT = {v: k for k, v in GO_DIM.items()}
 # Victory: the gate (and only the gate's columns) fills with daylight.
 VICTORY = {BLUE: BROWN, GREY1: ORANGE, GREY2: LRED, GREY3: YELLOW, VIOLET: WHITE}
 # Fade to black, applied repeatedly; works on any screen (the game's too).
-# Every chain reaches black in at most four steps, so the fifth pass shows a
-# whole black screen before the next one comes up.
-DARKEN = {WHITE: GREY2, GREY3: GREY1, GREY2: GREY1, GREY1: BLUE, BLUE: BLACK,
+# Every chain reaches black in at most three steps (white too: a lone white
+# flame core or HUD digit must not outlive the rest), so the last passes show
+# a whole black screen before the next one comes up.
+DARKEN = {WHITE: GREY1, GREY3: GREY1, GREY2: GREY1, GREY1: BLUE, BLUE: BLACK,
           YELLOW: ORANGE, LRED: ORANGE, ORANGE: BROWN, BROWN: BLACK, RED: BLACK,
           CYAN: LBLUE, LBLUE: BLUE, VIOLET: BLUE, LGREEN: GREEN, GREEN: GREY1}
 # The logo's glint: a column of the gold one step brighter.

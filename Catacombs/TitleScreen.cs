@@ -100,13 +100,19 @@ static class TitleScreen
             C64.Screen.RemapCellColors(0, 0, 40, Rows, C64Address.FromLabel("pal_GoDim"));
             inner_ = C64Address.FromLabel("pal_GoBright");
         }
-        else
-            C64.Screen.RemapCellColors(0, 0, 40, Rows, C64Address.FromLabel("pal_Dim"));
-        if (kind == Victory)
+        else if (kind == Victory)
         {
+            // The torches are out: the wall beyond the gate's light is cold
+            // and dim, the logo stays gold, and only the gate's 16 columns
+            // get daylight (the sweep below).
+            C64.Screen.RemapCellColors(0, 4, 12, 17, C64Address.FromLabel("pal_GoDim"));
+            C64.Screen.RemapCellColors(28, 4, 12, 17, C64Address.FromLabel("pal_GoDim"));
+            C64.Screen.RemapCellColors(12, 0, 16, Rows, C64Address.FromLabel("pal_Dim"));
             inner_ = C64Address.FromLabel("pal_Dawn");
             sweep_ = 8;
         }
+        else
+            C64.Screen.RemapCellColors(0, 0, 40, Rows, C64Address.FromLabel("pal_Dim"));
         C64.Screen.SetSplit(Rows, ScreenMode.Bitmap);
 
         // Sprites: positions, colours (and a black border and background),
@@ -146,11 +152,6 @@ static class TitleScreen
         else
         {
             C64.FillMemory(SpriteEnable, 0x41, 1);   // the torches have burnt out
-            C64.Screen.RemapCellColors(0, 0, 12, 4, C64Address.FromLabel("pal_Bright"));   // the logo in full gold
-            C64.Screen.RemapCellColors(28, 0, 12, 4, C64Address.FromLabel("pal_Bright"));
-            // with the torches out, the wall beyond the gate's light goes cold
-            C64.Screen.RemapCellColors(0, 4, 12, 17, C64Address.FromLabel("pal_GoDim"));
-            C64.Screen.RemapCellColors(28, 4, 12, 17, C64Address.FromLabel("pal_GoDim"));
             C64.Screen.DrawText(7, PromptRow, "YOU ESCAPED THE CATACOMBS", 0x70);
             C64.Screen.DrawText(9, InfoRow, "ALL 3 RELICS RECOVERED", 0xF0);
         }
@@ -265,8 +266,8 @@ static class TitleScreen
             // the sprites' colours ($D025-$D02E) go dark with the screen
             for (phase_ = 0x25; phase_ < 0x2F; phase_++)
                 C64.FillMemory(0xCFFFUL + phase_, C64.GetMemory(table_, C64.GetMemory(0xD000UL, phase_) & 15), 1);
-            if (column_ == 3)
-                C64.FillMemory(SpriteEnable, 0, 1);   // nothing left lit for the last, black step
+            if (column_ == 2)
+                C64.FillMemory(SpriteEnable, 0, 1);   // the sprites go a step early
         }
         C64.FillMemory(SpriteEnable, 0, 1);
         C64.Screen.BeginUpdate();

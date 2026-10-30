@@ -62,9 +62,9 @@ static class IntOperandCopy
             case OpLdloc_s:
             case OpLdarg:
             case OpLdarg_s:
-                return $"ldy stackPointer\nlda localsStack-{source.RawParameter},y";
+                return LocalsAccess.Load(source.RawParameter);
             case IPushFldOperation pushFld:
-                return $"ldy stackPointer\nldx localsStack-{pushFld.RelPos},y\njsr resolveObjPtr\nldy #{pushFld.Pos}\nlda (tmpPointer),y";
+                return $"{LocalsAccess.Load(pushFld.RelPos, "ldx")}\njsr resolveObjPtr\nldy #{pushFld.Pos}\nlda (tmpPointer),y";
             case OpLdConst:
                 return $"lda #<{source.RawParameter}";
             default:

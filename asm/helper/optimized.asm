@@ -1,18 +1,18 @@
 inc_var .macro rel_pos
-  ldx stackPointer
-  inc localsStack-\rel_pos,x
+  #ls_ldx1 \rel_pos
+  #ls_opx inc, \rel_pos, 0
 .endm
 
 ; Single-byte only, like inc_var -- no carry into a second byte. Callers
 ; must only use this for a confirmed 8-bit local (see ILMethodDecOptimizer's
 ; WithGuard checks).
 dec_var .macro rel_pos
-  ldx stackPointer
-  dec localsStack-\rel_pos,x
+  #ls_ldx1 \rel_pos
+  #ls_opx dec, \rel_pos, 0
 .endm
 
 init_var .macro rel_pos, value
-  ldy stackPointer
+  #ls_ldy1 \rel_pos
   #init_var_ky \rel_pos, \value
 .endm
 
@@ -20,7 +20,7 @@ init_var .macro rel_pos, value
 ; YRegisterTracker proves it and drops the reload).
 init_var_ky .macro rel_pos, value
   lda #\value
-  sta localsStack-\rel_pos,y
+  #ls_op sta, \rel_pos, 0
 .endm
 
 ; PROTOTYPE (see zp_local0's comment in zeropage.asm): zp-addressed twins of
@@ -47,20 +47,20 @@ init_var_zp .macro addr, value
 ; guard, which keeps the ref-counting-aware locals_pull_value8 path for
 ; anything reference-typed instead of using this.
 copy_var .macro src_rel_pos, dst_rel_pos
-  ldy stackPointer
-  lda localsStack-\src_rel_pos,y
-  sta localsStack-\dst_rel_pos,y
+  #ls_ldy2 \src_rel_pos, \dst_rel_pos
+  #ls_op lda, \src_rel_pos, 0
+  #ls_op sta, \dst_rel_pos, 0
 .endm
 
 setfld8 .macro objRelPos, objValuePos, pos
 
-  ldy stackPointer
-  ldx localsStack-\objRelPos,y
+  #ls_ldy2 \objRelPos, \objValuePos
+  #ls_op ldx, \objRelPos, 0
   jsr resolveObjPtr
 
   ; resolveObjPtr only touches A, never Y, so it's still holding
   ; stackPointer's value from the ldy above -- no need to reload it.
-  ldx localsStack-\objValuePos,y
+  #ls_op ldx, \objValuePos, 0
   txa
   ldy #\pos
   sta (tmpPointer),y
@@ -68,18 +68,18 @@ setfld8 .macro objRelPos, objValuePos, pos
 
 setfld16 .macro objRelPos, objValuePos, pos
 
-  ldy stackPointer
-  ldx localsStack-\objRelPos,y
+  #ls_ldy2 \objRelPos, \objValuePos
+  #ls_op ldx, \objRelPos, 0
   jsr resolveObjPtr
 
   ; see setfld8 -- resolveObjPtr doesn't touch Y.
-  ldx localsStack-\objValuePos,y
+  #ls_op ldx, \objValuePos, 0
   txa
   ldy #\pos
   sta (tmpPointer),y
 
-  ldy stackPointer
-  ldx localsStack-\objValuePos+1,y
+  #ls_ldy2 \objRelPos, \objValuePos
+  #ls_op ldx, \objValuePos, 1
   txa
   ldy #\pos+1
   sta (tmpPointer),y
@@ -95,8 +95,8 @@ setfld16 .macro objRelPos, objValuePos, pos
 ; (asm/helper/stack.asm) already rely on for this.
 setfld8_const .macro objRelPos, value, pos
 
-  ldy stackPointer
-  ldx localsStack-\objRelPos,y
+  #ls_ldy1 \objRelPos
+  #ls_op ldx, \objRelPos, 0
   jsr resolveObjPtr
 
   lda #<\value
@@ -106,8 +106,8 @@ setfld8_const .macro objRelPos, value, pos
 
 setfld16_const .macro objRelPos, value, pos
 
-  ldy stackPointer
-  ldx localsStack-\objRelPos,y
+  #ls_ldy1 \objRelPos
+  #ls_op ldx, \objRelPos, 0
   jsr resolveObjPtr
 
   lda #<\value
@@ -189,8 +189,8 @@ pushfldflt .macro pos
 ; runtime cost to generalizing this beyond \relpos == 1.
 pushfld8_at .macro relpos, pos
 
-  ldy stackPointer
-  ldx localsStack-\relpos,y
+  #ls_ldy1 \relpos
+  #ls_op ldx, \relpos, 0
   jsr resolveObjPtr
 
   ldy #\pos
@@ -201,8 +201,8 @@ pushfld8_at .macro relpos, pos
 
 pushfld16_at .macro relpos, pos
 
-  ldy stackPointer
-  ldx localsStack-\relpos,y
+  #ls_ldy1 \relpos
+  #ls_op ldx, \relpos, 0
   jsr resolveObjPtr
 
   ldy #\pos+1
@@ -216,8 +216,8 @@ pushfld16_at .macro relpos, pos
 
 pushfldflt_at .macro relpos, pos
 
-  ldy stackPointer
-  ldx localsStack-\relpos,y
+  #ls_ldy1 \relpos
+  #ls_op ldx, \relpos, 0
   jsr resolveObjPtr
 
   ldy #\pos
@@ -305,8 +305,8 @@ pushfldflt_cached .macro pos
 ; through a local variable started exercising it.
 pushfld8_direct .macro relpos, pos, target
 
-  ldy stackPointer
-  ldx localsStack-\relpos,y
+  #ls_ldy1 \relpos
+  #ls_op ldx, \relpos, 0
   jsr resolveObjPtr
 
   ldy #\pos
@@ -317,8 +317,8 @@ pushfld8_direct .macro relpos, pos, target
 
 pushfld16_direct .macro relpos, pos, target
 
-  ldy stackPointer
-  ldx localsStack-\relpos,y
+  #ls_ldy1 \relpos
+  #ls_op ldx, \relpos, 0
   jsr resolveObjPtr
 
   ldy #\pos
@@ -344,8 +344,8 @@ pushfld16_direct .macro relpos, pos, target
 ; comment above (same fix, same reason, same real regression it fixes).
 pushfldflt_direct .macro relpos, pos, target
 
-  ldy stackPointer
-  ldx localsStack-\relpos,y
+  #ls_ldy1 \relpos
+  #ls_op ldx, \relpos, 0
   jsr resolveObjPtr
 
   ldy #\pos
@@ -381,16 +381,34 @@ incfld .macro pos
 
 .endm
 
-branch_if_var_less .macro rel_pos, value, label 
-    ldy stackPointer
-    lda localsStack-\rel_pos, y
+; incfld with the object's slot named explicitly (incfld itself assumes
+; rel_pos 1, a localsStack frame's `this`) -- used by static frames, whose
+; rel_pos values are 256 and up (see ls_op in localsStack.asm).
+incfld_at .macro relpos, pos
+
+  #ls_ldy1 \relpos
+  #ls_op ldx, \relpos, 0
+
+  jsr resolveObjPtr
+
+  ldy #\pos
+  lda (tmpPointer),y
+  clc
+  adc #1
+  sta (tmpPointer),y
+
+.endm
+
+branch_if_var_less .macro rel_pos, value, label
+    #ls_ldy1 \rel_pos
+    #ls_op lda, \rel_pos, 0
     cmp #\value
     bmi \label
 .endm
 
 branch_if_not_equal .macro rel_pos, value, label 
-    ldy stackPointer
-    lda localsStack-\rel_pos, y
+    #ls_ldy1 \rel_pos
+    #ls_op lda, \rel_pos, 0
     cmp #\value
     bne \label
 .endm

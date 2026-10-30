@@ -1,5 +1,83 @@
 ; Stack for parameters and local variables
 
+; ---------------------------------------------------------------------------
+; Static (compiled) frames -- Compiler/ILStaticFramePass.cs.
+;
+; A local/parameter is named by its rel_pos everywhere in the generated code
+; and in the macros below. A rel_pos under 256 is the usual dynamic slot,
+; localsStack-rel_pos indexed by Y (or X) = stackPointer. A rel_pos of 256 or
+; more belongs to a method with a static frame: the slot is the fixed byte
+; SF_TOP-rel_pos (inside StaticFrames, asm/helper/objectTables.asm), read and
+; written with plain absolute (or zero-page) addressing and no stackPointer
+; load. The compiler shifts a static method's whole frame layout by a
+; constant, so every rel_pos arithmetic (+1 for a 16-bit high byte, ...)
+; stays the same in both cases.
+;
+; ls_op op, rel_pos, k     op on byte k of the slot (op = lda/sta/ldx/...)
+; ls_opx op, rel_pos, k    same, X-indexed for the dynamic case
+; ls_ldyN / ls_ldxN        load Y / X = stackPointer unless all N rel_pos
+;                          arguments are static
+; ---------------------------------------------------------------------------
+ls_op .macro op, rel_pos, k
+  .if \rel_pos >= 256
+    \op SF_TOP-\rel_pos+\k
+  .else
+    \op localsStack-\rel_pos+\k,y
+  .endif
+.endm
+
+ls_opx .macro op, rel_pos, k
+  .if \rel_pos >= 256
+    \op SF_TOP-\rel_pos+\k
+  .else
+    \op localsStack-\rel_pos+\k,x
+  .endif
+.endm
+
+ls_ldy1 .macro rel_pos
+  .if \rel_pos < 256
+    ldy stackPointer
+  .endif
+.endm
+
+ls_ldy2 .macro rel_pos1, rel_pos2
+  .if \rel_pos1 < 256 || \rel_pos2 < 256
+    ldy stackPointer
+  .endif
+.endm
+
+ls_ldx1 .macro rel_pos
+  .if \rel_pos < 256
+    ldx stackPointer
+  .endif
+.endm
+
+; Return from a static-frame method (no prologue, the jsr return address
+; never left the hardware stack). The return value, which IL leaves alone on
+; the evaluation stack at a ret, sits on top of that return address, so it
+; travels in registers instead: 1 byte in A, 2 bytes in A (high) and X
+; (low). The caller pushes it back right after its jsr (sf_result).
+sf_ret .macro bytes
+  .if \bytes == 1
+    pla
+  .elsif \bytes == 2
+    pla
+    tax
+    pla
+  .endif
+  rts
+.endm
+
+sf_result .macro bytes
+  .if \bytes == 1
+    pha
+  .elsif \bytes == 2
+    pha
+    txa
+    pha
+  .endif
+.endm
+
 locals_stack_init .macro
   lda # 0
   sta stackPointer
@@ -177,7 +255,7 @@ method_leave .macro localsSize, ref_list
 
 
 locals_pull_value8 .macro rel_pos, ref
-  ldy stackPointer
+  #ls_ldy1 \rel_pos
   #locals_pull_value8_ky \rel_pos, \ref
 .endm
 
@@ -187,11 +265,11 @@ locals_pull_value8_ky .macro rel_pos, ref
 
   ; deref
   .if \ref == 1
-    ldx localsStack-\rel_pos,y
+    #ls_op ldx, \rel_pos, 0
     jsr DecRefCountIfAllocated
   .endif
   #stack_pull_int_a
-  sta localsStack-\rel_pos,y
+  #ls_op sta, \rel_pos, 0
   ; ref
   .if \ref == 1 
     tax
@@ -200,14 +278,14 @@ locals_pull_value8_ky .macro rel_pos, ref
 .endm
 
 locals_push_value8 .macro rel_pos
-  ldy stackPointer
+  #ls_ldy1 \rel_pos
   #locals_push_value8_ky \rel_pos
 .endm
 
 ; locals_push_value8 with Y already holding stackPointer (ILMethodEmitPass's
 ; YRegisterTracker proves it and drops the reload).
 locals_push_value8_ky .macro rel_pos
-  lda localsStack-\rel_pos,y
+  #ls_op lda, \rel_pos, 0
   #stack_push_int_a
 .endm
 
@@ -333,21 +411,21 @@ method_exit_inline_fallthrough .macro stackSize, ref_list
 .endm
 
 locals_push_value16 .macro rel_pos
-  ldy stackPointer
+  #ls_ldy1 \rel_pos
   #locals_push_value16_ky \rel_pos
 .endm
 
 ; locals_push_value16 with Y already holding stackPointer (ILMethodEmitPass's
 ; YRegisterTracker proves it and drops the reload).
 locals_push_value16_ky .macro rel_pos
-  lda localsStack-\rel_pos+1,y
+  #ls_op lda, \rel_pos, 1
   #stack_push_int_a
-  lda localsStack-\rel_pos,y
+  #ls_op lda, \rel_pos, 0
   #stack_push_int_a
 .endm
 
 locals_pull_value16 .macro rel_pos
-  ldy stackPointer
+  #ls_ldy1 \rel_pos
   #locals_pull_value16_ky \rel_pos
 .endm
 
@@ -355,9 +433,9 @@ locals_pull_value16 .macro rel_pos
 ; YRegisterTracker proves it and drops the reload).
 locals_pull_value16_ky .macro rel_pos
   #stack_pull_int_a
-  sta localsStack-\rel_pos,y
+  #ls_op sta, \rel_pos, 0
   #stack_pull_int_a
-  sta localsStack-\rel_pos+1,y
+  #ls_op sta, \rel_pos, 1
 .endm
 
 ; float locals -- rel_pos+0 through rel_pos+4 hold MFLPT byte[4] through
@@ -367,31 +445,31 @@ locals_pull_value16_ky .macro rel_pos
 ; parameter -- float is a value type, never GC-tracked, same as
 ; locals_push_value16/locals_pull_value16 above.
 locals_push_valueflt .macro rel_pos
-  ldy stackPointer
-  lda localsStack-\rel_pos+4,y
+  #ls_ldy1 \rel_pos
+  #ls_op lda, \rel_pos, 4
   #stack_push_int_a
-  lda localsStack-\rel_pos+3,y
+  #ls_op lda, \rel_pos, 3
   #stack_push_int_a
-  lda localsStack-\rel_pos+2,y
+  #ls_op lda, \rel_pos, 2
   #stack_push_int_a
-  lda localsStack-\rel_pos+1,y
+  #ls_op lda, \rel_pos, 1
   #stack_push_int_a
-  lda localsStack-\rel_pos,y
+  #ls_op lda, \rel_pos, 0
   #stack_push_int_a
 .endm
 
 locals_pull_valueflt .macro rel_pos
-  ldy stackPointer
+  #ls_ldy1 \rel_pos
   #stack_pull_int_a
-  sta localsStack-\rel_pos,y
+  #ls_op sta, \rel_pos, 0
   #stack_pull_int_a
-  sta localsStack-\rel_pos+1,y
+  #ls_op sta, \rel_pos, 1
   #stack_pull_int_a
-  sta localsStack-\rel_pos+2,y
+  #ls_op sta, \rel_pos, 2
   #stack_pull_int_a
-  sta localsStack-\rel_pos+3,y
+  #ls_op sta, \rel_pos, 3
   #stack_pull_int_a
-  sta localsStack-\rel_pos+4,y
+  #ls_op sta, \rel_pos, 4
 .endm
 
 ; Direct local/param-to-zp_flt copy, for ILMethodFloatOperandFusionOptimizer
@@ -416,41 +494,41 @@ locals_pull_valueflt .macro rel_pos
 ; already maps straight onto a pulling consumer's low/high byte order (see
 ; that macro's own comment), so a plain copy is correct.
 locals_copy_value8 .macro rel_pos, target
-  ldy stackPointer
+  #ls_ldy1 \rel_pos
   #locals_copy_value8_ky \rel_pos, \target
 .endm
 
 ; locals_copy_value8 with Y already holding stackPointer (ILMethodEmitPass's
 ; YRegisterTracker proves it and drops the reload).
 locals_copy_value8_ky .macro rel_pos, target
-  lda localsStack-\rel_pos,y
+  #ls_op lda, \rel_pos, 0
   sta \target
 .endm
 
 locals_copy_value16 .macro rel_pos, target
-  ldy stackPointer
+  #ls_ldy1 \rel_pos
   #locals_copy_value16_ky \rel_pos, \target
 .endm
 
 ; locals_copy_value16 with Y already holding stackPointer (ILMethodEmitPass's
 ; YRegisterTracker proves it and drops the reload).
 locals_copy_value16_ky .macro rel_pos, target
-  lda localsStack-\rel_pos,y
+  #ls_op lda, \rel_pos, 0
   sta \target
-  lda localsStack-\rel_pos+1,y
+  #ls_op lda, \rel_pos, 1
   sta \target+1
 .endm
 
 locals_copy_valueflt .macro rel_pos, target
-  ldy stackPointer
-  lda localsStack-\rel_pos,y
+  #ls_ldy1 \rel_pos
+  #ls_op lda, \rel_pos, 0
   sta \target+4
-  lda localsStack-\rel_pos+1,y
+  #ls_op lda, \rel_pos, 1
   sta \target+3
-  lda localsStack-\rel_pos+2,y
+  #ls_op lda, \rel_pos, 2
   sta \target+2
-  lda localsStack-\rel_pos+3,y
+  #ls_op lda, \rel_pos, 3
   sta \target+1
-  lda localsStack-\rel_pos+4,y
+  #ls_op lda, \rel_pos, 4
   sta \target
 .endm

@@ -55,13 +55,24 @@ class ILMethodEmitPass : ICompilerMethodPass
         // from some earlier, unrelated call.
         var local_refs = context.GetLocalRefPositions();
 
-        outputLine = context.IsFrameless
-            ? $"    #method_enter_frameless {context.GetLocalsSize()}, [{string.Join(',', local_refs)}]"
-            : $"    #init_locals_pull_parameters {context.GetLocalsSize()}, [{string.Join(',', ref_params)}], [{string.Join(',', local_refs)}]";
         // Drops `ldy stackPointer` reloads Y already satisfies -- see
         // YRegisterTracker.
         var yTracker = new YRegisterTracker();
-        output.WriteLine(yTracker.Process(outputLine, false));
+        if (context.StaticFrame != null)
+        {
+            // ILStaticFramePass: the caller already stored the arguments in
+            // this method's fixed parameter slots, and the return address
+            // stays on the hardware stack -- no prologue at all.
+            var frame = context.StaticFrame;
+            output.WriteLine($"    ; static frame: StaticFrames+{frame.Offset}, {frame.Size} bytes");
+        }
+        else
+        {
+            outputLine = context.IsFrameless
+                ? $"    #method_enter_frameless {context.GetLocalsSize()}, [{string.Join(',', local_refs)}]"
+                : $"    #init_locals_pull_parameters {context.GetLocalsSize()}, [{string.Join(',', ref_params)}], [{string.Join(',', local_refs)}]";
+            output.WriteLine(yTracker.Process(outputLine, false));
+        }
 
         // PROTOTYPE (ILMethodPromoteParametersPass): the prologue just
         // above is otherwise completely unmodified -- unlike a promoted

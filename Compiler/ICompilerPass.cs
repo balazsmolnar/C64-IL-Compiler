@@ -133,6 +133,20 @@ class CompilerContext
         return pos;
     }
 
+    // Static (compiled) frames -- see ILStaticFramePass. StaticFramesEnabled
+    // is the compiler switch (on unless --no-static-frames or
+    // C64_STATIC_FRAMES=0); StaticFrames holds every method the pass gave a
+    // fixed frame, and StaticFrameRejections why each other one kept its
+    // localsStack frame.
+    public bool StaticFramesEnabled { get; set; }
+    public Dictionary<MethodBase, StaticFrameInfo> StaticFrames { get; } = new();
+    public Dictionary<MethodBase, string> StaticFrameRejections { get; } = new();
+    public int StaticFramesSize { get; set; }
+
+    public StaticFrameInfo GetStaticFrame(MethodBase method) =>
+        method != null && StaticFrames.Count > 0
+        && StaticFrames.TryGetValue(ILStaticFramePass.Normalize(method), out var info) ? info : null;
+
     public List<string> InitValues { get; } = new();
 
     // (width, divisor) of every DivConst8_<d>/DivConst16_<d> routine some
@@ -170,7 +184,21 @@ class CompilerMethodContext
     // failure can be reported against the C# line that produced it.
     public int? CurrentIlOffset { get; set; }
 
-    public int GetLocalVariableReferencePosition(int index)
+    // Set (by ILCodePass) only on the context that compiles the method's own
+    // standalone body, never on a scratch/inlining context: an inlined copy
+    // of a static-frame method still gets a localsStack frame of its own.
+    // When set, every rel_pos below is shifted by StaticFrame.RelShift, which
+    // puts it at 256 or more -- the macros then address the fixed slot
+    // SF_TOP-rel_pos instead of localsStack-rel_pos,y (see ls_op in
+    // asm/helper/localsStack.asm).
+    public StaticFrameInfo StaticFrame { get; set; }
+
+    private int FrameShift => StaticFrame?.RelShift ?? 0;
+
+    public int GetLocalVariableReferencePosition(int index) => GetLocalVariableDynamicPosition(index) + FrameShift;
+
+    // The rel_pos a normal localsStack frame would use (no static shift).
+    public int GetLocalVariableDynamicPosition(int index)
     {
         bool isInstance = !Method.IsStatic;
         int relPos = isInstance ? 1 : 0;
@@ -236,7 +264,10 @@ class CompilerMethodContext
     }
 
 
-    public int GetParameterReferencePosition(int index)
+    public int GetParameterReferencePosition(int index) => GetParameterDynamicPosition(index) + FrameShift;
+
+    // The rel_pos a normal localsStack frame would use (no static shift).
+    public int GetParameterDynamicPosition(int index)
     {
         int relPos = 0;
         var parameters = Method.GetParameters();
@@ -281,7 +312,8 @@ class CompilerMethodContext
     // from the top, and the return-address slot a normal frame has sits
     // below them.
     public bool IsFrameless =>
-        Method is MethodInfo info
+        StaticFrame == null
+        && Method is MethodInfo info
         && info.IsStatic
         && info.ReturnType == typeof(void)
         && info.GetParameters().Length == 0;

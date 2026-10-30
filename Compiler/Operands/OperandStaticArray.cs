@@ -32,7 +32,7 @@ abstract class OpStaticArrayAccess : OpBase
                 y = wide ? $"lda {_index.RawParameter}\nasl\ntay" : $"ldy {_index.RawParameter}";
                 break;
             default: // unpromoted local or parameter: RawParameter is its rel_pos
-                y = $"ldy stackPointer\nlda localsStack-{_index.RawParameter},y\n{(wide ? "asl\n" : "")}tay";
+                y = $"{LocalsAccess.Load(_index.RawParameter)}\n{(wide ? "asl\n" : "")}tay";
                 break;
         }
         return $"{y}\nldx {_array.RawParameter}\njsr resolveObjPtr";

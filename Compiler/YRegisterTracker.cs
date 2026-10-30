@@ -114,6 +114,12 @@ class YRegisterTracker
         if (word.StartsWith("#"))
         {
             var name = word.Substring(1);
+            if (Rewritable.Contains(name) && IsStaticSlot(operand))
+            {
+                // A static-frame slot (ILStaticFramePass): absolute
+                // addressing, neither loads nor needs Y.
+                return line;
+            }
             if (Rewritable.Contains(name))
             {
                 var result = _yIsStackPointer ? ReplaceFirst(line, word, word + "_ky") : line;
@@ -150,6 +156,11 @@ class YRegisterTracker
         _yIsStackPointer = false;
         return line;
     }
+
+    // rel_pos 256 and up (the macro's first argument) names a static-frame
+    // slot -- see ls_op in asm/helper/localsStack.asm.
+    private static bool IsStaticSlot(string operand) =>
+        int.TryParse(operand.Split(',')[0].Trim(), out var relPos) && relPos >= 256;
 
     private static string ReplaceFirst(string text, string search, string replacement)
     {

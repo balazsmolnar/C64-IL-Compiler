@@ -154,7 +154,29 @@ class OpCall : OpBase
     {
         if (!operation.Optimized)
             EnsureCallIsResolvable(context, operation);
-        return base.Emit(context, operation);
+        var text = base.Emit(context, operation);
+        if (operation.Optimized)
+            return text;
+        var callee = context.CompilerContext.Assembly.ManifestModule.ResolveMethod((int)operation.OriginalParameter) as MethodBase;
+        var frame = context.CompilerContext.GetStaticFrame(callee);
+        return frame == null ? text : StaticFrameCall(frame, text);
+    }
+
+    // Call into a static-frame method (ILStaticFramePass): the arguments
+    // are on the evaluation stack already; pull them into the callee's
+    // fixed parameter slots, in the order its prologue would have pulled
+    // them (the j-th byte pulled lands at dynamic rel_pos P-j), then jsr,
+    // then push the returned value (sf_ret leaves it in A/X).
+    internal static string StaticFrameCall(StaticFrameInfo frame, string jsr)
+    {
+        var sb = new System.Text.StringBuilder();
+        int p = frame.ParameterBytes;
+        for (int j = 0; j < p; j++)
+            sb.Append($"pla\n    sta SF_TOP-{frame.RelShift + p - j}\n    ");
+        sb.Append(jsr);
+        if (frame.ReturnBytes > 0)
+            sb.Append($"\n    #sf_result {frame.ReturnBytes}");
+        return sb.ToString();
     }
 
     private static void EnsureCallIsResolvable(CompilerMethodContext context, ILOperation operation)
@@ -688,6 +710,24 @@ class OpIncfld : OpBase, IObjectRootOperation
     {
         return $"{pos}";
     }
+
+    // #incfld reads the object from rel_pos 1; a static-frame method
+    // (ILStaticFramePass) names its slot explicitly.
+    public override string Emit(CompilerMethodContext context, ILOperation operation) =>
+        LocalsAccess.IsStatic(thisVar) ? $"#incfld_at {thisVar}, {pos}" : base.Emit(context, operation);
+}
+
+// Locals/parameters addressed outside the ls_op macros (asm/helper/
+// localsStack.asm): a rel_pos of 256 or more is a static-frame slot
+// (ILStaticFramePass), the fixed byte SF_TOP-rel_pos.
+static class LocalsAccess
+{
+    public static bool IsStatic(object relPos) =>
+        relPos != null && int.TryParse(relPos.ToString(), out var r) && r >= 256;
+
+    // `<op> <slot>` with Y = stackPointer loaded first for a dynamic slot.
+    public static string Load(object relPos, string op = "lda") =>
+        IsStatic(relPos) ? $"{op} SF_TOP-{relPos}" : $"ldy stackPointer\n{op} localsStack-{relPos},y";
 }
 
 class OpSetfld : OpBase, IObjectRootOperation
@@ -898,6 +938,12 @@ class OpPushFld : OpBase, IPushFldOperation
 
     public override bool Is16Bit(CompilerMethodContext context, ILOperation operation) => is16Bit;
 
+    // #pushfld* reads the object from rel_pos 1; a static-frame method
+    // (ILStaticFramePass) names its slot explicitly via the _at variant.
+    public override string Emit(CompilerMethodContext context, ILOperation operation) =>
+        LocalsAccess.IsStatic(thisVar)
+            ? $"#pushfld{SizeSuffix(context, operation)}_at {thisVar}, {pos}"
+            : base.Emit(context, operation);
 }
 
 // Built by ILMethodCachedFieldAccessPass, replacing a second (or third,
@@ -1781,6 +1827,10 @@ class OpRet : OpBase
     // #method_leave, whose parameter is just its locals size.
     public override string Emit(CompilerMethodContext context, ILOperation operation)
     {
+        // A static-frame method (ILStaticFramePass) has nothing to release
+        // or rewind: the return value goes back in registers.
+        if (context.StaticFrame != null)
+            return $"#sf_ret {context.StaticFrame.ReturnBytes}";
         var text = base.Emit(context, operation);
         return context.IsFrameless ? text.Replace("#method_exit", "#method_leave") : text;
     }

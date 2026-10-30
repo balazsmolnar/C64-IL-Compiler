@@ -129,6 +129,16 @@ objTableDescHigh    .fill 256
 ; zero page, and OnInterrupt never saves/restores it).
 tostring_buffer     .fill 16
 
+; Static (compiled) frames of the methods Compiler/ILStaticFramePass.cs
+; picked, overlaid by the call graph -- see ls_op in localsStack.asm for how
+; a slot is addressed (SF_TOP-rel_pos). StaticFramesSize comes from the
+; generated code; 0 (nothing allocated) when no method has a static frame.
+.weak
+StaticFramesSize = 0
+.endweak
+StaticFrames        .fill StaticFramesSize
+SF_TOP = StaticFrames + 512
+
 ; Shared scratch buffer for String_Concat/String_PadLeft (asm/helper/
 ; stringops.asm) -- deliberately separate from tostring_buffer above: a
 ; concat's input is often a ToString() result still sitting in

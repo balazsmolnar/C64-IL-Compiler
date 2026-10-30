@@ -35,6 +35,22 @@ class Program
 
     static void Compile(string[] args)
     {
+        // Switches (anywhere on the command line; the rest is positional):
+        // --no-static-frames / --static-frames turn ILStaticFramePass off/on.
+        // C64_STATIC_FRAMES=0/1 does the same without touching the .bat files.
+        var staticFrames = Environment.GetEnvironmentVariable("C64_STATIC_FRAMES") != "0";
+        var positional = new List<string>();
+        foreach (var arg in args)
+        {
+            if (arg == "--no-static-frames")
+                staticFrames = false;
+            else if (arg == "--static-frames")
+                staticFrames = true;
+            else
+                positional.Add(arg);
+        }
+        args = positional.ToArray();
+
         if (args.Length < 1)
             throw new InvalidOperationException("Assembly must be specified.");
 
@@ -59,7 +75,8 @@ class Program
                 EntryFilePath = entryFilePath,
                 IsUnitTest = isUnitTest,
                 Optimize = true,
-                EmitDebugInfo = emitDebugInfo
+                EmitDebugInfo = emitDebugInfo,
+                StaticFramesEnabled = staticFrames,
             };
             var passes = new List<ICompilerPass> {
                 new ILRawAssemblyPass(),
@@ -71,6 +88,11 @@ class Program
                 // visited before a method it calls -- see
                 // ILCallSiteCountPass's own comment.
                 new ILCallSiteCountPass(),
+                // Whole-program: picks the methods whose parameters/locals
+                // get fixed addresses instead of a localsStack frame (see
+                // its own comment). Before ILCodePass, which hands each
+                // picked method's context its StaticFrameInfo.
+                new ILStaticFramePass(),
                 new ILCodePass(
                     new ICompilerTypePass[] {
                         new ILTypeStaticFieldInitPass(),

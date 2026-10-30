@@ -31,7 +31,7 @@ add16 .macro
 add8_tail .macro
     clc
     adc zp_param1_low
-    #stack_push_int_a
+    #stack_push_tos
 .endm
 
 add8 .macro
@@ -45,7 +45,7 @@ add8 .macro
 sub8_tail .macro
     sec
     sbc zp_param1_low
-    #stack_push_int_a
+    #stack_push_tos
 .endm
 
 sub8 .macro
@@ -88,7 +88,7 @@ sub16 .macro
 ; both int and uint -- no _unsigned variant needed, unlike the compares.
 mul8_tail .macro
     jsr Multiply8                  ; asm/helper/division.asm
-    #stack_push_int_a
+    #stack_push_tos
 .endm
 
 mul8 .macro
@@ -131,7 +131,7 @@ mul_shift_const8 .macro shift
         asl
     .next
     .endif
-    #stack_push_int_a
+    #stack_push_tos
 .endm
 
 mul_shift_const16 .macro shift
@@ -165,7 +165,7 @@ div_const8 .macro d
 rem_const8 .macro d
     #stack_pull_int zp_param2_low
     jsr DivConst8_\d
-    #stack_push_int_a
+    #stack_push_tos
 .endm
 
 div_const16 .macro d
@@ -233,7 +233,7 @@ div_const16_body .macro d, skip
 rem_mask8 .macro mask
     #stack_pull_int_a
     and #\mask
-    #stack_push_int_a
+    #stack_push_tos
 .endm
 
 rem_mask16 .macro mask
@@ -265,7 +265,7 @@ div_shift_const8 .macro shift
         lsr
     .next
     .endif
-    #stack_push_int_a
+    #stack_push_tos
 .endm
 
 div_shift_const16 .macro shift
@@ -306,7 +306,7 @@ negate16 .macro
 not8 .macro
     #stack_pull_int_a
     eor #$FF
-    #stack_push_int_a
+    #stack_push_tos
 .endm
 
 not16 .macro
@@ -327,7 +327,7 @@ negate8 .macro
     eor #$FF
     clc
     adc #$1
-    #stack_push_int_a
+    #stack_push_tos
 .endm
 
 compareLess16 .macro
@@ -424,7 +424,8 @@ compareLess8 .macro
         cmp zp_param2_low
         bpl +
         inx
-+        #stack_push_int_x
++        txa
+         #stack_push_tos
 .endm
 
 compareLess_unsigned8 .macro 
@@ -435,7 +436,8 @@ compareLess_unsigned8 .macro
         cmp zp_param2_low
         bcs +
         inx
-+        #stack_push_int_x
++        txa
+         #stack_push_tos
 .endm
 
 compareGreater8 .macro 
@@ -447,7 +449,8 @@ compareGreater8 .macro
         bmi +
         beq +
         inx
-+       #stack_push_int_x
++       txa
+        #stack_push_tos
 .endm
 
 compareGreater_const8 .macro value
@@ -458,7 +461,8 @@ compareGreater_const8 .macro value
         bmi +
         beq +
         inx
-+       #stack_push_int_x
++       txa
+        #stack_push_tos
 .endm
 
 compareGreater_unsigned8 .macro 
@@ -470,7 +474,8 @@ compareGreater_unsigned8 .macro
         bcc +
         beq +
         inx
-+       #stack_push_int_x
++       txa
+        #stack_push_tos
 .endm
 
 compareGreater_unsigned_const8 .macro value
@@ -481,7 +486,8 @@ compareGreater_unsigned_const8 .macro value
         bcc +
         beq +
         inx
-+       #stack_push_int_x
++       txa
+        #stack_push_tos
 .endm
 
 compareLess_const8 .macro value
@@ -491,7 +497,8 @@ compareLess_const8 .macro value
         cmp #\value
         bpl +
         inx
-+       #stack_push_int_x
++       txa
+        #stack_push_tos
 .endm
 
 compareLess_unsigned_const8 .macro value
@@ -501,7 +508,8 @@ compareLess_unsigned_const8 .macro value
         cmp #\value
         bcs +
         inx
-+       #stack_push_int_x
++       txa
+        #stack_push_tos
 .endm
 
 compareEqual16 .macro 
@@ -531,7 +539,8 @@ compareEqual8 .macro
         bne +
         inx
 +
-        #stack_push_int_x
+        txa
+        #stack_push_tos
 .endm
 
 compareEqual_const8 .macro value
@@ -542,7 +551,8 @@ compareEqual_const8 .macro value
         bne +
         inx
 +
-        #stack_push_int_x
+        txa
+        #stack_push_tos
 .endm
 
 shift_left8 .macro 
@@ -567,13 +577,117 @@ shift_right8 .macro
     #stack_push_int_a
 .endm
 
+; And/Or/Xor. The "_tail" macros (first operand in A, second in
+; zp_param1_low; 16-bit: first in zp_param2_low/high, second in
+; zp_param1_low/high) are what ILMethodIntOperandFusionOptimizer's fused
+; operand copies (OpFusedIntBinOp) chain into, same as add8_tail above.
+;
+; The "_const" macros take the second operand as an assembly-time constant
+; (OpFusedIntConstOp): "and8_const c" works on the value already on the
+; stack (pla / and #c / pha: 4 bytes instead of pushing c and calling and8,
+; 10), "and8_const_tail c" on a first operand already in A. and_imm8 &
+; co. are the byte operation itself: an identity constant (and #$ff, ora
+; #0, eor #0) emits nothing and an absorbing one (and #0, ora #$ff) a plain
+; lda, so the 16-bit forms only touch the bytes the constant changes.
+
+and_imm8 .macro value
+  .if ((\value) & $ff) == 0
+    lda #0
+  .elsif ((\value) & $ff) != $ff
+    and #<(\value)
+  .endif
+.endm
+
+ora_imm8 .macro value
+  .if ((\value) & $ff) == $ff
+    lda #$ff
+  .elsif ((\value) & $ff) != 0
+    ora #<(\value)
+  .endif
+.endm
+
+eor_imm8 .macro value
+  .if ((\value) & $ff) != 0
+    eor #<(\value)
+  .endif
+.endm
+
+; A byte the constant leaves unchanged: and with $ff, or/xor with 0.
+logic_identity8 .function op, value
+.endf (op == 0 && ((value) & $ff) == $ff) || (op != 0 && ((value) & $ff) == 0)
+
+; Shared body of and16_const/or16_const/xor16_const (op: 0 and, 1 or,
+; 2 xor). The value's low byte is on top of the stack, its high byte below
+; it; only the bytes the constant changes are touched.
+logic16_const .macro op, value
+  .if logic_identity8(\op, (\value) >> 8)
+    ; high byte unchanged: only the top byte
+    pla
+    #logic_imm8 \op, \value
+    pha
+  .elsif logic_identity8(\op, \value)
+    ; low byte unchanged: only the byte below the top
+    tsx
+    .if (\op == 0 && ((\value) & $ff00) == 0) || (\op == 1 && ((\value) & $ff00) == $ff00)
+      #logic_imm8 \op, (\value) >> 8
+    .else
+      lda $102,x
+      #logic_imm8 \op, (\value) >> 8
+    .endif
+    sta $102,x
+  .else
+    pla
+    #logic_imm8 \op, \value
+    sta zp_param1_low
+    pla
+    #logic_imm8 \op, (\value) >> 8
+    pha
+    lda zp_param1_low
+    pha
+  .endif
+.endm
+
+logic_imm8 .macro op, value
+  .if \op == 0
+    #and_imm8 \value
+  .elsif \op == 1
+    #ora_imm8 \value
+  .else
+    #eor_imm8 \value
+  .endif
+.endm
+
+and8_tail .macro
+    and zp_param1_low
+    #stack_push_tos
+.endm
+
 and8 .macro
 
     #stack_pull_int zp_param1_low
     #stack_pull_int_a
 
+    #and8_tail
+.endm
+
+and8_const_tail .macro value
+    #and_imm8 \value
+    #stack_push_tos
+.endm
+
+and8_const .macro value
+    #stack_pull_int_a
+    #and8_const_tail \value
+.endm
+
+and16_tail .macro
+    lda zp_param2_low
     and zp_param1_low
+    sta zp_param2_low
+    lda zp_param2_high
+    and zp_param1_high
     #stack_push_int_a
+    #stack_push_var zp_param2_low
 .endm
 
 ; and8 had no 16-bit counterpart before Or/Xor were added alongside it here --
@@ -588,13 +702,16 @@ and16 .macro
     #stack_pull_int zp_param2_low
     #stack_pull_int zp_param2_high
 
-    lda zp_param2_low
-    and zp_param1_low
-    sta zp_param2_low
-    lda zp_param2_high
-    and zp_param1_high
-    #stack_push_int_a
-    #stack_push_var zp_param2_low
+    #and16_tail
+.endm
+
+and16_const .macro value
+    #logic16_const 0, \value
+.endm
+
+or8_tail .macro
+    ora zp_param1_low
+    #stack_push_tos
 .endm
 
 or8 .macro
@@ -602,8 +719,27 @@ or8 .macro
     #stack_pull_int zp_param1_low
     #stack_pull_int_a
 
+    #or8_tail
+.endm
+
+or8_const_tail .macro value
+    #ora_imm8 \value
+    #stack_push_tos
+.endm
+
+or8_const .macro value
+    #stack_pull_int_a
+    #or8_const_tail \value
+.endm
+
+or16_tail .macro
+    lda zp_param2_low
     ora zp_param1_low
+    sta zp_param2_low
+    lda zp_param2_high
+    ora zp_param1_high
     #stack_push_int_a
+    #stack_push_var zp_param2_low
 .endm
 
 or16 .macro
@@ -614,13 +750,16 @@ or16 .macro
     #stack_pull_int zp_param2_low
     #stack_pull_int zp_param2_high
 
-    lda zp_param2_low
-    ora zp_param1_low
-    sta zp_param2_low
-    lda zp_param2_high
-    ora zp_param1_high
-    #stack_push_int_a
-    #stack_push_var zp_param2_low
+    #or16_tail
+.endm
+
+or16_const .macro value
+    #logic16_const 1, \value
+.endm
+
+xor8_tail .macro
+    eor zp_param1_low
+    #stack_push_tos
 .endm
 
 xor8 .macro
@@ -628,8 +767,27 @@ xor8 .macro
     #stack_pull_int zp_param1_low
     #stack_pull_int_a
 
+    #xor8_tail
+.endm
+
+xor8_const_tail .macro value
+    #eor_imm8 \value
+    #stack_push_tos
+.endm
+
+xor8_const .macro value
+    #stack_pull_int_a
+    #xor8_const_tail \value
+.endm
+
+xor16_tail .macro
+    lda zp_param2_low
     eor zp_param1_low
+    sta zp_param2_low
+    lda zp_param2_high
+    eor zp_param1_high
     #stack_push_int_a
+    #stack_push_var zp_param2_low
 .endm
 
 xor16 .macro
@@ -640,13 +798,11 @@ xor16 .macro
     #stack_pull_int zp_param2_low
     #stack_pull_int zp_param2_high
 
-    lda zp_param2_low
-    eor zp_param1_low
-    sta zp_param2_low
-    lda zp_param2_high
-    eor zp_param1_high
-    #stack_push_int_a
-    #stack_push_var zp_param2_low
+    #xor16_tail
+.endm
+
+xor16_const .macro value
+    #logic16_const 2, \value
 .endm
 
 conv_8_16 .macro
@@ -654,7 +810,8 @@ conv_8_16 .macro
     #stack_pull_int_x
     lda #0
     stack_push_int_a
-    stack_push_int_x
+    txa
+    #stack_push_tos
 
 .endm
 
@@ -662,5 +819,6 @@ conv_16_8 .macro
 
     #stack_pull_int_x
     #stack_pull_int_a
-    #stack_push_int_x
+    txa
+    #stack_push_tos
 .endm

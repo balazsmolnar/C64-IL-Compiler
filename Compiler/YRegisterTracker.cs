@@ -47,6 +47,9 @@ class YRegisterTracker
         // jsr DivConst8_d/DivConst16_d (generated from div_const8_body/16): A, X, zp_param2.
         "div_const8", "div_const16", "rem_const8", "rem_const16", "rem_mask8", "rem_mask16",
         "negate16", "negate8", "not16", "not8", "or16", "or8", "xor16", "xor8",
+        "and8_tail", "or8_tail", "xor8_tail", "and16_tail", "or16_tail", "xor16_tail",
+        "and8_const", "or8_const", "xor8_const", "and8_const_tail", "or8_const_tail", "xor8_const_tail",
+        "and16_const", "or16_const", "xor16_const",
         "shift_left8", "shift_right8",
         "stack_duplicate8", "stack_pop", "stack_pull_int", "stack_pull_int16", "stack_pull_int8", "stack_pull_int_a",
         "stack_pull_int_ref", "stack_pull_int_x", "stack_pull_pointer",
@@ -76,6 +79,10 @@ class YRegisterTracker
     {
         "lda", "ldx", "pha", "pla", "tax", "txa", "clc", "sec", "adc", "sbc", "and", "ora", "eor",
         "cmp", "cpx", "inx", "dex", "asl", "lsr", "rol", "ror", "nop", "bit",
+        // stores and read-modify-writes (never into stackPointer: see the
+        // operand check in ProcessLine) -- static-frame call sites
+        // (ILStaticCallPass) emit them between `ldy stackPointer` loads.
+        "sta", "stx", "inc", "dec",
     };
 
     private bool _yIsStackPointer;
@@ -114,6 +121,12 @@ class YRegisterTracker
         if (word.StartsWith("#"))
         {
             var name = word.Substring(1);
+            if (Rewritable.Contains(name) && IsStaticSlot(operand))
+            {
+                // A static-frame slot (ILStaticFramePass): absolute
+                // addressing, neither loads nor needs Y.
+                return line;
+            }
             if (Rewritable.Contains(name))
             {
                 var result = _yIsStackPointer ? ReplaceFirst(line, word, word + "_ky") : line;
@@ -150,6 +163,11 @@ class YRegisterTracker
         _yIsStackPointer = false;
         return line;
     }
+
+    // rel_pos 256 and up (the macro's first argument) names a static-frame
+    // slot -- see ls_op in asm/helper/localsStack.asm.
+    private static bool IsStaticSlot(string operand) =>
+        int.TryParse(operand.Split(',')[0].Trim(), out var relPos) && relPos >= 256;
 
     private static string ReplaceFirst(string text, string search, string replacement)
     {

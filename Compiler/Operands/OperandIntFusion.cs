@@ -62,9 +62,9 @@ static class IntOperandCopy
             case OpLdloc_s:
             case OpLdarg:
             case OpLdarg_s:
-                return $"ldy stackPointer\nlda localsStack-{source.RawParameter},y";
+                return LocalsAccess.Load(source.RawParameter);
             case IPushFldOperation pushFld:
-                return $"ldy stackPointer\nldx localsStack-{pushFld.RelPos},y\njsr resolveObjPtr\nldy #{pushFld.Pos}\nlda (tmpPointer),y";
+                return $"{LocalsAccess.Load(pushFld.RelPos, "ldx")}\njsr resolveObjPtr\nldy #{pushFld.Pos}\nlda (tmpPointer),y";
             case OpLdConst:
                 return $"lda #<{source.RawParameter}";
             default:
@@ -116,6 +116,38 @@ class OpFusedIntBinOp : OpBase
         var bCopy = IntOperandCopy.Emit(_b, _bTarget);
         var aCopy = _aIsRegister ? IntOperandCopy.EmitToRegisterA(_a) : IntOperandCopy.Emit(_a, _aTarget);
         return string.Join("\n", bCopy, aCopy, _tailMacro);
+    }
+}
+
+// Built by ILMethodIntOperandFusionOptimizer: And/Or/Xor whose second
+// operand is an int constant, which goes in as an immediate
+// ("and8_const 7", asm/helper/arithmetic.asm) instead of being pushed and
+// pulled. The first operand is either already on the evaluation stack
+// (a == null: "#and8_const c", pla/and #c/pha) or, 8-bit only, a simple
+// leaf loaded straight into A ("#and8_const_tail c"). 16-bit always works
+// on the stack: copying a leaf into zp_param2 first is no shorter than
+// pushing it, and the stack form skips each byte the constant leaves alone.
+class OpFusedIntConstOp : OpBase
+{
+    private readonly ILOperation _a;
+    private readonly object _value;
+    private readonly string _op;
+    private readonly bool _is16;
+
+    public OpFusedIntConstOp(ILOperation a, object value, string op, bool is16) : base(0)
+    {
+        _a = a;
+        _value = value;
+        _op = op;
+        _is16 = is16;
+    }
+
+    public override string Emit(CompilerMethodContext context, ILOperation operation)
+    {
+        var width = _is16 ? "16" : "8";
+        if (_a == null)
+            return $"#{_op}{width}_const {_value}";
+        return string.Join("\n", IntOperandCopy.EmitToRegisterA(_a), $"#{_op}{width}_const_tail {_value}");
     }
 }
 

@@ -50,7 +50,9 @@ public class LocalRefZeroingTests
         var outDir = Path.Combine(dir, "asm");
         Directory.CreateDirectory(outDir);
         var errors = new StringWriter();
-        var exit = Program.Run(new[] { dll, outDir, Path.Combine(dir, "entry.asm"), "program" }, errors);
+        // These tests check the localsStack prologue, which a static frame
+        // (ILStaticFramePass) would replace.
+        var exit = Program.Run(new[] { dll, outDir, Path.Combine(dir, "entry.asm"), "program", "--no-static-frames" }, errors);
         Assert.That(exit, Is.EqualTo(0), "expected the program to compile cleanly; output:\n" + errors);
         return outDir;
     }

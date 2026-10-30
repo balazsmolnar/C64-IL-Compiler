@@ -58,6 +58,21 @@ class ILMethodIntOperandFusionOptimizer : ICompilerMethodPass
         [ILOpCode.Add] = ("#add8_tail", true, null),
         [ILOpCode.Sub] = ("#sub8_tail", true, null),
         [ILOpCode.Mul] = ("#mul8_tail", false, "zp_param2_low"),
+        [ILOpCode.And] = ("#and8_tail", true, null),
+        [ILOpCode.Or] = ("#or8_tail", true, null),
+        [ILOpCode.Xor] = ("#xor8_tail", true, null),
+    };
+
+    // And/Or/Xor with an int-constant second operand go in as an immediate
+    // instead (OpFusedIntConstOp, "#and8_const c"/"#and8_const_tail c"/
+    // "#and16_const c", asm/helper/arithmetic.asm): Catacombs alone had 45
+    // `stack_push_int8 c; and8` pairs, 10 bytes where `pla; and #c; pha`
+    // is 4.
+    private static readonly Dictionary<ILOpCode, string> LogicOps = new()
+    {
+        [ILOpCode.And] = "and",
+        [ILOpCode.Or] = "or",
+        [ILOpCode.Xor] = "xor",
     };
 
     // Every 16-bit op already pulls both operands into named zp pairs --
@@ -68,6 +83,9 @@ class ILMethodIntOperandFusionOptimizer : ICompilerMethodPass
         [ILOpCode.Add] = "#add16_tail",
         [ILOpCode.Sub] = "#sub16_tail",
         [ILOpCode.Mul] = "#mul16_tail",
+        [ILOpCode.And] = "#and16_tail",
+        [ILOpCode.Or] = "#or16_tail",
+        [ILOpCode.Xor] = "#xor16_tail",
     };
 
     // A promoted local (ILMethodPromoteLocalsPass) lives at a fixed
@@ -172,6 +190,7 @@ class ILMethodIntOperandFusionOptimizer : ICompilerMethodPass
         var lines = context.Lines;
         Execute8Bit(context, lines);
         Execute16Bit(lines);
+        ExecuteLogicConst(lines);
         ExecuteBranchTruthiness(context, lines);
     }
 
@@ -213,8 +232,13 @@ class ILMethodIntOperandFusionOptimizer : ICompilerMethodPass
             if (lines[i].Optimized || !IsFusableInt8Leaf(context, lines[i]))
                 continue;
 
+            // The second operand must not be a branch target either: a
+            // path arriving there has pushed its own first operand (e.g.
+            // `(c ? x : y) + z`, where the join label sits on `z`), which
+            // the fused op would ignore in favour of lines[i] -- found by
+            // Test.Runtime's LogicConstFusionTests, it miscompiled before.
             int j = NextEffective(lines, i);
-            if (j < 0 || !IsFusableInt8Leaf(context, lines[j]))
+            if (j < 0 || !string.IsNullOrEmpty(lines[j].Label) || !IsFusableInt8Leaf(context, lines[j]))
                 continue;
 
             int k = NextEffective(lines, j);
@@ -224,7 +248,9 @@ class ILMethodIntOperandFusionOptimizer : ICompilerMethodPass
             if (!Int8Ops.TryGetValue(lines[k].OpCode, out var spec))
                 continue;
 
-            var fused = new OpFusedIntBinOp(lines[i], lines[j], spec.aIsRegister, spec.aTarget, "zp_param1_low", spec.tailMacro);
+            OpBase fused = LogicOps.TryGetValue(lines[k].OpCode, out var logic) && lines[j].Operation is OpLdConst
+                ? new OpFusedIntConstOp(lines[i], lines[j].RawParameter, logic, false)
+                : new OpFusedIntBinOp(lines[i], lines[j], spec.aIsRegister, spec.aTarget, "zp_param1_low", spec.tailMacro);
             InsertFused(lines, fused, k, i, j, k);
         }
     }
@@ -241,8 +267,9 @@ class ILMethodIntOperandFusionOptimizer : ICompilerMethodPass
                 continue;
             int aEnd = i + aMatch.Value.span - 1;
 
+            // See Execute8Bit: the second operand must not be a join.
             int j = NextEffective(lines, aEnd);
-            if (j < 0)
+            if (j < 0 || !string.IsNullOrEmpty(lines[j].Label))
                 continue;
 
             var bMatch = TryMatchInt16Leaf(lines, j);
@@ -257,11 +284,63 @@ class ILMethodIntOperandFusionOptimizer : ICompilerMethodPass
             if (!Int16TailMacro.TryGetValue(lines[k].OpCode, out var tailMacro))
                 continue;
 
+            // A constant second operand is ExecuteLogicConst's: and16_const
+            // on the pushed leaf is shorter than copying both into zp.
+            if (LogicOps.ContainsKey(lines[k].OpCode) && bMatch.Value.leaf.Operation is OpLdConst)
+                continue;
+
             var fused = new OpFusedIntBinOp(aMatch.Value.leaf, bMatch.Value.leaf, false, "zp_param2_low", "zp_param1_low", tailMacro);
 
             var toMark = new List<int>();
             for (int x = i; x <= aEnd; x++) toMark.Add(x);
             for (int x = j; x <= bEnd; x++) toMark.Add(x);
+            toMark.Add(k);
+            InsertFused(lines, fused, k, toMark.ToArray());
+        }
+    }
+
+    // [anything already on the stack] [int constant] [And/Or/Xor] ->
+    // "#and8_const c" / "#and16_const c". What produced the first operand
+    // doesn't matter, so this also takes the operands Execute8Bit can't
+    // (a static field, a call result, an expression, a promoted local). The
+    // constant itself may carry a label -- a join where both paths pushed
+    // the first operand (`(c ? x : y) & 7`): that label still lands right
+    // before the fused op, which pulls whatever either path pushed.
+    private static void ExecuteLogicConst(List<ILOperation> lines)
+    {
+        for (int j = 0; j < lines.Count; j++)
+        {
+            var c = lines[j];
+            if (c.Optimized || c.Operation is not OpLdConst || c.StackContent == null || c.StackContent.Count == 0 ||
+                c.StackContent.Last() == typeof(float))
+                continue;
+
+            int width;
+            int cEnd;
+            if (c.StackContent.Last().GetStorageBytes() == 1)
+            {
+                width = 1;
+                cEnd = j;
+            }
+            else
+            {
+                var m = TryMatchInt16Leaf(lines, j);
+                if (m == null || m.Value.span != 2)
+                    continue;
+                width = 2;
+                cEnd = j + 1;
+            }
+
+            int k = NextEffective(lines, cEnd);
+            if (k < 0 || !string.IsNullOrEmpty(lines[k].Label) || !LogicOps.TryGetValue(lines[k].OpCode, out var logic))
+                continue;
+            var result = lines[k].StackContent;
+            if (result == null || result.Count == 0 || result.Last() == typeof(float) || result.Last().GetStorageBytes() != width)
+                continue;
+
+            var fused = new OpFusedIntConstOp(null, c.RawParameter, logic, width == 2);
+            var toMark = new List<int>();
+            for (int x = j; x <= cEnd; x++) toMark.Add(x);
             toMark.Add(k);
             InsertFused(lines, fused, k, toMark.ToArray());
         }

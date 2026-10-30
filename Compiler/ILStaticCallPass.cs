@@ -33,7 +33,7 @@ class ILStaticCallPass : ICompilerMethodPass
                 continue;
             var callee = context.CompilerContext.Assembly.ManifestModule.ResolveMethod((int)call.OriginalParameter);
             var frame = context.CompilerContext.GetStaticFrame(callee);
-            if (frame == null)
+            if (frame == null || frame.CalleePulls)
                 continue;
             if (call.OpCode == ILOpCode.Callvirt && !callee.IsDevirtualizable(context.CompilerContext.Assembly))
                 continue;

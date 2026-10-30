@@ -159,7 +159,8 @@ class OpCall : OpBase
             return text;
         var callee = context.CompilerContext.Assembly.ManifestModule.ResolveMethod((int)operation.OriginalParameter) as MethodBase;
         var frame = context.CompilerContext.GetStaticFrame(callee);
-        return frame == null ? text : StaticFrameCall(frame, text);
+        // A callee-pulls frame takes its arguments off the stack itself.
+        return frame == null || frame.CalleePulls ? text : StaticFrameCall(frame, text);
     }
 
     // Call into a static-frame method (ILStaticFramePass): the arguments
@@ -1835,6 +1836,22 @@ class OpRet : OpBase
         return $"{context.GetLocalStackSize()}, [{string.Join(',', refList)}]";
     }
 
+    internal static string StaticExitLabel(CompilerMethodContext context) => $"{context.Method.GetLabel()}_sf_exit";
+
+    // The shared exit of a callee-pulls static frame (sf_exit_saved): its
+    // own label on a line of its own, then the release/return sequence.
+    internal static string StaticExitBlock(CompilerMethodContext context)
+    {
+        var refList = new List<string>();
+        bool isInstance = !context.Method.IsStatic;
+        var parameters = context.Method.GetParameters();
+        for (int i = 0; i < parameters.Length; i++)
+            if (parameters[i].ParameterType.IsReferenceCounted())
+                refList.Add(context.GetParameterReferencePosition(i + (isInstance ? 1 : 0)).ToString());
+        refList.AddRange(context.GetLocalRefPositions());
+        return $"\n{StaticExitLabel(context)}\n    #sf_exit_saved {context.StaticFrame.ReturnAddressRel}, [{string.Join(',', refList)}]";
+    }
+
     // A frameless method (CompilerMethodContext.IsFrameless) leaves through
     // #method_leave, whose parameter is just its locals size.
     public override string Emit(CompilerMethodContext context, ILOperation operation)
@@ -1843,6 +1860,14 @@ class OpRet : OpBase
         // or rewind: the return value goes back in registers.
         // RawParameter is "<size>, [<ref_list>]"; the ref list (rel_pos of
         // every reference-typed parameter/local) is already in static form.
+        if (context.StaticFrame is { CalleePulls: true })
+        {
+            // One shared exit per method: the last line emits it, every
+            // other ret jumps there.
+            return ReferenceEquals(operation, context.Lines[^1])
+                ? StaticExitBlock(context)
+                : $"jmp {StaticExitLabel(context)}";
+        }
         if (context.StaticFrame != null)
         {
             var raw = operation.RawParameter.ToString();

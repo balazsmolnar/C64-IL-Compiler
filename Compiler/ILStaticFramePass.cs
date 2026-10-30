@@ -21,7 +21,15 @@ class StaticFrameInfo
     // Per parameter byte, in the order the caller pulls them (the last
     // argument's low byte first, `this` last): is it a reference to count?
     public bool[] ParameterRefBytes { get; init; }
+    // The other calling convention (see ILStaticFramePass.ChooseCalleePulls):
+    // the callee itself pulls its return address and arguments off the
+    // hardware stack into its frame, and returns through the saved address
+    // with the result left on the stack -- no per-call-site code at all.
+    // The two return-address bytes are the bottom of the frame.
+    public bool CalleePulls { get; init; }
     public int RelShift => 512 - Offset - Size;
+    // rel_pos of the saved return address's low byte (CalleePulls only).
+    public int ReturnAddressRel => RelShift + Size;
 }
 
 // Static (compiled) frames, as in cc65 --static-locals, KickC, SDCC overlays
@@ -77,6 +85,7 @@ class ILStaticFramePass : ICompilerPass
         var callees = new Dictionary<MethodBase, HashSet<MethodBase>>();
         var callbackRoots = new HashSet<MethodBase>();
         var undecodable = new HashSet<MethodBase>();
+        var siteCounts = new Dictionary<MethodBase, int>();
 
         foreach (var method in methods)
         {
@@ -128,7 +137,10 @@ class ILStaticFramePass : ICompilerPass
                 if (line.OpCode == ILOpCode.Ldftn || line.OpCode == ILOpCode.Ldvirtftn)
                     callbackRoots.UnionWith(resolved);
                 else
+                {
                     targets.UnionWith(resolved);
+                    siteCounts[target] = siteCounts.GetValueOrDefault(target) + 1;
+                }
             }
         }
 
@@ -184,7 +196,9 @@ class ILStaticFramePass : ICompilerPass
             if (sccs[i].Count != 1 || !candidates.TryGetValue(sccs[i][0], out var c))
                 continue;
             var method = sccs[i][0];
-            if (start + c.size > MaxTotalSize)
+            bool calleePulls = ChooseCalleePulls(c.paramBytes, c.returnBytes, siteCounts.GetValueOrDefault(method));
+            int size = c.size + (calleePulls ? 2 : 0);
+            if (start + size > MaxTotalSize)
             {
                 context.StaticFrameRejections[method] = "static frame area full";
                 continue;
@@ -192,12 +206,13 @@ class ILStaticFramePass : ICompilerPass
             context.StaticFrames[method] = new StaticFrameInfo
             {
                 Offset = start,
-                Size = c.size,
+                Size = size,
                 ParameterBytes = c.paramBytes,
                 ReturnBytes = c.returnBytes,
                 ParameterRefBytes = ParameterRefBytes(method),
+                CalleePulls = calleePulls,
             };
-            end[i] = start + c.size;
+            end[i] = start + size;
             total = Math.Max(total, end[i]);
         }
         context.StaticFramesSize = total;
@@ -253,11 +268,33 @@ class ILStaticFramePass : ICompilerPass
             if (phase1 && ret.IsReferenceCounted())
                 return "reference return";
             returnBytes = ret.GetStorageBytes();
-            if (returnBytes > 2)
-                return "float return";
         }
         size = paramBytes + localBytes;
         return null;
+    }
+
+    // Which convention a static frame uses. Caller-stores (the default):
+    // every call site pulls the arguments into the callee's slots (or
+    // copies them there directly, ILStaticCallPass) and pushes the result
+    // that comes back in A/X -- the fastest, and free for a method without
+    // parameters or result. Callee-pulls: the callee saves its return
+    // address and pulls its own arguments (like the localsStack prologue,
+    // ~15 bytes + 4 per parameter byte, once) and the result stays on the
+    // stack -- smaller when many call sites pass many bytes, and the only
+    // way to return a float. Estimated per-site cost of caller-stores over
+    // callee-pulls: ~3 bytes per parameter byte (2 for a direct copy, 4 for
+    // a pull) plus the result push.
+    internal static int CalleePullsBias =
+        int.TryParse(Environment.GetEnvironmentVariable("C64_SF_BIAS"), out var b) ? b : 0;
+
+    private static bool ChooseCalleePulls(int paramBytes, int returnBytes, int sites)
+    {
+        if (returnBytes > 2)
+            return true;
+        if (paramBytes == 0)
+            return false;
+        int resultPush = returnBytes == 1 ? 1 : returnBytes == 2 ? 3 : 0;
+        return sites * (3 * paramBytes + resultPush) > 15 + 4 * paramBytes + CalleePullsBias;
     }
 
     // ParameterRefBytes: the bytes in the order the caller pulls them,
@@ -382,10 +419,10 @@ class ILStaticFramePass : ICompilerPass
         output.WriteLine($"; Static frames (Compiler/ILStaticFramePass.cs): {context.StaticFrames.Count} of {methodCount} methods, {context.StaticFramesSize} bytes");
         output.WriteLine($"StaticFramesSize = {context.StaticFramesSize}");
         foreach (var (method, info) in context.StaticFrames.OrderBy(x => x.Value.Offset).ThenBy(x => x.Key.GetLabel()))
-            output.WriteLine($";   {method.GetLabel()}: offset {info.Offset}, {info.Size} bytes");
+            output.WriteLine($";   {method.GetLabel()}: offset {info.Offset}, {info.Size} bytes{(info.CalleePulls ? ", callee pulls" : "")}");
         foreach (var group in context.StaticFrameRejections.GroupBy(x => x.Value).OrderByDescending(g => g.Count()))
             output.WriteLine($"; dynamic ({group.Key}): {group.Count()}: {string.Join(", ", group.Select(x => x.Key.GetLabel()).OrderBy(x => x))}");
-        Console.WriteLine($"Static frames: {context.StaticFrames.Count} of {methodCount} methods, {context.StaticFramesSize} bytes; dynamic: "
+        Console.WriteLine($"Static frames: {context.StaticFrames.Count} of {methodCount} methods ({context.StaticFrames.Values.Count(f => f.CalleePulls)} callee-pulls), {context.StaticFramesSize} bytes; dynamic: "
             + string.Join(", ", context.StaticFrameRejections.GroupBy(x => x.Value).OrderByDescending(g => g.Count()).Select(g => $"{g.Key} {g.Count()}")));
     }
 }

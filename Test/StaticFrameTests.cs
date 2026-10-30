@@ -1,7 +1,7 @@
 using NUnit.Framework;
 using Assert = C64TestFramework.Assert;
 
-namespace Compiler.RuntimeTest;
+namespace Compiler.Test;
 
 // Static (compiled) frames (Compiler/ILStaticFramePass.cs): every helper
 // below that is not a test entry point gets fixed-address parameters and
@@ -20,6 +20,17 @@ class FrameNode
         FrameNode tmp = new FrameNode { value_ = other.value_ };
         StaticFrameTests.Touch();
         return value_ + tmp.value_;
+    }
+
+    // Enough parameter bytes and call sites for the callee-pulls
+    // convention (StaticFrameInfo.CalleePulls): the method pulls its own
+    // arguments, references included, and returns through the saved
+    // return address.
+    public uint Pick(FrameNode a, FrameNode b, uint which)
+    {
+        FrameNode chosen = which == 0 ? a : b;
+        StaticFrameTests.Touch();
+        return chosen.value_ + value_;
     }
 
     public FrameNode Link(FrameNode other)
@@ -64,6 +75,14 @@ public class StaticFrameTests
         uint t = a + b;
         Touch();
         return t + c;
+    }
+
+    // A float result can only come back on the stack: callee-pulls.
+    static float Scale(float v, float k)
+    {
+        float r = v * k;
+        Touch();
+        return r;
     }
 
     static ulong Widen(ulong a, uint b)
@@ -144,6 +163,41 @@ public class StaticFrameTests
         Assert.AreEqual(MakeAndRead(41), 42u);
         // 2 * (1 + ... + 200) = 40200 = 8 (mod 128)
         Assert.AreEqual(sum, 8u);
+    }
+
+    [Test]
+    public void Callee_Pulls_Frame_With_References()
+    {
+        var x = new FrameNode { value_ = 1 };
+        var y = new FrameNode { value_ = 20 };
+        var z = new FrameNode { value_ = 100 };
+        uint total = 0;
+        for (uint i = 0; i < 150; i++)
+        {
+            total = z.Pick(x, y, i & 1) + z.Pick(y, x, 0);
+            System.GC.Collect();
+        }
+        // i = 149: Pick(x, y, 1) = 120, Pick(y, x, 0) = 120
+        Assert.AreEqual(total, 240u);
+        Assert.AreEqual(x.Pick(x, z, 0), 2u);
+        // Combine2 picks y (20); y.Pick(y, z, 0) = 20 + 20
+        Assert.AreEqual(y.Pick(Combine2(x, y), z, 0), 40u);
+    }
+
+    static FrameNode Combine2(FrameNode a, FrameNode b)
+    {
+        Touch();
+        return a.value_ > b.value_ ? a : b;
+    }
+
+    [Test]
+    public void Float_Results_Through_A_Callee_Pulls_Frame()
+    {
+        float a = Scale(Scale(2f, 3f), 0.5f);
+        if (a != 3f)
+            Assert.Fail();
+        if (Scale(a, Scale(1f, 4f)) != 12f)
+            Assert.Fail();
     }
 
     [Test]

@@ -93,6 +93,24 @@ sf_exit .macro bytes, ref_list
   #sf_ret \bytes
 .endm
 
+; Callee-pulls static frame (StaticFrameInfo.CalleePulls): the entry saved
+; the return address in the frame (low byte at SF_TOP-\ret_rel) and pulled
+; the arguments, so the result is already where the caller wants it, on the
+; stack. Release the references, push the return address back, rts.
+sf_exit_saved .macro ret_rel, ref_list
+  .if len(\ref_list) > 0
+    .for ref in \ref_list
+      ldx SF_TOP-ref
+      jsr DecRefCountIfAllocated
+    .next
+  .endif
+  lda SF_TOP-\ret_rel+1
+  pha
+  lda SF_TOP-\ret_rel
+  pha
+  rts
+.endm
+
 sf_result .macro bytes
   .if \bytes == 1
     pha

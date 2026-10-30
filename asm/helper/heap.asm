@@ -78,13 +78,13 @@ newObjInit .macro size, referenceFields, objDescriptor, initValues, ctor
   jsr newObjLInit
 
   .if \ctor=0
-    #stack_push_int_a
+    #stack_push_tos
   .else
     sta zp_ctor_result
     #stack_push_int_a
     jsr \ctor
     lda zp_ctor_result
-    #stack_push_int_a
+    #stack_push_tos
   .endif
 .endm
 
@@ -107,7 +107,7 @@ newArrRef .macro
   tay                ; reference fields
   jsr newObjL
 
-  #stack_push_int_a
+  #stack_push_tos
 .endm
 
 newArr .macro  
@@ -116,7 +116,7 @@ newArr .macro
   ldy #0              ; reference fields
   jsr newObjL
 
-  #stack_push_int_a
+  #stack_push_tos
 .endm
 
 newArr16 .macro
@@ -126,7 +126,7 @@ newArr16 .macro
   ldy #0              ; reference fields
   jsr newObjL
 
-  #stack_push_int_a
+  #stack_push_tos
 .endm
 
 ;
@@ -159,7 +159,7 @@ newArrInit .macro size, initValues
 
   jsr newObjLInit
 
-  #stack_push_int_a
+  #stack_push_tos
 .endm
 
 stfld8 .macro  pos 
@@ -243,7 +243,7 @@ ldfld8 .macro pos
   ldy #\pos
   lda (tmpPointer),y
 
-  #stack_push_int_a
+  #stack_push_tos
 .endm
 
 ldfld16 .macro pos 
@@ -255,7 +255,7 @@ ldfld16 .macro pos
   #stack_push_int_a
   dey
   lda (tmpPointer),y
-  #stack_push_int_a
+  #stack_push_tos
 
 .endm
 
@@ -267,7 +267,7 @@ ldelemRef .macro
 
   lda (tmpPointer),y
 
-  #stack_push_int_a
+  #stack_push_tos
 .endm
 
 ldelem .macro   
@@ -278,7 +278,7 @@ ldelem .macro
 
   lda (tmpPointer),y
 
-  #stack_push_int_a
+  #stack_push_tos
 .endm
 
 ldelem16 .macro   
@@ -294,20 +294,20 @@ ldelem16 .macro
   #stack_push_int_a
   dey
   lda (tmpPointer),y
-  #stack_push_int_a
+  #stack_push_tos
 .endm
 
 ldlen .macro  
   #stack_pull_int_x
   lda objTableSize,x
-  #stack_push_int_a
+  #stack_push_tos
 .endm
 
 ldlen16 .macro
   #stack_pull_int_x
   lda objTableSize,x
   lsr
-  #stack_push_int_a
+  #stack_push_tos
 .endm
 
 ; --- float (5-byte MFLPT) fields/elements -- asm/helper/float.asm's

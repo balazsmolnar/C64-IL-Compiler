@@ -119,6 +119,38 @@ class OpFusedIntBinOp : OpBase
     }
 }
 
+// Built by ILMethodIntOperandFusionOptimizer: And/Or/Xor whose second
+// operand is an int constant, which goes in as an immediate
+// ("and8_const 7", asm/helper/arithmetic.asm) instead of being pushed and
+// pulled. The first operand is either already on the evaluation stack
+// (a == null: "#and8_const c", pla/and #c/pha) or, 8-bit only, a simple
+// leaf loaded straight into A ("#and8_const_tail c"). 16-bit always works
+// on the stack: copying a leaf into zp_param2 first is no shorter than
+// pushing it, and the stack form skips each byte the constant leaves alone.
+class OpFusedIntConstOp : OpBase
+{
+    private readonly ILOperation _a;
+    private readonly object _value;
+    private readonly string _op;
+    private readonly bool _is16;
+
+    public OpFusedIntConstOp(ILOperation a, object value, string op, bool is16) : base(0)
+    {
+        _a = a;
+        _value = value;
+        _op = op;
+        _is16 = is16;
+    }
+
+    public override string Emit(CompilerMethodContext context, ILOperation operation)
+    {
+        var width = _is16 ? "16" : "8";
+        if (_a == null)
+            return $"#{_op}{width}_const {_value}";
+        return string.Join("\n", IntOperandCopy.EmitToRegisterA(_a), $"#{_op}{width}_const_tail {_value}");
+    }
+}
+
 // Built by ILMethodIntOperandFusionOptimizer, replacing a
 // [int operand] [Brtrue/Brfalse] window -- a bare `if (x)`/`if (!x)`
 // truthiness test on a simple leaf (branch_true8/branch_false8,

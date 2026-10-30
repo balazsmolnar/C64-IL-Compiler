@@ -127,7 +127,7 @@ pushfld8 .macro pos
 
   ldy #\pos
   lda (tmpPointer),y
-  pha
+  #stack_push_tos
 
 .endm
 
@@ -143,7 +143,7 @@ pushfld16 .macro pos
   pha
   dey
   lda (tmpPointer),y
-  pha
+  #stack_push_tos
 
 .endm
 
@@ -195,7 +195,7 @@ pushfld8_at .macro relpos, pos
 
   ldy #\pos
   lda (tmpPointer),y
-  pha
+  #stack_push_tos
 
 .endm
 
@@ -210,7 +210,7 @@ pushfld16_at .macro relpos, pos
   pha
   dey
   lda (tmpPointer),y
-  pha
+  #stack_push_tos
 
 .endm
 
@@ -253,7 +253,7 @@ pushfld8_cached .macro pos
 
   ldy #\pos
   lda (tmpPointer),y
-  pha
+  #stack_push_tos
 
 .endm
 
@@ -264,7 +264,7 @@ pushfld16_cached .macro pos
   pha
   dey
   lda (tmpPointer),y
-  pha
+  #stack_push_tos
 
 .endm
 

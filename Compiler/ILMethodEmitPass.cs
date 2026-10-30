@@ -76,10 +76,21 @@ class ILMethodEmitPass : ICompilerMethodPass
         foreach (var (argIndex, slot) in context.PromotedParameters)
         {
             int relPos = context.GetParameterReferencePosition(argIndex);
-            output.WriteLine(yTracker.Process($"    #locals_push_value8 {relPos} ; (promoted parameter copy-in)", false));
-            output.WriteLine(yTracker.Process($"    #zp_pull_value8 {slot}", false));
+            var copyIn = new TopOfStackInA.Line
+            {
+                Code = new List<string>
+                {
+                    yTracker.Process($"    #locals_push_value8 {relPos} ; (promoted parameter copy-in)", false),
+                    yTracker.Process($"    #zp_pull_value8 {slot}", false),
+                },
+            };
+            if (context.TypeContext.CompilerContext.Optimize)
+                TopOfStackInA.Apply(new List<TopOfStackInA.Line> { copyIn });
+            foreach (var text in copyIn.Code)
+                output.WriteLine(text);
         }
 
+        var emitted = new List<TopOfStackInA.Line>();
         foreach (var line in context.Lines)
         {
             context.CurrentIlOffset = line.Position;
@@ -91,9 +102,19 @@ class ILMethodEmitPass : ICompilerMethodPass
             }
             else
                 code = yTracker.Process(code, line.Label != null);
+            emitted.Add(new TopOfStackInA.Line { Label = line.Label, Optimized = line.Optimized, Code = (code ?? "").Split('\n').ToList() });
+        }
+
+        // Drops pha/pla pairs between consecutive lines -- see TopOfStackInA.
+        if (context.TypeContext.CompilerContext.Optimize)
+            TopOfStackInA.Apply(emitted);
+
+        for (int i = 0; i < emitted.Count; i++)
+        {
+            var line = context.Lines[i];
+            var code = string.Join("\n", emitted[i].Code);
             outputLine = $"{(line.Label == null ? "" : line.Label + ":")}  {(line.Optimized ? "; OPT " : "")}  {code} ; {line.OpCode}";
             output.WriteLine(outputLine);
-
         }
     }
 }

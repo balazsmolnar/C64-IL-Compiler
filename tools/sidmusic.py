@@ -109,7 +109,17 @@ def freq_value(n):
     return min(round(440.0 * 2 ** ((n - 57) / 12) * 16777216 / PAL_CLOCK), 65535)
 
 
-FREQ = [freq_value(n) for n in range(96)]
+def _player_freq(n):
+    """What the player computes: octave 6 from its table, other octaves
+    by halving (truncating) or doubling it."""
+    f6 = freq_value(72 + n % 12)
+    octave = n // 12
+    if octave == 7:
+        return min(f6 << 1, 0xFFFF)
+    return f6 >> (6 - octave)
+
+
+FREQ = [_player_freq(n) for n in range(96)]
 
 
 def reg_to_hz(v):
@@ -321,11 +331,17 @@ class Score:
             res=f['res'] << 4, modevol=(mode << 4) | volume,
             cutmin=cmin, cutmax=cmax, rows=lengths[0][0], loop_rows=lengths[0][1]))
 
-    def effect(self, name, ins, note, ticks):
-        if not 1 <= ticks <= 255:
-            raise ValueError('%s: effect length must be 1..255 ticks' % name)
+    def effect(self, name, ins, note, ticks, duck=False):
+        """duck: while it sounds, voices 1 and 2 play with their sustain 6
+        steps lower. The SID envelope can't climb back to a higher sustain,
+        so a note held through the effect stays down until the voice's next
+        note: use it for short effects over busy music (combat), not over
+        long held notes."""
+        if not 1 <= ticks <= 127:
+            raise ValueError('%s: effect length must be 1..127 ticks' % name)
         self.fx_index[name] = len(self.effects)
-        self.effects.append(dict(name=name, ins=self.ins_index[ins], note=note_number(note), len=ticks))
+        self.effects.append(dict(name=name, ins=self.ins_index[ins], note=note_number(note),
+                                 len=ticks | (0x80 if duck else 0)))
 
     # -- compile -----------------------------------------------------------
     def compile(self):
@@ -491,7 +507,7 @@ class Player:
     """The 6502 player (asm/C64Music.asm), statement for statement."""
 
     SONG_STATE = ('playing', 'chain', 'tempo', 'modevol', 'res', 'route', 'cut', 'cutd', 'cutmin', 'cutmax',
-                  'count', 'pend', 'dur', 'ins', 'trans', 'ord', 'pat', 'ppos', 'note', 'cur',
+                  'count', 'pend', 'dur', 'ins', 'lins', 'trans', 'ord', 'pat', 'ppos', 'note', 'cur',
                   'wptr', 'wcnt', 'wspd', 'wave', 'gate', 'goff', 'ad', 'sr', 'pwlo', 'pwhi', 'pws', 'pwdir',
                   'vspd', 'vcnt', 'vdir', 'vdly', 'vlo', 'vhi', 'sllo', 'slhi')
 
@@ -505,7 +521,7 @@ class Player:
         self.tempo = 0
         self.modevol = 0x0F
         self.res = self.route = self.cut = self.cutd = self.cutmin = self.cutmax = 0
-        self.sfx = self.sfxhr = 0
+        self.sfx = self.sfxhr = self.fxroute = self.frameno = self.duck = 0
         self.saved = None
         z = lambda: [0, 0, 0, 0]
         self.count, self.pend, self.dur, self.ins, self.trans = z(), z(), z(), z(), z()
@@ -513,7 +529,7 @@ class Player:
         self.wptr, self.wcnt, self.wspd, self.wave, self.gate, self.goff = z(), z(), z(), z(), z(), z()
         self.ad, self.sr, self.pwlo, self.pwhi, self.pws, self.pwdir = z(), z(), z(), z(), z(), z()
         self.vspd, self.vcnt, self.vdir, self.vdly, self.vlo, self.vhi = z(), z(), z(), z(), z(), z()
-        self.sllo, self.slhi = z(), z()
+        self.sllo, self.slhi, self.lins = z(), z(), z()
 
     def _song_init(self, song):
         d = self.d
@@ -523,7 +539,7 @@ class Player:
         self.tempo = d['music_song_tempo'][song]
         self.res = d['music_song_res'][song]
         self.modevol = d['music_song_modevol'][song]
-        self.cutmax = d['music_song_cutmax'][song]
+        self.cutmax = self.cut = d['music_song_cutmax'][song]
         self.cutmin = d['music_song_cutmin'][song]
         for x in range(3):
             self.pat[x] = self.ppos[x] = self.trans[x] = self.ins[x] = 0
@@ -565,7 +581,8 @@ class Player:
         if self.count[3] and e < self.sfx:
             return
         self.sfx = e
-        self.count[3] = self.sfxhr = d['music_sfx_len'][e]
+        self.duck = d['music_sfx_len'][e]
+        self.count[3] = self.sfxhr = self.duck & 0x7F
         self.note_init(3, d['music_sfx_note'][e], d['music_sfx_ins'][e])
 
     def note_init(self, x, note, y):
@@ -586,8 +603,13 @@ class Player:
         self.sllo[x] = d['music_ins_sllo'][y]
         self.slhi[x] = d['music_ins_slhi'][y]
         self.goff[x] = d['music_ins_gate'][y] & 0x7F
-        self.route &= ~self.regbit[x] & 0xFF
+        self.lins[x] = y
         f = d['music_ins_filt'][y]
+        if x == 3:
+            self.fxroute = self.regbit[3] if f else 0
+            f = 0
+        else:
+            self.route &= ~self.regbit[x] & 0xFF
         if f:
             if f != 0xFF:
                 self.cut = f
@@ -598,7 +620,11 @@ class Player:
 
     def tick(self):
         self.sid[0x18] = self.modevol
-        self.sid[0x17] = self.route | self.res
+        self.frameno = (self.frameno + 1) & 0xFF
+        r = self.route
+        if self.count[3]:
+            r = (r & ~self.regbit[3] & 0xFF) | self.fxroute
+        self.sid[0x17] = r | self.res
         if self.cutd:
             if self.cutd < 0x80:
                 c = self.cutd + self.cut
@@ -681,7 +707,8 @@ class Player:
                 continue
             if a < REST:
                 a = (a + self.trans[x]) & 0xFF
-                if not d['music_ins_gate'][self.ins[x]] & 0x80:
+                y = self.ins[x]
+                if not (d['music_ins_gate'][y] & 0x80 and y == self.lins[x]):
                     self.gate[x] = 0xFE
                     self.ad[x] = self.sr[x] = 0
             self.pend[x] = a
@@ -739,7 +766,10 @@ class Player:
         self.sid[y + 2] = self.pwlo[x]
         self.sid[y + 3] = self.pwhi[x]
         self.sid[y + 5] = self.ad[x]
-        self.sid[y + 6] = self.sr[x]
+        sr = self.sr[x]
+        if x != 3 and self.count[3] and self.duck & 0x80:
+            sr = sr - 0x60 if sr >= 0x60 else sr & 0x0F
+        self.sid[y + 6] = sr
         self.sid[y + 4] = self.wave[x] & self.gate[x]
 
     def frame(self):

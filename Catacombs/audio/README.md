@@ -14,15 +14,24 @@
 
 ## What plays when
 
-- Boot: title jingle (7 s), which hands over to the exploration tune (77 s loop).
-- Combat: the combat tune (21 s loop) from the first blow until the monster dies, then exploration again.
-- Death: death effect and death jingle (6 s), then exploration.
-- Last treasure collected: victory jingle (3 s), then exploration.
-- Effects: footsteps, door, treasure pickup, weapon pickup, sword hit, monster growl, player hurt, monster death, player death.
+- Boot: title jingle (8.6 s), which hands over to the exploration tune (92 s loop).
+- Combat: the combat tune (31 s loop) breaks into the exploration tune
+  (`Music.Interrupt`); when the monster dies the exploration tune carries
+  on from the very note it was at (`Music.Resume`).
+- Death: death effect and death jingle (6.7 s), then the exploration tune from the start.
+- Last treasure collected: victory fanfare (6.4 s) breaks in, then the exploration tune resumes.
+- Effects: door, treasure pickup, weapon pickup, sword hit, monster growl, player hurt, monster death, player death.
 
-Voice 1 is the bass (through the filter), voice 2 the lead, voice 3 chords
-and percussion. Effects borrow voice 3; the music on it keeps counting
-silently and comes back in time when the effect ends.
+Voice 1 is bass and percussion (each drum is the attack of a bass note),
+voice 2 the lead, voice 3 chords, pads and bell. While the combat effects (sword, growl, hurt) sound, voices 1 and 2 are
+ducked: their sustain drops 6 steps. The SID envelope can't climb back up
+to a higher sustain, so a note held through the effect stays down until
+that voice's next note -- which is why only short effects over the busy
+combat tune duck. In `score.py`, `duck=True` is only for effects that
+play over the combat tune. Effects borrow voice 3;
+the music on it keeps counting silently and comes back in time, re-attacked,
+when the effect ends. There are no footsteps: on three voices they could
+only be heard by chopping the chords.
 
 ## Changing the music
 
@@ -58,9 +67,12 @@ straight into that sound and stays there; see `Audio.Init`):
 | `COMBAT` | Combat tune, twice round |
 | `TITLE` | Title jingle, then the exploration tune taking over |
 | `DEATH` | Death jingle, then exploration |
-| `VICTORY` | Victory jingle, then exploration |
-| `SFX` | Every effect in turn, 2 s apart, no music. Order: step, door, pickup, weapon, sword, growl, hurt, monster death, player death |
-| `SFXMIX` | The same effects over the exploration tune (shows the voice being borrowed and returned) |
+| `VICTORY` | 5 s of exploration, the victory fanfare breaking in, exploration resuming |
+| `RESUME` | 10 s of exploration, 5 s of combat, exploration resumed where it was |
+| `SFX` | Every effect in turn, 2 s apart, no music. Order: door, pickup, weapon, sword, growl, hurt, monster death, player death |
+| `SFXMIX` | The same effects over the exploration tune |
+| `SFXCOMBAT` | The same effects over the combat tune |
+| `SFXGATED` | The same effects while voice 3 holds a chord: each must sound as it does alone |
 
 To build one scene by hand and run it:
 
@@ -83,16 +95,23 @@ scenes in parallel). Register dumps run in warp mode and take seconds:
    6502 player in VICE must equal what the Python model computes from the
    same score. This is exact, so it covers every note, length, waveform,
    ADSR, pulse width, vibrato step and filter value.
-2. Audio: level and clipping, that every note held for 0.1 s or more is in
-   the spectrum at its expected pitch, that the output is silent between
-   effects, and each effect's measured attack and length.
+2. Audio: level and clipping; that every note held for 0.1 s or more is in
+   the spectrum at its expected pitch; per voice, the level of every note
+   of 0.3 s or more (a voice under -40 dB is reported: it plays but is not
+   heard); that the output is silent between effects; each effect's peak,
+   rms and attack; and, given SFX and SFXGATED, how each effect started
+   over a held chord compares with the same effect alone.
 
 ## Interrupts
 
 `Audio.Init` calls `C64.Music.Install()`, which chains the player onto the
-KERNAL IRQ vector at `$0314` (the 60 Hz CIA1 timer interrupt that is
-already running). The player uses no zero page. If the game later takes
-over interrupts with a raster IRQ, drop the `Install()` call and have that
-handler `jsr Music_Tick` once per frame instead; at 50 Hz the tempo values
-in `score.py` need scaling by 5/6. Details are at the top of
-`asm/C64Music.asm`.
+KERNAL IRQ vector at `$0314` and re-times CIA1 timer A to exactly one PAL
+frame, started on raster line 252: the player ticks 50.12 times a second,
+always in the bottom border, so it never hides line 251 from
+`Screen.WaitForVBlank`. With `Screen.SetSplit` on, the split's own raster
+interrupt calls the same chain once per frame at line 252 instead, so the
+tempo is identical either way and the calls can come in any order. Tempo
+values in `score.py` are ticks per row at that rate. The player uses no
+zero page. Side effect: the KERNAL jiffy clock counts 50ths of a second
+after `Install()`. `C64.Music.Frame` is a 0-255 frame counter from the
+same tick. Details are at the top of `asm/C64Music.asm`.

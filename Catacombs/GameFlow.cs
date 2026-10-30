@@ -91,7 +91,7 @@ static class GameFlow
         TitleScreen.Timer = 300;
 #endif
         if (outcome_ == TitleScreen.Victory)
-            Audio.Victory();
+            C64.Music.Interrupt(AudioIds.SongVictory); // the fanfare over the victory screen
         TitleScreen.Show(outcome_, Item.CollectedCount);
     }
 
@@ -107,7 +107,7 @@ static class GameFlow
         if (x == StartX && y == StartY && Item.CollectedCount == Item.Count)
         {
             outcome_ = TitleScreen.Victory;
-            Audio.Victory();
+            C64.Music.Interrupt(AudioIds.SongVictory); // fanfare; resumes the exploration tune
             return true;
         }
         return false;

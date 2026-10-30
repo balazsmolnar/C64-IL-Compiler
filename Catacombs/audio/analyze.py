@@ -40,7 +40,7 @@ TICK_CYCLES = sidmusic.TICK_CYCLES       # one PAL frame
 TICK_S = TICK_CYCLES / sidmusic.PAL_CLOCK
 
 # scene -> what the scene build does, in order (see Audio.Init)
-ALL_FX = [('fx', n) for n in ('step a', 'step b', 'door', 'pickup', 'weapon', 'growl', 'hurt', 'sword',
+ALL_FX = [('fx', n) for n in ('door', 'pickup', 'weapon', 'sword', 'growl', 'hurt',
                               'monster death', 'player death')]
 SCENES = {
     'EXPLORE': [('play', 'explore')],
@@ -51,6 +51,7 @@ SCENES = {
     'RESUME': [('play', 'explore'), ('interrupt', 'combat'), ('resume',)],
     'SFX': ALL_FX,
     'SFXMIX': [('play', 'explore')] + ALL_FX,
+    'SFXCOMBAT': [('play', 'combat')] + ALL_FX,
     'SFXGATED': [('play', 'hold')] + ALL_FX,
 }
 
@@ -93,11 +94,16 @@ def apply_event(model, sc, ev):
         model.play_effect(sc.fx_index[ev[1]])
 
 
+def polite(sc, ev):
+    return False                # (the player no longer has polite effects)
+
+
 def check_dump(sc, scene, path):
     ticks, between = split_ticks(vice_record.read_dump(path))
     model = sidmusic.Player(sc)
     sid = [0] * 25
     pending = list(SCENES[scene])
+    skipped = []
     triggers = []
     mismatches = []
     timeline = []                         # per tick: (cycle, model Frame)
@@ -111,16 +117,24 @@ def check_dump(sc, scene, path):
         # What the program called between two ticks is not in the dump:
         # when the model stops matching, the next call the scene makes is
         # tried, and has to make it match again.
-        if model.sid != sid and pending:
+        # (A polite effect may have been refused by the player and left no
+        # trace, so the call after it is tried as well.)
+        for k in range(len(pending)):
+            if model.sid == sid:
+                break
+            if k and not polite(sc, pending[k - 1]):
+                break
             trial = copy.deepcopy(before)
-            apply_event(trial, sc, pending[0])
+            apply_event(trial, sc, pending[k])
             trial.tick()
             if trial.sid != sid:
                 # (a call made just after this tick, inside its 4000-cycle window)
                 trial = copy.deepcopy(model)
-                apply_event(trial, sc, pending[0])
+                apply_event(trial, sc, pending[k])
             if trial.sid == sid:
                 model = trial
+                for _ in range(k):
+                    skipped.append(' '.join(pending.pop(0)))
                 triggers.append((' '.join(pending.pop(0)), t, cyc))
         if model.sid != sid:
             if len(mismatches) < 5:
@@ -141,6 +155,8 @@ def check_dump(sc, scene, path):
         print('         %-18s at tick %4d (%.2f s)%s' % (name, t, cyc / sidmusic.PAL_CLOCK,
                                                           '' if last is None else '  +%d ticks' % (t - last)))
         last = t
+    if skipped:
+        print('         left no trace (a polite effect the player refused): %s' % ', '.join(skipped))
     if pending:
         print('         never seen: %s' % ', '.join(' '.join(e) for e in pending))
     for t, diff in mismatches[:5]:
@@ -188,7 +204,7 @@ def note_segments(timeline):
 
 
 def check_wav(scene, path, timeline, triggers, png):
-    sc_effect_ticks = {e['name']: e['len'] for e in score_module.build().effects}
+    sc_effect_ticks = {e['name']: e['len'] & 0x7F for e in score_module.build().effects}
     import numpy as np
     rate, x = read_wav(path)
     dur = len(x) / rate
@@ -239,6 +255,7 @@ def check_wav(scene, path, timeline, triggers, png):
     found = 0
     cents = []
     missing = []
+    levels = []
     for v, a, b, freq, wf in segs:
         f0 = sidmusic.reg_to_hz(freq)
         # Analyse the note itself: from just after its attack to its end,
@@ -252,6 +269,12 @@ def check_wav(scene, path, timeline, triggers, png):
         spec = np.abs(np.fft.rfft(seg, nfft))
         freqs = np.fft.rfftfreq(nfft, 1.0 / rate)
         lobe = 2.0 * rate / (hi - lo)              # half width of a Hann main lobe
+        # Level: the strongest of the first three harmonics, as a sine
+        # amplitude in dB of full scale. A voice the score has playing must
+        # be audible, not just "present" as leakage.
+        wsum = np.hanning(hi - lo).sum()
+        lvl = max(spec[(freqs > f0 * h * 0.97) & (freqs < f0 * h * 1.03)].max() for h in (1, 2, 3)) * 2 / wsum
+        levels.append((v, a, b, f0, 20 * np.log10(lvl + 1e-9)))
         hit = None
         # The fundamental or, for notes the filter or the pulse width
         # leaves without one, the next harmonics.
@@ -276,6 +299,16 @@ def check_wav(scene, path, timeline, triggers, png):
               % (found, total, c.mean(), np.abs(c).max()))
         for v, a, f0 in missing[:8]:
             print('           not found: voice %d at %.2f s, %.1f Hz' % (v + 1, tick_time(a), f0))
+        # Per voice: notes of 0.3 s or more that come out more than 40 dB
+        # under full scale -- a voice the score plays but nobody hears.
+        for v in range(3):
+            long_ = [l for l in levels if l[0] == v and l[2] - l[1] >= 15]
+            if not long_:
+                continue
+            quiet = [l for l in long_ if l[4] < -40]
+            print('         voice %d: %d notes >= 0.3 s, level median %.1f dB, quietest %.1f dB; %d under -40 dB%s'
+                  % (v + 1, len(long_), float(np.median([l[4] for l in long_])), min(l[4] for l in long_), len(quiet),
+                     (': ' + ', '.join('%.1f s' % tick_time(l[1]) for l in quiet[:8])) if quiet else ''))
 
     # --- stuck notes / tails: level while the model says every gate is off
     quiet = np.array([all(not (v[2] & 1) or not (v[2] & 0xF0) for v in fr.voices) for _, fr in timeline])
@@ -373,7 +406,7 @@ if __name__ == '__main__':
     ap.add_argument('scenes', nargs='*')
     ap.add_argument('--dir', default=os.path.join(ROOT, '.debug-tmp', 'audio'))
     a = ap.parse_args()
-    sc = score_module.build()
+    sc = score_module.build(test=True)
     all_ok = True
     levels = {}
     for scene in ([s.upper() for s in a.scenes] or list(SCENES)):

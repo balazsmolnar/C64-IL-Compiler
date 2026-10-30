@@ -59,7 +59,7 @@ class Program
         Audio.Init();
         for (;;)
         {
-            Audio.Title();
+            Audio.Song(AudioIds.SongTitle);
             GameFlow.BeforeGame();
             Play();
             GameFlow.AfterGame(playerHp_);
@@ -79,7 +79,7 @@ class Program
 #endif
         playerHp_ = PlayerMaxHp;
         playerDamage_ = UnarmedDamage;
-        Audio.Explore();
+        Audio.Song(AudioIds.SongExplore);
 
         // MultiColor (not plain Bitmap) so doors can be a color distinct
         // from the lines: MatrixHigh=White (wall/outline lines),
@@ -284,10 +284,9 @@ class Program
             roomX_ = nx;
             roomDepth_ = nd;
         }
-        Audio.Step(moved);
 
         // Checked every frame, not just when moved: the player can stop
-        // right at a door (Audio.Door is the cue)
+        // right at a door (the door effect is the cue)
         // and press SPACE separately, same as how Combat's own SPACE
         // press works independently of movement.
         if (TryCrossDoor())
@@ -308,7 +307,7 @@ class Program
         else if (itemHere_ && Touching(Item.RoomRadius))
         {
             Item.CollectAt(px_, py_);
-            Audio.Pickup();
+            Audio.Fx(AudioIds.FxPickup);
             itemHere_ = false;
             Hud.SetTreasure(Item.CollectedCount);
         }
@@ -316,7 +315,7 @@ class Program
         {
             playerDamage_ = Weapon.DamageAt(px_, py_);
             Weapon.CollectAt(px_, py_);
-            Audio.WeaponPickup();
+            Audio.Fx(AudioIds.FxWeapon);
             weaponHere_ = false;
             Hud.SetWeapon(playerDamage_);
         }
@@ -370,7 +369,7 @@ class Program
     {
         if (!C64.IsKeyPressed(Keys.Space))
             return false;
-        if (AtDoor()) Audio.Door();
+        if (AtDoor()) Audio.Fx(AudioIds.FxDoor);
 
         if (roomDepth_ >= RoomProjection.DepthMax && northOpen_ && NearCenterX())
         {

@@ -103,7 +103,8 @@
 ;                        re-attacks the note).
 ;                        r: $00-$7F semitones above the note, $80-$FF an
 ;                        absolute note (value - $80)
-;   music_sfx_ins/note/len  per effect: instrument, note, length in ticks.
+;   music_sfx_ins/note/len  per effect: instrument, note, length in ticks
+;                        (bit 7 of the length: duck the music meanwhile).
 ;                        A higher effect number wins over a lower one that
 ;                        is still sounding.
 ;   music_sfx_reg        (symbols, not tables) SID register offset of the
@@ -132,10 +133,16 @@ Flag_Music_PlayEffect = 0
 .weak
 Flag_Music_Tick = 0
 .endweak
+.weak
+Flag_Music_get_Frame = 0
+.endweak
+.weak
+Flag_Music_get_EffectPlaying = 0
+.endweak
 
 MUSIC_RESUMABLE = Flag_Music_Interrupt | Flag_Music_Resume
 
-.if Flag_Music_Install | Flag_Music_Play | Flag_Music_Stop | Flag_Music_PlayEffect | Flag_Music_Tick | MUSIC_RESUMABLE
+.if Flag_Music_Install | Flag_Music_Play | Flag_Music_Stop | Flag_Music_PlayEffect | Flag_Music_Tick | MUSIC_RESUMABLE | Flag_Music_get_Frame | Flag_Music_get_EffectPlaying
 
 MUSIC_REST = $60
 MUSIC_FRAME_CYCLES = 19656          ; one PAL frame (312 lines * 63 cycles)
@@ -157,6 +164,7 @@ mv_count    .fill 4         ; ticks to the next event (3: ticks the effect has l
 mv_pend     .fill 3         ; event fetched two ticks early, applied when mv_count hits 0
 mv_dur      .fill 3         ; rows the pending event lasts
 mv_ins      .fill 3
+mv_lins     .fill 4         ; instrument of the note sounding now (legato needs the same one)
 mv_trans    .fill 3
 mv_ord      .fill 3         ; next index in music_orders
 mv_pat      .fill 3         ; current pattern
@@ -187,9 +195,13 @@ music_state_end
 ; ---- the rest of the player's variables ------------------------------------
 m_sfx       .byte 0         ; number of the effect on the effect channel
 m_sfxhr     .byte 0         ; nonzero: the effect starts next tick, this one kills the voice
+m_duck      .byte 0         ; bit 7: the effect sounding ducks voices 1 and 2
+m_fxroute   .byte 0         ; the effect's own $D417 routing bit (0 or music_sfx_bit)
+m_frame     .byte 0         ; counts ticks (C64.Music.Frame)
 m_saved     .byte 0         ; nonzero: music_save holds an interrupted song
 m_flo       .byte 0
 m_fhi       .byte 0
+m_oct       .byte 0
 music_vars_end
 .if MUSIC_RESUMABLE
 music_save  .fill music_state_end - music_state
@@ -198,26 +210,48 @@ music_save  .fill music_state_end - music_state
 music_regofs .byte 0, 7, 14, music_sfx_reg
 music_regbit .byte 1, 2, 4, music_sfx_bit
 
-; PAL SID frequency values for C-0 .. B-7 (hz * 2^24 / 985248; B-7 is past
-; the top of the register and clipped).
-music_freq_lo
-    .byte $16, $27, $39, $4b, $5f, $74, $8a, $a1, $ba, $d4, $f0, $0e
-    .byte $2d, $4e, $71, $96, $be, $e7, $14, $42, $74, $a9, $e0, $1b
-    .byte $5a, $9c, $e2, $2d, $7b, $cf, $27, $85, $e8, $51, $c1, $37
-    .byte $b4, $38, $c4, $59, $f7, $9d, $4e, $0a, $d0, $a2, $81, $6d
-    .byte $67, $70, $89, $b2, $ed, $3b, $9c, $13, $a0, $45, $02, $da
-    .byte $ce, $e0, $11, $64, $da, $76, $39, $26, $40, $89, $04, $b4
+; PAL SID frequency values for octave 6, C-6 .. B-6 (hz * 2^24 / 985248).
+; Lower octaves are these halved (music_freq), octave 7 doubled (the LSB is
+; lost there; B-7 is past the top of the register and clipped).
+music_f6_lo
     .byte $9c, $c0, $23, $c8, $b4, $eb, $72, $4c, $80, $12, $08, $68
-    .byte $39, $80, $45, $90, $68, $d6, $e3, $99, $00, $24, $10, $ff
-music_freq_hi
-    .byte $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $02
-    .byte $02, $02, $02, $02, $02, $02, $03, $03, $03, $03, $03, $04
-    .byte $04, $04, $04, $05, $05, $05, $06, $06, $06, $07, $07, $08
-    .byte $08, $09, $09, $0a, $0a, $0b, $0c, $0d, $0d, $0e, $0f, $10
-    .byte $11, $12, $13, $14, $15, $17, $18, $1a, $1b, $1d, $1f, $20
-    .byte $22, $24, $27, $29, $2b, $2e, $31, $34, $37, $3a, $3e, $41
+music_f6_hi
     .byte $45, $49, $4e, $52, $57, $5c, $62, $68, $6e, $75, $7c, $83
-    .byte $8b, $93, $9c, $a5, $af, $b9, $c4, $d0, $dd, $ea, $f8, $ff
+
+; Frequency of note Y (0 = C-0 .. 95) -> m_flo/m_fhi. Destroys A and Y.
+music_freq
+    tya
+    ldy #$ff
+    sec
+-   iny                         ; Y = octave, A = semitone
+    sbc #12
+    bcs -
+    adc #12
+    sty m_oct
+    tay
+    lda music_f6_lo,y
+    sta m_flo
+    lda music_f6_hi,y
+    sta m_fhi
+    ldy m_oct
+    cpy #7
+    bne _down
+    asl m_flo
+    rol m_fhi
+    bcc _done
+    lda #$ff
+    sta m_flo
+    sta m_fhi
+    rts
+_down
+    cpy #6
+    beq _done
+    lsr m_fhi
+    ror m_flo
+    iny
+    bne _down
+_done
+    rts
 
 ; ---------------------------------------------------------------------------
 ; C64.Music.Install() -- silence the SID, clear the player, hook the
@@ -374,6 +408,8 @@ Music_PlayEffect
     bcc _skip
 +   sty m_sfx
     lda music_sfx_len,y
+    sta m_duck                  ; bit 7: duck the music while it sounds
+    and #$7f
     sta mv_count+3
     sta m_sfxhr                 ; (nonzero) first a tick with the voice's envelope killed
     lda music_sfx_note,y
@@ -385,6 +421,31 @@ Music_PlayEffect
     jsr music_note_init
 _skip
     plp
+    #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+; ---------------------------------------------------------------------------
+; C64.Music.Frame -- ticks so far (wraps at 256): a frame counter that keeps
+; counting however long the main loop takes.
+; ---------------------------------------------------------------------------
+.if Flag_Music_get_Frame
+Music_get_Frame
+    #stack_save_return_adress zp_tmp1_low
+    lda m_frame
+    #stack_push_int_a
+    #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+; ---------------------------------------------------------------------------
+; C64.Music.EffectPlaying -- true while an effect owns its voice.
+; ---------------------------------------------------------------------------
+.if Flag_Music_get_EffectPlaying
+Music_get_EffectPlaying
+    #stack_save_return_adress zp_tmp1_low
+    lda mv_count+3
+    beq +
+    lda #1
++   #stack_push_int_a
     #stack_return_to_saved_address zp_tmp1_low
 .endif
 
@@ -405,6 +466,7 @@ music_song_init
     sta m_modevol
     lda music_song_cutmax,y
     sta m_cutmax
+    sta m_cut                   ; open until an instrument sets it
     lda music_song_cutmin,y
     sta m_cutmin
     ldx #2
@@ -468,6 +530,16 @@ music_note_init
     lda music_ins_gate,y
     and #$7f
     sta mv_goff,x
+    tya
+    sta mv_lins,x
+    cpx #3                      ; the effect channel has its own routing bit and
+    bne _music                  ; never touches the music's cutoff
+    lda music_ins_filt,y
+    beq +
+    lda #music_sfx_bit
++   sta m_fxroute
+    jmp _unfiltered
+_music
     lda music_regbit,x          ; filter routing and cutoff envelope
     eor #$ff
     and m_route
@@ -497,8 +569,13 @@ _unfiltered
 Music_Tick
     lda m_modevol
     sta $d418
+    inc m_frame
     lda m_route
-    ora m_res
+    ldy mv_count+3
+    beq +
+    and #~music_sfx_bit & $ff   ; while an effect sounds, its routing bit, not the music's
+    ora m_fxroute
++   ora m_res
     sta $d417
 
     ; filter cutoff envelope
@@ -621,8 +698,11 @@ _read
     sta mv_pend,x
     ldy mv_ins,x
     lda music_ins_gate,y
-    bmi _done                   ; legato: no hard restart
-    lda #$fe                    ; hard restart: gate off and ADSR zeroed for
+    bpl +
+    tya                         ; legato, and the same instrument is sounding:
+    cmp mv_lins,x               ; no hard restart
+    beq _done
++   lda #$fe                    ; hard restart: gate off and ADSR zeroed for
     sta mv_gate,x               ; the two ticks before the note
     lda #0
     sta mv_ad,x
@@ -728,11 +808,12 @@ _wavedone
     bpl _vibdone
 _vibrate
     ldy mv_cur,x                ; step = frequency / 256, about 7 cents
+    jsr music_freq
     lda mv_vdir,x
     bne _vibdown
     clc
     lda mv_vlo,x
-    adc music_freq_hi,y
+    adc m_fhi
     sta mv_vlo,x
     bcc _vibcount
     inc mv_vhi,x
@@ -740,7 +821,7 @@ _vibrate
 _vibdown
     sec
     lda mv_vlo,x
-    sbc music_freq_hi,y
+    sbc m_fhi
     sta mv_vlo,x
     bcs _vibcount
     dec mv_vhi,x
@@ -791,11 +872,12 @@ _pwdown
 _pwdone
 
     ldy mv_cur,x
+    jsr music_freq
     clc
-    lda music_freq_lo,y
+    lda m_flo
     adc mv_vlo,x
     sta m_flo
-    lda music_freq_hi,y
+    lda m_fhi
     adc mv_vhi,x
     sta m_fhi
 
@@ -818,6 +900,22 @@ _write
     lda mv_ad,x
     sta $d405,y
     lda mv_sr,x
+    cpx #3
+    bcs _sr
+    pha                         ; a music voice while a ducking effect sounds:
+    lda mv_count+3              ; its sustain 6 steps lower. (The envelope falls
+    beq _full                   ; to it and can't rise again: a note held through
+    bit m_duck                  ; the effect stays down until the voice's next
+    bpl _full                   ; note -- only for short effects over busy music.)
+    pla
+    sec
+    sbc #$60
+    bcs _sr
+    and #$0f
+    bcc _sr
+_full
+    pla
+_sr
     sta $d406,y
     lda mv_wave,x
     and mv_gate,x

@@ -49,6 +49,14 @@ namespace C64Lib
             // so number effects from least to most important.
             public static void PlayEffect(uint effect) { }
 
+            // Ticks the player has made so far, 0-255 and round again: a
+            // frame counter (50 a second) that keeps counting however long
+            // the main loop takes.
+            public static uint Frame => 0;
+
+            // True while a sound effect is sounding.
+            public static bool EffectPlaying => false;
+
             // One step of the player -- only for programs that do not call
             // Install() and tick it themselves.
             public static void Tick() { }

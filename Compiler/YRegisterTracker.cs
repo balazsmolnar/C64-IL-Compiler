@@ -44,6 +44,8 @@ class YRegisterTracker
         // jsr Multiply8/Multiply16 (asm/helper/division.asm): A, X and
         // zp_param0..2 only.
         "mul8", "mul8_tail", "mul16", "mul16_tail",
+        // jsr DivConst8_d/DivConst16_d (generated from div_const8_body/16): A, X, zp_param2.
+        "div_const8", "div_const16", "rem_const8", "rem_const16", "rem_mask8", "rem_mask16",
         "negate16", "negate8", "not16", "not8", "or16", "or8", "xor16", "xor8",
         "shift_left8", "shift_right8",
         "stack_duplicate8", "stack_pop", "stack_pull_int", "stack_pull_int16", "stack_pull_int8", "stack_pull_int_a",

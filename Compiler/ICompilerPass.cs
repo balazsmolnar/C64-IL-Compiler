@@ -135,6 +135,10 @@ class CompilerContext
 
     public List<string> InitValues { get; } = new();
 
+    // (width, divisor) of every DivConst8_<d>/DivConst16_<d> routine some
+    // emitted code calls (OpDivConst); ILStringResourcesPass emits them.
+    public SortedSet<(int Width, int Divisor)> DivConstRoutines { get; } = new();
+
     public string GetInitValueLabel(string initValue)
     {
 

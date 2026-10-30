@@ -96,6 +96,9 @@ newObjInit .macro size, referenceFields, objDescriptor, initValues, ctor
 ; Compiler/ILObjectArrayInitializerOptimizer.cs.
 ;
 newObjArrayInit .macro descriptor
+  ; NewObjArrayInitL peeks the array on the hardware stack, so it must
+  ; really be there (TopOfStackInA never pairs this macro as a consumer).
+  .cerror tos_in, "newObjArrayInit: the array is in A, not on the stack"
   lda #<\descriptor
   ldy #>\descriptor
   jsr NewObjArrayInitL

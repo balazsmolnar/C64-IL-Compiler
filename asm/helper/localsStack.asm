@@ -57,11 +57,13 @@ ls_ldx1 .macro rel_pos
 ; the evaluation stack at a ret, sits on top of that return address, so it
 ; travels in registers instead: 1 byte in A, 2 bytes in A (high) and X
 ; (low). The caller pushes it back right after its jsr (sf_result).
+; The first pull may find the value already in A (Compiler/TopOfStackInA.cs
+; pairs an sf_exit with no references to release with the line before it).
 sf_ret .macro bytes
   .if \bytes == 1
-    pla
+    #stack_pull_int_a
   .elsif \bytes == 2
-    pla
+    #stack_pull_int_a
     tax
     pla
   .endif
@@ -111,13 +113,14 @@ sf_exit_saved .macro ret_rel, ref_list
   rts
 .endm
 
+; The final push may leave the value in A instead (TopOfStackInA).
 sf_result .macro bytes
   .if \bytes == 1
-    pha
+    #stack_push_tos
   .elsif \bytes == 2
     pha
     txa
-    pha
+    #stack_push_tos
   .endif
 .endm
 

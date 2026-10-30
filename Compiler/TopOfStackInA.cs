@@ -80,6 +80,10 @@ static class TopOfStackInA
         ["compareGreater_unsigned8"] = Always, ["compareGreater_unsigned_const8"] = Always,
         // Its pull may itself have been skipped: flags are whatever came before.
         ["stack_duplicate8"] = Never,
+        // A static-frame call's returned value (asm/helper/localsStack.asm):
+        // one byte arrives in A from the callee's sf_ret, whose own pull may
+        // have been skipped (flags unrelated); two bytes end with txa.
+        ["sf_result"] = a => Arg(a, 0) == "2",
     };
 
     // Consumer macro -> (branches on the N/Z its pla set, accepts these arguments).
@@ -126,6 +130,9 @@ static class TopOfStackInA
         d["stack_pull_int_ref"] = (false, a => Arg(a, 1) == "0");
         d["locals_pull_value8"] = (false, a => Arg(a, 1) == "0");
         d["locals_pull_value8_ky"] = (false, a => Arg(a, 1) == "0");
+        // A static-frame return (sf_exit bytes, [refs]): pulls the value
+        // first only when there are no references to release before it.
+        d["sf_exit"] = (false, a => (Arg(a, 0) == "1" || Arg(a, 0) == "2") && Arg(a, 1) == "[]");
         return d;
     }
 
@@ -236,7 +243,15 @@ static class TopOfStackInA
                 continue;
 
             var (cName, cArgs) = Words(lines[cs.Line].Code[cs.Index]);
-            if (!Consumers.TryGetValue(cName, out var spec) || !spec.accepts(cArgs))
+            (bool needsFlags, Func<string, bool> accepts) spec;
+            // A raw pla (fused code; a static-frame call pulling its
+            // arguments into the callee's slots, OpCall.StaticFramePulls)
+            // takes exactly the value the producer would have pushed. Its
+            // N/Z may be read by whatever follows, so the producer's must
+            // be valid.
+            if (cName == "pla" && cArgs.Length == 0)
+                spec = (true, Always);
+            else if (!Consumers.TryGetValue(cName, out spec) || !spec.accepts(cArgs))
                 continue;
             if (spec.needsFlags && !flagsValid)
                 continue;
@@ -262,6 +277,9 @@ static class TopOfStackInA
                     if (Words(text).name == "pha")
                         text = "#stack_push_tos" + (text.Contains(';') ? " ;" + text.Split(';', 2)[1] : "");
                 }
+                // A raw pla becomes the tos-aware pull.
+                if (isConsumer && Words(text).name == "pla")
+                    text = "#stack_pull_int_a" + (text.Contains(';') ? " ;" + text.Split(';', 2)[1] : "");
                 code.Add(text);
                 if (isProducer)
                     code.Add("    .cerror tos_out, \"top of stack not left in A\"");

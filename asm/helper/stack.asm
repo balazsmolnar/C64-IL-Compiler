@@ -1,11 +1,36 @@
 ; Use C64 native stack
 ; less space, but faster
 ;
+; Top of stack in A (Compiler/TopOfStackInA.cs): when one emitted line ends
+; by pushing a byte and the next begins by pulling it, the compiler emits
+; "tos_out ::= 1" before the first; its final push (stack_push_tos) then
+; leaves the value in A and sets tos_in instead of doing pha, and the next
+; pull (stack_pull_int_a, which every pull of the top byte goes through)
+; skips its pla. Both are assembly-time variables, so the only change in
+; the program is the missing pha/pla pair; the ".cerror" checks the
+; compiler emits after each such line make a macro that doesn't play along
+; fail the build instead of miscompiling.
+tos_in := 0
+tos_out := 0
+
+; The final push of a macro the compiler may ask to leave its result in A.
+; Only ever the LAST thing a macro does: whatever followed it would run
+; while the value is not yet on the stack.
+stack_push_tos .macro
+  .cerror tos_in, "top of stack already in A"
+  .if tos_out
+tos_out ::= 0
+tos_in ::= 1
+  .else
+    pha
+  .endif
+.endm
+
 stack_push_pointer .macro ptr
   lda # > \ptr
   pha
   lda # < \ptr
-  pha
+  #stack_push_tos
 .endm
 
 stack_pull_pointer .macro address 
@@ -19,23 +44,23 @@ stack_push_int16 .macro value
   lda # > \value
   pha
   lda # < \value
-  pha
+  #stack_push_tos
 .endm
 
 stack_push_int8 .macro value 
   lda # < \value
-  pha
+  #stack_push_tos
 .endm
 
-stack_pull_int16 .macro address 
-  pla
+stack_pull_int16 .macro address
+  #stack_pull_int_a
   sta \address
   pla
   sta \address+1
 .endm
 
-stack_pull_int8 .macro address 
-  pla
+stack_pull_int8 .macro address
+  #stack_pull_int_a
   sta \address
 .endm
 
@@ -43,18 +68,18 @@ stack_push_var16 .macro address
   lda \address+1
   pha
   lda \address
-  pha
+  #stack_push_tos
 .endm
 
 stack_push_var8 .macro address 
   lda \address
-  pha
+  #stack_push_tos
 .endm
 
 stack_duplicate8 .macro
   #stack_pull_int_a
   #stack_push_int_a
-  #stack_push_int_a
+  #stack_push_tos
 .endm
 
 stack_duplicate16 .macro
@@ -67,7 +92,7 @@ stack_duplicate16 .macro
 .endm
 
 stack_pop .macro
-  pla
+  #stack_pull_int_a
 .endm
 
 stack_save_return_adress .macro variable
@@ -85,8 +110,12 @@ stack_return_to_saved_address .macro  variable
   rts
 .endm
 
-stack_pull_int_a .macro 
-  pla
+stack_pull_int_a .macro
+  .if tos_in
+tos_in ::= 0
+  .else
+    pla
+  .endif
 .endm
 
 stack_pull_int_x .macro
@@ -100,6 +129,7 @@ stack_pull_int_y .macro
 .endm
 
 stack_push_int_a .macro
+  .cerror tos_in, "top of stack still in A"
   pha
 .endm
 

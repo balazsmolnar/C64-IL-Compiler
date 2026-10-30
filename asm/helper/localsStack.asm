@@ -208,7 +208,7 @@ locals_push_value8 .macro rel_pos
 ; YRegisterTracker proves it and drops the reload).
 locals_push_value8_ky .macro rel_pos
   lda localsStack-\rel_pos,y
-  #stack_push_int_a
+  #stack_push_tos
 .endm
 
 ; PROTOTYPE (see zp_local0's own comment in zeropage.asm): the same shape as
@@ -221,7 +221,7 @@ locals_push_value8_ky .macro rel_pos
 ; comment for why that scoping matters.
 zp_push_value8 .macro addr
   lda \addr
-  #stack_push_int_a
+  #stack_push_tos
 .endm
 
 zp_pull_value8 .macro addr
@@ -343,7 +343,7 @@ locals_push_value16_ky .macro rel_pos
   lda localsStack-\rel_pos+1,y
   #stack_push_int_a
   lda localsStack-\rel_pos,y
-  #stack_push_int_a
+  #stack_push_tos
 .endm
 
 locals_pull_value16 .macro rel_pos

@@ -230,9 +230,9 @@ mc2=None, transparent=None, count=None, preview=None, quiet=False)`.
 | Range | Use |
 |---|---|
 | $0800-$0BFF | `DrawText` font if `DrawText` is used; otherwise object tables |
-| $0C00-$0FFF | object tables (four of the seven: size, address low/high, root count) |
+| $0C00-$0FFF | with `DrawText`: the locals stack and three object tables (address low/high, root count), page-aligned |
 | $1000-... | runtime, compiled code, assets: one contiguous block |
-| ...-$CBFF | with `DrawText`: the other three object tables and the locals stack (1024 bytes), then 56 bytes of string buffers, then the heap; without `DrawText` all tables are below $1000 and only the 56 bytes come first |
+| ...-$CBFF | with `DrawText`: the other four object tables (1024 bytes), then 56 bytes of string buffers, then the heap; without `DrawText` all tables and the locals stack are below $1000 and only the 56 bytes come first |
 | below $CC00 | sprite frames 65-112, if any (64 bytes each) |
 | $CC00-$CFE7 | video matrix (`Graphics_ColorMatrix`); sprite pointers at $CFF8 |
 | $D000-$DFFF | I/O; the RAM underneath holds sprite frames 1-64 |
@@ -248,10 +248,10 @@ mc2=None, transparent=None, count=None, preview=None, quiet=False)`.
   buffers left above the code when `DrawText` is used; 56 without it) -
   what the heap needs - 64 per sprite frame beyond 64. The runtime owns
   $0800-$0FFF: nothing else may use it.
-  After the rooms/characters/combat/HUD round-3 integration the block ends
-  at $B8A9, of which the last 4096 bytes ($A8AA-) are the 64 sprite frames
-  that are moved at startup: the tables take $A8AA-$ACE1 and the heap
-  starts at $ACE2, so **7,966 bytes ($ACE2-$CBFF) are left for more code,
+  After the compiler/rooms/combat/HUD integration of round 4 the block ends
+  at $BAF7, of which the last 4096 bytes ($AAF8-) are the 64 sprite frames
+  that are moved at startup: the tables take $AAF8-$AF2F and the heap
+  starts at $AF30, so **7,376 bytes ($AF30-$CBFF) are left for more code,
   assets and the heap** (the prototype had 25,827).
 - Sprite frames 1-64 are free: they load at the end of the program and are
   copied under the I/O area at startup; the object tables and heap then

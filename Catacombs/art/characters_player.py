@@ -282,27 +282,29 @@ for _i in range(4):
     MC["p_leg_right%d" % _i] = _recolour(MC["p_leg_right%d" % _i], 4, 9)
     MC["p_leg_left%d" % _i] = mirror(MC["p_leg_right%d" % _i])
 
-# Slain: on his back, hood to the left, a boot up, the torch dropped by his
-# head (its ember is a hi-res spark in the overlay's slot, cooling off).
+# Slain (title/flow's death frame): lying on his front in his dark cloak
+# (outlined), legs to the left, arm along his side, head (lit by the dying
+# torch) to the right; the torch's ember is a hi-res spark in the overlay's
+# slot, cooling off.
 MC["p_fallen"] = [
     "............",
     "............",
     "............",
     "............",
     "............",
+    "........KKK.",
+    ".......KNNNK",
+    "RRRRRRRRKNNK",
+    "RKKKKKKKRKNK",
+    ".KKKKKKKKR..",
+    "RK.KRRRRRNN.",
+    "RR.R........",
+    "K.K.K.K.K...",
+    ".K.K.K.K....",
     "............",
     "............",
-    ".........KK.",
-    "........KNNK",
-    ".KKK...KRNK.",
-    "KRRRKKKRRRK.",
-    "KRKNKRRRRRNK",
-    "KRNNKRRRNNNK",
-    "KKNKRRRNNKKK",
-    ".KKNNKKKNK..",
-    "..K.K.K.K.K.",
-    "NNK.........",
-    ".K.K.K.K.K.K",
+    "............",
+    "............",
     "............",
     "............",
     "............",

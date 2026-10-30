@@ -119,6 +119,11 @@ class Program
 #if SCENE_COMBAT
         Combat();
 #endif
+#if SCENE_DEATH
+        playerHp_ = 0;
+        Hud.SetHealth(0);
+        PlayerDied(); // the death in the room, then game over and the title (GameFlow.cs)
+#endif
 #if SCENE_ENCOUNTER
         Encounter.Scene(); // never returns: the encounter's states on a loop (Encounter.cs)
 #endif
@@ -445,10 +450,11 @@ class Program
         Audio.CombatStart();
         Monster.HideSprite(); // the patrolling guardian: the encounter has its own sprites
         playerHp_ = Encounter.Fight(px_, py_, playerHp_, playerDamage_);
-        // No blank: the HUD stays on screen (combat). The room is redrawn first
-        // so a dead player falls where he stood, in the room (characters).
+        // No blank: the HUD stays on screen (combat; DungeonView blanks the
+        // viewport redraw itself). The room is redrawn first so a dead player
+        // falls where he stood, in the room.
         ApplyRoomColor();
-        EnterRoom(); // redraw (without the monster, if it died)
+        EnterRoom(); // the room again: without the monster if it died, with it if the player did
         if (playerHp_ == 0)
         {
             PlayerDied();
@@ -457,8 +463,10 @@ class Program
         return true;
     }
 
-    // A flash, then the run is over: nothing is reset here, the next run's
-    // Play() sets everything up again.
+    // The player falls in the room, by the guardian that killed them, and the
+    // room slowly darkens around the body; then the run is over (the game
+    // over screen fades in from the black). Nothing is reset here: the next run's Play() sets
+    // everything up again.
     static void PlayerDied()
     {
         Audio.PlayerDied();
@@ -468,13 +476,7 @@ class Program
             C64.Screen.WaitForVBlank();
             SpriteStage.Update();
         }
-        for (uint i = 0; i < 6; i++)
-        {
-            C64.Screen.SetBorderColor(Colors.Red);
-            Delay.Wait(80);
-            C64.Screen.SetBorderColor(Colors.Black);
-            Delay.Wait(80);
-        }
+        TitleScreen.FadeOut(20); // the room dies around the body, two seconds
         GameFlow.Lose(); // ends Play(); Main shows the game over screen, then the title
     }
 }

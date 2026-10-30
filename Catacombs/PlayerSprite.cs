@@ -108,7 +108,7 @@ static class PlayerSprite
             SpriteStage.Count[0] = 2;
             SpriteStage.Parts[Light + SpriteStage.Frame] = SpriteStage.Hi + Frame.Spark;
             SpriteStage.Parts[Light + SpriteStage.Color] = ember;
-            SpriteStage.Parts[Top + SpriteStage.Color] = SpriteStage.Multi | Cloak;
+            SpriteStage.Parts[Top + SpriteStage.Color] = SpriteStage.Multi | (uint)Colors.LightRed; // the body stands out as the room darkens
             SpriteStage.Parts[Light + SpriteStage.Dy] = 42;
             SpriteStage.Parts[Light] = 0;
             SpriteStage.Parts[Top + SpriteStage.Frame] = SpriteStage.Mc + Frame.Fallen;

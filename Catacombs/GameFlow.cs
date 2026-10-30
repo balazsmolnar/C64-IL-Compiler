@@ -21,6 +21,8 @@ namespace Catacombs;
 //                      on a timer, for ever (no input needed)
 //   RESTART            200 runs back to back, then the title: a run that
 //                      leaked heap would stop with an OUT OF MEMORY fault
+//   DEATH              (in Program.Play) the player dies in the first room:
+//                      the fall, the fade, game over, then the title
 static class GameFlow
 {
     const uint StartX = 1, StartY = 1;  // the entrance, and the way out
@@ -42,7 +44,7 @@ static class GameFlow
                 outcome_ = (runs_ & 1) == 1 ? TitleScreen.GameOver : TitleScreen.Victory;
 #endif
 #if SCENE_RESTART
-            if (runs_ < 200)
+            if (runs_ <= 200)
                 outcome_ = TitleScreen.GameOver;
 #endif
             return outcome_ == 0;
@@ -76,20 +78,21 @@ static class GameFlow
         outcome_ = 0;
     }
 
-    // `health`: what the player has left (shown on the victory screen).
+    // `health` is unused now (the victory screen no longer shows a number
+    // that meant nothing to the player); kept so Program.Main is unchanged.
     public static void AfterGame(uint health)
     {
 #if SCENE_RESTART
         if (runs_ <= 200)
             return;
 #endif
-        TitleScreen.FadeOut();
+        TitleScreen.FadeOut(2);
 #if SCENE_FLOW
         TitleScreen.Timer = 300;
 #endif
-        if (outcome_ == TitleScreen.GameOver)
-            health = Item.CollectedCount;
-        TitleScreen.Show(outcome_, health);
+        if (outcome_ == TitleScreen.Victory)
+            Audio.Victory();
+        TitleScreen.Show(outcome_, Item.CollectedCount);
     }
 
     public static void Lose()

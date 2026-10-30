@@ -18,5 +18,16 @@ class ILStringResourcesPass : ICompilerPass
             context.GlobalOutputFile.WriteLine($"{label} .byte {initValue}");
         }
 
+        // One routine per constant divisor in use (OpDivConst); skip = the
+        // leading dividend bits that can never reach the divisor.
+        foreach (var (width, divisor) in context.DivConstRoutines)
+        {
+            int skip = 0;
+            while ((2 << skip) <= divisor)
+                skip++;
+            context.GlobalOutputFile.WriteLine($"DivConst{width}_{divisor}");
+            context.GlobalOutputFile.WriteLine($"    #div_const{width}_body {divisor}, {skip}");
+        }
+
     }
 }

@@ -162,10 +162,18 @@ class TestSession : IDebugSession
     // own local-address arithmetic already relies on.
     private const int SoftwareStackPointerZp = 0x4b;
 
+    // Call depth = software stack pointer plus hardware stack use. A
+    // "frameless" method (static, void, no parameters -- see
+    // CompilerMethodContext.IsFrameless) keeps its return address on the
+    // hardware stack and may not raise the software one at all, so the
+    // software pointer alone would miss it.
+    private int CallDepth() =>
+        _emulator.GetMemory(SoftwareStackPointerZp) + (0xFF - _emulator.HardwareStackPointer);
+
     private SessionStop AdvanceToDepth(bool strictlyShallower)
     {
         RequireActiveSession();
-        var startSp = _emulator.GetMemory(SoftwareStackPointerZp);
+        var startSp = CallDepth();
         var breakpoints = _model.AllSequencePointAddresses().ToHashSet();
         while (true)
         {
@@ -178,7 +186,7 @@ class TestSession : IDebugSession
             if (_userBreakpoints.Contains(stoppedAt))
                 return stop;
 
-            var currentSp = _emulator.GetMemory(SoftwareStackPointerZp);
+            var currentSp = CallDepth();
             bool farEnough = strictlyShallower ? currentSp < startSp : currentSp <= startSp;
             if (farEnough)
                 return stop;

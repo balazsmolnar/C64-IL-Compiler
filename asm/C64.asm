@@ -261,6 +261,27 @@ C64_GetMemory
 .endif
 
 .weak
+Flag_C64_GetWord = 0
+.endweak
+.if Flag_C64_GetWord
+
+; C64.GetWord(address, index): the word at address + index * 2 (index 0-127).
+C64_GetWord
+    #stack_save_return_adress zp_tmp1_low
+    #stack_pull_int_a
+    asl
+    tay
+    #stack_pull_pointer zp_param4_low
+    iny
+    lda (zp_param4_low),y
+    pha                             ; high byte first, like #stack_push_var16
+    dey
+    lda (zp_param4_low),y
+    pha
+    #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+.weak
 Flag_C64_Random = 0
 .endweak
 .if Flag_C64_Random
@@ -481,6 +502,23 @@ C64_add_Interrupt
     sei
     #stack_save_return_adress zp_tmp1_low
     #stack_pull_pointer zp_interrupt_address_low
+.if Flag_Screen_SetSplit
+    ; A raster split (Screen.SetSplit, asm/C64Graphics.asm) must stay first
+    ; on the IRQ vector: it calls what it replaced once per frame. So while
+    ; one is on, the subscriber is put behind it instead of in front.
+    lda graphics_split_active
+    beq C64_add_Interrupt_Direct
+    lda graphics_split_chain
+    sta zp_interrupt_saved_low
+    lda graphics_split_chain+1
+    sta zp_interrupt_saved_high
+    lda #< OnInterrupt
+    sta graphics_split_chain
+    lda #> OnInterrupt
+    sta graphics_split_chain+1
+    jmp C64_add_Interrupt_Done
+C64_add_Interrupt_Direct
+.endif
     lda $0314
     sta zp_interrupt_saved_low
     lda $0315
@@ -490,6 +528,7 @@ C64_add_Interrupt
     sta $0314
     lda #> OnInterrupt
     sta $0315
+C64_add_Interrupt_Done
     cli
     #stack_return_to_saved_address zp_tmp1_low
 .endif
@@ -555,6 +594,15 @@ OnInterrupt
     pha
     lda zp_field_value_high
     pha
+    ; Run the subscriber's frames well above whatever frame the interrupted
+    ; code was in the middle of building or tearing down (a prologue
+    ; writes its slots before it raises stackPointer, an epilogue reads its
+    ; return address after lowering it).
+    lda stackPointer
+    pha
+    clc
+    adc #48
+    sta stackPointer
 
     lda #> On_Interrupt_Ret-1
     pha
@@ -562,6 +610,8 @@ OnInterrupt
     pha
     jmp (zp_interrupt_address_low)
 On_Interrupt_Ret
+    pla
+    sta stackPointer
     pla
     sta zp_field_value_high
     pla
@@ -600,7 +650,11 @@ Flag_Screen_BeginUpdate = 0
 Screen_BeginUpdate:
     #stack_save_return_adress zp_tmp1_low
     lda $d011
+.if Flag_Screen_SetSplit
+    and #%01101111          ; also keep the raster compare's bit 8 clear -- see Graphics_SplitIrq
+.else
     and #%11101111
+.endif
     sta $d011
     #stack_return_to_saved_address zp_tmp1_low
 .endif
@@ -613,6 +667,9 @@ Flag_Screen_EndUpdate = 0
 Screen_EndUpdate:
     #stack_save_return_adress zp_tmp1_low
     lda $d011
+.if Flag_Screen_SetSplit
+    and #%01111111
+.endif
     ora #%00010000
     sta $d011
     #stack_return_to_saved_address zp_tmp1_low
@@ -621,6 +678,7 @@ Screen_EndUpdate:
 .include "./c64sprite.asm"
 .include "./c64Joystick.asm"
 .include "./C64Sound.asm"
+.include "./C64Music.asm"
 .include "./c64Keys.asm"
 .include "./C64Debug.asm"
 .include "./C64Graphics.asm"

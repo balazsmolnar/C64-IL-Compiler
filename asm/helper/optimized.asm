@@ -11,8 +11,14 @@ dec_var .macro rel_pos
   dec localsStack-\rel_pos,x
 .endm
 
-init_var .macro  rel_pos, value
+init_var .macro rel_pos, value
   ldy stackPointer
+  #init_var_ky \rel_pos, \value
+.endm
+
+; init_var with Y already holding stackPointer (ILMethodEmitPass's
+; YRegisterTracker proves it and drops the reload).
+init_var_ky .macro rel_pos, value
   lda #\value
   sta localsStack-\rel_pos,y
 .endm

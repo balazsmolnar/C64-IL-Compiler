@@ -73,6 +73,10 @@
         public static void CopyMemory(ulong dest, ulong source, uint size) { }
         public static void FillMemory(ulong dest, uint value, uint size) { }
         public static uint GetMemory(ulong address, uint x) => 0;
+        // The 16-bit (low byte first) value at address + index * 2: entry
+        // `index` (0-127) of a table of words, e.g. a RawAssembly
+        // ".word label1, label2, ..." list of addresses to pick one from.
+        public static ulong GetWord(ulong address, uint index) => 0;
         // A pseudo-random byte (0..255) from a software LFSR (asm/C64.asm's
         // C64_Random) -- not a hardware RNG (e.g. the SID's voice-3 noise
         // oscillator), deliberately: that would need SID voice 3 reserved

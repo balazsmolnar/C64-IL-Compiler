@@ -69,10 +69,39 @@ Divide8Core:
 ; twice (once to check, once to commit).
 ; Input: zp_param2_low/high = dividend, zp_param1_low/high = divisor.
 ; Output: zp_param2_low/high = quotient, zp_param0_low/high = remainder.
+;
+; Fast paths (same results, fewer cycles): a divisor below 256 keeps the
+; remainder in A (about 30 cycles per bit instead of 45), and a dividend
+; below 256 skips its eight leading zero bits.
 Divide16Core:
     lda #0
     sta zp_param0_low
     sta zp_param0_high
+    ldx zp_param1_high
+    bne Divide16Core_Wide
+    ldx #16
+    ldy zp_param2_high
+    bne Divide16Core_Narrow
+    ldy zp_param2_low           ; dividend < 256: start 8 bits in
+    sty zp_param2_high
+    sta zp_param2_low
+    ldx #8
+Divide16Core_Narrow:
+    ; A = remainder (the bit shifted out of it, if any, means it is >= 256
+    ; and so certainly >= the divisor; sbc then wraps to the right value)
+-   asl zp_param2_low
+    rol zp_param2_high
+    rol a
+    bcs +
+    cmp zp_param1_low
+    bcc ++
++   sbc zp_param1_low
+    inc zp_param2_low
++   dex
+    bne -
+    sta zp_param0_low
+    rts
+Divide16Core_Wide:
     ldx #16
 -   asl zp_param2_low
     rol zp_param2_high
@@ -310,3 +339,83 @@ rem16 .macro
     #stack_push_int_a
     #stack_push_var zp_param2_low
 .endm
+
+; ============================================================================
+; Integer multiply (arithmetic.asm's mul8_tail/mul16_tail jsr here instead
+; of expanding their loop at every Mul). Both stop as soon as the remaining
+; multiplier bits are zero, so a small multiplier (a loop index, a depth,
+; a percentage) costs a few iterations instead of a fixed 8 or 16.
+; Touch only A, X and zp_param0..2 -- never Y, never tmpPointer (see
+; ILMethodCachedFieldAccessPass's allowlist, which treats integer Mul as
+; transparent). .proc: only assembled in a program that multiplies.
+
+; A = zp_param2_low * zp_param1_low (low 8 bits). zp_param1_low and
+; zp_param2_low are consumed.
+Multiply8 .proc
+    lda #0
+    ldx zp_param1_low
+    beq done
+-   lsr zp_param1_low
+    bcc +
+    clc
+    adc zp_param2_low
++   asl zp_param2_low
+    ldx zp_param1_low
+    bne -
+done
+    rts
+.pend
+
+; zp_param0 = zp_param2 * zp_param1 (low 16 bits). zp_param1/zp_param2
+; are consumed. If only zp_param2 is below 256 the two are swapped, so the
+; narrow operand is the multiplier.
+Multiply16 .proc
+    lda #0
+    sta zp_param0_low
+    sta zp_param0_high
+    ldx zp_param1_high
+    beq byte
+    ldx zp_param2_high
+    bne wide
+    ldx zp_param2_low           ; swap
+    lda zp_param1_low
+    sta zp_param2_low
+    stx zp_param1_low
+    lda zp_param1_high
+    sta zp_param2_high
+byte                            ; multiplier below 256
+    lda zp_param1_low
+    beq done
+-   lsr zp_param1_low
+    bcc +
+    clc
+    lda zp_param0_low
+    adc zp_param2_low
+    sta zp_param0_low
+    lda zp_param0_high
+    adc zp_param2_high
+    sta zp_param0_high
++   asl zp_param2_low
+    rol zp_param2_high
+    lda zp_param1_low
+    bne -
+done
+    rts
+wide
+    lda zp_param1_low
+    ora zp_param1_high
+    beq done
+    lsr zp_param1_high
+    ror zp_param1_low
+    bcc +
+    clc
+    lda zp_param0_low
+    adc zp_param2_low
+    sta zp_param0_low
+    lda zp_param0_high
+    adc zp_param2_high
+    sta zp_param0_high
++   asl zp_param2_low
+    rol zp_param2_high
+    jmp wide
+.pend

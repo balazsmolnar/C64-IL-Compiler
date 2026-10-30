@@ -51,20 +51,65 @@ static class Item
         {
             collected_[i] = true;
             collectedCount_ = collectedCount_ + 1;
+            Monster.Refresh();
         }
     }
 
     public static uint CollectedCount => collectedCount_;
 
-    // Small distinct marker (yellow-ish via ColorRam's fixed Brown --
-    // reuses the door color deliberately, both read as "things in the
-    // world," distinct from Monster's MatrixLow/LightRed) drawn once as
-    // part of DungeonView's static room scene, same idea as
-    // Monster.RenderInRoom.
+    // The treasure and the weapons used to be drawn into the room's bitmap;
+    // they are sprites now (below), so there is nothing to draw. Kept for
+    // Program.EnterRoom, which still calls it.
     public static void Render()
     {
-        ulong x = RoomProjection.ScreenX(RoomX, RoomDepth);
-        ulong y = RoomProjection.ScreenY(RoomDepth);
-        C64.Screen.DrawRectangle(x - RoomRadius, y - RoomRadius, x + RoomRadius, y + RoomRadius, true, true, BitmapColorSource.ColorRam);
+    }
+
+    // --- The pickup lying in this room, treasure or weapon, as the room's
+    // Feature (SpriteStage actor 1; see Monster.Setup, which calls this when
+    // the room has no guardian): the item itself with its shadow, and in
+    // front of it a hi-res glint that flares and jumps about on it.
+    const uint Glint = SpriteStage.Feature, Thing = SpriteStage.Feature + 4;
+    // The glint runs along the item in four steps, then rests.
+    static readonly uint[] GlintDx = { 4, 7, 10, 13 };
+    static readonly uint[] GlintDy = { 37, 36, 35, 34 };
+    static readonly uint[] GlintColor = { (uint)Colors.Grey3, (uint)Colors.White, (uint)Colors.Yellow, (uint)Colors.White };
+
+    public static bool Setup(uint px, uint py)
+    {
+        uint frame = Frame.Treasure;
+        uint color = SpriteStage.Multi | (uint)Colors.Yellow;
+        uint rx = RoomX;
+        uint depth = RoomDepth;
+        if (!IsPresentAt(px, py))
+        {
+            if (!Weapon.IsPresentAt(px, py))
+                return false;
+            frame = Frame.Sword + Weapon.FindAt(px, py);
+            color = SpriteStage.Multi | (uint)Colors.Grey3;
+            rx = Weapon.RoomX;
+            depth = Weapon.RoomDepth;
+        }
+        SpriteStage.Part(Glint, (uint)Colors.White, 12, 0);
+        SpriteStage.Parts[Glint + SpriteStage.Frame] = SpriteStage.Hi + Frame.Spark;
+        SpriteStage.Part(Thing, color, 12, 33);
+        SpriteStage.Parts[Thing + SpriteStage.Frame] = SpriteStage.Mc + frame;
+        SpriteStage.X[1] = RoomProjection.ScreenX(rx, depth);
+        SpriteStage.Y[1] = (uint)RoomProjection.ScreenY(depth);
+        return true;
+    }
+
+    // A glint travelling along the blade or across the coins every second
+    // or so; hidden in between (sprite Y 0 is above the screen).
+    public static void Twinkle(uint tick)
+    {
+        uint step = (tick >> 2) & 15;
+        uint dy = 0 - SpriteStage.Y[1];
+        if (step < 4)
+        {
+            SpriteStage.Parts[Glint] = GlintDx[step];
+            SpriteStage.Parts[Glint + SpriteStage.Color] = GlintColor[step];
+            dy = GlintDy[step];
+        }
+        SpriteStage.Parts[Glint + SpriteStage.Dy] = dy;
     }
 }

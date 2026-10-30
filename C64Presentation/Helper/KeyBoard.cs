@@ -30,7 +30,9 @@ static class KeyBoard
         {
             if (!C64.IsKeyPressed(key))
                 break;
-            Delay.Wait(500);
+            // Was Wait(500): uint is 8-bit here, so it always waited 244
+            // (500 & 255) -- now a C64006 error; the value it really had.
+            Delay.Wait(244);
 
         }
         return key;

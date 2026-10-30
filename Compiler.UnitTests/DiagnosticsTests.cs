@@ -129,6 +129,37 @@ class Program
         Assert.That(output, Does.Contain("Exceptions are not supported"), output);
     }
 
+    // --- constants that do not fit 8 bits ----------------------------------
+
+    [Test]
+    public void Loop_Bound_Above_255_On_A_Uint_Is_Rejected()
+    {
+        var output = Errors("", "uint n = 0; for (uint i = 0; i < 700; i++) n++; return n;");
+        AssertReports(output, "C64006", "The constant 700 does not fit in 8 bits", "ulong");
+    }
+
+    [Test]
+    public void Uint_Assigned_A_Constant_Above_255_Is_Rejected()
+    {
+        var output = Errors(Input, "uint x = In.N; x = x + 300; return x;");
+        AssertReports(output, "C64006", "The constant 300", "300UL");
+    }
+
+    [Test]
+    public void Array_Of_More_Than_255_Elements_Is_Rejected()
+    {
+        var output = Errors("", "uint[] a = new uint[1000]; return a[0];");
+        AssertReports(output, "C64006", "The constant 1000");
+    }
+
+    [Test]
+    public void Wide_Constants_On_Ulong_And_Byte_Range_Constants_Compile()
+    {
+        var (exit, output) = CompileProgram(Wrap(Input,
+            "ulong w = In.N; for (ulong i = 0; i < 700; i++) w = w + 1000; uint b = In.N + 200; int m = -128; return b + (uint)m + (uint)(w & 255);"));
+        Assert.That(exit, Is.EqualTo(0), output);
+    }
+
     // --- types ------------------------------------------------------------
 
     [Test]

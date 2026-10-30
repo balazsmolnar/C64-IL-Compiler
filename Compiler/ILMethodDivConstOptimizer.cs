@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Collections.Generic;
 using System.Reflection.Metadata;
 using Compiler.Ops;
@@ -23,6 +24,12 @@ namespace Compiler;
 // no sign to get wrong, so the shift is unconditionally exact there,
 // same as multiplication's own "regardless of the other operand's sign"
 // claim already relies on.
+//
+// Also, for any other constant divisor 3..255 (Div_un and Rem_un): a call
+// into a routine specialised for that divisor (OpDivConst, asm/helper/
+// arithmetic.asm's div_const8/16 and rem_const8/16), and Rem_un by a power
+// of two up to 256 becomes a mask. Every window requires the Div/Rem and
+// the Conv (a branch join would bring in another divisor) to be unlabelled.
 class ILMethodDivConstOptimizer : PeepholeOptimizerPass
 {
     private static readonly Dictionary<int, int> ShiftForValue = new()
@@ -30,36 +37,41 @@ class ILMethodDivConstOptimizer : PeepholeOptimizerPass
         [1] = 0,
         [2] = 1,
         [4] = 2,
+        [8] = 3,
+        [16] = 4,
+        [32] = 5,
+        [64] = 6,
+        [128] = 7,
     };
 
-    protected override IEnumerable<PeepholeRule> Rules => new[]
+    private static bool IsConst(ILOperation l, System.Func<int, bool> ok) =>
+        l.Operation is OpLdConst && l.RawParameter is int v && ok(v);
+
+    private static bool IsWiden(ILOperation l) =>
+        (l.OpCode == ILOpCode.Conv_i8 || l.OpCode == ILOpCode.Conv_u8) && string.IsNullOrEmpty(l.Label);
+
+    private static bool Is(ILOperation l, ILOpCode op) => l.OpCode == op && string.IsNullOrEmpty(l.Label);
+
+    private static bool IsShift(int v) => ShiftForValue.ContainsKey(v);
+    private static bool IsRoutineDivisor(int v) => v >= 3 && v <= 255 && !IsShift(v);
+    private static bool IsMask(int v) => v >= 1 && v <= 256 && (v & (v - 1)) == 0;
+
+    // Each rule in an 8-bit form (constant straight into the op) and a
+    // 16-bit one (constant, Conv to 64-bit -- this compiler's 16 bits --,
+    // op).
+    private static IEnumerable<PeepholeRule> Both(System.Func<OpBase> build, System.Func<int, bool> constant, ILOpCode op, System.Func<int, object> parameter)
     {
-        // uint: the constant divisor feeds straight into Div_un.
-        new PeepholeRule(
-            (ctx, w) => new OpArithmetic2("#div_shift_const"),
-            l => l.Operation is OpLdConst && l.RawParameter is int v && ShiftForValue.ContainsKey(v),
-            l => l.OpCode == ILOpCode.Div_un && string.IsNullOrEmpty(l.Label))
-            .WithRawParameter((ctx, w) => ShiftForValue[(int)w[0].RawParameter])
-            .AllowInlinedWindows(),
+        yield return new PeepholeRule((ctx, w) => build(), l => IsConst(l, constant), l => Is(l, op))
+            .WithRawParameter((ctx, w) => parameter((int)w[0].RawParameter))
+            .AllowInlinedWindows();
+        yield return new PeepholeRule((ctx, w) => build(), l => IsConst(l, constant), IsWiden, l => Is(l, op))
+            .WithRawParameter((ctx, w) => parameter((int)w[0].RawParameter))
+            .AllowInlinedWindows();
+    }
 
-        // ulong: Roslyn widens an int constant divisor with Conv_i8 OR
-        // Conv_u8 before a 64-bit unsigned divide -- same shape
-        // ILMethodMulConstOptimizer's own second rule exists for, and
-        // checking both for the same reason that rule does: verified
-        // directly (not assumed, after guessing "always Conv_u8, never
-        // Conv_i8" here was simply wrong -- a real ulong-parameter divide
-        // actually compiled via Conv_i8), Roslyn's choice of widening
-        // opcode for a small non-negative int LITERAL isn't tied to the
-        // destination's signedness at all: the bit pattern is identical
-        // either way for a value that fits non-negative in both, so it
-        // doesn't matter which one shows up, only that this rule matches
-        // whichever one does.
-        new PeepholeRule(
-            (ctx, w) => new OpArithmetic2("#div_shift_const"),
-            l => l.Operation is OpLdConst && l.RawParameter is int v && ShiftForValue.ContainsKey(v),
-            l => l.OpCode == ILOpCode.Conv_i8 || l.OpCode == ILOpCode.Conv_u8,
-            l => l.OpCode == ILOpCode.Div_un && string.IsNullOrEmpty(l.Label))
-            .WithRawParameter((ctx, w) => ShiftForValue[(int)w[0].RawParameter])
-            .AllowInlinedWindows(),
-    };
+    protected override IEnumerable<PeepholeRule> Rules =>
+        Both(() => new OpArithmetic2("#div_shift_const"), IsShift, ILOpCode.Div_un, v => ShiftForValue[v])
+        .Concat(Both(() => new OpDivConst("#div_const"), IsRoutineDivisor, ILOpCode.Div_un, v => v))
+        .Concat(Both(() => new OpDivConst("#rem_const"), IsRoutineDivisor, ILOpCode.Rem_un, v => v))
+        .Concat(Both(() => new OpArithmetic2("#rem_mask"), IsMask, ILOpCode.Rem_un, v => v - 1));
 }

@@ -997,17 +997,37 @@ class OpLdConst : OpPushBase
 
     public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
     {
-        if (operation.NextInstructions[0].OpCode == ILOpCode.Conv_i8 || operation.NextInstructions[0].OpCode == ILOpCode.Conv_u8)
+        if (WidenedByNext(operation))
             operation.StackContent.Add(typeof(long));
         else
+        {
+            // int/uint (and bool, char, byte...) are one byte here: a
+            // literal outside -128..255 used as one would silently lose its
+            // high bits (or fail later in the assembler).
+            if (operation.RawParameter is int v && (v < -128 || v > 255))
+                throw new UnsupportedFeatureException(DiagnosticCodes.ConstantOutOfRange,
+                    $"The constant {v} does not fit in 8 bits: int and uint are 8-bit values on the C64 (0..255, or -128..127), so it would become {v & 255}.",
+                    $"Use ulong/long (16-bit, 0..65535) where this value is used, e.g. a ulong variable or {v}UL.");
             operation.StackContent.Add(typeof(int));
+        }
     }
 
     public override bool Is16BitSupported => true;
 
-    public override bool Is16Bit(CompilerMethodContext context, ILOperation operation)
+    public override bool Is16Bit(CompilerMethodContext context, ILOperation operation) => WidenedByNext(operation);
+
+    // A constant directly followed by Conv_i8/Conv_u8 is pushed 16 bits wide
+    // and the Conv then has nothing to do -- but only when this constant is
+    // the Conv's sole producer. A labelled Conv is a branch target (e.g.
+    // `x = c ? 136u : 149u` passed as a ulong: one Conv after the join), and
+    // its other predecessor still pushes 8 bits, so the Conv stays a real
+    // widening and this constant must stay 8 bits too -- otherwise this path
+    // pushed three bytes for a two-byte value and leaked one on the hardware
+    // stack every time it ran.
+    private static bool WidenedByNext(ILOperation operation)
     {
-        return operation.NextInstructions[0].OpCode == ILOpCode.Conv_i8 || operation.NextInstructions[0].OpCode == ILOpCode.Conv_u8;
+        var next = operation.NextInstructions[0];
+        return (next.OpCode == ILOpCode.Conv_i8 || next.OpCode == ILOpCode.Conv_u8) && string.IsNullOrEmpty(next.Label);
     }
 
 }
@@ -1752,7 +1772,17 @@ class OpRet : OpBase
 
         refList.AddRange(context.GetLocalRefPositions());
 
+        if (context.IsFrameless)
+            return $"{context.GetLocalsSize()}, [{string.Join(',', refList)}]";
         return $"{context.GetLocalStackSize()}, [{string.Join(',', refList)}]";
+    }
+
+    // A frameless method (CompilerMethodContext.IsFrameless) leaves through
+    // #method_leave, whose parameter is just its locals size.
+    public override string Emit(CompilerMethodContext context, ILOperation operation)
+    {
+        var text = base.Emit(context, operation);
+        return context.IsFrameless ? text.Replace("#method_exit", "#method_leave") : text;
     }
 
     public override void SetNextInstructions(CompilerMethodContext context, ILOperation operation, ILOperation nextOperation)

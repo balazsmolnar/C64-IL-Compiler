@@ -140,6 +140,7 @@ result = $20
 .include "./helper/fault.asm"
 .include "./GC.asm"
 .include "./helper/object.asm"
+.include "./helper/frame.asm"
 .include "./{{FOLDER}}/library_flags.asm"
 
 ; Hi-res bitmap graphics reservation -- see ProgramEntry.asm's identical

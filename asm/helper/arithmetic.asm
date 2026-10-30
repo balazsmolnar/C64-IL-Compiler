@@ -87,15 +87,7 @@ sub16 .macro
 ; modular arithmetic mod 2^N either way), so one implementation serves
 ; both int and uint -- no _unsigned variant needed, unlike the compares.
 mul8_tail .macro
-    lda #0                         ; running product
-    ldx #8
--   lsr zp_param1_low
-    bcc +
-    clc
-    adc zp_param2_low
-+   asl zp_param2_low
-    dex
-    bne -
+    jsr Multiply8                  ; asm/helper/division.asm
     #stack_push_int_a
 .endm
 
@@ -113,25 +105,7 @@ mul8 .macro
 ; used anywhere else in arithmetic.asm -- see zeropage.asm's ownership
 ; comment for this macro's entry there.
 mul16_tail .macro
-    lda #0
-    sta zp_param0_low
-    sta zp_param0_high
-    ldx #16
--   lsr zp_param1_high
-    ror zp_param1_low
-    bcc +
-    lda zp_param0_low
-    clc
-    adc zp_param2_low
-    sta zp_param0_low
-    lda zp_param0_high
-    adc zp_param2_high
-    sta zp_param0_high
-+   asl zp_param2_low
-    rol zp_param2_high
-    dex
-    bne -
-
+    jsr Multiply16                 ; asm/helper/division.asm
     lda zp_param0_high
     #stack_push_int_a
     #stack_push_var zp_param0_low
@@ -172,6 +146,105 @@ mul_shift_const16 .macro shift
     lda zp_param1_high
     #stack_push_int_a
     #stack_push_var zp_param1_low
+.endm
+
+; Unsigned divide / remainder by a constant 3..255 that is not a power of
+; two (ILMethodDivConstOptimizer). Each divisor used gets its own routine,
+; DivConst8_<d> / DivConst16_<d>, emitted once into generated.asm by the
+; compiler (div_const8_body / div_const16_body below): a shift-subtract loop
+; with the divisor as an immediate operand, the quotient bits rotated into
+; the dividend's own bytes, and the first bits of the dividend -- which can
+; never reach the divisor -- shifted in without a compare. About 40% faster
+; than the general Divide16Core. Quotient in zp_param2, remainder in A.
+div_const8 .macro d
+    #stack_pull_int zp_param2_low
+    jsr DivConst8_\d
+    #stack_push_var zp_param2_low
+.endm
+
+rem_const8 .macro d
+    #stack_pull_int zp_param2_low
+    jsr DivConst8_\d
+    #stack_push_int_a
+.endm
+
+div_const16 .macro d
+    #stack_pull_int zp_param2_low
+    #stack_pull_int zp_param2_high
+    jsr DivConst16_\d
+    lda zp_param2_high
+    #stack_push_int_a
+    #stack_push_var zp_param2_low
+.endm
+
+rem_const16 .macro d
+    #stack_pull_int zp_param2_low
+    #stack_pull_int zp_param2_high
+    jsr DivConst16_\d
+    tax
+    lda #0
+    #stack_push_int_a
+    txa
+    #stack_push_int_a
+.endm
+
+; One byte of the dividend (\byte, in zero page) through the loop: A holds
+; the running remainder (< d) on entry and exit, C must be clear on entry
+; and is clear on exit, \byte ends up holding that byte of the quotient.
+; \skip leading bits are only shifted in: valid while the remainder is still
+; known to stay below d (the top bits of the dividend's first byte).
+div_const_byte .macro byte, d, skip
+    .if \skip > 0
+    ldx #\skip
+-   asl \byte
+    rol a
+    dex
+    bne -
+    .endif
+    ldx #8 - \skip
+-   rol \byte               ; next dividend bit out, last quotient bit in
+    rol a
+    bcs +                   ; 9-bit remainder: certainly >= d
+    cmp #\d
+    bcc ++                  ; quotient bit 0 (C clear)
++   sbc #\d
+    sec                     ; quotient bit 1
++   dex
+    bne -
+    rol \byte               ; the last quotient bit (C ends clear: it was 0 on entry)
+.endm
+
+div_const8_body .macro d, skip
+    lda #0
+    clc
+    #div_const_byte zp_param2_low, \d, \skip
+    rts
+.endm
+
+div_const16_body .macro d, skip
+    lda #0
+    clc
+    #div_const_byte zp_param2_high, \d, \skip
+    #div_const_byte zp_param2_low, \d, 0
+    rts
+.endm
+
+; Unsigned remainder by a power of two up to 256: a mask.
+rem_mask8 .macro mask
+    #stack_pull_int_a
+    and #\mask
+    #stack_push_int_a
+.endm
+
+rem_mask16 .macro mask
+    #stack_pull_int_a
+    and #<\mask
+    tax
+    #stack_pull_int_a           ; the high byte: always 0 for a mask below 256
+    lda #0
+    #stack_push_int_a
+    txa
+    #stack_push_int_a
 .endm
 
 ; Compile-time-constant UNSIGNED divide by a power of two

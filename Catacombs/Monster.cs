@@ -28,34 +28,29 @@ static class Monster
     static bool[] alive_;
     static uint[] hp_;
 
-    // Per-monster patrol position within its room (room-space X, see
-    // RoomProjection.cs) -- bounces between PatrolMin/PatrolMax, same
-    // "flip direction at the edge" shape Spider.Animate uses. Depth stays
-    // fixed (see RoomDepth below), so this only ever drifts sideways,
-    // roughly guarding its spot rather than wandering to a door.
-    const uint PatrolCenter = 50, PatrolMin = 30, PatrolMax = 70;
-    static uint[] roomX_;
-    static bool[] movingRight_;
+    // The guardian paces towards the viewer and back (it is drawn facing
+    // us), down the middle of its room, in screen pixels (see Animate).
+    const uint PatrolCenter = 50;
+    const uint PatrolFar = 128, PatrolNear = 152;   // floor y
+    const uint GiantSpider = 3;                     // two sprites side by side, not stacked
+    static uint guardY_;
+    static bool guardNear_;
 
     public static void Init()
     {
         alive_ = new bool[Count];
         hp_ = new uint[Count];
-        roomX_ = new uint[Count];
-        movingRight_ = new bool[Count];
         for (uint i = 0; i < Count; i++)
         {
             alive_[i] = true;
             hp_[i] = MaxHp;
-            roomX_[i] = PatrolCenter;
-            movingRight_[i] = true;
         }
     }
 
     // Index of the live monster guarding (x,y), or Count (never a valid
     // index) if there isn't one -- callers compare against Count directly
     // instead of needing a separate "found" bool.
-    static uint FindAt(uint x, uint y)
+    public static uint FindAt(uint x, uint y)
     {
         for (uint i = 0; i < Count; i++)
         {
@@ -84,6 +79,7 @@ static class Monster
         {
             hp_[i] = 0;
             alive_[i] = false;
+            Refresh();
         }
         else
         {
@@ -105,95 +101,129 @@ static class Monster
     public static uint CurrentRoomX(uint px, uint py)
     {
         uint i = FindAt(px, py);
-        return i < Count ? roomX_[i] : PatrolCenter;
+        return PatrolCenter;
     }
 
-    // One animation tick: steps the room's own monster (if any) one frame
-    // of patrol, and reflects that onto hardware sprite 3 -- the ONLY
-    // physical sprite this ever uses (unlike the player/spiders, it's
-    // never rotated through SpriteStage's 0/1/2 z-order ranking, since at
-    // most one monster is ever active at a time and it doesn't need
-    // depth-sorting against them). Reuses Spider's own pose art
-    // (Spider.Pointer) rather than authoring new sprite pixel art at a
-    // hand-picked address -- see Sprites.cs's own comment on the $1700
-    // bat-pose that rendered as garbage when that was tried before.
-    // Called once per frame from Program.cs's main loop (and once more,
-    // directly, from EnterRoom, so a fresh room shows/hides it
-    // immediately rather than waiting a frame) -- cheap no-op (just hides
-    // the sprite) when no monster is in the current room.
+    // --- The room's Feature (SpriteStage actor 1): its guardian or, in a
+    // room without one, its pickup (Item.cs). No room has both.
+    //
+    // Guardians, one kind per guarded room, two sprites each: skeleton
+    // warrior, ghoul, wraith (stacked top and legs) and the giant spider
+    // (two sprites side by side). They pace their patrol slowly; the legs
+    // (or the wraith's rags, or the spider's eight) step as they go.
+    const uint NoRoom = 255;
+    const uint Nothing = 0, Guardian = 1, Pickup = 2;
+    const uint Front = SpriteStage.Feature, Back = SpriteStage.Feature + 4;    // its two sprites
+    static readonly uint[] KindColor = { 0x8F, 0x85, 0x8B, 0x84 };  // light grey, green, dark grey, violet (+ multicolour)
+
+    static uint room_ = NoRoom;     // the room the Feature was set up for
+    static uint feature_;
+    static uint guard_;
+    static uint tick_;
+
+    // Makes the next Animate look at the room again: something in it was
+    // killed or collected.
+    public static void Refresh()
+    {
+        room_ = NoRoom;
+    }
+
+    // Takes the guardian off the stage (the combat screen shows its own).
+    public static void HideSprite()
+    {
+        SpriteStage.Y[1] = 0;
+        room_ = NoRoom;
+        feature_ = Nothing;
+    }
+
+    // Once per video frame, from Program.cs's main loop (and once more from
+    // EnterRoom, so a fresh room is right at once).
     public static void Animate(uint px, uint py)
     {
-        uint i = FindAt(px, py);
-        if (i >= Count)
+        tick_ = tick_ + 1;
+        uint key = (px << 4) + py;
+        if (key != room_)
         {
-            C64.Sprites.Sprite3.Visible = false;
+            room_ = key;
+            Setup(px, py);
+        }
+
+        // Every other video frame only (see SpriteStage.Tick).
+        if ((SpriteStage.Tick & 1) != 0)
             return;
-        }
+        if (feature_ == Pickup)
+            Item.Twinkle(tick_);
+        if (feature_ != Guardian)
+            return;
 
-        if (movingRight_[i])
+        // A slow, heavy pace towards us and back: a pixel every fourth
+        // frame, a step every 8, the body dipping as each foot lands.
+        if ((tick_ & 2) == 0)
         {
-            roomX_[i] = roomX_[i] + 1;
-            if (roomX_[i] > PatrolMax)
-                movingRight_[i] = false;
+            if (guardNear_)
+            {
+                guardY_ = guardY_ + 1;
+                if (guardY_ > PatrolNear)
+                    guardNear_ = false;
+            }
+            else
+            {
+                guardY_ = guardY_ - 1;
+                if (guardY_ < PatrolFar)
+                    guardNear_ = true;
+            }
+            SpriteStage.Y[1] = guardY_;
         }
-        else
+        // Stacked: the top stays, the legs step, the body dips. The spider:
+        // left and right halves, the legs alternating in pairs.
+        uint step = (tick_ >> 3) & 1;
+        uint first = SpriteStage.Mc + Frame.Guardian + guard_ + guard_ + guard_;
+        uint front = first;
+        uint dy = 12 + step;
+        if (guard_ == GiantSpider)
         {
-            roomX_[i] = roomX_[i] - 1;
-            if (roomX_[i] < PatrolMin)
-                movingRight_[i] = true;
+            front = first + step;
+            first = first + 1;
+            dy = 33;
         }
-
-        ulong x = RoomProjection.ScreenX(roomX_[i], RoomDepth);
-        uint y = (uint)RoomProjection.ScreenY(RoomDepth);
-        SpriteStage.Place(3, x, y + SpriteYOffset, Spider.Pointer, Colors.Red, false, false, false);
+        SpriteStage.Parts[Front + SpriteStage.Frame] = front;
+        SpriteStage.Parts[Front + SpriteStage.Dy] = dy;
+        SpriteStage.Parts[Back + SpriteStage.Frame] = first + 1 + step;
     }
 
-    // Floor-level positioning, same "feet at ScreenY" idea Spider/
-    // PlayerSprite already use -- Spider.Pointer's own pose art is
-    // SpriteHeight (21px, unexpanded) tall.
-    const uint SpriteHeight = 21;
-    const uint SpriteYOffset = 50 - SpriteHeight;
-
-    // Simple silhouette: a body and two eyes. MatrixLow is a fixed color
-    // (LightRed) set once in Program.Main and never changed, so it's
-    // always safe to draw with here regardless of the current room's own
-    // Background color.
-    public static void Render()
+    static void Setup(uint px, uint py)
     {
-        C64.Screen.DrawCircle(160, 95, 35, true, true, BitmapColorSource.MatrixLow);
-        C64.Screen.DrawCircle(148, 85, 5, true, true, BitmapColorSource.ColorRam);
-        C64.Screen.DrawCircle(172, 85, 5, true, true, BitmapColorSource.ColorRam);
+        // The red rooms (the rust theme) would swallow his red cloak.
+        PlayerSprite.Cloak = (Maze.Info(px, py) >> 5) == 3 ? (uint)Colors.Blue : (uint)Colors.Red;
+        feature_ = Nothing;
+        SpriteStage.Y[1] = 0;
+        guard_ = FindAt(px, py);
+        if (guard_ < Count)
+        {
+            // Two sprites stacked, the top above the legs; the spider's
+            // two halves side by side.
+            uint dx = 12, dx2 = 12;
+            if (guard_ == GiantSpider)
+            {
+                dx = 0;
+                dx2 = 24;
+            }
+            SpriteStage.Part(Front, KindColor[guard_], dx, 12);
+            SpriteStage.Part(Back, KindColor[guard_], dx2, 33);
+            SpriteStage.X[1] = 160;
+            guardY_ = 140;
+            SpriteStage.Y[1] = guardY_;
+            feature_ = Guardian;
+        }
+        else if (Item.Setup(px, py))
+            feature_ = Pickup;
+
+        if (feature_ != Nothing)
+        {
+            SpriteStage.Count[1] = 2;
+            SpriteStage.Y[3] = 0;   // the bat: its sprite is needed here
+        }
     }
 
-    // ulong, not uint: this compiler's uint/int are 8-bit (see CLAUDE.md),
-    // and the right-hand bar's screen X (310) already doesn't fit one --
-    // every coordinate here follows DungeonView.cs's own convention of
-    // ulong for anything that touches Screen.Draw*.
-    const ulong BarWidth = 100;
-    const ulong BarHeight = 8;
-
-    // Player's bar top-left, the current monster's top-right -- both
-    // outlined (MatrixHigh, matching the walls) with a filled portion
-    // (MatrixLow) proportional to remaining HP. HP arrives as uint (that's
-    // what Program.cs's playerHp_ and HpAt above are), widened to ulong
-    // immediately: playerHp*BarWidth can reach 10000, which overflows an
-    // 8-bit uint multiply but fits comfortably in this compiler's 16-bit
-    // ulong.
-    public static void DrawHealthBars(uint playerHp, uint playerMaxHp, uint monsterHp)
-    {
-        ulong pHp = playerHp;
-        ulong pMax = playerMaxHp;
-        ulong mHp = monsterHp;
-
-        C64.Screen.DrawRectangle(10, 8, 10 + BarWidth, 8 + BarHeight, false, true, BitmapColorSource.MatrixHigh);
-        ulong playerFill = (pHp * BarWidth) / pMax;
-        if (playerFill > 0)
-            C64.Screen.DrawRectangle(10, 8, 10 + playerFill, 8 + BarHeight, true, true, BitmapColorSource.MatrixLow);
-
-        ulong right = 310;
-        C64.Screen.DrawRectangle(right - BarWidth, 8, right, 8 + BarHeight, false, true, BitmapColorSource.MatrixHigh);
-        ulong monsterFill = (mHp * BarWidth) / MaxHp;
-        if (monsterFill > 0)
-            C64.Screen.DrawRectangle(right - monsterFill, 8, right, 8 + BarHeight, true, true, BitmapColorSource.MatrixLow);
-    }
+    // The encounter picture and its health bar are Encounter.cs.
 }

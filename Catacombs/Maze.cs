@@ -2,7 +2,7 @@ using C64Lib;
 
 namespace Catacombs;
 
-// A grid of solid/floor cells (1 = floor, 0 = solid rock), with a full
+// A grid of solid/floor cells (nonzero = floor, see Info; 0 = solid rock), with a full
 // border of solid cells so a lookahead from any legal player position never
 // needs bounds-checking beyond what IsWall already does (see its own
 // comment). Facing direction: 0 = north (-Y), 1 = east (+X), 2 = south
@@ -15,56 +15,66 @@ static class Maze
 
     static readonly byte[] Grid =
     {
-        0,0,0,0,0,0,0,0,0,0,0,0,
-        0,1,1,1,0,1,1,1,1,1,1,0,
-        0,1,0,1,0,1,0,0,0,0,1,0,
-        0,1,0,1,1,1,0,1,1,1,1,0,
-        0,1,0,0,0,1,0,1,0,0,1,0,
-        0,1,1,1,0,1,1,1,0,1,1,0,
-        0,0,0,1,0,0,0,1,0,1,0,0,
-        0,1,1,1,1,1,0,1,1,1,1,0,
-        0,1,0,0,0,1,0,0,0,0,1,0,
-        0,1,1,1,0,1,1,1,1,1,1,0,
-        0,0,0,1,1,1,0,0,0,0,1,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,
+          0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+          0, 42,105,140,  0,138,162,130,162, 41, 98,  0,
+          0, 67,  0,169,  0,165,  0,  0,  0,  0,138,  0,
+          0, 34,  0, 42, 96, 36,  0,132,102, 35, 76,  0,
+          0, 76,  0,  0,  0,136,  0, 75,  0,  0, 40,  0,
+          0, 33,101, 67,  0, 78,143, 38,  0,132, 78,  0,
+          0,  0,  0,129,  0,  0,  0,137,  0,166,  0,  0,
+          0, 97,175, 32, 79, 98,  0,109, 64,110,140,  0,
+          0,130,  0,  0,  0,138,  0,  0,  0,  0, 47,  0,
+          0, 69, 42,130,  0, 43, 67,130,171, 42,142,  0,
+          0,  0,  0, 99,173, 70,  0,  0,  0,  0,163,  0,
+          0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
     };
 
-    // Each cell's room color -- a Colors value (0-15), same 12x12 layout as
-    // Grid, used for both the screen background and the border while the
-    // player is in that room (see Program.cs). Only the floor cells' entries
-    // are ever read; solid cells just carry the pattern along. The palette
-    // is deliberately limited to colors that stay legible with the white
-    // lines and brown doors drawn on top: no White, Brown, Yellow, Cyan or
-    // LightGreen (too close to the lines or the doors), leaving Black(0),
-    // Red(2), Violet(4), Green(5), Blue(6), LightRed(10), Grey1(11),
-    // Grey2(12), LightBlue(14). Laid out so that any two orthogonally
-    // adjacent cells always differ.
-    static readonly uint[] RoomColors =
+    // What a floor cell's Grid value means: bits 5-7 are the room's palette
+    // theme + 1 (themes 0 moss, 1 cold, 2 rust, 3 crypt, 4 bone -- see
+    // art/room_art.py; the + 1 keeps every floor cell nonzero), bits 0-4 an
+    // index into PropSets, the room's props (DungeonView's prop bits).
+    // Neighbouring rooms have different themes. To carve a new room, give
+    // it a theme and a prop set.
+    public static uint Info(uint x, uint y)
     {
-        0,5,11,0,5,11,0,5,11,0,5,11,
-        10,14,4,10,14,4,10,14,4,10,14,4,
-        2,6,12,2,6,12,2,6,12,2,6,12,
-        11,0,5,11,0,5,11,0,5,11,0,5,
-        4,10,14,4,10,14,4,10,14,4,10,14,
-        12,2,6,12,2,6,12,2,6,12,2,6,
-        5,11,0,5,11,0,5,11,0,5,11,0,
-        14,4,10,14,4,10,14,4,10,14,4,10,
-        6,12,2,6,12,2,6,12,2,6,12,2,
-        0,5,11,0,5,11,0,5,11,0,5,11,
-        10,14,4,10,14,4,10,14,4,10,14,4,
-        2,6,12,2,6,12,2,6,12,2,6,12,
-    };
-
-    public static Colors RoomColor(uint x, uint y)
-    {
-        return (Colors)RoomColors[y * Width + x];
+        return Grid[y * Width + x];
     }
 
-    // The same value as a plain uint, for callers that need to do
-    // arithmetic on it (this compiler has no arithmetic on enum types).
+    static readonly uint[] PropSets =
+    {
+        0,
+        DungeonView.Niche,
+        DungeonView.Bones | DungeonView.Puddle,
+        DungeonView.Bones | DungeonView.Banner,
+        DungeonView.Puddle,
+        DungeonView.Grate | DungeonView.Banner,
+        DungeonView.Banner | DungeonView.Grate,
+        DungeonView.Bones | DungeonView.Niche,
+        DungeonView.Dark | DungeonView.Puddle,
+        DungeonView.Puddle | DungeonView.Banner,
+        DungeonView.DarkRight | DungeonView.Bones,
+        DungeonView.Grate,
+        DungeonView.Grate | DungeonView.Puddle,
+        DungeonView.Bones | DungeonView.Grate,
+        DungeonView.DarkRight | DungeonView.Banner,
+        DungeonView.Banner | DungeonView.Niche,
+    };
+
+    public static uint Props(uint x, uint y)
+    {
+        return PropSets[Info(x, y) & 15];
+    }
+
+    // The screen background and border are black in every room (the room
+    // picture brings its own colours). Program.cs still asks per room.
+    public static Colors RoomColor(uint x, uint y)
+    {
+        return Colors.Black;
+    }
+
     public static uint RoomColorValue(uint x, uint y)
     {
-        return RoomColors[y * Width + x];
+        return 0;
     }
 
     // Out-of-range coordinates read as solid: a step that would take x or y

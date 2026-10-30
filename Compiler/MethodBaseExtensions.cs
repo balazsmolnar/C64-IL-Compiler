@@ -9,7 +9,47 @@ static class MethodBaseExtension
 {
     static public string GetLabel(this MethodBase method)
     {
-        return $"{method.ReflectedType.Name.ToValidName()}_{method.Name.ToValidName()}";
+        var label = $"{method.ReflectedType.Name.ToValidName()}_{method.Name.ToValidName()}";
+        if (IsOverloadedProgramMethod(method))
+        {
+            // Overloads (Fade() and Fade(uint), or two constructors) would
+            // otherwise share one label: the parameter types go into it.
+            // Only the program's own methods (see ProgramAssembly).
+            var parameters = method.GetParameters();
+            label += parameters.Length == 0
+                ? "__"
+                : "__" + string.Join("_", parameters.Select(p => p.ParameterType.Name.ToValidName()));
+        }
+        return label;
+    }
+
+    // The assembly being compiled (set by Program.Compile): only its own
+    // methods get overload-mangled labels -- C64Lib's, the test framework's
+    // and the BCL's are fixed by their asm implementations.
+    public static Assembly ProgramAssembly { get; set; }
+
+    private static readonly Dictionary<MethodBase, bool> OverloadedCache = new();
+
+    private static bool IsOverloadedProgramMethod(MethodBase method)
+    {
+        lock (OverloadedCache)
+        {
+            if (OverloadedCache.TryGetValue(method, out var known))
+                return known;
+            bool result = false;
+            var type = method.DeclaringType;
+            if (type != null && ProgramAssembly != null && type.Assembly == ProgramAssembly)
+            {
+                const BindingFlags all = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance |
+                                         BindingFlags.Static | BindingFlags.DeclaredOnly;
+                int count = method.IsConstructor
+                    ? (method.IsStatic ? 1 : type.GetConstructors(all).Count(c => !c.IsStatic))
+                    : type.GetMethods(all).Count(m => m.Name == method.Name);
+                result = count > 1;
+            }
+            OverloadedCache[method] = result;
+            return result;
+        }
     }
 
     // Single source of truth for "is this Callvirt target really just one

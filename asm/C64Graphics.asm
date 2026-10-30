@@ -27,12 +27,88 @@ Flag_Screen_SetBitmapColors = 0
 Flag_Screen_WaitForVBlank = 0
 Flag_Screen_ClearBitmap = 0
 Flag_Screen_DrawBitmap = 0
+Flag_Screen_DrawImage = 0
+Flag_Screen_SetCellColors = 0
+Flag_Screen_RemapCellColors = 0
+Flag_Screen_RemapCellRects = 0
+Flag_Screen_MirrorCells = 0
+Flag_Screen_MirrorCellColors = 0
+Flag_Screen_SetScrollX = 0
+Flag_Screen_DrawText = 0
+Flag_Screen_DrawTiles = 0
+Flag_Screen_SetSplit = 0
+Flag_Screen_ClearSplit = 0
 ; 1 when the program uses double buffering (Screen.SetDrawBuffer/SwapBuffers):
 ; the entry file then also reserves Graphics_Bitmap2/Graphics_ColorMatrix2 in
 ; VIC bank 1 (see ProgramEntry.asm). Defined there as a strong symbol;
 ; harnesses that include this file directly get this default.
 GRAPHICS_DOUBLE_BUFFER = 0
+; 1 in the "high" memory layout (ProgramEntry.asm picks it for every program
+; that uses bitmap graphics without double buffering): the bitmap is the RAM
+; underneath the KERNAL ROM ($E000) and the VIC looks at bank 3. Harnesses and
+; the unit test entry keep the old low layout, hence this default.
+GRAPHICS_HIGH = 0
 .endweak
+
+; ===========================================================================
+; The high layout: reading the bitmap
+; ===========================================================================
+; In the high layout the bitmap occupies $E000-$FF3F, the RAM "under" the
+; KERNAL ROM. Writes always land in that RAM, but a read returns ROM unless
+; the KERNAL is banked out -- and every pixel routine reads (it changes some
+; bits of a byte and keeps the rest). So each Screen_* entry point that
+; touches bitmap bytes wraps its body in #gfx_ram_on / #gfx_ram_off: $01 = $05
+; (KERNAL and BASIC out, I/O still in) while it draws, back to this runtime's
+; normal $06 (KERNAL in, BASIC out -- see #disable_basic_rom) afterwards.
+; Interrupts stay enabled throughout: while the KERNAL is out, the CPU takes
+; its IRQ/NMI vectors from RAM at $FFFA-$FFFF, which the entry file points at
+; Graphics_RamIrq / Graphics_RamNmi below. Both macros destroy A and expand
+; to nothing in the low layout.
+gfx_ram_on .macro
+.if GRAPHICS_HIGH
+    lda #$05
+    sta $01
+.endif
+.endm
+
+gfx_ram_off .macro
+.if GRAPHICS_HIGH
+    lda #$06
+    sta $01
+.endif
+.endm
+
+.if GRAPHICS_HIGH
+; IRQ taken while the KERNAL ROM was banked out. Banks it back in and enters
+; the ROM's own handler (through its vector, now readable) with a made-up
+; interrupt frame on the stack, so the whole normal chain runs -- ($0314),
+; C64.Interrupt subscribers, the KERNAL's keyboard scan and jiffy clock --
+; and its final RTI comes back here, where the interrupted code's banking is
+; restored. The status byte pushed for that frame has the B flag clear (the
+; ROM handler takes it for an IRQ, not a BRK) and I set (interrupts stay
+; masked until the real RTI below). A BRK executed while the KERNAL is out
+; would therefore be treated as an IRQ; nothing in the drawing code has one.
+Graphics_RamIrq:
+    pha
+    lda $01
+    pha
+    lda #$06
+    sta $01
+    lda #>Graphics_RamIrq_Back
+    pha
+    lda #<Graphics_RamIrq_Back
+    pha
+    lda #$24
+    pha
+    jmp ($fffe)
+Graphics_RamIrq_Back:
+    pla
+    sta $01
+    pla
+; RESTORE key (NMI) while the KERNAL is out: ignored.
+Graphics_RamNmi:
+    rti
+.endif
 
 ; Distance from Graphics_Bitmap to Graphics_Bitmap2, in 256-byte pages: the
 ; amount Graphics_ComputePixelAddress adds to the high byte of every pixel
@@ -78,7 +154,7 @@ Screen_WaitForVBlank:
 ; line) to pick which pixel format to plot. Declared here, gated broadly
 ; (writer OR every reader), so it exists whenever any of them are compiled,
 ; matching graphics_saved_d018's own pattern below.
-.if Flag_Screen_SetScreenMode | Flag_Screen_SetPixel | Flag_Screen_DrawLine | Flag_Screen_DrawRectangle | Flag_Screen_DrawTrapezoid | Flag_Screen_DrawCircle | Flag_Screen_DrawBitmap
+.if Flag_Screen_SetScreenMode | Flag_Screen_SetPixel | Flag_Screen_DrawLine | Flag_Screen_DrawRectangle | Flag_Screen_DrawTrapezoid | Flag_Screen_DrawCircle | Flag_Screen_DrawBitmap | Flag_Screen_MirrorCells | Flag_Screen_MirrorCellColors
 graphics_multicolor_active .byte 0
 .endif
 
@@ -255,7 +331,9 @@ Screen_SetPixel:
     #stack_pull_int zp_gfx_on
     #stack_pull_int16 zp_gfx_y
     #stack_pull_int16 zp_gfx_x_low
+    #gfx_ram_on
     jsr Graphics_SetPixel_Core
+    #gfx_ram_off
     #stack_return_to_saved_address zp_tmp1_low
 .endif
 
@@ -412,11 +490,19 @@ Graphics_EnterBitmapMode:
     ora #%00000011                ; VIC bank 0
     sta $dd00
 .endif
+.if GRAPHICS_HIGH
+    lda $dd00
+    and #%11111100                ; VIC bank 3 ($C000-$FFFF): matrix $CC00, bitmap $E000
+    sta $dd00
+.endif
     lda $d018
     sta graphics_saved_d018
     lda #%00111000
     sta $d018
     lda $d011
+.if Flag_Screen_SetSplit
+    and #%01111111                ; bit 7 reads back the raster line's bit 8: don't write it into the compare
+.endif
     ora #%00100000                ; BMM on
     sta $d011
     rts
@@ -455,7 +541,11 @@ Screen_SetScreenMode_MultiColor:
 ; DisableBitmapMode's behavior exactly for that case.
 Screen_SetScreenMode_Character:
     lda $d011
+.if Flag_Screen_SetSplit
+    and #%01011111                 ; BMM off (and see Graphics_EnterBitmapMode on bit 7)
+.else
     and #%11011111                 ; BMM off
+.endif
     sta $d011
     lda graphics_saved_d018
     sta $d018
@@ -466,9 +556,9 @@ Screen_SetScreenMode_Character:
     lda #0
     sta graphics_multicolor_active
 Screen_SetScreenMode_Character_NoD016:
-.if GRAPHICS_DOUBLE_BUFFER
+.if GRAPHICS_DOUBLE_BUFFER | GRAPHICS_HIGH
     lda $dd00
-    ora #%00000011                 ; VIC bank 0 again (buffer 1 lives in bank 1)
+    ora #%00000011                 ; VIC bank 0 again (the text screen's)
     sta $dd00
 .endif
 
@@ -910,6 +1000,7 @@ Screen_DrawRectangle:
     #stack_pull_int16 zp_gfx_endx_low
     #stack_pull_int16 zp_gfx_y
     #stack_pull_int16 zp_gfx_x_low
+    #gfx_ram_on
     jsr Graphics_NormalizeRectCoords
     lda zp_gfx_filled
     beq Screen_DrawRectangle_Outline
@@ -918,6 +1009,7 @@ Screen_DrawRectangle:
 Screen_DrawRectangle_Outline:
     jsr Graphics_RectOutline_Core
 Screen_DrawRectangle_Done:
+    #gfx_ram_off
     #stack_return_to_saved_address zp_tmp1_low
 .endif
 
@@ -1540,7 +1632,9 @@ Screen_DrawLine:
     #stack_pull_int16 zp_gfx_endx_low
     #stack_pull_int16 zp_gfx_y
     #stack_pull_int16 zp_gfx_x_low
+    #gfx_ram_on
     jsr Graphics_DrawLine_Core
+    #gfx_ram_off
     #stack_return_to_saved_address zp_tmp1_low
 .endif
 
@@ -1816,7 +1910,9 @@ Screen_DrawTrapezoid:
     #stack_pull_int16 zp_gfx_y             ; y0
     #stack_pull_int16 zp_gfx_cx_low        ; x0Right
     #stack_pull_int16 zp_gfx_x_low         ; x0Left
+    #gfx_ram_on
     jsr Graphics_Trapezoid_Core
+    #gfx_ram_off
     #stack_return_to_saved_address zp_tmp1_low
 .endif
 
@@ -2024,7 +2120,9 @@ Screen_DrawCircle:
     sta zp_gfx_radius
     lda zp_gfx_dy
     sta zp_gfx_cy
+    #gfx_ram_on
     jsr Graphics_DrawCircle_Core
+    #gfx_ram_off
     #stack_return_to_saved_address zp_tmp1_low
 .endif
 
@@ -2224,8 +2322,975 @@ Screen_DrawBitmap:
     #stack_pull_int16 zp_bmp_src_low
     #stack_pull_int16 zp_gfx_y
     #stack_pull_int16 zp_gfx_x_low
+    #gfx_ram_on
     jsr Graphics_ComputePixelPointer
     jsr Bitmap_ComputePattern
     jsr Bitmap_Blit_Core
+    #gfx_ram_off
+    #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+; ===========================================================================
+; Cell-level operations: Screen.DrawImage / SetCellColors / RemapCellColors
+; ===========================================================================
+; A "cell" is one 8x8 character position (40 x 25 of them). Everything here
+; addresses whole cells; their bitmap bytes, matrix byte and colour RAM byte
+; all live at base + (y*40 + x) * (8 or 1), so one cell index serves all
+; three.
+.if Flag_Screen_DrawImage | Flag_Screen_SetCellColors | Flag_Screen_RemapCellColors | Flag_Screen_RemapCellRects | Flag_Screen_DrawText | Flag_Screen_DrawTiles | Flag_Screen_MirrorCells | Flag_Screen_MirrorCellColors
+
+; In: zp_cell_x (0-39), zp_cell_y (0-24). Out: zp_cell_index_low/high =
+; y*40 + x. Destroys A.
+Cells_ComputeIndex:
+    lda #0
+    sta zp_cell_index_high
+    lda zp_cell_y
+    asl
+    asl
+    asl                           ; y*8 (at most 192)
+    sta zp_cell_index_low
+    asl
+    rol zp_cell_index_high        ; y*16
+    asl
+    rol zp_cell_index_high        ; y*32
+    clc
+    adc zp_cell_index_low         ; + y*8 = y*40
+    bcc +
+    inc zp_cell_index_high
++   clc
+    adc zp_cell_x
+    sta zp_cell_index_low
+    bcc +
+    inc zp_cell_index_high
++   rts
+.endif
+
+.if Flag_Screen_SetCellColors | Flag_Screen_RemapCellColors | Flag_Screen_RemapCellRects | Flag_Screen_DrawText | (Flag_Screen_MirrorCells | Flag_Screen_MirrorCellColors)
+
+; In: zp_cell_x, zp_cell_y. Out: zp_cell_mptr / zp_cell_cptr = the matrix and
+; colour RAM addresses of that cell. Destroys A.
+Cells_RectSetup:
+    jsr Cells_ComputeIndex
+    lda zp_cell_index_low
+    clc
+    adc #<Graphics_ColorMatrix
+    sta zp_cell_mptr_low
+    lda zp_cell_index_high
+    adc #>Graphics_ColorMatrix
+    sta zp_cell_mptr_high
+    lda zp_cell_index_low
+    sta zp_cell_cptr_low          ; colour RAM is at $D800: low byte 0
+    lda zp_cell_index_high
+    clc
+    adc #$d8
+    sta zp_cell_cptr_high
+    rts
+.endif
+
+.if Flag_Screen_SetCellColors | Flag_Screen_RemapCellColors | Flag_Screen_RemapCellRects | (Flag_Screen_MirrorCells | Flag_Screen_MirrorCellColors)
+
+; Moves both row pointers one screen row down. Destroys A.
+Cells_NextRow:
+    lda zp_cell_mptr_low
+    clc
+    adc #40
+    sta zp_cell_mptr_low
+    bcc +
+    inc zp_cell_mptr_high
++   lda zp_cell_cptr_low
+    clc
+    adc #40
+    sta zp_cell_cptr_low
+    bcc +
+    inc zp_cell_cptr_high
++   rts
+.endif
+
+; ---------------------------------------------------------------------------
+; Screen.SetCellColors(x, y, width, height, matrix, colorRam): fills a cell
+; rectangle's matrix bytes and colour RAM bytes. No pixel is touched.
+; ---------------------------------------------------------------------------
+.if Flag_Screen_SetCellColors
+Screen_SetCellColors:
+    #stack_save_return_adress zp_tmp1_low
+    #stack_pull_int zp_cell_val_c
+    #stack_pull_int zp_cell_val_m
+    #stack_pull_int zp_cell_h
+    #stack_pull_int zp_cell_w
+    #stack_pull_int zp_cell_y
+    #stack_pull_int zp_cell_x
+    lda zp_cell_w
+    beq Screen_SetCellColors_Done
+    lda zp_cell_h
+    beq Screen_SetCellColors_Done
+    jsr Cells_RectSetup
+Screen_SetCellColors_Row:
+    ldy zp_cell_w
+    dey
+Screen_SetCellColors_Cell:
+    lda zp_cell_val_m
+    sta (zp_cell_mptr_low),y
+    lda zp_cell_val_c
+    sta (zp_cell_cptr_low),y
+    dey
+    bpl Screen_SetCellColors_Cell
+    jsr Cells_NextRow
+    dec zp_cell_h
+    bne Screen_SetCellColors_Row
+Screen_SetCellColors_Done:
+    #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+; ---------------------------------------------------------------------------
+; Screen.RemapCellColors(x, y, width, height, table): replaces every colour
+; of a cell rectangle (both nibbles of the matrix byte, and the colour RAM
+; nibble) by table[colour]. table is the address of 16 bytes, each 0-15. The
+; address is patched into the three lookups below (program code is RAM),
+; which leaves X free to index the table and Y to walk the row.
+; ---------------------------------------------------------------------------
+.if Flag_Screen_RemapCellColors | Flag_Screen_RemapCellRects
+; In: the table address in A (low) / X (high). Points the three lookups at it.
+Cells_RemapTable:
+    sta Cells_Remap_T1+1
+    sta Cells_Remap_T2+1
+    sta Cells_Remap_T3+1
+    stx Cells_Remap_T1+2
+    stx Cells_Remap_T2+2
+    stx Cells_Remap_T3+2
+    rts
+
+; In: zp_cell_x/y/w/h, the table set by Cells_RemapTable. Recolours the
+; rectangle; an empty one is skipped.
+Cells_Remap:
+    lda zp_cell_w
+    beq Cells_Remap_Done
+    lda zp_cell_h
+    beq Cells_Remap_Done
+    jsr Cells_RectSetup
+Cells_Remap_Row:
+    ldy zp_cell_w
+    dey
+Cells_Remap_Cell:
+    lda (zp_cell_mptr_low),y
+    pha
+    and #$0f
+    tax
+Cells_Remap_T1:
+    lda $ffff,x
+    and #$0f
+    sta zp_cell_tmp
+    pla
+    lsr
+    lsr
+    lsr
+    lsr
+    tax
+Cells_Remap_T2:
+    lda $ffff,x
+    asl
+    asl
+    asl
+    asl
+    ora zp_cell_tmp
+    sta (zp_cell_mptr_low),y
+    lda (zp_cell_cptr_low),y      ; colour RAM: only the low nibble is real
+    and #$0f
+    tax
+Cells_Remap_T3:
+    lda $ffff,x
+    sta (zp_cell_cptr_low),y
+    dey
+    bpl Cells_Remap_Cell
+    jsr Cells_NextRow
+    dec zp_cell_h
+    bne Cells_Remap_Row
+Cells_Remap_Done:
+    rts
+.endif
+
+.if Flag_Screen_RemapCellColors
+Screen_RemapCellColors:
+    #stack_save_return_adress zp_tmp1_low
+    pla                           ; table
+    tay
+    pla
+    tax
+    tya
+    jsr Cells_RemapTable
+    #stack_pull_int zp_cell_h
+    #stack_pull_int zp_cell_w
+    #stack_pull_int zp_cell_y
+    #stack_pull_int zp_cell_x
+    jsr Cells_Remap
+    #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+; ---------------------------------------------------------------------------
+; Screen.RemapCellRects(rects, table): RemapCellColors over a list of
+; rectangles: rects = a count, then column, row, width, height per rectangle.
+; ---------------------------------------------------------------------------
+.if Flag_Screen_RemapCellRects
+Screen_RemapCellRects:
+    #stack_save_return_adress zp_tmp1_low
+    pla                           ; table
+    tay
+    pla
+    tax
+    tya
+    jsr Cells_RemapTable
+    #stack_pull_pointer zp_param4_low
+    ldy #0
+    lda (zp_param4_low),y
+    beq Screen_RemapCellRects_Done
+    sta Screen_RemapCellRects_Count
+Screen_RemapCellRects_Next:
+    ldy #1
+    lda (zp_param4_low),y
+    sta zp_cell_x
+    iny
+    lda (zp_param4_low),y
+    sta zp_cell_y
+    iny
+    lda (zp_param4_low),y
+    sta zp_cell_w
+    iny
+    lda (zp_param4_low),y
+    sta zp_cell_h
+    jsr Cells_Remap
+    lda zp_param4_low
+    clc
+    adc #4
+    sta zp_param4_low
+    bcc +
+    inc zp_param4_low+1
++   dec Screen_RemapCellRects_Count
+    bne Screen_RemapCellRects_Next
+Screen_RemapCellRects_Done:
+    #stack_return_to_saved_address zp_tmp1_low
+Screen_RemapCellRects_Count .byte 0
+.endif
+
+; ---------------------------------------------------------------------------
+; Screen.MirrorCells(x, y, width, height): copies the left half of a cell
+; rectangle onto its right half, mirrored -- pixels and colours -- so a
+; symmetric picture needs only its left half stored. Pixels are reversed as
+; multicolour pixel pairs or as hi-res bits, whichever mode Screen.
+; SetScreenMode last set. The middle column of an odd width is left alone.
+; Screen.MirrorCellColors(x, y, width, height) is the same without the
+; pixels: only the matrix and colour RAM bytes are copied.
+; ---------------------------------------------------------------------------
+.if Flag_Screen_MirrorCells | Flag_Screen_MirrorCellColors
+.cerror (<Graphics_Bitmap) != 0, "Graphics_Bitmap must be page aligned"
+zp_mir_base_low  = zp_cell_index_low   ; $06  bitmap address of the row's first cell
+zp_mir_base_high = zp_cell_index_high  ; $07
+zp_mir_span_low  = zp_cell_x           ; $08  (width - 1) * 8: first cell -> last cell
+zp_mir_span_high = zp_cell_y           ; $09
+zp_mir_src_low   = zp_cell_val_m       ; $0E  cell being read (walks right)
+zp_mir_src_high  = zp_cell_val_c       ; $0F
+zp_mir_dst_low   = zp_gfx_sx           ; $12  cell being written (walks left)
+zp_mir_dst_high  = zp_gfx_sy           ; $13
+zp_mir_table     = zp_cell_tmp2        ; $11  0 = hi-res table, 16 = multicolour table
+zp_mir_i         = zp_gfx_err_low      ; $14  column within the left half
+zp_mir_half      = zp_gfx_err_high     ; $15  width / 2
+zp_mir_skip      = zp_gfx_cx_low       ; $16  nonzero: colours only
+
+; A nibble with its pixels in reverse order: four hi-res bits, then two
+; multicolour pixel pairs.
+Screen_MirrorCells_Table:
+    .byte 0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7, 15
+    .byte 0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15
+
+.if Flag_Screen_MirrorCellColors
+Screen_MirrorCellColors:
+    lda #1
+    .byte $2c                     ; BIT abs: skips the lda below
+.endif
+Screen_MirrorCells:
+    lda #0
+    sta zp_mir_skip
+    #stack_save_return_adress zp_tmp1_low
+    #stack_pull_int zp_cell_h
+    #stack_pull_int zp_cell_w
+    #stack_pull_int zp_cell_y
+    #stack_pull_int zp_cell_x
+    lda zp_cell_h
+    beq Screen_MirrorCells_Done
+    lda zp_cell_w
+    lsr
+    beq Screen_MirrorCells_Done
+    sta zp_mir_half
+    jsr Cells_RectSetup
+    asl zp_mir_base_low           ; cell index -> bitmap address
+    rol zp_mir_base_high
+    asl zp_mir_base_low
+    rol zp_mir_base_high
+    asl zp_mir_base_low
+    rol zp_mir_base_high
+    lda zp_mir_base_high
+    clc
+    adc #>Graphics_Bitmap
+    sta zp_mir_base_high
+    lda #0
+    sta zp_mir_span_high
+    ldx zp_cell_w
+    dex
+    txa
+    asl
+    asl
+    rol zp_mir_span_high
+    asl
+    rol zp_mir_span_high
+    sta zp_mir_span_low
+    lda #0
+    ldx graphics_multicolor_active
+    beq +
+    lda #16
++   sta zp_mir_table
+    #gfx_ram_on                   ; the bitmap is read back
+Screen_MirrorCells_Row:
+    lda zp_mir_base_low
+    sta zp_mir_src_low
+    clc
+    adc zp_mir_span_low
+    sta zp_mir_dst_low
+    lda zp_mir_base_high
+    sta zp_mir_src_high
+    adc zp_mir_span_high
+    sta zp_mir_dst_high
+    lda #0
+    sta zp_mir_i
+Screen_MirrorCells_Cell:
+    ldy zp_mir_i                  ; colours: column i -> column width-1-i
+    lda (zp_cell_mptr_low),y
+    pha
+    lda (zp_cell_cptr_low),y
+    tax
+    lda zp_cell_w
+    clc
+    sbc zp_mir_i
+    tay
+    txa
+    sta (zp_cell_cptr_low),y
+    pla
+    sta (zp_cell_mptr_low),y
+    lda zp_mir_skip
+    bne Screen_MirrorCells_NextCell
+    ldy #7                        ; pixels: each byte reversed
+Screen_MirrorCells_Byte:
+    lda (zp_mir_src_low),y
+    pha
+    and #$0f
+    ora zp_mir_table
+    tax
+    lda Screen_MirrorCells_Table,x
+    asl
+    asl
+    asl
+    asl
+    sta zp_cell_tmp
+    pla
+    lsr
+    lsr
+    lsr
+    lsr
+    ora zp_mir_table
+    tax
+    lda Screen_MirrorCells_Table,x
+    ora zp_cell_tmp
+    sta (zp_mir_dst_low),y
+    dey
+    bpl Screen_MirrorCells_Byte
+    lda zp_mir_src_low
+    clc
+    adc #8
+    sta zp_mir_src_low
+    bcc +
+    inc zp_mir_src_high
++   lda zp_mir_dst_low
+    sec
+    sbc #8
+    sta zp_mir_dst_low
+    bcs +
+    dec zp_mir_dst_high
++
+Screen_MirrorCells_NextCell:
+    inc zp_mir_i
+    lda zp_mir_i
+    cmp zp_mir_half
+    bne Screen_MirrorCells_Cell
+    jsr Cells_NextRow
+    lda zp_mir_base_low           ; one screen row down: 320 bytes
+    clc
+    adc #<320
+    sta zp_mir_base_low
+    lda zp_mir_base_high
+    adc #>320
+    sta zp_mir_base_high
+    dec zp_cell_h
+    bne Screen_MirrorCells_Row
+    #gfx_ram_off
+Screen_MirrorCells_Done:
+    #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+; ---------------------------------------------------------------------------
+; Screen.SetScrollX(pixels): the VIC's horizontal fine scroll -- the picture
+; is shown 0-7 pixels to the right (a screen shake, or the fine part of a
+; scroller). While a raster split is on (Screen.SetSplit) only the part above
+; the split moves, from the next frame on: the value goes into the $D016 the
+; split interrupt writes at the top of every frame.
+; ---------------------------------------------------------------------------
+.if Flag_Screen_SetScrollX
+Screen_SetScrollX:
+    #stack_save_return_adress zp_tmp1_low
+    #stack_pull_int zp_gfx_on
+    lda zp_gfx_on
+    and #%00000111
+    sta zp_gfx_on
+.if Flag_Screen_SetSplit
+    lda graphics_split_active
+    beq Screen_SetScrollX_Direct
+    lda graphics_split_upper
+    and #%11111000
+    ora zp_gfx_on
+    sta graphics_split_upper
+    jmp Screen_SetScrollX_Done
+Screen_SetScrollX_Direct:
+.endif
+    lda $d016
+    and #%11111000
+    ora zp_gfx_on
+    sta $d016
+Screen_SetScrollX_Done:
+    #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+; ---------------------------------------------------------------------------
+; Screen.DrawImage(x, y, image): decompresses an image made by
+; tools/c64img.py ([assembly: RawImage]) onto the screen, its top-left cell at
+; column x, row y. The data is a flags byte (bit 0 bitmap, bit 1 matrix,
+; bit 2 colour RAM: which planes follow) and then one compressed stream per
+; plane, each decoded straight into its destination by Image_Lz_Decode.
+; Always draws into buffer 0 (it does not follow Screen.SetDrawBuffer).
+; ---------------------------------------------------------------------------
+.if Flag_Screen_DrawImage
+.cerror (<Graphics_Bitmap) != 0, "Graphics_Bitmap must be page aligned"
+Screen_DrawImage:
+    #stack_save_return_adress zp_tmp1_low
+    #stack_pull_int16 zp_lz_src_low
+    #stack_pull_int zp_cell_y
+    #stack_pull_int zp_cell_x
+    jsr Cells_ComputeIndex
+    jsr Image_Lz_GetByte
+    sta zp_img_flags
+
+    lsr zp_img_flags
+    bcc Screen_DrawImage_NoBitmap
+    lda zp_cell_index_high        ; destination = Graphics_Bitmap + index*8
+    sta zp_lz_dst_high
+    lda zp_cell_index_low
+    asl
+    rol zp_lz_dst_high
+    asl
+    rol zp_lz_dst_high
+    asl
+    rol zp_lz_dst_high
+    sta zp_lz_dst_low
+    lda zp_lz_dst_high
+    clc
+    adc #>Graphics_Bitmap
+    sta zp_lz_dst_high
+    #gfx_ram_on                   ; matches read back what was just written
+    jsr Image_Lz_Decode
+    #gfx_ram_off
+Screen_DrawImage_NoBitmap:
+
+    lsr zp_img_flags
+    bcc Screen_DrawImage_NoMatrix
+    lda zp_cell_index_low
+    clc
+    adc #<Graphics_ColorMatrix
+    sta zp_lz_dst_low
+    lda zp_cell_index_high
+    adc #>Graphics_ColorMatrix
+    sta zp_lz_dst_high
+    jsr Image_Lz_Decode
+Screen_DrawImage_NoMatrix:
+
+    lsr zp_img_flags
+    bcc Screen_DrawImage_Done
+    lda zp_cell_index_low         ; colour RAM, $D800. A match reads it back
+    sta zp_lz_dst_low             ; with a junk high nibble, which the write
+    lda zp_cell_index_high        ; then ignores: only four bits exist per cell.
+    clc
+    adc #$d8
+    sta zp_lz_dst_high
+    jsr Image_Lz_Decode
+Screen_DrawImage_Done:
+    #stack_return_to_saved_address zp_tmp1_low
+
+; Decodes one stream (format: see tools/c64img.py, "LZ with skips").
+;   $00            end
+;   $01-$3F        literal run of 1..63 bytes
+;   $40-$5F        repeat match: length (t & $1F) + 2, offset as last time
+;   $60-$7F nn     skip: destination += (t & $1F) * 256 + nn
+;   $80-$BF nn     match: length (t & $3F) + 2, offset nn + 1
+;   $C0-$FF lo hi  match: length (t & $3F) + 3, offset hi:lo
+; A match copies from (destination - offset) forwards, a byte at a time, so
+; it may overlap what it is writing. In: zp_lz_src (stream), zp_lz_dst.
+; Out: zp_lz_src just past the end token. Destroys A, X, Y, zp_lz_*.
+Image_Lz_Decode:
+Image_Lz_Next:
+    jsr Image_Lz_GetByte          ; A = token, Y = 0, N/Z from A
+    bmi Image_Lz_Match
+    beq Image_Lz_Done
+    cmp #$40
+    bcc Image_Lz_Literal
+    cmp #$60
+    bcs Image_Lz_Skip
+    and #$1f                      ; repeat match (carry is clear)
+    adc #2
+    bne Image_Lz_Copy             ; always
+Image_Lz_Literal:
+    tax
+Image_Lz_Literal_Loop:
+    lda (zp_lz_src_low),y
+    sta (zp_lz_dst_low),y
+    iny
+    dex
+    bne Image_Lz_Literal_Loop
+    tya
+    clc
+    adc zp_lz_src_low
+    sta zp_lz_src_low
+    bcc +
+    inc zp_lz_src_high
++   tya
+Image_Lz_Advance:                 ; destination += A
+    clc
+    adc zp_lz_dst_low
+    sta zp_lz_dst_low
+    bcc Image_Lz_Next
+    inc zp_lz_dst_high
+    jmp Image_Lz_Next
+Image_Lz_Done:
+    rts
+Image_Lz_Skip:
+    and #$1f
+    clc
+    adc zp_lz_dst_high
+    sta zp_lz_dst_high
+    jsr Image_Lz_GetByte
+    jmp Image_Lz_Advance
+Image_Lz_Match:
+    cmp #$c0
+    bcs Image_Lz_Long
+    and #$3f                      ; short: carry is clear
+    adc #2
+    sta zp_lz_len
+    jsr Image_Lz_GetByte
+    clc
+    adc #1                        ; offset = nn + 1, 256 when it carries
+    sta zp_lz_off_low
+    lda #0
+    rol
+    sta zp_lz_off_high
+    lda zp_lz_len
+    bne Image_Lz_Copy             ; always
+Image_Lz_Long:
+    and #$3f                      ; long: carry is set, so this adds 3
+    adc #2
+    sta zp_lz_len
+    jsr Image_Lz_GetByte
+    sta zp_lz_off_low
+    jsr Image_Lz_GetByte
+    sta zp_lz_off_high
+    lda zp_lz_len
+Image_Lz_Copy:                    ; A = length
+    sta zp_lz_len
+    lda zp_lz_dst_low
+    sec
+    sbc zp_lz_off_low
+    sta zp_lz_match_low
+    lda zp_lz_dst_high
+    sbc zp_lz_off_high
+    sta zp_lz_match_high
+    ldy #0
+Image_Lz_Copy_Loop:
+    lda (zp_lz_match_low),y
+    sta (zp_lz_dst_low),y
+    iny
+    cpy zp_lz_len
+    bne Image_Lz_Copy_Loop
+    tya
+    jmp Image_Lz_Advance
+
+; Out: A = the next stream byte, with N/Z set from it; Y = 0; carry set.
+Image_Lz_GetByte:
+    ldy #0
+    lda (zp_lz_src_low),y
+    inc zp_lz_src_low
+    bne +
+    inc zp_lz_src_high
++   cmp #0
+    rts
+.endif
+
+; ---------------------------------------------------------------------------
+; Screen.DrawText(column, row, text, matrix): writes text into the bitmap
+; with the 8x8 font at Graphics_Font, one character per cell, and gives each
+; of those cells the colour byte `matrix`. The glyphs are hi-res (one bit per
+; pixel: set = matrix high nibble, clear = low nibble), so this is for hi-res
+; parts of the screen. Bitmap bytes are only written, never read.
+;
+; Graphics_Font: 128 characters (screen codes 0-127) of 8 bytes each, in RAM
+; at $0800 -- the gap below the program that the BASIC start line no longer
+; needs once it has run. Graphics_InitFont fills it from the character ROM at
+; startup (called by the entry file); a program may overwrite glyphs with
+; its own.
+; ---------------------------------------------------------------------------
+.if Flag_Screen_DrawText
+Graphics_Font = $0800
+
+zp_text_ptr_low    = zp_gfx_endx_low   ; $0A  the string
+zp_text_ptr_high   = zp_gfx_endx_high
+zp_text_dst_low    = zp_gfx_endy       ; $0C  bitmap address of the current cell
+zp_text_dst_high   = zp_gfx_endy_high
+zp_text_glyph_low  = zp_gfx_dx_low     ; $0E  the character's 8 bytes
+zp_text_glyph_high = zp_gfx_dx_high
+zp_text_matrix     = zp_gfx_dy         ; $10
+zp_text_index      = zp_gfx_dy_high    ; $11
+
+; The character ROM is only visible to the CPU in place of the I/O area, so
+; interrupts are off while it is banked in ($01 = $02: character ROM and
+; KERNAL in, BASIC out).
+Graphics_InitFont:
+    sei
+    lda #$02
+    sta $01
+    ldx #0
+Graphics_InitFont_Loop:
+    lda $d000,x
+    sta Graphics_Font,x
+    lda $d100,x
+    sta Graphics_Font+$100,x
+    lda $d200,x
+    sta Graphics_Font+$200,x
+    lda $d300,x
+    sta Graphics_Font+$300,x
+    inx
+    bne Graphics_InitFont_Loop
+    lda #$06
+    sta $01
+    cli
+    rts
+
+Screen_DrawText:
+    #stack_save_return_adress zp_tmp1_low
+    #stack_pull_int zp_text_matrix
+    #stack_pull_pointer zp_text_ptr_low
+    #stack_pull_int zp_cell_y
+    #stack_pull_int zp_cell_x
+    jsr Cells_ComputeIndex
+    lda zp_cell_index_low
+    clc
+    adc #<Graphics_ColorMatrix
+    sta zp_cell_mptr_low
+    lda zp_cell_index_high
+    adc #>Graphics_ColorMatrix
+    sta zp_cell_mptr_high
+    lda zp_cell_index_high        ; bitmap address = Graphics_Bitmap + index*8
+    sta zp_text_dst_high
+    lda zp_cell_index_low
+    asl
+    rol zp_text_dst_high
+    asl
+    rol zp_text_dst_high
+    asl
+    rol zp_text_dst_high
+    sta zp_text_dst_low
+    lda zp_text_dst_high
+    clc
+    adc #>Graphics_Bitmap
+    sta zp_text_dst_high
+    lda #0
+    sta zp_text_index
+Screen_DrawText_Char:
+    ldy zp_text_index
+    lda (zp_text_ptr_low),y
+    beq Screen_DrawText_Done      ; strings end with a 0 byte
+    and #$7f
+    sta zp_text_glyph_low         ; glyph = Graphics_Font + character*8
+    lda #0
+    sta zp_text_glyph_high
+    asl zp_text_glyph_low
+    rol zp_text_glyph_high
+    asl zp_text_glyph_low
+    rol zp_text_glyph_high
+    asl zp_text_glyph_low
+    rol zp_text_glyph_high
+    lda zp_text_glyph_high
+    clc
+    adc #>Graphics_Font
+    sta zp_text_glyph_high
+    lda zp_text_matrix
+    sta (zp_cell_mptr_low),y
+    ldy #7
+Screen_DrawText_Row:
+    lda (zp_text_glyph_low),y
+    sta (zp_text_dst_low),y
+    dey
+    bpl Screen_DrawText_Row
+    lda zp_text_dst_low
+    clc
+    adc #8
+    sta zp_text_dst_low
+    bcc +
+    inc zp_text_dst_high
++   inc zp_text_index
+    bne Screen_DrawText_Char
+Screen_DrawText_Done:
+    #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+; ---------------------------------------------------------------------------
+; Screen.DrawTiles(column, row, width, height, tiles, index): copies raw
+; 8-byte cells into the bitmap -- a width x height block of cells whose
+; top-left cell is (column, row), from consecutive tiles of a tile set,
+; row by row. `tiles` is the address of the set (8 bytes a tile, top pixel
+; row first), `index` the first tile to use: the source is tiles + index*8.
+; No colours are touched and nothing is read from the bitmap, so the tiles
+; mean whatever the cells' mode makes of the bits (hi-res or multicolour).
+; width is at most 31 (width*8 must fit a byte); width and height at least 1.
+; ---------------------------------------------------------------------------
+.if Flag_Screen_DrawTiles
+zp_tiles_src_low  = zp_gfx_endx_low   ; $0A  the next tile row's bytes
+zp_tiles_src_high = zp_gfx_endx_high
+zp_tiles_bytes    = zp_gfx_endy       ; $0C  bytes per cell row (width*8)
+zp_tiles_h        = zp_gfx_endy_high  ; $0D  cell rows left
+zp_tiles_dst_low  = zp_gfx_dx_low     ; $0E  bitmap address of the current cell row
+zp_tiles_dst_high = zp_gfx_dx_high
+zp_tiles_tmp      = zp_gfx_dy         ; $10
+
+Screen_DrawTiles:
+    #stack_save_return_adress zp_tmp1_low
+    #stack_pull_int zp_tiles_tmp  ; index
+    #stack_pull_pointer zp_tiles_src_low
+    lda #0                        ; source = tiles + index*8
+    asl zp_tiles_tmp
+    rol
+    asl zp_tiles_tmp
+    rol
+    asl zp_tiles_tmp
+    rol
+    tax
+    lda zp_tiles_tmp
+    clc
+    adc zp_tiles_src_low
+    sta zp_tiles_src_low
+    txa
+    adc zp_tiles_src_high
+    sta zp_tiles_src_high
+    #stack_pull_int zp_tiles_h
+    #stack_pull_int zp_tiles_bytes
+    #stack_pull_int zp_cell_y
+    #stack_pull_int zp_cell_x
+    asl zp_tiles_bytes
+    asl zp_tiles_bytes
+    asl zp_tiles_bytes
+    jsr Cells_ComputeIndex
+    lda zp_cell_index_high        ; bitmap address = Graphics_Bitmap + index*8
+    sta zp_tiles_dst_high
+    lda zp_cell_index_low
+    asl
+    rol zp_tiles_dst_high
+    asl
+    rol zp_tiles_dst_high
+    asl
+    rol zp_tiles_dst_high
+    sta zp_tiles_dst_low
+    lda zp_tiles_dst_high
+    clc
+    adc #>Graphics_Bitmap
+    sta zp_tiles_dst_high
+Screen_DrawTiles_Row:
+    ldy #0
+Screen_DrawTiles_Byte:
+    lda (zp_tiles_src_low),y
+    sta (zp_tiles_dst_low),y
+    iny
+    cpy zp_tiles_bytes
+    bne Screen_DrawTiles_Byte
+    tya                           ; next tile row; the cell row below (320 bytes on)
+    clc
+    adc zp_tiles_src_low
+    sta zp_tiles_src_low
+    bcc +
+    inc zp_tiles_src_high
++   lda zp_tiles_dst_low
+    clc
+    adc #<320
+    sta zp_tiles_dst_low
+    lda zp_tiles_dst_high
+    adc #>320
+    sta zp_tiles_dst_high
+    dec zp_tiles_h
+    bne Screen_DrawTiles_Row
+    #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+; ---------------------------------------------------------------------------
+; Screen.SetSplit(row, lowerMode) / Screen.ClearSplit(): a raster split.
+; From cell row `row` down, the screen is shown in lowerMode (Bitmap =
+; hi-res, MultiColor) while the rows above keep the mode they have -- e.g. a
+; multicolour picture over a hi-res status panel. Both parts are the same
+; bitmap and matrix; the only thing that differs is $D016's multicolour bit,
+; rewritten twice a frame by Graphics_SplitIrq.
+;
+; While a split is on, the raster interrupt is the machine's only interrupt:
+; CIA 1's timer interrupt is turned off, and whatever was on the IRQ vector
+; before (the KERNAL's keyboard scan / jiffy clock, a C64.Interrupt
+; subscriber) is called from here instead, once per frame, in the bottom
+; border. An unrelated interrupt running across the split line would
+; otherwise delay the split and make it flicker.
+; ---------------------------------------------------------------------------
+.if Flag_Screen_SetSplit | Flag_Screen_ClearSplit
+GRAPHICS_SPLIT_BOTTOM_LINE = 252   ; after line 251, which Screen.WaitForVBlank polls for
+
+graphics_split_active .byte 0       ; nonzero while Graphics_SplitIrq is installed
+graphics_split_phase  .byte 0       ; which raster interrupt comes next: 0 = bottom border, 1 = the split
+graphics_split_chain  .word 0       ; the IRQ vector it replaced
+graphics_split_line   .byte 0       ; raster line of the split interrupt
+graphics_split_wait   .byte 0       ; last raster line of the upper part
+graphics_split_upper  .byte 0       ; $D016 above the split
+graphics_split_lower  .byte 0       ; $D016 below it
+
+; Entered through ($0314), so A, X and Y are already saved (KERNAL entry).
+Graphics_SplitIrq:
+    lda $d019
+    and #$01
+    bne Graphics_SplitIrq_Raster
+    jmp (graphics_split_chain)    ; not a raster interrupt: not ours
+Graphics_SplitIrq_Raster:
+    sta $d019                     ; acknowledge it
+    lda graphics_split_phase
+    beq Graphics_SplitIrq_Bottom
+    dec graphics_split_phase
+
+    ; The interrupt comes two lines early. Wait for the last line of the
+    ; upper part, let its 40 visible columns go by, and switch in the right
+    ; border -- so the first line of the lower part is drawn in the new
+    ; mode. (If something held this interrupt off until that line had
+    ; already begun, switch at once instead of waiting a whole frame.)
+    bit $d011
+    bmi Graphics_SplitIrq_Switch  ; raster line 256 or more: very late
+    lda $d012
+    cmp graphics_split_wait
+    bcs Graphics_SplitIrq_Switch
+    lda graphics_split_wait
+Graphics_SplitIrq_Wait:
+    cmp $d012
+    bne Graphics_SplitIrq_Wait
+    ldx #10                       ; 51 cycles
+Graphics_SplitIrq_Delay:
+    dex
+    bne Graphics_SplitIrq_Delay
+Graphics_SplitIrq_Switch:
+    lda graphics_split_lower
+    sta $d016
+    lda #GRAPHICS_SPLIT_BOTTOM_LINE
+    sta $d012
+    jmp $ea81                     ; KERNAL: restore Y, X, A and RTI
+
+Graphics_SplitIrq_Bottom:
+    lda graphics_split_upper
+    sta $d016
+    lda $d011                     ; raster compare bit 8 off (lines < 256)
+    and #%01111111
+    sta $d011
+    lda graphics_split_line
+    sta $d012
+    inc graphics_split_phase
+    jmp (graphics_split_chain)    ; the once-a-frame system interrupt
+.endif
+
+.if Flag_Screen_SetSplit
+Screen_SetSplit:
+    #stack_save_return_adress zp_tmp1_low
+    #stack_pull_int zp_gfx_on     ; lowerMode: 1 = Bitmap (hi-res), 2 = MultiColor
+    #stack_pull_int zp_gfx_y      ; row
+    sei
+    lda zp_gfx_y
+    asl
+    asl
+    asl
+    clc
+    adc #48                       ; row's first line is 51 + row*8: interrupt 3 lines before,
+    sta graphics_split_line
+    adc #2                        ; switch at the end of the line before it
+    sta graphics_split_wait
+    lda graphics_split_active
+    bne Screen_SetSplit_Hooked
+    lda $d016
+    sta graphics_split_upper
+    lda $0314
+    sta graphics_split_chain
+    lda $0315
+    sta graphics_split_chain+1
+    lda #<Graphics_SplitIrq
+    sta $0314
+    lda #>Graphics_SplitIrq
+    sta $0315
+    inc graphics_split_active
+Screen_SetSplit_Hooked:
+    lda graphics_split_upper
+    and #%11101111
+    ldx zp_gfx_on
+    cpx #2
+    bne +
+    ora #%00010000
++   sta graphics_split_lower
+    lda #$7f                      ; CIA 1: all interrupt sources off...
+    sta $dc0d
+    lda $dc0d                     ; ...and anything pending acknowledged
+    lda $d011
+    and #%01111111
+    sta $d011
+    lda #GRAPHICS_SPLIT_BOTTOM_LINE
+    sta $d012
+    lda #0
+    sta graphics_split_phase
+    lda $d01a
+    ora #%00000001                ; VIC: raster interrupt on
+    sta $d01a
+    lda #$01
+    sta $d019
+    cli
+    #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+.if Flag_Screen_ClearSplit
+Screen_ClearSplit:
+    #stack_save_return_adress zp_tmp1_low
+    sei
+    lda graphics_split_active
+    beq Screen_ClearSplit_Done
+    lda $d01a
+    and #%11111110
+    sta $d01a
+    lda #$01
+    sta $d019
+    lda graphics_split_chain
+    sta $0314
+    lda graphics_split_chain+1
+    sta $0315
+    lda graphics_split_upper
+    sta $d016
+    lda #$81                      ; CIA 1 timer A interrupt back on
+    sta $dc0d
+    lda #0
+    sta graphics_split_active
+Screen_ClearSplit_Done:
+    cli
     #stack_return_to_saved_address zp_tmp1_low
 .endif

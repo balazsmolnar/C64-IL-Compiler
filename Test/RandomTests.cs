@@ -27,16 +27,16 @@ public class RandomTests
         // element access) aren't supported by this compiler at all
         // (a separate, confirmed gap; out of scope here), so 0/nonzero
         // stands in for false/true.
-        uint[] seen = new uint[256];
+        uint[] seen = new uint[255];       // r - 1: r is 1..255
         uint count = 0;
         for (uint i = 0; i < 255; i++)
         {
             uint r = C64.Random();
             if (r == 0)
                 Assert.Fail();
-            if (seen[r] != 0)
+            if (seen[r - 1] != 0)
                 Assert.Fail();
-            seen[r] = 1;
+            seen[r - 1] = 1;
             count++;
         }
         Assert.AreEqual(count, 255u);

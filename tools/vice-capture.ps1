@@ -15,12 +15,19 @@
                         (rare; try again after a short extra wait).
 #>
 param(
-    [Parameter(Mandatory=$true)][string]$OutPng
+    [Parameter(Mandatory=$true)][string]$OutPng,
+    # The pid vice-launch.ps1 printed -- required when it was launched with
+    # -KeepOthers (more than one x64sc.exe may be running).
+    [int]$ProcessId
 )
 
 $ErrorActionPreference = 'Stop'
 
-$proc = Get-Process -Name x64sc -ErrorAction SilentlyContinue | Select-Object -First 1
+if ($ProcessId) {
+    $proc = Get-Process -Id $ProcessId -ErrorAction SilentlyContinue
+} else {
+    $proc = Get-Process -Name x64sc -ErrorAction SilentlyContinue | Select-Object -First 1
+}
 if (-not $proc) {
     Write-Output "NOT_RUNNING"
     exit 1

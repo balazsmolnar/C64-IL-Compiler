@@ -2,31 +2,59 @@ using C64Lib;
 
 namespace Catacombs;
 
-// A small thumbnail showing where the player is within the whole maze
-// (see Maze.cs's own Width/Height) -- a filled square spanning the
-// maze's bounds, with the player's current cell marked on top as a small
-// square in a different color. Deliberately NOT a per-cell floor/wall
-// rendering (an
-// earlier version drew every floor cell individually -- at this
-// thumbnail's small scale it read as visual noise rather than a legible
-// map, and wall cells had nothing to draw, so they just showed whatever
-// the live room's own background color happened to be underneath, which
-// was confusing). Drawn once per room entry in the screen's top-right
-// corner, the mirror of Hud.cs's own top-left placement.
+// The panel's map (see Hud.cs): the maze's 10x10 rooms in the window of
+// panel columns 31-36, one room = 2x2 multicolour pixels, from line 8 of the
+// panel. Only rooms the player has been in are drawn (fog of war), in grey;
+// the room the player is in is the "you are here" mark, which blinks
+// yellow / red (never off, never like the rooms around it).
+//
+// The window's 6x3 cells live in RAM (hud_Map, HudArt.cs) as tiles. A room
+// is half a bitmap byte on two lines: revealing, marking or blinking one
+// changes two bytes there and copies that one cell to the screen. In a
+// room's four bits per line, %1010 is explored (grey), %1111 the mark
+// (yellow) and %0101 its blink (red): a blink is an exclusive-or with %1010.
 static class Minimap
 {
-    const ulong OriginX = 270, OriginY = 4;
-    const ulong CellSize = 2; // 12*2 = 24px square footprint
-    const ulong MarkerSize = 2;
+    static uint index_;             // the current room's first byte in hud_Map
+    static uint mask_, blink_;      // its half of that byte; the bits a blink flips
+    static uint column_, row_;      // the screen cell holding it
 
-    public static void Render(uint px, uint py)
+    public static void Init()
     {
-        ulong width = Maze.Width * CellSize;
-        ulong height = Maze.Height * CellSize;
-        C64.Screen.DrawRectangle(OriginX, OriginY, OriginX + width, OriginY + height, true, true, BitmapColorSource.MatrixHigh);
+        C64.FillMemory(C64Address.FromLabel("hud_Map-1"), 0, 144); // FillMemory writes bytes 1..size
+        C64.CopyMemory(C64Address.FromLabel("hud_Map+99"), C64Address.FromLabel("hud_MapSill-1"), 44); // the window's sill (CopyMemory copies bytes 1..size)
+        mask_ = 0;
+#if SCENE_TIMING || SCENE_TIMINGM
+        C64.Screen.SetSplit(21, ScreenMode.Bitmap); // the timing readout is hi-res text
+#endif
+    }
 
-        ulong px2 = OriginX + px * CellSize;
-        ulong py2 = OriginY + py * CellSize;
-        C64.Screen.DrawRectangle(px2, py2, px2 + MarkerSize, py2 + MarkerSize, true, true, BitmapColorSource.MatrixLow);
+    public static void Enter(uint x, uint y)
+    {
+        if (mask_ != 0)
+            Store((C64.GetMemory(C64Address.FromLabel("hud_Map"), index_) | mask_) ^ (blink_ ^ mask_)); // the room left behind: explored
+        index_ = C64.GetMemory(C64Address.FromLabel("hud_MapRow-1"), y) + (x & 0xFE) * 4;
+        row_ = C64.GetMemory(C64Address.FromLabel("hud_MapCellRow-1"), y);
+        column_ = 31 + (x >> 1);
+        mask_ = 0xF0;
+        blink_ = 0xA0;
+        if ((x & 1) != 0)
+        {
+            mask_ = 0x0F;
+            blink_ = 0x0A;
+        }
+        Store(C64.GetMemory(C64Address.FromLabel("hud_Map"), index_) | mask_);                       // this one: bright
+    }
+
+    // The mark's blink.
+    public static void Flip()
+    {
+        Store(C64.GetMemory(C64Address.FromLabel("hud_Map"), index_) ^ blink_);
+    }
+
+    static void Store(uint value)
+    {
+        C64.FillMemory(C64Address.FromLabel("hud_Map-1") + index_, value, 2);
+        C64.Screen.DrawTiles(column_, row_, 1, 1, C64Address.FromLabel("hud_Map"), index_ >> 3);
     }
 }

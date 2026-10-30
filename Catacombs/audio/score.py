@@ -50,7 +50,7 @@ def build(test=False):
     # Drone: a narrow pulse that never re-attacks (legato); each note
     # starts with the filter nearly shut and lets it open slowly.
     s.instrument('drone', ad=0x69, sr=0x5A, wave=[(PULSE, 0)], pw=0x380, pws=0x0C,
-                 legato=True, filt=0x0C, fdel=1)
+                 legato=True, filt=0x20, fdel=1)
     # Plucked bass: octave click, then the filter closing on the note.
     s.instrument('bass', ad=0x08, sr=0x47, wave=[(PULSE, 12), (0, 0)], pw=0x300, pws=0x18,
                  filt=0x50, fdel=-4)
@@ -96,7 +96,7 @@ def build(test=False):
                  wave=[(NOISE, 'd-6'), (PULSE, 'a-3'), (NOISE, 'a-5'), (0, 'f-5'), (PULSE, 0)])
     s.instrument('clead', ad=0x08, sr=0xA8, wave=[(SAW, 0)], vib=(4, 8), filt='keep')
     # The climb's last bars and peak: louder, unfiltered, wider vibrato.
-    s.instrument('cleadHi', ad=0x08, sr=0xD8, wave=[(SAW, 0)], vib=(5, 6))
+    s.instrument('cleadHi', ad=0x08, sr=0xF8, wave=[(SAW, 0)], vib=(5, 6))
     # Fanfare lead: the same saw, louder still and never filtered.
     s.instrument('vlead', ad=0x08, sr=0xE8, wave=[(SAW, 0)], vib=(4, 12))
     for q, (third, top) in dict(m=(3, 7), M=(4, 7), d=(3, 6)).items():
@@ -108,6 +108,10 @@ def build(test=False):
     # restart before each (the player does that), and shaped with real
     # envelopes: gate=N releases the note N ticks before the effect ends.
     # Numbers double as priorities (see sidmusic.py): later = wins.
+    # duck=True only for effects that play over the combat tune (sword,
+    # growl, hurt): ducking lowers voices 1-2's sustain, and a note held
+    # through it can't climb back up, so over exploration's long held
+    # notes it would silence them until their next note.
     # ------------------------------------------------------------------
     # Door: a narrow pulse creaking upwards from 90 Hz, two steps up and
     # one back, a breath, then the slam -- re-gated noise dropping an
@@ -146,9 +150,10 @@ def build(test=False):
                        (NOISE, 'd-3'), (SAW, 'a-1'), ('jump', 0)])
     s.effect('growl', 'fx_growl', 'a-1', 60, duck=True)
 
-    # Hurt: a crack of noise, then a pulse falling more than an octave.
-    s.instrument('fx_hurt', ad=0x08, sr=0xA4, pw=0x600, pws=0x30, slide=-100, gate=6,
-                 wave=[(NOISE, 'c-6'), (0, 'c-6'), (PULSE, 'f-3')])
+    # Hurt: a crack of noise, then a pulse falling more than an octave
+    # from F4.
+    s.instrument('fx_hurt', ad=0x08, sr=0xC4, pw=0x600, pws=0x30, slide=-200, gate=6,
+                 wave=[(NOISE, 'c-6'), (0, 'c-6'), (PULSE, 'f-4')])
     s.effect('hurt', 'fx_hurt', 'e-3', 16, duck=True)
 
     # Monster death: a sawtooth roar with noise in it, falling away.
@@ -239,7 +244,7 @@ def build(test=False):
         [T(0), 'counter1', T(5), 'counter1', T(0), 'padBellm', T(1), 'quarterM', T(0), 'pad12m',
          T(1), 'padM', T(-5), 'pads'])
     s.song('explore', tempo=9, end='loop', volume=15,
-           filter=dict(res=11, mode='lp', cut=(0x0A, 0x70)),
+           filter=dict(res=11, mode='lp', cut=(0x20, 0x70)),
            voices=[explore_bass, explore_lead, explore_chords])
 
     # ------------------------------------------------------------------

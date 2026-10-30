@@ -27,7 +27,8 @@ voice 2 the lead, voice 3 chords, pads and bell. While the combat effects (sword
 ducked: their sustain drops 6 steps. The SID envelope can't climb back up
 to a higher sustain, so a note held through the effect stays down until
 that voice's next note -- which is why only short effects over the busy
-combat tune duck. Effects borrow voice 3;
+combat tune duck. In `score.py`, `duck=True` is only for effects that
+play over the combat tune. Effects borrow voice 3;
 the music on it keeps counting silently and comes back in time, re-attacked,
 when the effect ends. There are no footsteps: on three voices they could
 only be heard by chopping the chords.

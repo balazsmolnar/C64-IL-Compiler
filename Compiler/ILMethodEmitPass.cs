@@ -55,13 +55,35 @@ class ILMethodEmitPass : ICompilerMethodPass
         // from some earlier, unrelated call.
         var local_refs = context.GetLocalRefPositions();
 
-        outputLine = context.IsFrameless
-            ? $"    #method_enter_frameless {context.GetLocalsSize()}, [{string.Join(',', local_refs)}]"
-            : $"    #init_locals_pull_parameters {context.GetLocalsSize()}, [{string.Join(',', ref_params)}], [{string.Join(',', local_refs)}]";
         // Drops `ldy stackPointer` reloads Y already satisfies -- see
         // YRegisterTracker.
         var yTracker = new YRegisterTracker();
-        output.WriteLine(yTracker.Process(outputLine, false));
+        if (context.StaticFrame != null)
+        {
+            // ILStaticFramePass: the caller already stored the arguments in
+            // this method's fixed parameter slots, and the return address
+            // stays on the hardware stack -- no prologue at all.
+            var frame = context.StaticFrame;
+            output.WriteLine($"    ; static frame: StaticFrames+{frame.Offset}, {frame.Size} bytes{(frame.CalleePulls ? ", callee pulls" : "")}");
+            if (frame.CalleePulls)
+            {
+                // Save the return address in the frame's bottom two bytes,
+                // then pull the arguments into their slots.
+                output.WriteLine($"    pla\n    sta SF_TOP-{frame.ReturnAddressRel}\n    pla\n    sta SF_TOP-{frame.ReturnAddressRel}+1");
+                var pulls = Compiler.Ops.OpCall.StaticFramePulls(frame);
+                if (pulls.Length > 0)
+                    output.WriteLine("    " + pulls.TrimEnd());
+            }
+            if (local_refs.Count > 0)
+                output.WriteLine($"    #sf_enter [{string.Join(',', local_refs)}]");
+        }
+        else
+        {
+            outputLine = context.IsFrameless
+                ? $"    #method_enter_frameless {context.GetLocalsSize()}, [{string.Join(',', local_refs)}]"
+                : $"    #init_locals_pull_parameters {context.GetLocalsSize()}, [{string.Join(',', ref_params)}], [{string.Join(',', local_refs)}]";
+            output.WriteLine(yTracker.Process(outputLine, false));
+        }
 
         // PROTOTYPE (ILMethodPromoteParametersPass): the prologue just
         // above is otherwise completely unmodified -- unlike a promoted
@@ -116,5 +138,11 @@ class ILMethodEmitPass : ICompilerMethodPass
             outputLine = $"{(line.Label == null ? "" : line.Label + ":")}  {(line.Optimized ? "; OPT " : "")}  {code} ; {line.OpCode}";
             output.WriteLine(outputLine);
         }
+
+        // A callee-pulls static frame's shared exit (OpRet jumps here,
+        // unless the method's last line is itself the ret that emits it).
+        if (context.StaticFrame is { CalleePulls: true } && context.Lines.Count > 0
+            && context.Lines[^1].Operation is not Compiler.Ops.OpRet)
+            output.WriteLine(Compiler.Ops.OpRet.StaticExitBlock(context));
     }
 }

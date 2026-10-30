@@ -35,6 +35,27 @@ class Program
 
     static void Compile(string[] args)
     {
+        // Switches (anywhere on the command line; the rest is positional):
+        // --no-static-frames / --static-frames[=1|2] set ILStaticFramePass's
+        // level: 0 off, 1 static methods with value-type frames only, 2 (the
+        // default) also instance methods and reference parameters/locals.
+        // C64_STATIC_FRAMES=0/1/2 does the same without touching the .bat
+        // files.
+        var staticFrames = int.TryParse(Environment.GetEnvironmentVariable("C64_STATIC_FRAMES"), out var level) ? level : 2;
+        var positional = new List<string>();
+        foreach (var arg in args)
+        {
+            if (arg == "--no-static-frames")
+                staticFrames = 0;
+            else if (arg == "--static-frames")
+                staticFrames = 2;
+            else if (arg.StartsWith("--static-frames="))
+                staticFrames = int.Parse(arg.Substring("--static-frames=".Length));
+            else
+                positional.Add(arg);
+        }
+        args = positional.ToArray();
+
         if (args.Length < 1)
             throw new InvalidOperationException("Assembly must be specified.");
 
@@ -59,7 +80,8 @@ class Program
                 EntryFilePath = entryFilePath,
                 IsUnitTest = isUnitTest,
                 Optimize = true,
-                EmitDebugInfo = emitDebugInfo
+                EmitDebugInfo = emitDebugInfo,
+                StaticFramesLevel = staticFrames,
             };
             var passes = new List<ICompilerPass> {
                 new ILRawAssemblyPass(),
@@ -71,6 +93,11 @@ class Program
                 // visited before a method it calls -- see
                 // ILCallSiteCountPass's own comment.
                 new ILCallSiteCountPass(),
+                // Whole-program: picks the methods whose parameters/locals
+                // get fixed addresses instead of a localsStack frame (see
+                // its own comment). Before ILCodePass, which hands each
+                // picked method's context its StaticFrameInfo.
+                new ILStaticFramePass(),
                 new ILCodePass(
                     new ICompilerTypePass[] {
                         new ILTypeStaticFieldInitPass(),
@@ -191,6 +218,9 @@ class Program
                         new ILMethodStaticArrayAccessOptimizer(),
                     },
                     new ICompilerMethodPass[] {
+                        // After every optimizer, before emit: direct
+                        // argument/result copies at static-frame call sites.
+                        new ILStaticCallPass(),
                         new ILMethodEmitPass(),
                         new ILMethodJumpTablePass()
                     }),

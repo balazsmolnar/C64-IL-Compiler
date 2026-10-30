@@ -79,6 +79,10 @@ class YRegisterTracker
     {
         "lda", "ldx", "pha", "pla", "tax", "txa", "clc", "sec", "adc", "sbc", "and", "ora", "eor",
         "cmp", "cpx", "inx", "dex", "asl", "lsr", "rol", "ror", "nop", "bit",
+        // stores and read-modify-writes (never into stackPointer: see the
+        // operand check in ProcessLine) -- static-frame call sites
+        // (ILStaticCallPass) emit them between `ldy stackPointer` loads.
+        "sta", "stx", "inc", "dec",
     };
 
     private bool _yIsStackPointer;
@@ -117,6 +121,12 @@ class YRegisterTracker
         if (word.StartsWith("#"))
         {
             var name = word.Substring(1);
+            if (Rewritable.Contains(name) && IsStaticSlot(operand))
+            {
+                // A static-frame slot (ILStaticFramePass): absolute
+                // addressing, neither loads nor needs Y.
+                return line;
+            }
             if (Rewritable.Contains(name))
             {
                 var result = _yIsStackPointer ? ReplaceFirst(line, word, word + "_ky") : line;
@@ -153,6 +163,11 @@ class YRegisterTracker
         _yIsStackPointer = false;
         return line;
     }
+
+    // rel_pos 256 and up (the macro's first argument) names a static-frame
+    // slot -- see ls_op in asm/helper/localsStack.asm.
+    private static bool IsStaticSlot(string operand) =>
+        int.TryParse(operand.Split(',')[0].Trim(), out var relPos) && relPos >= 256;
 
     private static string ReplaceFirst(string text, string search, string replacement)
     {

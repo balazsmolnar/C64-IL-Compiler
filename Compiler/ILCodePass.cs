@@ -121,6 +121,12 @@ class ILCodePass : ICompilerPass
                         TypeContext = typeContext,
                         Lines = new List<ILOperation>(),
                         Method = method,
+                        // Only the compile of the method's own body (an
+                        // inherited copy compiled under a derived type is
+                        // never emitted, see ILMethodEmitPass).
+                        StaticFrame = method.DeclaringType == @type
+                            ? context.GetStaticFrame(ILStaticFramePass.Normalize(method))
+                            : null,
                     };
                     context.Methods.Add(methodContext);
 

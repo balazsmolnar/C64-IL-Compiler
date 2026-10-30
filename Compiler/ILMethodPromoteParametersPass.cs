@@ -39,6 +39,11 @@ class ILMethodPromoteParametersPass : ICompilerMethodPass
 {
     public void Execute(CompilerMethodContext context)
     {
+        // A static-frame parameter (ILStaticFramePass) already has a fixed
+        // absolute address the caller writes directly; copying it into zero
+        // page would cost more than it saves.
+        if (context.StaticFrame != null)
+            return;
         if (!ILMethodPromoteLocalsPass.PassesSafeOpcodeGate(context))
             return;
 

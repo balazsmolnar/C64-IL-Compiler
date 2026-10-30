@@ -113,6 +113,10 @@ class Program
         roomX_ = 5;     // along the left wall, clear of the room's guardian
 #endif
         roomDepth_ = 0;
+#if SCENE_SIDEENTRY
+        roomX_ = RoomProjection.Width;   // just in through the start room's east door
+        roomDepth_ = SideDoorMid;
+#endif
         PlayerSprite.Init(RoomProjection.ScreenX(roomX_, roomDepth_), RoomProjection.ScreenY(roomDepth_));
 
         EnterRoom();
@@ -256,8 +260,8 @@ class Program
             nx = roomX_ - Speed;
 #endif
         }
-        if (false)
-#endif
+#else
+        // W/S and A/D are separate axes, so two keys held walk diagonally.
         if (C64.IsKeyPressed(Keys.W))
         {
             nd = roomDepth_ + Speed < RoomProjection.DepthMax ? roomDepth_ + Speed : RoomProjection.DepthMax;
@@ -268,7 +272,7 @@ class Program
             nd = roomDepth_ > Speed ? roomDepth_ - Speed : 0;
             moved = true;
         }
-        else if (C64.IsKeyPressed(Keys.A))
+        if (C64.IsKeyPressed(Keys.A))
         {
             nx = roomX_ > Speed ? roomX_ - Speed : 0;
             moved = true;
@@ -278,6 +282,7 @@ class Program
             nx = roomX_ + Speed < RoomProjection.Width ? roomX_ + Speed : RoomProjection.Width;
             moved = true;
         }
+#endif
 
         if (moved)
         {
@@ -349,12 +354,20 @@ class Program
             return DungeonView.North;
         if (roomDepth_ == 0 && southOpen_ && NearCenterX())
             return DungeonView.South;
-        if (roomX_ == 0 && westOpen_)
-            return DungeonView.West;
-        if (roomX_ >= RoomProjection.Width && eastOpen_)
-            return DungeonView.East;
+        if (roomDepth_ >= SideDoorNear && roomDepth_ <= SideDoorFar)
+        {
+            if (roomX_ == 0 && westOpen_)
+                return DungeonView.West;
+            if (roomX_ >= RoomProjection.Width && eastOpen_)
+                return DungeonView.East;
+        }
         return 0;
     }
+
+    // The side doors' opening on the floor, in room depth (art/room_art.py:
+    // the opening spans y 131-145 at the wall's foot), and its middle, where
+    // a player coming through a side door arrives.
+    const uint SideDoorNear = 42, SideDoorFar = 80, SideDoorMid = 61;
 
     // Crossing is now a deliberate action (SPACE), not automatic on
     // reaching the edge -- standing at the door is the signal
@@ -369,32 +382,24 @@ class Program
     {
         if (!C64.IsKeyPressed(Keys.Space))
             return false;
-        if (AtDoor()) Audio.Fx(AudioIds.FxDoor);
+        uint door = DoorAt();
+        if (door == 0)
+            return false;
+        Audio.Fx(AudioIds.FxDoor);
 
-        if (roomDepth_ >= RoomProjection.DepthMax && northOpen_ && NearCenterX())
-        {
-            AnimateDoorOpening(DungeonView.North);
-            Step(px_, py_ - 1, RoomProjection.Center, 0);
-            return true;
-        }
-        if (roomDepth_ == 0 && southOpen_ && NearCenterX())
+        if (door == DungeonView.South)
         {
             Step(px_, py_ + 1, RoomProjection.Center, RoomProjection.DepthMax);
             return true;
         }
-        if (roomX_ == 0 && westOpen_)
-        {
-            AnimateDoorOpening(DungeonView.West);
-            Step(px_ - 1, py_, RoomProjection.Width, 0);
-            return true;
-        }
-        if (roomX_ >= RoomProjection.Width && eastOpen_)
-        {
-            AnimateDoorOpening(DungeonView.East);
-            Step(px_ + 1, py_, 0, 0);
-            return true;
-        }
-        return false;
+        AnimateDoorOpening(door);
+        if (door == DungeonView.North)
+            Step(px_, py_ - 1, RoomProjection.Center, 0);
+        else if (door == DungeonView.West)
+            Step(px_ - 1, py_, RoomProjection.Width, SideDoorMid);   // in by the new room's east door
+        else
+            Step(px_ + 1, py_, 0, SideDoorMid);                      // in by its west door
+        return true;
     }
 
     static bool NearCenterX()

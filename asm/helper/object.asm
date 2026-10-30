@@ -120,6 +120,67 @@ newObjLInit
   bne -
   jmp setObjParams
 
+; #newObjArrayInit (heap.asm). Linked only when the compiler emitted one
+; (Compiler/ILObjectArrayInitializerOptimizer.cs registers the flag).
+; Inputs:
+; A/Y: descriptor address (low/high):
+;   size, referenceFields, count, first index, vtable low, vtable high,
+;   then count * size initial bytes, one object after the other
+; Top of the evaluation stack: the array (read, not pulled)
+; Each object is allocated by newObjLInit (exactly as #newObjInit does) and
+; its handle stored into array[index] as a plain byte (exactly as #stelemRef
+; does: references held by heap objects are traced by the GC, not counted).
+; Uses zp_param0..4 and zp_field_value_low. Destroys A, X, Y.
+.weak
+Flag_NewObjArrayInit = 0
+.endweak
+.if Flag_NewObjArrayInit
+NewObjArrayInitL
+  sta zp_param1_low
+  sty zp_param1_high
+
+  ; header -> zp_param2_low (size), zp_param2_high (reference fields),
+  ; zp_param3_low (count), zp_param3_high (index), zp_param4 (vtable)
+  ldy #5
+- lda (zp_param1_low),y
+  sta zp_param2_low,y
+  dey
+  bpl -
+  lda zp_param4_low
+  sta zp_param0_low
+  lda zp_param4_high
+  sta zp_param0_high
+
+  ; the array: top of the evaluation stack, just under our return address
+  tsx
+  lda $0103,x
+  sta zp_param4_low
+
+  lda #6                    ; skip the header
+NewObjArrayInit_Next
+  clc
+  adc zp_param1_low
+  sta zp_param1_low
+  bcc +
+  inc zp_param1_high
++ lda zp_param2_low
+  ldy zp_param2_high
+  jsr newObjLInit           ; A = X = the new object
+  sta zp_field_value_low
+
+  ldx zp_param4_low
+  jsr resolveObjPtr
+  ldy zp_param3_high
+  lda zp_field_value_low
+  sta (tmpPointer),y
+  inc zp_param3_high
+
+  lda zp_param2_low         ; on to the next object's bytes
+  dec zp_param3_low
+  bne NewObjArrayInit_Next
+  rts
+.endif
+
 findEmptySlot
   ; Find an empty entry in the object table --> X
   ldx #0

@@ -133,6 +133,11 @@ class Program
                         new ILPropertyGettterOptimizer(),
                         new ILSetFieldOptimizer(),
                         new ILObjectInitializerOptimizer(),
+                        // Right after it: folds runs of the #newObjInit's it
+                        // just built (each stored into an array slot) into
+                        // one table, before any later pass fuses the Dup/Ldc
+                        // index pushes around them.
+                        new ILObjectArrayInitializerOptimizer(),
                         new ILStaticArrayInitializerPass(),
                         new ILMethodSetVariableOptimizer(),
                         new ILMethodBranchIfLessOptimizer(),

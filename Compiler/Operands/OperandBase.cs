@@ -787,13 +787,30 @@ class OpNewObjInit : OpBase
         _vtable = vtable;
     }
 
+    // Read by ILObjectArrayInitializerOptimizer, which folds a run of these
+    // (each stored straight into an array) into one table.
+    public IReadOnlyList<string> Mem => _mem;
+    public int Size => _size;
+    public int ReferenceFields => _referenceFields;
+    public string VTable => _vtable;
+
     public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
     {
-        var memLabel = context.CompilerContext.GetInitValueLabel(string.Join(',', _mem));
+        // The Init_Values label is only taken in Emit, for a line that is
+        // really emitted: an element folded into a #newObjArrayInit table
+        // must not leave its own (now unreferenced) .byte row behind.
+        return null;
+    }
+
+    public override string Emit(CompilerMethodContext context, ILOperation operation)
+    {
+        var memLabel = operation.Optimized
+            ? $"[{_mem.Length} bytes]"
+            : context.CompilerContext.GetInitValueLabel(string.Join(',', _mem));
 
         // var ctor = $"{context.TypeContext.Type.Name}_x_ctor";
         var ctor = 0;
-        return $"{_size}, {_referenceFields}, {_vtable}, {memLabel}, {ctor}";
+        return $"{Command} {_size}, {_referenceFields}, {_vtable}, {memLabel}, {ctor}";
     }
 
     public override void SetStackContent(CompilerMethodContext context, ILOperation operation)
@@ -806,6 +823,34 @@ class OpNewObjInit : OpBase
     }
 
     public override bool Is16BitSupported => false;
+}
+
+// Built by ILObjectArrayInitializerOptimizer: one call that allocates a run
+// of objects from a constant table and stores them into consecutive slots
+// of the array on top of the evaluation stack (which stays there). The
+// descriptor is an ordinary Init_Values row: object size, reference-field
+// count, element count, first index, vtable (low, high), then every object's
+// initial bytes back to back -- see asm/helper/object.asm's
+// NewObjArrayInitL. Label and library flag are both taken in Emit, so a
+// line that ends up not emitted links nothing.
+class OpNewObjArrayInit : OpBase
+{
+    public const string LibraryLabel = "NewObjArrayInit";
+
+    private readonly string[] _descriptor;
+
+    public OpNewObjArrayInit(string[] descriptor) : base(0, "#newObjArrayInit")
+    {
+        _descriptor = descriptor;
+    }
+
+    public override string Emit(CompilerMethodContext context, ILOperation operation)
+    {
+        if (operation.Optimized)
+            return $"{Command} [{_descriptor.Length} bytes]";
+        context.CompilerContext.UsedLibraryLabels.Add(LibraryLabel);
+        return $"{Command} {context.CompilerContext.GetInitValueLabel(string.Join(',', _descriptor))}";
+    }
 }
 
 // Synthesized by ILStaticArrayInitializerPass, replacing Newarr;Dup;

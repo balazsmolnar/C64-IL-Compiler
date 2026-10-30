@@ -88,7 +88,20 @@ newObjInit .macro size, referenceFields, objDescriptor, initValues, ctor
   .endif
 .endm
 
-newArrRef .macro  
+;
+; Allocates a run of objects from a constant table and stores them into
+; consecutive slots of the array on top of the stack (left there) -- what a
+; run of "dup; ldc i; newObjInit; stelemRef" does, in one call. See
+; NewObjArrayInitL (object.asm) for the descriptor layout, and
+; Compiler/ILObjectArrayInitializerOptimizer.cs.
+;
+newObjArrayInit .macro descriptor
+  lda #<\descriptor
+  ldy #>\descriptor
+  jsr NewObjArrayInitL
+.endm
+
+newArrRef .macro
 
   #stack_pull_int_a  ; size
   tay                ; reference fields

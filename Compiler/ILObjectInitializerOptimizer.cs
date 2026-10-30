@@ -34,12 +34,20 @@ class ILObjectInitializerOptimizer : ICompilerMethodPass
                 // pattern anyway; skip it explicitly rather than crashing
                 // GetIntParam on a null ToString().
                 lines[i].RawParameter != null &&
-                this.GetIntParam(lines[i].RawParameter, 1) == 0 &&
+                this.GetStringParam(lines[i].RawParameter, 3).Trim() == "0" &&
                 lines[i + 1].Operation is OpDup)
             {
                 lines[i].Optimized = true;
 
                 var size = this.GetIntParam(lines[i].RawParameter, 0);
+                // Reference fields come first in the layout and start out
+                // null (0) here: a constant (ldc/ldstr -- strings are not
+                // reference counted) can only ever be stored into a value
+                // field, so the folded stores never touch them. A reference
+                // field set in the same initializer (to a non-constant)
+                // ends the folded run and keeps its own Stfld after
+                // #newObjInit. newObjLInit takes the count, like newObjL.
+                var referenceFields = this.GetIntParam(lines[i].RawParameter, 1);
                 var vtable = this.GetStringParam(lines[i].RawParameter, 2);
 
                 string[] mem = Enumerable.Repeat("0", size).ToArray();
@@ -48,11 +56,19 @@ class ILObjectInitializerOptimizer : ICompilerMethodPass
                 while (
                     lines[index].Operation is OpDup &&
                     (lines[index + 1].Operation is OpLdConst || lines[index + 1].Operation is OpLdstr) &&
-                    (lines[index + 2].Operation is OpStfld || lines[index + 3].Operation is OpStfld))
+                    (lines[index + 2].Operation is OpStfld ||
+                     ((lines[index + 2].OpCode is ILOpCode.Conv_i8 or ILOpCode.Conv_u8) && lines[index + 3].Operation is OpStfld)))
                 {
-                    // there is a conversion between ldc and setfld
-
-                    var conv = lines[index + 3].Operation is OpStfld;
+                    // there is a conversion between ldc and setfld -- only
+                    // when the line after the ldc is not already the Stfld.
+                    // Deciding it from "lines[index + 3] is a Stfld" alone
+                    // misread `dup; ldc; stfld A; stfld B` (the last
+                    // constant of an object that is itself stored into a
+                    // field, `x.B = new T { A = 1 }` or a nested
+                    // initializer): it folded the OUTER store B into this
+                    // object too, writing the constant at B's offset and
+                    // dropping the real store.
+                    var conv = !(lines[index + 2].Operation is OpStfld);
                     var opPush = lines[index + 1].Operation as OpLdConst;
                     var opLdstr = lines[index + 1].Operation as OpLdstr;
                     var is16 = false;
@@ -87,9 +103,18 @@ class ILObjectInitializerOptimizer : ICompilerMethodPass
                     index += conv ? 4 : 3;
                 }
 
+                // Nothing constant to fold (every store in the initializer
+                // is computed): #newObjInit would only be a bigger #newObj
+                // plus an all-zero data row.
+                if (index == i + 1)
+                {
+                    lines[i].Optimized = false;
+                    continue;
+                }
+
                 ILOperation newOperation = new ILOperation
                 {
-                    Operation = new OpNewObjInit(mem, size, 0, vtable),
+                    Operation = new OpNewObjInit(mem, size, referenceFields, vtable),
                 };
                 newOperation.RawParameter = newOperation.Operation.ConvertParameter(context, null);
                 newOperation.StackContent = lines[i].StackContent;

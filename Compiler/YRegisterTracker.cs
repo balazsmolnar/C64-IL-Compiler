@@ -76,6 +76,10 @@ class YRegisterTracker
     {
         "lda", "ldx", "pha", "pla", "tax", "txa", "clc", "sec", "adc", "sbc", "and", "ora", "eor",
         "cmp", "cpx", "inx", "dex", "asl", "lsr", "rol", "ror", "nop", "bit",
+        // stores and read-modify-writes (never into stackPointer: see the
+        // operand check in ProcessLine) -- static-frame call sites
+        // (ILStaticCallPass) emit them between `ldy stackPointer` loads.
+        "sta", "stx", "inc", "dec",
     };
 
     private bool _yIsStackPointer;

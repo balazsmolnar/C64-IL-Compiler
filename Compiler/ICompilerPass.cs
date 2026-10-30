@@ -133,12 +133,12 @@ class CompilerContext
         return pos;
     }
 
-    // Static (compiled) frames -- see ILStaticFramePass. StaticFramesEnabled
-    // is the compiler switch (on unless --no-static-frames or
-    // C64_STATIC_FRAMES=0); StaticFrames holds every method the pass gave a
-    // fixed frame, and StaticFrameRejections why each other one kept its
-    // localsStack frame.
-    public bool StaticFramesEnabled { get; set; }
+    // Static (compiled) frames -- see ILStaticFramePass. StaticFramesLevel
+    // is the compiler switch (Program.Compile: 0 off, 1 static methods with
+    // value-type frames only, 2 everything eligible); StaticFrames holds
+    // every method the pass gave a fixed frame, and StaticFrameRejections
+    // why each other one kept its localsStack frame.
+    public int StaticFramesLevel { get; set; }
     public Dictionary<MethodBase, StaticFrameInfo> StaticFrames { get; } = new();
     public Dictionary<MethodBase, string> StaticFrameRejections { get; } = new();
     public int StaticFramesSize { get; set; }

@@ -65,6 +65,8 @@ class ILMethodEmitPass : ICompilerMethodPass
             // stays on the hardware stack -- no prologue at all.
             var frame = context.StaticFrame;
             output.WriteLine($"    ; static frame: StaticFrames+{frame.Offset}, {frame.Size} bytes");
+            if (local_refs.Count > 0)
+                output.WriteLine($"    #sf_enter [{string.Join(',', local_refs)}]");
         }
         else
         {

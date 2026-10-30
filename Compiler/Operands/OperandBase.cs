@@ -169,15 +169,27 @@ class OpCall : OpBase
     // then push the returned value (sf_ret leaves it in A/X).
     internal static string StaticFrameCall(StaticFrameInfo frame, string jsr)
     {
+        var text = StaticFramePulls(frame) + jsr;
+        if (frame.ReturnBytes > 0)
+            text += $"\n    #sf_result {frame.ReturnBytes}";
+        return text;
+    }
+
+    internal static string StaticFramePulls(StaticFrameInfo frame)
+    {
         var sb = new System.Text.StringBuilder();
         int p = frame.ParameterBytes;
         for (int j = 0; j < p; j++)
+        {
             sb.Append($"pla\n    sta SF_TOP-{frame.RelShift + p - j}\n    ");
-        sb.Append(jsr);
-        if (frame.ReturnBytes > 0)
-            sb.Append($"\n    #sf_result {frame.ReturnBytes}");
+            // A reference parameter is a root while the callee runs, as
+            // init_locals_pull_parameters makes it (released by sf_exit).
+            if (frame.ParameterRefBytes[j])
+                sb.Append("tax\n    inc objTableRootCount,x\n    ");
+        }
         return sb.ToString();
     }
+
 
     private static void EnsureCallIsResolvable(CompilerMethodContext context, ILOperation operation)
     {
@@ -1829,8 +1841,13 @@ class OpRet : OpBase
     {
         // A static-frame method (ILStaticFramePass) has nothing to release
         // or rewind: the return value goes back in registers.
+        // RawParameter is "<size>, [<ref_list>]"; the ref list (rel_pos of
+        // every reference-typed parameter/local) is already in static form.
         if (context.StaticFrame != null)
-            return $"#sf_ret {context.StaticFrame.ReturnBytes}";
+        {
+            var raw = operation.RawParameter.ToString();
+            return $"#sf_exit {context.StaticFrame.ReturnBytes}, {raw.Substring(raw.IndexOf('['))}";
+        }
         var text = base.Emit(context, operation);
         return context.IsFrameless ? text.Replace("#method_exit", "#method_leave") : text;
     }

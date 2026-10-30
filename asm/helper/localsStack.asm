@@ -68,6 +68,31 @@ sf_ret .macro bytes
   rts
 .endm
 
+; Entry of a static-frame method with reference-typed locals: zero them, so
+; a local's first store does not "dec old" whatever another method's frame
+; (frames overlay each other) or an earlier call left in that byte -- the
+; same reason init_locals_pull_parameters zeroes them.
+sf_enter .macro local_ref_list
+  .if len(\local_ref_list) > 0
+    lda #0
+    .for pos in \local_ref_list
+      sta SF_TOP-pos
+    .next
+  .endif
+.endm
+
+; Exit of a static-frame method: release every reference-typed parameter
+; and local (method_exit's ref_list), then sf_ret.
+sf_exit .macro bytes, ref_list
+  .if len(\ref_list) > 0
+    .for ref in \ref_list
+      ldx SF_TOP-ref
+      jsr DecRefCountIfAllocated
+    .next
+  .endif
+  #sf_ret \bytes
+.endm
+
 sf_result .macro bytes
   .if \bytes == 1
     pha

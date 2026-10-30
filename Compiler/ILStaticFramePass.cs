@@ -18,6 +18,9 @@ class StaticFrameInfo
     public int Size { get; init; }
     public int ParameterBytes { get; init; }
     public int ReturnBytes { get; init; }
+    // Per parameter byte, in the order the caller pulls them (the last
+    // argument's low byte first, `this` last): is it a reference to count?
+    public bool[] ParameterRefBytes { get; init; }
     public int RelShift => 512 - Offset - Size;
 }
 
@@ -38,8 +41,13 @@ class StaticFrameInfo
 //   - it is not a virtual method (dispatch through the vtable jsr's it with
 //     the normal convention) and not a unit-test entry point (the test
 //     harness jumps to it by label with the arguments on the stack);
-//   - (phase 1) it is static, has no reference-counted parameter or local,
-//     and returns nothing or a 1-2 byte value (passed back in registers).
+//   - it returns nothing or a 1-2 byte value (passed back in registers);
+//     at level 1 (--static-frames=1) also only a static method with no
+//     reference-counted parameter, local or return value. Instance methods
+//     keep `this` in their frame; a reference parameter is counted by the
+//     caller as it stores it (like the prologue would), reference locals
+//     are zeroed on entry (sf_enter) and everything is released at the
+//     exit (sf_exit), exactly as a localsStack frame does.
 // Frames are overlaid along the call graph: a method's frame starts after
 // the frame end of every method that can be active below it (any caller,
 // static or not, transitively), so two frames that can be live at once
@@ -61,7 +69,7 @@ class ILStaticFramePass : ICompilerPass
     {
         // The TestDebugger's local-variable inspector reads every local from
         // localsStack; debug builds keep the dynamic frames.
-        if (!context.StaticFramesEnabled || context.EmitDebugInfo)
+        if (context.StaticFramesLevel <= 0 || context.EmitDebugInfo)
             return;
 
         var methods = EnumerateCompiledMethods(context).Select(Normalize).Distinct().ToList();
@@ -187,6 +195,7 @@ class ILStaticFramePass : ICompilerPass
                 Size = c.size,
                 ParameterBytes = c.paramBytes,
                 ReturnBytes = c.returnBytes,
+                ParameterRefBytes = ParameterRefBytes(method),
             };
             end[i] = start + c.size;
             total = Math.Max(total, end[i]);
@@ -200,6 +209,8 @@ class ILStaticFramePass : ICompilerPass
         out int size, out int paramBytes, out int returnBytes)
     {
         size = paramBytes = returnBytes = 0;
+        if (method.IsVirtual)
+            return "virtual";
         if (undecodable)
             return "not compilable";
         if (method is not MethodInfo info)
@@ -216,19 +227,22 @@ class ILStaticFramePass : ICompilerPass
             return "virtual";
         if (context.IsUnitTest && IsTestEntryPoint(method))
             return "test entry point";
-        if (!method.IsStatic)
+        bool phase1 = context.StaticFramesLevel < 2;
+        if (phase1 && !method.IsStatic)
             return "instance method";
 
         foreach (var p in method.GetParameters())
         {
-            if (p.ParameterType.IsReferenceCounted())
+            if (phase1 && p.ParameterType.IsReferenceCounted())
                 return "reference parameter";
             paramBytes += p.ParameterType.GetStorageBytes();
         }
+        if (!method.IsStatic)
+            paramBytes += 1; // this
         int localBytes = 0;
         foreach (var l in method.GetMethodBody().LocalVariables)
         {
-            if (l.LocalType.IsReferenceCounted())
+            if (phase1 && l.LocalType.IsReferenceCounted())
                 return "reference local";
             localBytes += l.LocalType.GetStorageBytes();
         }
@@ -236,7 +250,7 @@ class ILStaticFramePass : ICompilerPass
         var ret = info.ReturnType;
         if (ret != typeof(void))
         {
-            if (ret.IsReferenceCounted())
+            if (phase1 && ret.IsReferenceCounted())
                 return "reference return";
             returnBytes = ret.GetStorageBytes();
             if (returnBytes > 2)
@@ -245,6 +259,13 @@ class ILStaticFramePass : ICompilerPass
         size = paramBytes + localBytes;
         return null;
     }
+
+    // ParameterRefBytes: the bytes in the order the caller pulls them,
+    // flattened from GetParameterRefList (the prologue's own pull list).
+    private static bool[] ParameterRefBytes(MethodBase method) =>
+        method.GetParameterRefList()
+            .SelectMany(entry => entry.Split(',').Select(x => x.Trim() == "1"))
+            .ToArray();
 
     // The test harness (Compiler/Templates/UnitTestEntry.asm) jumps to a
     // test method by its label with the arguments pushed on the stack.
@@ -363,7 +384,7 @@ class ILStaticFramePass : ICompilerPass
         foreach (var (method, info) in context.StaticFrames.OrderBy(x => x.Value.Offset).ThenBy(x => x.Key.GetLabel()))
             output.WriteLine($";   {method.GetLabel()}: offset {info.Offset}, {info.Size} bytes");
         foreach (var group in context.StaticFrameRejections.GroupBy(x => x.Value).OrderByDescending(g => g.Count()))
-            output.WriteLine($"; dynamic ({group.Key}): {group.Count()}");
+            output.WriteLine($"; dynamic ({group.Key}): {group.Count()}: {string.Join(", ", group.Select(x => x.Key.GetLabel()).OrderBy(x => x))}");
         Console.WriteLine($"Static frames: {context.StaticFrames.Count} of {methodCount} methods, {context.StaticFramesSize} bytes; dynamic: "
             + string.Join(", ", context.StaticFrameRejections.GroupBy(x => x.Value).OrderByDescending(g => g.Count()).Select(g => $"{g.Key} {g.Count()}")));
     }

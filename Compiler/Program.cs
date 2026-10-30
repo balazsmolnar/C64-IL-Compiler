@@ -36,16 +36,21 @@ class Program
     static void Compile(string[] args)
     {
         // Switches (anywhere on the command line; the rest is positional):
-        // --no-static-frames / --static-frames turn ILStaticFramePass off/on.
-        // C64_STATIC_FRAMES=0/1 does the same without touching the .bat files.
-        var staticFrames = Environment.GetEnvironmentVariable("C64_STATIC_FRAMES") != "0";
+        // --no-static-frames / --static-frames[=1|2] set ILStaticFramePass's
+        // level: 0 off, 1 static methods with value-type frames only, 2 (the
+        // default) also instance methods and reference parameters/locals.
+        // C64_STATIC_FRAMES=0/1/2 does the same without touching the .bat
+        // files.
+        var staticFrames = int.TryParse(Environment.GetEnvironmentVariable("C64_STATIC_FRAMES"), out var level) ? level : 2;
         var positional = new List<string>();
         foreach (var arg in args)
         {
             if (arg == "--no-static-frames")
-                staticFrames = false;
+                staticFrames = 0;
             else if (arg == "--static-frames")
-                staticFrames = true;
+                staticFrames = 2;
+            else if (arg.StartsWith("--static-frames="))
+                staticFrames = int.Parse(arg.Substring("--static-frames=".Length));
             else
                 positional.Add(arg);
         }
@@ -76,7 +81,7 @@ class Program
                 IsUnitTest = isUnitTest,
                 Optimize = true,
                 EmitDebugInfo = emitDebugInfo,
-                StaticFramesEnabled = staticFrames,
+                StaticFramesLevel = staticFrames,
             };
             var passes = new List<ICompilerPass> {
                 new ILRawAssemblyPass(),
@@ -208,6 +213,9 @@ class Program
                         new ILMethodStaticArrayAccessOptimizer(),
                     },
                     new ICompilerMethodPass[] {
+                        // After every optimizer, before emit: direct
+                        // argument/result copies at static-frame call sites.
+                        new ILStaticCallPass(),
                         new ILMethodEmitPass(),
                         new ILMethodJumpTablePass()
                     }),

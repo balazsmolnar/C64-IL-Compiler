@@ -109,8 +109,8 @@ static class PlayerSprite
             SpriteStage.Parts[Light + SpriteStage.Frame] = SpriteStage.Hi + Frame.Spark;
             SpriteStage.Parts[Light + SpriteStage.Color] = ember;
             SpriteStage.Parts[Top + SpriteStage.Color] = SpriteStage.Multi | (uint)Colors.LightRed; // the body stands out as the room darkens
-            SpriteStage.Parts[Light + SpriteStage.Dy] = 42;
-            SpriteStage.Parts[Light] = 0;
+            SpriteStage.Parts[Light + SpriteStage.Dy] = 36; // by his outflung hand (the fallen frame's right edge, row 10)
+            SpriteStage.Parts[Light] = 23;
             SpriteStage.Parts[Top + SpriteStage.Frame] = SpriteStage.Mc + Frame.Fallen;
             SpriteStage.Parts[Top + SpriteStage.Dy] = 36;
             return;

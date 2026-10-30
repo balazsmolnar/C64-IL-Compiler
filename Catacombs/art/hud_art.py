@@ -53,12 +53,12 @@ SKULL_COL = 24            # a skull in a niche: 24-25 (compartment 23-27)
 MAPBOX_COL = 29           # minimap: carved stone block 29-38 ...
 MAP_COL = 31              # ... with the map window in 31-36
 
-STONE = (GREY1, GREY2, GREY3)
+STONE = (BLUE, GREY2, GREY3)            # blue mortar and shadows, like the room's stone
 HEART_PAL = (BROWN, RED, LRED)          # socket/rim, body, highlight
 CHEST_PAL = (BROWN, ORANGE, YELLOW)     # dark wood, wood, gold
 DIGIT_PAL = (GREY1, GREY3, WHITE)       # shadow, lower half, upper half
 WEAPON_PAL = (GREY1, GREY3, BROWN)      # dark edge, steel, wood
-MAP_PAL = (GREY1, GREY2, YELLOW)        # frame, explored room, you are here
+MAP_PAL = (RED, GREY2, YELLOW)          # blink, explored room / sill, you are here
 
 
 class Panel:
@@ -120,30 +120,38 @@ def pad(rows, width=8, height=16, top=0):
 # ---------------------------------------------------------------------------
 # Tiles: pictures 16 lines tall (cell rows 22-23), stored top cell row first.
 # ---------------------------------------------------------------------------
-HEART_FULL = pad([         # 6 wide, centred on the boundary between its two cells
-    ".11..11.",
-    ".132221.",
-    ".132221.",
-    ".122221.",
-    ".122221.",
-    ".122221.",
-    "..1221..",
-    "..1221..",
-    "...11...",
-    "...11...",
-], top=3)
-HEART_EMPTY = pad([        # a dark socket of the same size
-    ".11..11.",
-    ".111111.",
-    ".111111.",
-    ".111111.",
-    ".111111.",
-    ".111111.",
-    "..1111..",
-    "..1111..",
-    "...11...",
-    "...11...",
-], top=3)
+HEART_FULL = pad([         # 7 wide in its 8: column 7 stays black, a gap between hearts
+    ".11.11..",
+    "1332221.",
+    "1322221.",
+    "1222221.",
+    "1222221.",
+    ".12221..",
+    "..121...",
+    "...1....",
+], top=4)
+
+
+def hollow(rows):
+    """The same heart as an empty socket: its rim only, black inside."""
+    out = []
+    for y, line in enumerate(rows):
+        row = ""
+        for x, ch in enumerate(line):
+            if ch == ".":
+                row += "."
+                continue
+            edge = False
+            for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                nx, ny = x + dx, y + dy
+                if ny < 0 or ny >= len(rows) or nx < 0 or nx >= len(line) or rows[ny][nx] == ".":
+                    edge = True
+            row += "1" if edge else "."
+        out.append(row)
+    return out
+
+
+HEART_EMPTY = hollow(HEART_FULL)
 
 GLYPHS = {                 # 3x10, drawn in the upper colour, lower colour below the middle
     '0': [".#.", "#.#", "#.#", "#.#", "#.#", "#.#", "#.#", "#.#", "#.#", ".#."],
@@ -159,7 +167,7 @@ GLYPHS = {                 # 3x10, drawn in the upper colour, lower colour below
     '/': ["..#", "..#", "..#", ".#.", ".#.", ".#.", ".#.", "#..", "#..", "#.."],
     ' ': ["..."] * 10,
 }
-DIGIT_ORDER = "0123456789/"
+DIGIT_ORDER = "0123456789"           # ("/" is only ever in the picture)
 
 
 def digit_tile(ch):
@@ -231,19 +239,18 @@ FIST = pad([               # unarmed: a mailed fist
 ], top=2)
 WEAPONS = (FIST, SWORD, AXE)
 
-SKULL_ICON = pad([          # monsters slain
-    "..3332..",
-    ".333332.",
-    "33333322",
-    "33333322",
-    "3..32..2",
-    "3..32..1",
-    "3333.321",
-    ".333221.",
-    "..2.2...",
+SKULL_ICON = pad([          # lit from above: white only on the cranium
+    "..3333..",
+    ".332222.",
+    "32222221",
+    "2..22..2",
+    "2..22..2",
+    "2222.221",
+    ".222221.",
+    ".2.2.2..",
     "..2221..",
-    "..2.2...",
-], top=3)
+], top=4)
+SKULL_PAL = (BLUE, GREY3, WHITE)
 
 SKULL_CAP = [              # tops every pillar, with a black outline
     "..3332..",
@@ -293,8 +300,16 @@ def draw_frame(p):
 def draw_static(p):
     p.put(CHEST_COL * 4, 8, CHEST)
     p.colour(CHEST_COL, 1, CHEST_COL + 1, 2, CHEST_PAL)
+    # The skull's niche: a dark arch with a lit rim on the right, in stone.
+    nx0, nx1 = SKULL_COL * 4 - 2, SKULL_COL * 4 + 9
     p.put(SKULL_COL * 4, 8, SKULL_ICON)
-    p.colour(SKULL_COL, 1, SKULL_COL + 1, 2, DIGIT_PAL)
+    for y in range(10, 28):                   # after the skull: its padding is black
+        p.px[y][nx0] = 1
+        p.px[y][nx1] = 3
+    p.put(nx0, 8, ["...111111..."])           # a round arch over three lines
+    p.put(nx0, 9, [".11......11."])
+    p.put(nx0, 10, ["1..........3"])
+    p.colour(SKULL_COL, 1, SKULL_COL + 1, 2, SKULL_PAL)
 
     # The minimap's stone block: carved border, rivets, recessed window.
     x0, x1 = MAPBOX_COL * 4, (MAPBOX_COL + 10) * 4 - 1
@@ -311,7 +326,7 @@ def draw_static(p):
     # explored = all black): a dark inset on its left, a lit edge on its
     # right, both in the stone block's cells.
     wx0, wx1 = MAP_COL * 4, (MAP_COL + 6) * 4 - 1
-    p.fill(wx0, 8, wx1, 31, 0)
+    p.fill(wx0, 8, wx1, 31, 0)                # (Hud.Render draws the window from RAM)
     p.fill(wx0 - 1, 8, wx0 - 1, 31, 1)
     p.fill(wx1 + 1, 8, wx1 + 1, 31, 3)
     p.colour(MAP_COL, 1, MAP_COL + 5, 3, MAP_PAL)
@@ -358,7 +373,7 @@ def tile_bytes(rows):
 
 
 # Tile numbers (Hud.cs): hearts 0-7 (full left/right, empty left/right),
-# digits 8-29 ("0"-"9", "/"), weapons 30-41 (fist, sword, axe).
+# digits 8-27 ("0"-"9"), weapons 28-39 (fist, sword, axe).
 def tile_sets(panel):
     tiles = []
     for art in (HEART_FULL, HEART_EMPTY):
@@ -378,11 +393,15 @@ def tile_sets(panel):
     # (The rooms' rows: line 2y+6 of the panel, so maze rows 1-10 fill lines 8-27.)
     # hud_MapCellRow[y]: the screen row of the cell holding maze row y.
     cellrows = [21 + ((2 * y + 6) >> 3) for y in range(1, 11)]
-    return tiles, rows, cellrows
+    # hud_MapSill: hud_Map bytes 100-143 as a new run starts -- the window's
+    # own sill (lines 28-30 of its bottom cells): a yellow top line, grey
+    # stone, grey with a black rivet every four pixels; black between.
+    sill = [{4: 0xFF, 5: 0xAA, 6: 0xA2}.get((100 + i) % 8, 0) for i in range(44)]
+    return tiles, rows, cellrows, sill
 
 
 def write_cs(path, sets):
-    names = ("hud_Tiles", "hud_MapRow", "hud_MapCellRow")
+    names = ("hud_Tiles", "hud_MapRow", "hud_MapCellRow", "hud_MapSill")
     lines = ["// Generated by art/hud_art.py -- do not edit. The status panel's tiles",
              "// (8 bytes a cell; a picture's top cell row, then its bottom one), the",
              "// minimap's cells and its row table.",
@@ -431,13 +450,17 @@ def mock(panel, hp, treasure, weapon, power, kills, seen, here, bright=True):
     for i, ch in enumerate("%d/3" % treasure):
         p.put((COUNT_COL + i) * 4, 8, digit_tile(ch))
     p.put(WEAPON_COL * 4, 8, WEAPONS[weapon])
+    p.fill(MAP_COL * 4, 28, MAP_COL * 4 + 23, 28, 3)     # the window's sill, as Minimap.Init makes it
+    p.fill(MAP_COL * 4, 29, MAP_COL * 4 + 23, 30, 2)
+    for x in range(MAP_COL * 4 + 3, MAP_COL * 4 + 24, 4):
+        p.px[30][x] = 0
     for i, ch in enumerate("%2d" % power):
         if ch != " ":
             p.put((POWER_COL + i) * 4, 8, digit_tile(ch))
     for (mx, my) in seen:
         if MAZE[my][mx] != '1':
             continue
-        v = 3 if (mx, my) == here and bright else 2
+        v = (3 if bright else 1) if (mx, my) == here else 2
         for dy in range(2):
             for dx in range(2):
                 p.px[2 * my + 6 + dy][MAP_COL * 4 + 2 * mx + dx] = v

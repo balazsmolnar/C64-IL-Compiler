@@ -27,8 +27,8 @@ static class Hud
 
     // Tile numbers in hud_Tiles (see art/hud_art.py): every picture is its
     // top cell row, then its bottom cell row.
-    const uint DigitTiles = 8;      // "0"-"9", "/": 2 tiles each
-    const uint WeaponTiles = 30;    // fist, sword, axe: 4 tiles each
+    const uint DigitTiles = 8;      // "0"-"9": 2 tiles each
+    const uint WeaponTiles = 28;    // fist, sword, axe: 4 tiles each
 
     // Heart cells' video matrix byte: rim brown (high nibble), body (low nibble).
     const uint HeartBody = 0x92;    // red

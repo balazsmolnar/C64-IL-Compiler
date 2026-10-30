@@ -278,7 +278,6 @@ class Program
             roomX_ = nx;
             roomDepth_ = nd;
         }
-        Audio.Step(moved);
 
         // Checked every frame, not just when moved: the player can stop
         // right at a door (the door effect is the cue)

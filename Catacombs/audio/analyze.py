@@ -40,7 +40,7 @@ TICK_CYCLES = sidmusic.TICK_CYCLES       # one PAL frame
 TICK_S = TICK_CYCLES / sidmusic.PAL_CLOCK
 
 # scene -> what the scene build does, in order (see Audio.Init)
-ALL_FX = [('fx', n) for n in ('step a', 'step b', 'door', 'pickup', 'weapon', 'sword', 'growl', 'hurt',
+ALL_FX = [('fx', n) for n in ('door', 'pickup', 'weapon', 'sword', 'growl', 'hurt',
                               'monster death', 'player death')]
 SCENES = {
     'EXPLORE': [('play', 'explore')],
@@ -204,7 +204,7 @@ def note_segments(timeline):
 
 
 def check_wav(scene, path, timeline, triggers, png):
-    sc_effect_ticks = {e['name']: e['len'] for e in score_module.build().effects}
+    sc_effect_ticks = {e['name']: e['len'] & 0x7F for e in score_module.build().effects}
     import numpy as np
     rate, x = read_wav(path)
     dur = len(x) / rate

@@ -71,8 +71,8 @@ def build(test=False):
     # a moving pulse width, heard through whatever the bass is doing to
     # the filter. m minor, M major, d diminished, s dominant seventh.
     # Each chord lets go of its gate for the last 18 ticks (a beat and
-    # a half) and rings on in its long release. A fast attack: when a
-    # footstep borrows the voice, the chord is back 40 ms later instead of
+    # a half) and rings on in its long release. A fast attack: when an
+    # effect hands the voice back, the chord is back at once instead of
     # swelling in again (the moving pulse width still makes it bloom).
     for q, (third, top) in dict(m=(3, 7), M=(4, 7), d=(3, 6), s=(4, 10)).items():
         s.instrument('pad' + q, ad=0x09, sr=0x3B, pw=0x500, pws=0x1C, filt='keep', gate=18,
@@ -109,14 +109,6 @@ def build(test=False):
     # envelopes: gate=N releases the note N ticks before the effect ends.
     # Numbers double as priorities (see sidmusic.py): later = wins.
     # ------------------------------------------------------------------
-    # Footsteps, two alternating: a tick of high noise (the scuff), a tick
-    # of low noise (the weight). Two ticks, so taking voice 3 from the
-    # chords costs them a 40 ms blip (the pads attack fast).
-    s.instrument('fx_stepA', ad=0x01, sr=0x00, wave=[(NOISE, 'a-6'), (NOISE, 'c-3')])
-    s.instrument('fx_stepB', ad=0x01, sr=0x00, wave=[(NOISE, 'f-6'), (NOISE, 'a-2')])
-    s.effect('step a', 'fx_stepA', 'c-3', 2)
-    s.effect('step b', 'fx_stepB', 'c-3', 2)
-
     # Door: a narrow pulse creaking upwards from 90 Hz, two steps up and
     # one back, a breath, then the slam -- re-gated noise dropping an
     # octave, released so it dies away instead of stopping.
@@ -142,22 +134,22 @@ def build(test=False):
     # oscillator: inharmonic, metallic) moving between B6 and F7, ringing
     # off. (With voice 2 silent the ring has nothing to multiply by and
     # it is a plain triangle.)
-    s.instrument('fx_sword', ad=0x09, sr=0x87, gate=10,
+    s.instrument('fx_sword', ad=0x09, sr=0xE7, gate=10,
                  wave=[(NOISE, 'c-7'), (0, 'c-7'), (0x14, 'b-6'), (0x15, 'b-6'), (0, 'f-7'), (0, 'c-7'),
                        (0, 'f#7'), ('jump', 3)])
-    s.effect('sword', 'fx_sword', 'b-6', 26)
+    s.effect('sword', 'fx_sword', 'b-6', 26, duck=True)
 
     # Growl: a low sawtooth with a slow, uneven pitch wobble and breaths of
     # noise in it, sinking; swells in and dies away.
     s.instrument('fx_growl', ad=0x4A, sr=0xD7, wspd=3, slide=-2, gate=14,
                  wave=[(SAW, 'a-1'), (0, 'a#1'), (NOISE, 'e-3'), (SAW, 'g#1'), (0, 'a-1'), (0, 'b-1'),
                        (NOISE, 'd-3'), (SAW, 'a-1'), ('jump', 0)])
-    s.effect('growl', 'fx_growl', 'a-1', 60)
+    s.effect('growl', 'fx_growl', 'a-1', 60, duck=True)
 
     # Hurt: a crack of noise, then a pulse falling more than an octave.
     s.instrument('fx_hurt', ad=0x08, sr=0xA4, pw=0x600, pws=0x30, slide=-100, gate=6,
                  wave=[(NOISE, 'c-6'), (0, 'c-6'), (PULSE, 'f-3')])
-    s.effect('hurt', 'fx_hurt', 'e-3', 16)
+    s.effect('hurt', 'fx_hurt', 'e-3', 16, duck=True)
 
     # Monster death: a sawtooth roar with noise in it, falling away.
     s.instrument('fx_mdeath', ad=0x0A, sr=0xE7, wspd=2, slide=-14, gate=14,
@@ -247,7 +239,7 @@ def build(test=False):
         [T(0), 'counter1', T(5), 'counter1', T(0), 'padBellm', T(1), 'quarterM', T(0), 'pad12m',
          T(1), 'padM', T(-5), 'pads'])
     s.song('explore', tempo=9, end='loop', volume=15,
-           filter=dict(res=11, mode='lp', cut=(0x0A, 0x58)),
+           filter=dict(res=11, mode='lp', cut=(0x0A, 0x70)),
            voices=[explore_bass, explore_lead, explore_chords])
 
     # ------------------------------------------------------------------

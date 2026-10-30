@@ -16,12 +16,6 @@ namespace Catacombs;
 // these calls block unless they say so.
 static class Audio
 {
-    const uint StepEvery = 24;  // frames between two footsteps: about two a second
-
-    static uint lastStep_;      // C64.Music.Frame of the last footstep
-    static bool walking_;
-    static bool stepLeft_;
-
     // A song from its start (the title tune hands over to the exploration
     // tune by itself after 8.6 s -- on purpose: a player idling on the
     // title screen hears the game's main tune, and Song(SongExplore) at
@@ -75,26 +69,6 @@ static class Audio
         C64.Music.Play(AudioIds.SongHold);
         EffectReel();
 #endif
-    }
-
-    // Every pass of the main loop: did the player move? Footsteps come
-    // at most two a second (timed in real frames, however long a pass
-    // takes), left and right alternating, the first as soon as the player
-    // sets off.
-    public static void Step(bool moved)
-    {
-        if (!moved)
-        {
-            walking_ = false;
-            return;
-        }
-        uint now = C64.Music.Frame;
-        if (walking_ && (uint)(now - lastStep_) < StepEvery)
-            return;
-        walking_ = true;
-        lastStep_ = now;
-        C64.Music.PlayEffect(stepLeft_ ? AudioIds.FxStepA : AudioIds.FxStepB);
-        stepLeft_ = !stepLeft_;
     }
 
     // The exploration tune is put aside, not stopped: MonsterDied picks it

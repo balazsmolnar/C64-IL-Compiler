@@ -103,7 +103,8 @@
 ;                        re-attacks the note).
 ;                        r: $00-$7F semitones above the note, $80-$FF an
 ;                        absolute note (value - $80)
-;   music_sfx_ins/note/len  per effect: instrument, note, length in ticks.
+;   music_sfx_ins/note/len  per effect: instrument, note, length in ticks
+;                        (bit 7 of the length: duck the music meanwhile).
 ;                        A higher effect number wins over a lower one that
 ;                        is still sounding.
 ;   music_sfx_reg        (symbols, not tables) SID register offset of the
@@ -194,6 +195,7 @@ music_state_end
 ; ---- the rest of the player's variables ------------------------------------
 m_sfx       .byte 0         ; number of the effect on the effect channel
 m_sfxhr     .byte 0         ; nonzero: the effect starts next tick, this one kills the voice
+m_duck      .byte 0         ; bit 7: the effect sounding ducks voices 1 and 2
 m_fxroute   .byte 0         ; the effect's own $D417 routing bit (0 or music_sfx_bit)
 m_frame     .byte 0         ; counts ticks (C64.Music.Frame)
 m_saved     .byte 0         ; nonzero: music_save holds an interrupted song
@@ -406,6 +408,8 @@ Music_PlayEffect
     bcc _skip
 +   sty m_sfx
     lda music_sfx_len,y
+    sta m_duck                  ; bit 7: duck the music while it sounds
+    and #$7f
     sta mv_count+3
     sta m_sfxhr                 ; (nonzero) first a tick with the voice's envelope killed
     lda music_sfx_note,y
@@ -898,12 +902,14 @@ _write
     lda mv_sr,x
     cpx #3
     bcs _sr
-    pha                         ; a music voice while an effect sounds: ducked,
-    lda mv_count+3              ; its sustain 4 steps lower (the envelope falls to
-    beq _full                   ; it; it comes back with the voice's next note)
+    pha                         ; a music voice while a ducking effect sounds:
+    lda mv_count+3              ; its sustain 6 steps lower. (The envelope falls
+    beq _full                   ; to it and can't rise again: a note held through
+    bit m_duck                  ; the effect stays down until the voice's next
+    bpl _full                   ; note -- only for short effects over busy music.)
     pla
     sec
-    sbc #$40
+    sbc #$60
     bcs _sr
     and #$0f
     bcc _sr

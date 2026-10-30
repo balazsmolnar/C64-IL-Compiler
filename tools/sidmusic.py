@@ -331,11 +331,17 @@ class Score:
             res=f['res'] << 4, modevol=(mode << 4) | volume,
             cutmin=cmin, cutmax=cmax, rows=lengths[0][0], loop_rows=lengths[0][1]))
 
-    def effect(self, name, ins, note, ticks):
-        if not 1 <= ticks <= 255:
-            raise ValueError('%s: effect length must be 1..255 ticks' % name)
+    def effect(self, name, ins, note, ticks, duck=False):
+        """duck: while it sounds, voices 1 and 2 play with their sustain 6
+        steps lower. The SID envelope can't climb back to a higher sustain,
+        so a note held through the effect stays down until the voice's next
+        note: use it for short effects over busy music (combat), not over
+        long held notes."""
+        if not 1 <= ticks <= 127:
+            raise ValueError('%s: effect length must be 1..127 ticks' % name)
         self.fx_index[name] = len(self.effects)
-        self.effects.append(dict(name=name, ins=self.ins_index[ins], note=note_number(note), len=ticks))
+        self.effects.append(dict(name=name, ins=self.ins_index[ins], note=note_number(note),
+                                 len=ticks | (0x80 if duck else 0)))
 
     # -- compile -----------------------------------------------------------
     def compile(self):
@@ -515,7 +521,7 @@ class Player:
         self.tempo = 0
         self.modevol = 0x0F
         self.res = self.route = self.cut = self.cutd = self.cutmin = self.cutmax = 0
-        self.sfx = self.sfxhr = self.fxroute = self.frameno = 0
+        self.sfx = self.sfxhr = self.fxroute = self.frameno = self.duck = 0
         self.saved = None
         z = lambda: [0, 0, 0, 0]
         self.count, self.pend, self.dur, self.ins, self.trans = z(), z(), z(), z(), z()
@@ -575,7 +581,8 @@ class Player:
         if self.count[3] and e < self.sfx:
             return
         self.sfx = e
-        self.count[3] = self.sfxhr = d['music_sfx_len'][e]
+        self.duck = d['music_sfx_len'][e]
+        self.count[3] = self.sfxhr = self.duck & 0x7F
         self.note_init(3, d['music_sfx_note'][e], d['music_sfx_ins'][e])
 
     def note_init(self, x, note, y):
@@ -760,8 +767,8 @@ class Player:
         self.sid[y + 3] = self.pwhi[x]
         self.sid[y + 5] = self.ad[x]
         sr = self.sr[x]
-        if x != 3 and self.count[3]:
-            sr = sr - 0x40 if sr >= 0x40 else sr & 0x0F
+        if x != 3 and self.count[3] and self.duck & 0x80:
+            sr = sr - 0x60 if sr >= 0x60 else sr & 0x0F
         self.sid[y + 6] = sr
         self.sid[y + 4] = self.wave[x] & self.gate[x]
 

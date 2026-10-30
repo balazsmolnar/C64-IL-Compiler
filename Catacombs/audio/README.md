@@ -20,14 +20,17 @@
   on from the very note it was at (`Music.Resume`).
 - Death: death effect and death jingle (6.7 s), then the exploration tune from the start.
 - Last treasure collected: victory fanfare (6.4 s) breaks in, then the exploration tune resumes.
-- Effects: footsteps (two, alternating), door, treasure pickup, weapon pickup, monster growl, player hurt, sword hit, monster death, player death.
+- Effects: door, treasure pickup, weapon pickup, sword hit, monster growl, player hurt, monster death, player death.
 
 Voice 1 is bass and percussion (each drum is the attack of a bass note),
-voice 2 the lead, voice 3 chords, pads and bell. While an effect sounds, voices 1 and 2 are ducked (their sustain
-drops 4 steps; it comes back with each voice's next note). Effects borrow voice 3;
+voice 2 the lead, voice 3 chords, pads and bell. While the combat effects (sword, growl, hurt) sound, voices 1 and 2 are
+ducked: their sustain drops 6 steps. The SID envelope can't climb back up
+to a higher sustain, so a note held through the effect stays down until
+that voice's next note -- which is why only short effects over the busy
+combat tune duck. Effects borrow voice 3;
 the music on it keeps counting silently and comes back in time, re-attacked,
-when the effect ends. Footsteps are two ticks long and the pads attack
-fast, so a step costs the chords a 40 ms blip.
+when the effect ends. There are no footsteps: on three voices they could
+only be heard by chopping the chords.
 
 ## Changing the music
 
@@ -65,7 +68,7 @@ straight into that sound and stays there; see `Audio.Init`):
 | `DEATH` | Death jingle, then exploration |
 | `VICTORY` | 5 s of exploration, the victory fanfare breaking in, exploration resuming |
 | `RESUME` | 10 s of exploration, 5 s of combat, exploration resumed where it was |
-| `SFX` | Every effect in turn, 2 s apart, no music. Order: step a, step b, door, pickup, weapon, growl, hurt, sword, monster death, player death |
+| `SFX` | Every effect in turn, 2 s apart, no music. Order: door, pickup, weapon, sword, growl, hurt, monster death, player death |
 | `SFXMIX` | The same effects over the exploration tune |
 | `SFXCOMBAT` | The same effects over the combat tune |
 | `SFXGATED` | The same effects while voice 3 holds a chord: each must sound as it does alone |

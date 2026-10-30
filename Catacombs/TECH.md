@@ -246,13 +246,16 @@ mc2=None, transparent=None, count=None, preview=None, quiet=False)`.
   short `Data:` lines for aligned runtime pieces; take the last one's end).
   Free = $CC00 - that end - 1080 (object tables, locals stack and string
   buffers left above the code when `DrawText` is used; 56 without it) -
+  the static frames (the compiler prints "Static frames: ..., N bytes") -
   what the heap needs - 64 per sprite frame beyond 64. The runtime owns
   $0800-$0FFF: nothing else may use it.
-  After the round-4 integration (all six parts merged) the block ends
-  at $BBBE, of which the last 4096 bytes ($ABBF-) are the 64 sprite frames
-  that are moved at startup: the tables take $ABBF-$AFF6 and the heap
-  starts at $AFF7, so **7,177 bytes ($AFF7-$CBFF) are left for more code,
-  assets and the heap** (the prototype had 25,827).
+  After merging the three compiler optimizations (object-array
+  initializers, top of stack in A, static frames) the block ends at $AEB2,
+  of which the last 4096 bytes ($9EB3-) are the 64 sprite frames that are
+  moved at startup: the tables (with 39 bytes of static frames) take
+  $9EB3-$A311 and the heap starts at $A312, so **10,478 bytes
+  ($A312-$CBFF) are left for more code, assets and the heap** (7,177
+  before those optimizations; the prototype had 25,827).
 - Sprite frames 1-64 are free: they load at the end of the program and are
   copied under the I/O area at startup; the object tables and heap then
   reuse that space. (The loaded file must still end below $CC00, which the

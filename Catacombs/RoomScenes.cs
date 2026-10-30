@@ -29,7 +29,7 @@ static class RoomScenes
 #if SCENE_ROOM4
         Show(0, DungeonView.North | DungeonView.West | DungeonView.East | DungeonView.South, DungeonView.Bones | DungeonView.Banner);
 #elif SCENE_DEADEND
-        Show(0, DungeonView.South, DungeonView.Grate);
+        Show(0, DungeonView.South, DungeonView.Grate | DungeonView.Niche);
 #elif SCENE_THEME0
         Show(0, DungeonView.North | DungeonView.East, DungeonView.Puddle);
 #elif SCENE_THEME1

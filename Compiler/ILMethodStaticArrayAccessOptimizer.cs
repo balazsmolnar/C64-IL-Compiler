@@ -151,7 +151,7 @@ class ILMethodStaticArrayAccessOptimizer : ICompilerMethodPass
             case ILOpCode.Nop:
                 // Fused replacements of the above carry Nop; only pure ones
                 // are recognised (field reads and int arithmetic/widening).
-                return l.Operation is IPushFldOperation || l.Operation is OpFusedIntBinOp ||
+                return l.Operation is IPushFldOperation || l.Operation is OpFusedIntBinOp || l.Operation is OpFusedIntConstOp ||
                        l.Operation is OpStaticArrayLoad || l.Operation is OpDivConst ||
                        l.Operation.GetType() == typeof(OpArithmetic2) || l.Operation.GetType() == typeof(OpArithmetic1);
             default:

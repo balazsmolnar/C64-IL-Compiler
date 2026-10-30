@@ -567,13 +567,117 @@ shift_right8 .macro
     #stack_push_int_a
 .endm
 
+; And/Or/Xor. The "_tail" macros (first operand in A, second in
+; zp_param1_low; 16-bit: first in zp_param2_low/high, second in
+; zp_param1_low/high) are what ILMethodIntOperandFusionOptimizer's fused
+; operand copies (OpFusedIntBinOp) chain into, same as add8_tail above.
+;
+; The "_const" macros take the second operand as an assembly-time constant
+; (OpFusedIntConstOp): "and8_const c" works on the value already on the
+; stack (pla / and #c / pha: 4 bytes instead of pushing c and calling and8,
+; 10), "and8_const_tail c" on a first operand already in A. and_imm8 &
+; co. are the byte operation itself: an identity constant (and #$ff, ora
+; #0, eor #0) emits nothing and an absorbing one (and #0, ora #$ff) a plain
+; lda, so the 16-bit forms only touch the bytes the constant changes.
+
+and_imm8 .macro value
+  .if ((\value) & $ff) == 0
+    lda #0
+  .elsif ((\value) & $ff) != $ff
+    and #<(\value)
+  .endif
+.endm
+
+ora_imm8 .macro value
+  .if ((\value) & $ff) == $ff
+    lda #$ff
+  .elsif ((\value) & $ff) != 0
+    ora #<(\value)
+  .endif
+.endm
+
+eor_imm8 .macro value
+  .if ((\value) & $ff) != 0
+    eor #<(\value)
+  .endif
+.endm
+
+; A byte the constant leaves unchanged: and with $ff, or/xor with 0.
+logic_identity8 .function op, value
+.endf (op == 0 && ((value) & $ff) == $ff) || (op != 0 && ((value) & $ff) == 0)
+
+; Shared body of and16_const/or16_const/xor16_const (op: 0 and, 1 or,
+; 2 xor). The value's low byte is on top of the stack, its high byte below
+; it; only the bytes the constant changes are touched.
+logic16_const .macro op, value
+  .if logic_identity8(\op, (\value) >> 8)
+    ; high byte unchanged: only the top byte
+    pla
+    #logic_imm8 \op, \value
+    pha
+  .elsif logic_identity8(\op, \value)
+    ; low byte unchanged: only the byte below the top
+    tsx
+    .if (\op == 0 && ((\value) & $ff00) == 0) || (\op == 1 && ((\value) & $ff00) == $ff00)
+      #logic_imm8 \op, (\value) >> 8
+    .else
+      lda $102,x
+      #logic_imm8 \op, (\value) >> 8
+    .endif
+    sta $102,x
+  .else
+    pla
+    #logic_imm8 \op, \value
+    sta zp_param1_low
+    pla
+    #logic_imm8 \op, (\value) >> 8
+    pha
+    lda zp_param1_low
+    pha
+  .endif
+.endm
+
+logic_imm8 .macro op, value
+  .if \op == 0
+    #and_imm8 \value
+  .elsif \op == 1
+    #ora_imm8 \value
+  .else
+    #eor_imm8 \value
+  .endif
+.endm
+
+and8_tail .macro
+    and zp_param1_low
+    #stack_push_int_a
+.endm
+
 and8 .macro
 
     #stack_pull_int zp_param1_low
     #stack_pull_int_a
 
-    and zp_param1_low
+    #and8_tail
+.endm
+
+and8_const_tail .macro value
+    #and_imm8 \value
     #stack_push_int_a
+.endm
+
+and8_const .macro value
+    #stack_pull_int_a
+    #and8_const_tail \value
+.endm
+
+and16_tail .macro
+    lda zp_param2_low
+    and zp_param1_low
+    sta zp_param2_low
+    lda zp_param2_high
+    and zp_param1_high
+    #stack_push_int_a
+    #stack_push_var zp_param2_low
 .endm
 
 ; and8 had no 16-bit counterpart before Or/Xor were added alongside it here --
@@ -588,13 +692,16 @@ and16 .macro
     #stack_pull_int zp_param2_low
     #stack_pull_int zp_param2_high
 
-    lda zp_param2_low
-    and zp_param1_low
-    sta zp_param2_low
-    lda zp_param2_high
-    and zp_param1_high
+    #and16_tail
+.endm
+
+and16_const .macro value
+    #logic16_const 0, \value
+.endm
+
+or8_tail .macro
+    ora zp_param1_low
     #stack_push_int_a
-    #stack_push_var zp_param2_low
 .endm
 
 or8 .macro
@@ -602,8 +709,27 @@ or8 .macro
     #stack_pull_int zp_param1_low
     #stack_pull_int_a
 
-    ora zp_param1_low
+    #or8_tail
+.endm
+
+or8_const_tail .macro value
+    #ora_imm8 \value
     #stack_push_int_a
+.endm
+
+or8_const .macro value
+    #stack_pull_int_a
+    #or8_const_tail \value
+.endm
+
+or16_tail .macro
+    lda zp_param2_low
+    ora zp_param1_low
+    sta zp_param2_low
+    lda zp_param2_high
+    ora zp_param1_high
+    #stack_push_int_a
+    #stack_push_var zp_param2_low
 .endm
 
 or16 .macro
@@ -614,13 +740,16 @@ or16 .macro
     #stack_pull_int zp_param2_low
     #stack_pull_int zp_param2_high
 
-    lda zp_param2_low
-    ora zp_param1_low
-    sta zp_param2_low
-    lda zp_param2_high
-    ora zp_param1_high
+    #or16_tail
+.endm
+
+or16_const .macro value
+    #logic16_const 1, \value
+.endm
+
+xor8_tail .macro
+    eor zp_param1_low
     #stack_push_int_a
-    #stack_push_var zp_param2_low
 .endm
 
 xor8 .macro
@@ -628,8 +757,27 @@ xor8 .macro
     #stack_pull_int zp_param1_low
     #stack_pull_int_a
 
-    eor zp_param1_low
+    #xor8_tail
+.endm
+
+xor8_const_tail .macro value
+    #eor_imm8 \value
     #stack_push_int_a
+.endm
+
+xor8_const .macro value
+    #stack_pull_int_a
+    #xor8_const_tail \value
+.endm
+
+xor16_tail .macro
+    lda zp_param2_low
+    eor zp_param1_low
+    sta zp_param2_low
+    lda zp_param2_high
+    eor zp_param1_high
+    #stack_push_int_a
+    #stack_push_var zp_param2_low
 .endm
 
 xor16 .macro
@@ -640,13 +788,11 @@ xor16 .macro
     #stack_pull_int zp_param2_low
     #stack_pull_int zp_param2_high
 
-    lda zp_param2_low
-    eor zp_param1_low
-    sta zp_param2_low
-    lda zp_param2_high
-    eor zp_param1_high
-    #stack_push_int_a
-    #stack_push_var zp_param2_low
+    #xor16_tail
+.endm
+
+xor16_const .macro value
+    #logic16_const 2, \value
 .endm
 
 conv_8_16 .macro

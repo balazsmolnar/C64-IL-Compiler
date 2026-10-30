@@ -184,6 +184,25 @@ public class StaticFrameTests
         Assert.AreEqual(y.Pick(Combine2(x, y), z, 0), 40u);
     }
 
+    // Its result comes back in A (sf_ret) with flags from whatever produced
+    // it in the callee -- here a multiplication's jsr, possibly with the
+    // value left in A (TopOfStackInA) -- so the caller's sf_result must
+    // still push it for a branch that reads the flags of its pla.
+    static uint Triple(uint v)
+    {
+        Touch();
+        return v * 3;
+    }
+
+    [TestCase(0u, ExpectedResult = 2u)]
+    [TestCase(5u, ExpectedResult = 1u)]
+    public uint Static_Result_Branches_On_Its_Value(uint x)
+    {
+        if (Triple(x) != 0)
+            return 1;
+        return 2;
+    }
+
     static FrameNode Combine2(FrameNode a, FrameNode b)
     {
         Touch();

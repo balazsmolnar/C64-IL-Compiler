@@ -26,9 +26,9 @@ using C64Lib;
 //   pal_EncFade  one step darker; applied over and over it ends in black.
 [assembly: RawAssembly(Asm = @"
 pal_EncKind  .byte 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
-             .byte 0,1,5,3,4,5,6,13,9,9,10,11,12,13,14,15
+             .byte 0,1,5,3,4,5,9,13,9,9,10,11,12,13,5,15
              .byte 0,1,2,3,4,5,9,7,8,9,10,2,12,13,10,15
-             .byte 0,1,4,3,4,5,6,15,4,6,10,11,12,13,14,15
+             .byte 0,1,4,3,4,5,6,15,4,6,10,11,12,13,4,15
 pal_EncEyes  .byte 2,8,7,1, 5,13,7,1, 2,10,7,1, 4,14,3,1
 pal_EncTorch .byte 0,7,2,3,4,5,6,8,1,9,10,11,12,13,14,15
 pal_EncFlash .byte 0,9,10,11,5,4,14,12,15,1,2,3,7,13,6,8

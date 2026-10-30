@@ -1,7 +1,7 @@
 using NUnit.Framework;
 using Assert = C64TestFramework.Assert;
 
-namespace Compiler.RuntimeTest;
+namespace Compiler.Test;
 
 class TosThing
 {

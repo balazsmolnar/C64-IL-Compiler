@@ -3,7 +3,7 @@ using C64Lib;
 using NUnit.Framework;
 using Assert = C64TestFramework.Assert;
 
-namespace Compiler.RuntimeTest;
+namespace Compiler.Test;
 
 // Array literals of objects: runs of elements whose fields are all constants
 // are built from one table by NewObjArrayInitL (Compiler/

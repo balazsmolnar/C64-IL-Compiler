@@ -1,7 +1,7 @@
 using NUnit.Framework;
 using Assert = C64TestFramework.Assert;
 
-namespace Compiler.RuntimeTest;
+namespace Compiler.Test;
 
 // And/Or/Xor with a constant operand (ILMethodIntOperandFusionOptimizer):
 // a value already on the stack becomes `pla; and #c; pha` (and8_const and

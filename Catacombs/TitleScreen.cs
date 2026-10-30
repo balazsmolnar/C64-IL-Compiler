@@ -152,6 +152,7 @@ static class TitleScreen
         else
         {
             C64.FillMemory(SpriteEnable, 0x41, 1);   // the torches have burnt out
+            C64.Screen.RemapCellColors(17, 19, 6, 1, inner_);   // a pale wedge of daylight on the floor
             C64.Screen.DrawText(7, PromptRow, "YOU ESCAPED THE CATACOMBS", 0x70);
             C64.Screen.DrawText(9, InfoRow, "ALL 3 RELICS RECOVERED", 0xF0);
         }

@@ -12,6 +12,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\C64Lib\C64Lib.csproj" />
+    <!-- Build order only: the post-build step runs Compiler.exe against the new runtime asm, so it must be current -->
+    <ProjectReference Include="..\Compiler\Compiler.csproj" ReferenceOutputAssembly="false" SkipGetTargetFrameworkProperties="true" Private="false" />
   </ItemGroup>
 
   <PropertyGroup>

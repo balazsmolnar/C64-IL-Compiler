@@ -17,7 +17,9 @@ class DiagonalClearAnimation : Animation
         {
             for (int xx = x; xx >= 0; xx--)
             {
-                if (xx > Screen.Width || (x - xx) > Screen.Height)
+                // >=: column 40 / row 25 are past the screen ($0800 up holds
+                // the runtime's object tables, see asm/presentation.asm).
+                if (xx >= Screen.Width || (x - xx) >= Screen.Height)
                     continue;
                 C64.Screen.SetChar((uint)xx, (uint)(x-xx), 0x20);
             }

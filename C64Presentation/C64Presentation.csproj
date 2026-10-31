@@ -7,6 +7,22 @@
     <OutputType>Exe</OutputType>
   </PropertyGroup>
 
+  <!-- Scene builds for looking at the deck without pressing keys
+       (tools/presentation-shot.ps1):
+         -p:StartSlide=N  boot straight into slide N (0-based)
+         -p:Scene=HOLD    the slide stays up: "advance" is never pressed
+         -p:Scene=AUTO    "advance" presses itself after a short wait -->
+  <PropertyGroup>
+    <StartSlide Condition="'$(StartSlide)' == ''">0</StartSlide>
+    <DefineConstants Condition="'$(Scene)' != ''">$(DefineConstants);SCENE;SCENE_$(Scene)</DefineConstants>
+  </PropertyGroup>
+  <Target Name="WriteSceneConfig" BeforeTargets="CoreCompile">
+    <WriteLinesToFile File="$(IntermediateOutputPath)SceneConfig.g.cs" Lines="namespace C64Presentation%3B static class SceneConfig { public const int StartSlide = $(StartSlide)%3B }" Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <ItemGroup>
+      <Compile Include="$(IntermediateOutputPath)SceneConfig.g.cs" />
+    </ItemGroup>
+  </Target>
+
   <ItemGroup>
     <None Remove="sprites.asm" />
   </ItemGroup>

@@ -46,7 +46,7 @@ class IntroSlide : Slide
         for (; ; )
         {
             Delay.Wait(100);
-            if (C64.IsKeyPressed(Keys.Space) || (C64.Joysticks.Joystick2.Pressed & JoystickButtons.Fire) == JoystickButtons.Fire)
+            if (KeyBoard.AdvancePressed())
             {
                 break;
             }

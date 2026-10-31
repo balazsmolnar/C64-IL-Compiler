@@ -9,7 +9,7 @@ class Presenter
 {
     public static void Present(Func<Slide>[] slides)
     {
-        int currentSlide = 0;
+        int currentSlide = SceneConfig.StartSlide; // 0 unless a scene build says otherwise
 
         while (true)
         {

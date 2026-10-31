@@ -15,7 +15,7 @@ class DemoSlide : Slide
             C64.Screen.SetBorderColor(color);
             color++;
 
-            if (C64.IsKeyPressed(Keys.Space) || (C64.Joysticks.Joystick2.Pressed & JoystickButtons.Fire) == JoystickButtons.Fire)
+            if (Helper.KeyBoard.AdvancePressed())
                 break;
 
         }

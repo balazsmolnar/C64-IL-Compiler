@@ -5,8 +5,10 @@ to say, and where every fact comes from. The Slides phase builds from this
 file; the Art phase builds the asset list at the end. Owner: Story (see
 `DECK-BRIEF.md`).
 
-**Talk:** "C# on the C64", 28 slides, about 22 minutes plus 3 minutes of live
-demo. Audience: .NET developers and retro fans. One idea per slide.
+**Talk:** "C# on the C64", 28 slides, about 17 minutes of slides plus a
+3-minute live demo: about 20 minutes, leaving 5 minutes of slack in a
+25-minute slot. Audience: .NET developers and retro fans. One idea per
+slide; titles say something, they don't just label.
 
 ## Conventions
 
@@ -14,7 +16,15 @@ demo. Audience: .NET developers and retro fans. One idea per slide.
   at most 11 lines (inside a 1-cell margin, below the title, above the
   footer). Titles: at most 18 characters (a 2x2-cell title font gives 19 in
   38 columns). Code: at most 34 columns, at most 8 lines. Every block marked
-  `screen` or `code` below has been counted.
+  `screen` or `code` below has been counted by script.
+- **One mode per raster row.** Multicolour and hi-res are whole-screen
+  modes; they can only be mixed by a raster split (`C64.Screen.SetSplit`,
+  as Catacombs does): multicolour above the split row, hi-res below it.
+  Every slide below says which. Text is always hi-res.
+- **Images are drawn whole.** `DrawImage` cannot clip, scale or flip
+  (Catacombs/TECH.md); every crop below is its own asset.
+- **Charts** list a column budget `label | bar | value` that sums to 38 or
+  less. Bars are whole cells, one colour per cell row, one series per row.
 - **Text is exact.** What is in a `screen`/`code` block is what goes on the
   slide, line for line. `->` is an arrow: draw it as one if the font has an
   arrow glyph, otherwise leave the two characters.
@@ -31,48 +41,54 @@ demo. Audience: .NET developers and retro fans. One idea per slide.
 
 ## Running order
 
-| # | Section | Slide | Layout | Min |
+| # | Section | Title | Layout | Time |
 |---|---|---|---|---|
-| 1 | Hook | Catacombs (no title) | full-bleed | 0:45 |
-| 2 | Hook | C# on the C64 | title | 0:30 |
-| 3 | What it is | The machine | two-column | 0:45 |
-| 4 | What it is | Just C# | code | 0:45 |
-| 5 | How it works | The pipeline | diagram | 1:00 |
-| 6 | How it works | 46 passes | diagram | 1:00 |
-| 7 | How it works | A stack machine | code | 1:00 |
-| 8 | How it works | Two stacks | diagram | 0:45 |
-| 9 | Hard parts | The hard parts | section | 0:15 |
-| 10 | Hard parts | int is 8 bits | two-column | 1:00 |
-| 11 | Hard parts | 256 bytes of stack | diagram | 1:00 |
-| 12 | Hard parts | One-byte objects | diagram | 1:00 |
-| 13 | Hard parts | Garbage collector | diagram (animated) | 1:15 |
-| 14 | Hard parts | Strings & floats | two-column | 0:45 |
-| 15 | Hard parts | Bitmap graphics | diagram | 1:00 |
-| 16 | Small and fast | Small and fast | section | 0:20 |
-| 17 | Small and fast | 39 bytes to 12 | code | 1:00 |
-| 18 | Small and fast | Six optimizations | bullets | 1:00 |
-| 19 | Small and fast | Hunchback: -24% | chart | 0:45 |
-| 20 | Small and fast | Where bytes went | chart | 0:45 |
-| 21 | Small and fast | Frame budget | chart | 0:45 |
-| 22 | Catacombs | Catacombs | full-bleed | 0:20 |
-| 23 | Catacombs | By the numbers | two-column | 0:45 |
-| 24 | Catacombs | C64 tricks, in C# | bullets | 0:45 |
-| 25 | Testing | Tests on a 6502 | diagram | 1:00 |
-| 26 | Live | Live | bullets | 3:00 |
-| 27 | Close | Lessons | bullets | 1:00 |
+| 1 | Hook | (none) | full-bleed + split | 0:40 |
+| 2 | Hook | C# on the C64 | title | 0:20 |
+| 3 | What it is | 64 KB at 1 MHz | two-column | 0:35 |
+| 4 | What it is | It's ordinary C# | code | 0:40 |
+| 5 | What it is | C#, minus generics | two-column | 0:45 |
+| 6 | How it works | Roslyn does half | diagram | 0:50 |
+| 7 | How it works | IL is a stack | code | 0:50 |
+| 8 | How it works | Add costs 39 bytes | diagram | 0:40 |
+| 9 | Hard parts | The hard parts | section | 0:10 |
+| 10 | Hard parts | int is 8 bits | two-column | 0:50 |
+| 11 | Hard parts | Our tests lied | bullets | 0:50 |
+| 12 | Hard parts | Frames share bytes | diagram | 0:50 |
+| 13 | Hard parts | References: 1 byte | diagram | 0:45 |
+| 14 | Hard parts | GC without a scan | diagram (animated) | 0:50 |
+| 15 | Hard parts | Borrow, not build | two-column | 0:35 |
+| 16 | Hard parts | Hide under the ROM | diagram | 0:45 |
+| 17 | Small and fast | Small and fast | section | 0:10 |
+| 18 | Small and fast | 39 bytes to 12 | code | 0:50 |
+| 19 | Small and fast | Hunchback: -24% | chart | 0:40 |
+| 20 | Small and fast | No single winner | chart | 0:40 |
+| 21 | Small and fast | Worst frame: -19% | chart | 0:35 |
+| 22 | Catacombs | (none) | full-bleed | 0:15 |
+| 23 | Catacombs | 3,477 lines of C# | image + split | 0:35 |
+| 24 | Catacombs | Every trick is C# | full-bleed + split | 0:35 |
+| 25 | Testing | Tests run on 6502 | diagram | 0:50 |
+| 26 | Live | Change it live | bullets | 3:00 |
+| 27 | Close | Four lessons | bullets | 0:45 |
 | 28 | Close | Thank you | title | 0:20 |
+| | | | **Total** | **20:10** |
+
+The story: a hook (a real game), what you can and cannot write, how it
+works (ending on "39 bytes" for a one-line method), the hard parts with a
+setback in the middle (our own tests were wrong), then the payoff (39 bytes
+become 12, a game gets a quarter smaller), the showcase, proof (tests on the
+target CPU), the live edit, and the lessons.
 
 ---
 
 ## 1. Hook
 
-### Slide 1 — (no title): Catacombs
+### Slide 1 — (no title): a C64 game
 
-- **Layout:** full-bleed image, caption band at the bottom.
+- **Layout:** full-bleed image with a raster split: picture in multicolour
+  above row 21, a hi-res caption band in rows 21-24.
 - **Title:** none.
-- **On screen:** the picture fills rows 0-20. Rows 21-24 are a black hi-res
-  band (a raster split, as in Catacombs itself) holding the captions,
-  centred, one per press:
+- **On screen (caption band, centred, one per press):**
 
 ```screen
 A Commodore 64 game.
@@ -80,9 +96,10 @@ Every line of game logic: C#.
 ```
 
 - **Visual:** asset **A1** (Catacombs room with the skeleton guardian,
-  torches lit). No deck chrome: no title, no footer, no slide number.
+  torches lit), rows 0-20. No deck chrome: no title, no footer, no slide
+  number.
 - **Build:** on entry the picture alone. Press 1: line 1. Press 2: line 2
-  (the two characters "C#" in the accent colour).
+  (the characters "C#" in the accent colour).
 - **Say:** "This is a dungeon crawler running on a 1982 home computer. Every
   line of its game logic is C#, compiled by a compiler that reads .NET IL."
 - **Sources:** picture: `tools\catacombs-shot.ps1 -Scene MONSTERROOM`
@@ -93,7 +110,7 @@ Every line of game logic: C#.
 
 ### Slide 2 — C# on the C64
 
-- **Layout:** title.
+- **Layout:** title (hi-res, plus sprites).
 - **Title:** `C# on the C64` (13)
 - **On screen:**
 
@@ -104,19 +121,19 @@ Balazs Molnar
 
 - **Visual:** the existing C# and Commodore logo sprites
   (`C64Presentation/sprites.asm`, as in today's IntroSlide) drifting slowly
-  in the left and right margins, behind nothing. Title large and centred on
-  row 9, subtitle row 13, name row 16 in secondary text colour.
+  in the left and right margins. Title large and centred on row 9,
+  subtitle row 13, name row 16 in the secondary text colour.
 - **Build:** on entry everything; the logos keep moving until the press.
-- **Say:** "I'm going to show you how C# gets onto a C64, what was hard, how
-  we made it small and fast, and then we'll play."
+- **Say:** "How C# gets onto a C64, what was hard, how it got small and
+  fast, and then we change a game live."
 - **Sources:** none (title).
 
 ## 2. What it is
 
-### Slide 3 — The machine
+### Slide 3 — 64 KB at 1 MHz
 
-- **Layout:** two-column (picture left, facts right).
-- **Title:** `The machine` (11)
+- **Layout:** two-column, all hi-res: picture left, facts right.
+- **Title:** `64 KB at 1 MHz` (14)
 - **On screen (right column, cells 20-38, 19 wide):**
 
 ```screen
@@ -127,8 +144,8 @@ A, X, Y: 8 bits
 320x200, 16 colours
 ```
 
-- **Visual:** asset **A5**, a pixel-art Commodore 64 breadbox, in the left
-  column (cells 1-18, rows 7-14).
+- **Visual:** asset **A5**, a hi-res (two colours per cell) pixel-art
+  Commodore 64 breadbox, in the left column (cells 1-18, rows 7-14).
 - **Build:** on entry the picture. Presses 1-5: one fact each.
 - **Say:** "This is the target: 64 kilobytes, one megahertz, three 8-bit
   registers and a 256-byte hardware stack. Everything that follows is about
@@ -136,17 +153,21 @@ A, X, Y: 8 bits
 - **Sources:** Commodore 64 Programmer's Reference Guide (memory map, 6510,
   VIC-II modes). PAL clock is 0.985 MHz, hence "~1 MHz".
 
-### Slide 4 — Just C#
+### Slide 4 — It's ordinary C#
 
-- **Layout:** code (code top, three lines of text below).
-- **Title:** `Just C#` (7)
-- **On screen (code):**
+- **Layout:** code (hi-res), a caption line above the code, two text lines
+  below.
+- **Title:** `It's ordinary C#` (16)
+- **On screen (code, 8 lines):**
 
 ```code
-using C64Lib;
-class Program {
-  static void Main() =>
-    C64.Screen.Write(1, 1, "HI");
+// Catacombs, Monster.Init()
+alive_ = new bool[Count];
+hp_ = new uint[Count];
+for (uint i = 0; i < Count; i++)
+{
+    alive_[i] = true;
+    hp_[i] = MaxHp;
 }
 ```
 
@@ -154,79 +175,111 @@ class Program {
 
 ```screen
 A normal project, a normal build
-C64Lib: an API of empty stubs
-The real work: 6502 macros
+C64Lib: the C64 as a C# API
 ```
 
-- **Visual:** code in a panel with the theme's code background.
-- **Build:** on entry the code. Presses 1-3: one text line each.
-- **Say:** "A C64 program is an ordinary .NET project. C64Lib's methods are
-  empty; they only give the compiler names and signatures, and the
-  behaviour comes from hand-written 6502 routines."
-- **Sources:** the snippet compiles with this repo's compiler (built and
-  compiled for this storyboard at `5216d06`); `Screen.Write(uint x, uint y,
-  string s, ...)` is `C64Lib/Screen.cs:69`. Stubs and macros: CLAUDE.md
-  ("What this is").
+- **Visual:** code in a panel with the theme's code background; the
+  comment line in the secondary colour.
+- **Build:** on entry the code. Presses 1-2: one text line each.
+- **Say:** "This is real Catacombs code: arrays, a loop, fields, nothing
+  special. C64Lib gives you the screen, sprites, sound and joystick as
+  C# calls; its methods are empty stubs, and the compiler maps them to
+  hand-written 6502 routines."
+- **Sources:** `Catacombs/Monster.cs`, the body of `Init()` (lines 41-47
+  at `5216d06`), verbatim; only the method header and its outer braces are
+  left out. C64Lib stubs and the asm helper macros: CLAUDE.md ("What this
+  is").
+
+### Slide 5 — C#, minus generics
+
+- **Layout:** two-column (hi-res).
+- **Title:** `C#, minus generics` (18)
+- **On screen (left, cells 1-18):**
+
+```screen
+WORKS
+classes, virtuals
+arrays, strings
+$"x = {x}"
+float, Func<T>
+GC.Collect()
+```
+
+- **On screen (right, cells 21-38):**
+
+```screen
+COMPILE ERROR
+generics
+interfaces
+struct, double
+try, throw
+LINQ, most BCL
+```
+
+- **Visual:** "WORKS" heading in light green, "COMPILE ERROR" in light
+  red; thin vertical rule between the columns. Below both columns, one
+  line in the secondary colour:
+
+```screen
+Every error has a code and a hint
+```
+
+- **Build:** on entry the headings. Press 1: left column. Press 2: right
+  column. Press 3: the bottom line.
+- **Say:** "You get classes with virtual methods, arrays, strings, floats
+  and a garbage collector. You don't get generics, interfaces, structs or
+  exceptions, and the compiler tells you so with an error and a hint,
+  never by producing wrong code."
+- **Sources:** works: `Compiler/Diagnostics.cs` ("Only your own code,
+  C64Lib.*, MathF.Sin/Cos/Sqrt, Console.Write/WriteLine(string),
+  GC.Collect(), Func<T>.Invoke(), numeric ToString() and the string basics
+  (+, Length, PadLeft) are available"); virtual/abstract methods:
+  `Test/VirtualMethodTest.cs`; string interpolation: `Test/StringInterpolationTests.cs`;
+  float: `Test/FloatTests.cs`. Errors: generics `Compiler/ILMethodCodePass.cs`
+  ("The generic method ... is not supported"); interfaces
+  `Compiler/Operands/OperandBase.cs` ("Interfaces are not supported yet");
+  struct, double, try/throw `Compiler/Diagnostics.cs` (`Describe`: "A
+  struct (user-defined value type)", "double-precision floating point",
+  "try/catch/finally", "The 'throw' statement"); LINQ and the rest of the
+  class library: C64002 ("a call into the .NET class library ... with no
+  C64 implementation"). Codes and hints: CLAUDE.md ("Unsupported C# is a
+  compile error").
 
 ## 3. How it works
 
-### Slide 5 — The pipeline
+### Slide 6 — Roslyn does half
 
-- **Layout:** diagram.
-- **Title:** `The pipeline` (12)
+- **Layout:** diagram (hi-res).
+- **Title:** `Roslyn does half` (16)
 - **On screen:** only the labels of the diagram. Box labels: `C#`,
   `IL .dll`, `.asm`, `.prg`, `VICE`, `C64`. Arrow labels (small text):
-  `dotnet build`, `Compiler.exe`, `64tass`. Caption under `.asm`:
-  `64tass syntax`.
-
+  `dotnet build`, `Compiler.exe`, `64tass`. Caption under `Compiler.exe`:
+  `46 passes`.
 - **Visual:** row A (cell rows 6-9): box "C#" (cyan), arrow "dotnet
   build", box "IL .dll" (violet), arrow "Compiler.exe" turning down at
-  the right edge. Row B (cell rows 13-16), right to left: box ".asm"
-  (light green, small caption "64tass syntax"), arrow "64tass", box ".prg"
-  (yellow). Below .prg, two small boxes side by side: "VICE" and "C64".
-  Boxes 8 cells wide, 3 high; arrows 1 cell high with the label above.
-- **Build:** on entry the C# box. Press 1: arrow + IL box. Press 2: arrow +
-  .asm box. Press 3: arrow + .prg box. Press 4: VICE and C64 boxes.
-- **Say:** "Roslyn does the C# part for free. Our compiler only ever sees
-  IL: it reads the .dll with reflection and writes 64tass assembly, which
-  assembles into a .prg that runs in VICE or on the real machine."
+  the right edge, with "46 passes" under it in the accent colour. Row B
+  (cell rows 13-16), right to left: box ".asm" (light green), arrow
+  "64tass", box ".prg" (yellow). Below .prg, two small boxes side by side:
+  "VICE" and "C64". Boxes 8 cells wide, 3 high; arrows 1 cell high with
+  the label above. Column budget of row A: 8 box + 7 arrow + 8 box + 7
+  arrow = 30.
+- **Build:** on entry the C# box. Press 1: arrow + IL box (Roslyn's half).
+  Press 2: arrow + "46 passes" + .asm box. Press 3: arrow + .prg box.
+  Press 4: VICE and C64 boxes.
+- **Say:** "Roslyn does the C# half for free. Our compiler only ever sees
+  IL: 46 passes read it, model it, rewrite it until nothing changes, and
+  write 64tass assembly that becomes a .prg for VICE or the real machine."
 - **Sources:** CLAUDE.md ("What this is", "Build & run");
-  `tools/compile-and-assemble.bat`.
-
-### Slide 6 — 46 passes
-
-- **Layout:** diagram.
-- **Title:** `46 passes` (9)
-- **On screen:** four stacked bands, each with a one-line label:
-
-```screen
-Whole program: call graph, frames
-Read: IL -> operations
-Model: labels, evaluation stack
-Optimize: rewrites, to a fixpoint
-Emit: 6502 macros, vtables, strings
-```
-
-- **Visual:** five horizontal bands, full body width, 2 cell rows each,
-  1 row apart, joined by short down-arrows. Band colours: grey (whole
-  program), violet (read), blue (model), orange (optimize: the accent, it
-  is the next section), light green (emit). A thin loop arrow on the right
-  of the optimize band (the fixpoint).
-- **Build:** on entry the title. Presses 1-5: one band each, top to bottom.
-- **Say:** "The compiler is a list of 46 passes. Most of the interesting ones
-  are optimizers that rewrite the operation list again and again until
-  nothing changes."
-- **Sources:** 46 = `new IL...` pass constructions in `Compiler/Program.cs`
-  at `5216d06` (counted with grep). Groups: CLAUDE.md ("Solution
-  structure"); fixpoint: comment in `Compiler/Program.cs` above
+  `tools/compile-and-assemble.bat`. 46 = `new IL...` pass constructions in
+  `Compiler/Program.cs` at `5216d06` (grep count; the critic got the same).
+  Rewriting to a fixpoint: comment in `Compiler/Program.cs` above
   `ILFieldIncrementOptimizer` ("the optimizer set below runs to a fixpoint
-  (see ILCodePass)"); whole-program passes: `ILCallSiteCountPass`,
-  `ILStaticFramePass` in the same list.
+  (see ILCodePass)").
 
-### Slide 7 — A stack machine
+### Slide 7 — IL is a stack
 
-- **Layout:** code (C# on top, then IL and macros side by side).
-- **Title:** `A stack machine` (15)
+- **Layout:** code (hi-res): C# on top, then IL and macros side by side.
+- **Title:** `IL is a stack` (13)
 - **On screen (code, 8 lines):**
 
 ```code
@@ -251,19 +304,18 @@ ret        #method_exit 4, []
   S1) with `--no-static-frames`; the four macro lines are the compiler's
   own one-per-instruction output (printed as `; OPT` comments in
   `Program.asm` once the optimizer replaced them). The method prologue
-  `#init_locals_pull_parameters` is left out for width. The same example was
-  on the old deck's CompilerPassesSlide.
+  `#init_locals_pull_parameters` is left out for width.
 
-### Slide 8 — Two stacks
+### Slide 8 — Add costs 39 bytes
 
-- **Layout:** diagram.
-- **Title:** `Two stacks` (10)
+- **Layout:** diagram (hi-res).
+- **Title:** `Add costs 39 bytes` (18)
 - **On screen:**
 
 ```screen
 6502 stack: the evaluation stack
 localsStack: arguments and locals
-Add, compiled naively: 39 bytes
+One line of C#: 39 bytes of 6502
 ```
 
 - **Visual:** two vertical stacks side by side, 10 cells wide, 9 high.
@@ -272,24 +324,24 @@ Add, compiled naively: 39 bytes
   "localsStack, 256 B": a frame of cells "ret addr", "a", "b" and a
   pointer arrow from a small box "Y = stackPointer" to the frame. A curved
   arrow from left to right labelled "pla, sta localsStack,y" (the prologue
-  moving the return address and the arguments into the frame).
-  The three text lines sit under the stacks.
-- **Build:** on entry the left stack. Press 1: the right stack and the
-  arrow. Press 2: line 3 in the accent colour.
+  moving the return address and the arguments into the frame). The three
+  text lines sit under the stacks.
+- **Build:** on entry the left stack and line 1. Press 1: the right stack,
+  the arrow and line 2. Press 2: line 3 in the accent colour.
 - **Say:** "Values being computed live on the hardware stack; arguments and
-  locals get their own 256-byte stack indexed by Y. Correct, but our tiny
-  Add is 39 bytes plus a shared exit. Remember that number."
+  locals get their own 256-byte stack indexed by Y. Correct, but our
+  one-line Add is 39 bytes plus a shared exit. Remember that number."
 - **Sources:** the 64tass listing of snippet S1 with `--no-static-frames`:
   `Program_Add` spans `$17B0-$17D6` (39 bytes), ending `jmp Method_Exit_4`;
-  its prologue is `pla` / `sta localsStack,y`. Shared exit tails: `0e32d14`.
-  256-byte locals stack: CLAUDE.md, `asm/helper/objectTables.asm` header
-  ("256-byte localsStack").
+  its prologue is `ldy stackPointer` / `pla` / `sta localsStack,y`. Shared
+  exit tails: `0e32d14`. 256-byte locals stack: CLAUDE.md,
+  `asm/helper/objectTables.asm` header ("256-byte localsStack").
 
 ## 4. The hard parts
 
 ### Slide 9 — The hard parts
 
-- **Layout:** section.
+- **Layout:** section (hi-res).
 - **Title:** `The hard parts` (14)
 - **On screen:**
 
@@ -299,17 +351,17 @@ GC   strings   floats   bitmaps
 ```
 
 - **Visual:** section background (the theme's section colour, full
-  bleed). A row of six icons (asset **A6**) above the two text lines, each
-  icon over its word.
+  bleed). A row of six hi-res icons (asset **A6**) above the two text
+  lines.
 - **Build:** on entry everything.
-- **Say:** "Six things C# takes for granted that a 6502 does not have."
-- **Sources:** agenda of slides 10-15.
+- **Say:** "Seven things C# takes for granted that a 6502 does not have."
+- **Sources:** agenda of slides 10-16.
 
 ### Slide 10 — int is 8 bits
 
-- **Layout:** two-column (type table left, story right), error below.
+- **Layout:** two-column (hi-res): type table on top, code and error below.
 - **Title:** `int is 8 bits` (13)
-- **On screen (left, type table):**
+- **On screen (type table):**
 
 ```screen
 int, uint     8 bits
@@ -318,7 +370,7 @@ float        5 bytes
 double       error
 ```
 
-- **On screen (bottom, code + error):**
+- **On screen (code + error):**
 
 ```code
 for (uint i = 0; i < 700; i++)
@@ -330,66 +382,92 @@ does not fit in 8 bits ... so it
 would become 188.
 ```
 
-- **Visual:** the error in the theme's error colour (light red) with a thin
-  red bar on its left, like an IDE squiggle panel. The literal `700`
-  underlined in the code line.
-- **Build:** on entry the type table. Press 1: the code line. Press 2: "188"
-  appears beside it in grey, struck through ("what it used to do").
-  Press 3: the error panel.
-- **Say:** "int is 8 bits, because that is what the CPU has. In one of our
-  own tests a loop bound of 700 silently became 188; now that is a compile
-  error, with the C# line number, like any other unsupported feature."
+- **Visual:** the error in light red with a thin red bar on its left, like
+  an IDE error panel. The literal `700` underlined in the code line.
+- **Build:** on entry the type table. Press 1: the code line. Press 2:
+  "188" appears beside it in grey ("what it used to do"). Press 3: the
+  error panel.
+- **Say:** "int is 8 bits, because that is what the CPU has. A loop bound
+  of 700 used to become 188 without a word; since October it is a compile
+  error with the C# line number."
 - **Sources:** sizes: `Compiler/TypeExtensions.cs` `GetStorageBytes()`
-  (string/long/ulong 2, float 5, otherwise 1); double: `Compiler/Diagnostics.cs`
-  (`Ldc_r8`: "double-precision floating point (double)", hint "Use float").
-  700 -> 188: commit `4173f55` ("uint is 8-bit here: 700 silently became
-  188"). C64006: commit `93f2aa3`; the message is the compiler's own output
-  for the line above (compiled for this storyboard), shortened with "...":
-  full text "The constant 700 does not fit in 8 bits: int and uint are 8-bit
-  values on the C64 (0..255, or -128..127), so it would become 188."
-  Diagnostics with the PDB line: CLAUDE.md ("Unsupported C# is a compile
-  error").
+  (string/long/ulong 2, float 5, otherwise 1); double:
+  `Compiler/Diagnostics.cs` (`Ldc_r8`: "double-precision floating point
+  (double)", hint "Use float"). 700 -> 188: commit `4173f55` ("uint is
+  8-bit here: 700 silently became 188"). C64006: commit `93f2aa3`
+  (2026-10-28); the message is the compiler's own output for the line
+  above (compiled for this storyboard), shortened with "...": full text
+  "The constant 700 does not fit in 8 bits: int and uint are 8-bit values
+  on the C64 (0..255, or -128..127), so it would become 188."
 
-### Slide 11 — 256 bytes of stack
+### Slide 11 — Our tests lied
 
-- **Layout:** diagram.
-- **Title:** `256 bytes of stack` (18)
+- **Layout:** bullets (hi-res).
+- **Title:** `Our tests lied` (14)
+- **On screen:**
+
+```screen
+The new error found, in our code:
+i < 256 loops that ran 0 times
+new uint[256]: an empty array
+This deck: Wait(500) waited 244
+```
+
+- **Visual:** each of lines 2-4 with "256", "256" and "500" struck
+  through in grey and the real value ("0", "0", "244") after it in light
+  red. Line 1 in the secondary colour.
+- **Build:** on entry line 1. Presses 1-3: one line each.
+- **Say:** "The day C64006 went in, it failed our own build. Test loops that
+  were meant to cover every byte never ran, a test array was empty, and
+  this very deck waited 244 jiffies where the code said 500. Green tests
+  had been testing nothing."
+- **Sources:** commit `93f2aa3` message: "C64Presentation
+  KeyBoard.WaitForKeys: Delay.Wait(500) always waited 244"; "i < 256
+  loops that ran zero times (DivConstRoutineTests, ShiftConstTests ...)";
+  "RandomTests' new uint[256] (an empty array)". Arithmetic: 256 & 255 =
+  0; 500 & 255 = 244.
+
+### Slide 12 — Frames share bytes
+
+- **Layout:** diagram (hi-res).
+- **Title:** `Frames share bytes` (18)
 - **On screen:**
 
 ```screen
 Deep calls overflow 256 bytes
-Static frames: fixed addresses
-Callers that can't overlap share
+Fix: frames at fixed addresses
+Never-concurrent calls share
 Catacombs: 118 of 125 methods
 in 39 bytes of frames
 ```
 
 - **Visual:** left half: a call tree, Main at the top, children Update and
   Draw, Update's child Move, Draw's child Hud (boxes 6 cells wide). Right
-  half: an address strip 4 cells wide, 8 high, with coloured bars showing
-  where each frame lives: Main at the top, Update and Draw on the SAME
-  rows (side by side, different colours, both pointing at the same
-  addresses), Move and Hud again sharing rows below. Label the strip
-  "StaticFrames". Caption under the tree: "illustration".
+  half: an address strip 4 cells wide, 8 high, labelled "StaticFrames",
+  with whole-cell coloured blocks showing where each frame lives: Main at
+  the top; Update and Draw on the SAME rows (drawn as alternating
+  outlines, one colour per cell); Move and Hud again sharing rows below.
+  Caption under the tree: "illustration".
 - **Build:** on entry line 1 with a red overflow arrow over a full stack
-  icon. Press 1: line 2 and the tree. Press 2: line 3 and the address strip
-  (frames slide into place). Press 3: lines 4-5 in the accent colour.
-- **Say:** "A 256-byte locals stack overflows silently on a deep call chain.
-  The fix was to give every non-recursive method a frame at a fixed
-  address and let methods that can never be active together share bytes:
-  Catacombs puts 118 of its 125 methods' frames into 39 bytes."
+  icon. Press 1: line 2 and the tree. Press 2: line 3 and the address
+  strip (frames slide into place). Press 3: lines 4-5 in the accent
+  colour.
+- **Say:** "A 256-byte locals stack overflows silently on a deep call
+  chain. Now every method that can't recurse gets a frame at a fixed
+  address, and methods that are never active at the same time share the
+  same bytes: Catacombs fits 118 of its 125 methods into 39 bytes."
 - **Sources:** silent overflow: Catacombs/AAA-BRIEF.md ("Deep call chains
-  overflow the 256-byte locals stack silently"); static frames, overlaid
-  along the call graph, not for recursive, virtual or delegate-reachable
+  overflow the 256-byte locals stack silently"); static frames, "overlaid
+  along the call graph", not for recursive, virtual or delegate-reachable
   methods: commit `18bb09d`; instance methods and references: `421df94`.
   118 of 125 and 39 bytes: Catacombs build output at `5216d06` ("Static
   frames: 118 of 125 methods (9 callee-pulls), 39 bytes") and
   Catacombs/TECH.md ("39 bytes of static frames").
 
-### Slide 12 — One-byte objects
+### Slide 13 — References: 1 byte
 
-- **Layout:** diagram.
-- **Title:** `One-byte objects` (16)
+- **Layout:** diagram (hi-res).
+- **Title:** `References: 1 byte` (18)
 - **On screen:**
 
 ```screen
@@ -404,30 +482,30 @@ Full: ?OUT OF MEMORY ERROR
   VTABLE) in cyan across rows 4-11, and a heap strip in yellow across rows
   13-15 with blocks "1", "3", "2", "5" and "FREE". Arrows from row 1's
   and row 2's HEAP PTR down to their blocks. The four text lines in rows
-  17-20. Nothing in the footer row overlaps the heap (today the slide
-  counter overwrites it).
+  17-20. Nothing overlaps the footer row (today the slide counter
+  overwrites the heap).
 - **Build:** on entry the table header. Press 1: rows 1, 2, 255. Press 2:
   the heap strip and the two arrows. Press 3: the four text lines
   together.
 - **Say:** "A reference is one byte: an index into seven 256-byte tables
-  that hold each object's address, size, reference fields, root count and
-  vtable. That is why a program can have 255 live objects, and why moving
-  an object only changes one table entry."
+  holding each object's address, size, reference fields, root count and
+  vtable. So a program can have 255 live objects, and moving an object
+  only changes one table entry."
 - **Sources:** 1-byte reference: `Compiler/TypeExtensions.cs`
-  (`GetStorageBytes()` returns 1 for classes); tables: `asm/helper/objectTables.asm`
-  ("The 7x256-byte object/GC tables"; `objTableSize`, `objTableReferences`,
-  `objTableRootCount`, ...); handle 0 = null: `asm/GC.asm`
-  (`trackObjects`: "mark NULL"); 255 objects: old FeaturesSlide
-  ("OBJECT (255)"); faults "out of memory" and "too many objects": commit
-  `3f3d760` and `asm/helper/fault.asm` header ("?<MESSAGE> ERROR", red
-  border) and `Runtime_FaultMsg0 .text "OUT OF MEMORY"`.
+  (`GetStorageBytes()` returns 1 for classes); tables:
+  `asm/helper/objectTables.asm` ("The 7x256-byte object/GC tables";
+  `objTableSize`, `objTableReferences`, `objTableRootCount`, ...); handle
+  0 = null: `asm/GC.asm` (`trackObjects`: "mark NULL"); faults "out of
+  memory" and "too many objects": commit `3f3d760` and
+  `asm/helper/fault.asm` (header: "?<MESSAGE> ERROR", red border;
+  `Runtime_FaultMsg0 .text "OUT OF MEMORY"`).
 
-### Slide 13 — Garbage collector
+### Slide 14 — GC without a scan
 
-- **Layout:** diagram (animated, the existing GarbageCollectorSlide logic
-  on the new theme).
-- **Title:** `Garbage collector` (17)
-- **On screen (right side, short labels that light up per phase):**
+- **Layout:** diagram (hi-res, animated: the existing GarbageCollectorSlide
+  logic on the new theme).
+- **Title:** `GC without a scan` (17)
+- **On screen (right side, labels that light up per phase):**
 
 ```screen
 1 Roots: counted
@@ -441,13 +519,12 @@ Full: ?OUT OF MEMORY ERROR
   turn orange, dead ones fade to black, then the heap blocks slide left to
   close the gaps (new: the compaction step, which today's slide skips).
 - **Build:** on entry the objects. Each press advances the animation one
-  step (as today); the phase label on the right lights up as its phase
-  starts.
+  step (as today); the phase label lights up as its phase starts.
 - **Say:** "Every store of a reference into a local, a parameter or a
   static field updates a count, so the roots are known without scanning
-  anything. References
-  between objects are traced; then the live objects are sorted by address
-  and slid down. It runs only when you call GC.Collect()."
+  the stack. References between objects are traced; then the live objects
+  are sorted by address and slid down. It runs only when you call
+  GC.Collect()."
 - **Sources:** `asm/GC.asm` (`GC_Collect`: `trackObjects`,
   `fillSortTable`, `quicksort`, `sweepAndCompact`); root counting:
   `asm/helper/heap.asm` (`stsfld`: `dec`/`inc objTableRootCount`),
@@ -459,10 +536,10 @@ Full: ?OUT OF MEMORY ERROR
   `Compiler/ILMethodCachedFieldAccessPass.cs` ("This GC only ever moves an
   object via an explicit GC.Collect() call").
 
-### Slide 14 — Strings & floats
+### Slide 15 — Borrow, not build
 
-- **Layout:** two-column.
-- **Title:** `Strings & floats` (16)
+- **Layout:** two-column (hi-res).
+- **Title:** `Borrow, not build` (17)
 - **On screen (left, cells 1-18):**
 
 ```screen
@@ -488,23 +565,22 @@ Sin, Cos, Sqrt
   between the columns.
 - **Build:** on entry the headings. Press 1: left column. Press 2: right
   column.
-- **Say:** "We borrowed rather than built. A string is a pointer to
-  zero-terminated bytes, and concatenation writes into one small buffer.
-  A float is the C64's own 5-byte format, so the BASIC ROM, which is in
-  every C64 anyway, does the maths."
+- **Say:** "A string is a pointer to zero-terminated bytes, and
+  concatenation writes into one small buffer. A float is the C64's own
+  5-byte format, so the BASIC ROM that is in every C64 does the maths."
 - **Sources:** strings: `asm/helper/stringops.asm` header ("raw
   null-terminated character bytes", "stringops_buffer's fixed 40-byte
   size"); not reference counted: `Compiler/TypeExtensions.cs`
-  (`IsReferenceCounted`: string -> false). Floats: `Compiler/TypeExtensions.cs`
-  ("Native C64 MFLPT format", 5 bytes); BASIC ROM routines:
-  `asm/helper/floatBanking.asm`; Sin/Cos/Sqrt: `Compiler/Diagnostics.cs`
-  ("MathF.Sin/Cos/Sqrt").
+  (`IsReferenceCounted`: string -> false). Floats:
+  `Compiler/TypeExtensions.cs` ("Native C64 MFLPT format", 5 bytes);
+  BASIC ROM routines: `asm/helper/floatBanking.asm`; Sin/Cos/Sqrt:
+  `Compiler/Diagnostics.cs` ("MathF.Sin/Cos/Sqrt").
 
-### Slide 15 — Bitmap graphics
+### Slide 16 — Hide under the ROM
 
-- **Layout:** diagram (memory map left, text right).
-- **Title:** `Bitmap graphics` (15)
-- **On screen (right column, 18 columns):**
+- **Layout:** diagram (hi-res): memory map left, text right.
+- **Title:** `Hide under the ROM` (18)
+- **On screen (right column, cells 20-38):**
 
 ```screen
 Bitmap under the
@@ -515,27 +591,30 @@ Pictures packed:
 8,400 -> 2,118 B
 ```
 
-- **Visual:** a vertical memory bar, 8 cells wide, rows 5-22, $0000 at the
-  bottom, $FFFF at the top, address labels left of it. Segments:
-  `$0800` runtime tables (grey); `$1000-$CBFF` program + heap (blue, the
-  tallest); `$CC00` screen colours (cyan); `$D000` I/O, with "64 sprite
-  frames" inside it (violet, hatched); `$E000-$FF3F` bitmap (yellow), with
-  "under ROM" inside it.
-- **Build:** on entry the memory bar without the top three segments.
-  Press 1: `$E000` bitmap + text lines 1-2. Press 2: `$D000` sprites +
-  line 3. Press 3: line 4 (accent). Press 4: lines 5-6.
+- **Visual:** a vertical memory bar, 8 cells wide, rows 4-21, $0000 at the
+  bottom, $FFFF at the top, address labels left of it (cells 1-6, bar in
+  cells 8-15), and "not to scale" in small grey text under it. Six
+  segments, each a whole number of cell rows, one colour each:
+  `$0000` zero page, 6502 stack (grey, 1 row); `$0800` runtime tables
+  (grey, 1 row); `$1000-$CBFF` program + heap (blue, 8 rows); `$CC00`
+  screen colours (cyan, 1 row); `$D000` I/O, "64 sprite frames" under it
+  (violet, 2 rows); `$E000-$FF3F` bitmap, "under ROM" (yellow, 4 rows).
+- **Build:** on entry the bar without the top two segments. Press 1:
+  `$E000` bitmap + text lines 1-2. Press 2: `$D000` sprites + line 3.
+  Press 3: line 4 (accent). Press 4: lines 5-6.
 - **Say:** "Hi-res graphics need 8 KB of bitmap, so it goes into the RAM
   hidden under the KERNAL ROM, and the sprite shapes go under the I/O
   chips. That frees 9.4 KB for code; pictures are stored compressed."
-- **Sources:** all from Catacombs/TECH.md: memory map table; "High layout
-  itself ... about 110; frees 9.4 KB"; "the tech demo's dithered 40x21
-  backdrop is 8400 -> 2118 bytes"; CLAUDE.md ("Graphics memory layout").
+- **Sources:** Catacombs/TECH.md: memory map table; "High layout itself
+  ... about 110; frees 9.4 KB"; "the tech demo's dithered 40x21 backdrop
+  is 8400 -> 2118 bytes"; CLAUDE.md ("Graphics memory layout"). $0000-$07FF
+  zero page and 6502 stack ($0100): C64 Programmer's Reference Guide.
 
 ## 5. Making it small and fast
 
-### Slide 16 — Small and fast
+### Slide 17 — Small and fast
 
-- **Layout:** section.
+- **Layout:** section (hi-res).
 - **Title:** `Small and fast` (14)
 - **On screen:**
 
@@ -546,15 +625,15 @@ Pay only for what you use
 - **Visual:** section background. Under the line, small and grey:
   `.weak Flag_X` (the asm mechanism that links a routine only when used).
 - **Build:** on entry everything.
-- **Say:** "One rule for every optimization and every feature: a program
-  that does not use it pays nothing, not one byte. We check that on every
-  change by measuring Hunchback, another full game."
+- **Say:** "One rule for every optimization and feature: a program that does
+  not use it pays nothing. We check that on every change by measuring
+  Hunchback, another full game."
 - **Sources:** CLAUDE.md ("Pay only for what you use", "`.weak Flag_X`",
   "an unrelated change must leave its segment sizes identical").
 
-### Slide 17 — 39 bytes to 12
+### Slide 18 — 39 bytes to 12
 
-- **Layout:** code (code left, text right).
+- **Layout:** code (hi-res): a mini bar chart, the code, three lines.
 - **Title:** `39 bytes to 12` (14)
 - **On screen (code, 7 lines):**
 
@@ -576,93 +655,63 @@ Caller stores args: lda, sta
 Result comes back in A
 ```
 
-- **Visual:** a two-bar mini chart above the code, full body width, 1 cell
-  high each: "before 39 B" (grey, 39 units) and "after 12 B" (accent, 12
-  units), same scale.
+- **Visual:** a two-bar mini chart above the code. Column budget: label 7
+  ("before ", "after  ") | bar 26 | value 5 (" 39 B", " 12 B") = 38. Scale
+  1.5 bytes per cell: before = 26 cells (grey), after = 8 cells (accent).
 - **Build:** on entry the before bar. Press 1: the after bar and the code.
   Presses 2-4: one text line each.
 - **Say:** "Same Add, today's compiler. The arguments sit at fixed
   addresses, the caller writes them with plain loads and stores, and the
   result never touches the stack: six instructions."
+- **Prepared answer** ("I'd write that in 8 bytes"): "Yes: `lda a / clc /
+  adc b / rts` is 8 bytes with absolute addresses. We spend 4 more copying
+  b to zero page, and the caller does the two stores either way. 12 is
+  close to hand-written; 39 was not."
 - **Sources:** snippet S1 compiled with today's defaults at `5216d06`:
-  `Program.asm` and the 64tass listing (`Program_Add` at `$17B0-$17BB`: `ad
-  15 18 / 85 32 / ad 16 18 / 18 / 65 32 / 60`, 12 bytes). `SF_TOP-511` is
-  `Ldarg_0` (a), `SF_TOP-512` is `Ldarg_1` (b), per the compiler's `; OPT`
-  comments. Call sites `lda score / sta SF_TOP-511 / lda #5 / sta
+  `Program.asm` and the 64tass listing (`Program_Add` at `$17B0-$17BB`:
+  `ad 15 18 / 85 32 / ad 16 18 / 18 / 65 32 / 60`, 12 bytes). `SF_TOP-511`
+  is `Ldarg_0` (a), `SF_TOP-512` is `Ldarg_1` (b), per the compiler's
+  `; OPT` comments. Call sites: `lda score / sta SF_TOP-511 / lda #5 / sta
   SF_TOP-512 / jsr Program_Add / sta score`. 39 bytes: slide 8.
-  Mechanisms: `18bb09d` (static frames, result in A/X), `421df94`
-  (direct call-site copies), `21e84ec` (top of stack in A).
-
-### Slide 18 — Six optimizations
-
-- **Layout:** bullets (two aligned columns: name, effect).
-- **Title:** `Six optimizations` (17)
-- **On screen:**
-
-```screen
-Shared exit tails  17 B -> 3 B jmp
-Skip reloading Y   -2 B per access
-Static frames      no prologue
-Top of stack in A  400 -> 2 pha/pla
-And/or/xor + const 10 B -> 4 B
-Object-array table 1 table, 1 call
-```
-
-- **Visual:** names in primary text, effects in the accent colour. No
-  hashes on screen (they are in the sources below).
-- **Build:** on entry the title. Presses 1-6: one line each.
-- **Say:** "Six ideas did most of the work. The two biggest are structural:
-  frames at fixed addresses, and keeping the top of the stack in the
-  accumulator so that a push followed by a pull simply disappears."
-- **Sources (one per line):**
-  1. `0e32d14`: "Every ret used to expand a 17-byte epilogue inline; it is
-     now a 3-byte jmp into a shared Method_Exit_N tail".
-  2. `93ab351`: skip `ldy stackPointer` when Y already holds it, "2 bytes
-     and 3 cycles each".
-  3. `18bb09d`: "Such a method has no prologue".
-  4. `21e84ec`: "Boundary pairs: Hunchback 400 -> 2".
-  5. `34a08e9`: "pla / and #c / pha, 4 bytes instead of 10".
-  6. `7235df6`: an object-array literal "becomes one #newObjArrayInit call
-     whose descriptor holds ... every object's initial bytes".
+  Mechanisms: `18bb09d` (static frames, result in A/X), `421df94` (direct
+  call-site copies), `21e84ec` (top of stack in A). Hand-written size:
+  6502 opcode sizes (lda/adc absolute 3 bytes, clc and rts 1 byte each).
 
 ### Slide 19 — Hunchback: -24%
 
-- **Layout:** chart (two horizontal bars) with a one-line caption.
+- **Layout:** chart (hi-res): two horizontal bars and a caption line.
 - **Title:** `Hunchback: -24%` (15)
 - **On screen:**
 
 ```screen
-Oct 17  36,847 B
-Oct 31  28,157 B
 Same game, same C#: -8,690 B
-Catacombs: 7,177 -> 10,478 B free
 ```
 
-- **Visual:** two horizontal bars, 30 cells max length, scale 0-37,000 B,
-  rows 7-8 and 10-11: "Oct 17" grey (36,847 -> 30 cells), "Oct 31" accent
-  (28,157 -> 23 cells). The value at the end of each bar. A dashed vertical
-  line from the end of the shorter bar to the longer one with "-8,690 B"
-  between them. Lines 3-4 of the text below the bars.
+- **Visual:** column budget: label 7 ("Oct 17 ", "Oct 31 ") | bar 22 |
+  value 9 (" 36,847 B", " 28,157 B") = 38. Scale: 22 cells = 36,847 B, so
+  Oct 31 = 17 cells (16.8 rounded). Bars on cell rows 7-8 (Oct 17, grey)
+  and 10-11 (Oct 31, accent). Cells 18-22 of the Oct 31 row (the
+  difference) outlined with a dashed border, "-8,690 B" centred under
+  them on row 12. The caption line on row 15.
 - **Build:** on entry the "Oct 17" bar. Press 1: the "Oct 31" bar grows
-  from zero. Press 2: the gap label and line 3. Press 3: line 4.
-- **Say:** "Hunchback's source did not change in these two weeks; only the
-  compiler did. The same game got a quarter smaller, and Catacombs got
-  3.3 KB of room back."
+  from zero. Press 2: the dashed gap, its label and the caption.
+- **Say:** "Hunchback's source didn't change in these two weeks; only the
+  compiler did. The same game got a quarter smaller, and its code segment
+  a third."
 - **Sources:** measured (see "Measurements"): Hunchback program bytes
   (sum of the `Data:` segments `Hunchback/measure.bat` prints) at
   `1e1a44e` (2026-10-17, just before `0e32d14`) = 13 + 3,247 + 5,760 +
-  27,827 = 36,847; at `5216d06` = 13 + 3,479 + 5,760 + 18,905 = 28,157;
-  -23.6%. The main code segment alone: 27,827 -> 18,905 (-32%).
-  Hunchback's source is unchanged since then: `git log --since=2026-10-10
-  -- Hunchback/` shows only `0726949` (a .csproj build-order line).
-  Catacombs free memory: Catacombs/TECH.md ("10,478 bytes ... (7,177
-  before those optimizations)").
+  27,827 = 36,847; at `5216d06` (2026-10-31) = 13 + 3,479 + 5,760 + 18,905
+  = 28,157; -23.6%. The main code segment alone: 27,827 -> 18,905 (-32%,
+  speaker only). Hunchback's source is unchanged since then: `git log
+  --since=2026-10-10 -- Hunchback/` shows only `0726949` (a .csproj
+  build-order line).
 
-### Slide 20 — Where bytes went
+### Slide 20 — No single winner
 
-- **Layout:** chart (grouped horizontal bars).
-- **Title:** `Where bytes went` (16)
-- **On screen (row labels, left, 14 columns; values at the bar ends):**
+- **Layout:** chart (hi-res): horizontal bars, two rows per optimization.
+- **Title:** `No single winner` (16)
+- **On screen (row labels):**
 
 ```screen
 Object arrays
@@ -675,156 +724,162 @@ Skip Y reload
 Logic + const
 ```
 
-- **Visual:** for each row, two thin bars (half a cell row each): Hunchback
-  (blue) above, Catacombs (orange) below; legend at the top right. Scale
-  0-3,400 B over 20 cells. Values (bytes saved; a dash where the change did
-  not apply):
+- **Visual:** column budget: label 14 | bar 18 | value 6 = 38. Each
+  optimization takes two cell rows: Hunchback's bar (blue) on the first,
+  Catacombs' bar (orange) on the second; the label sits on the first row.
+  Scale: 18 cells = 3,420 B (190 B per cell, rounded to whole cells; a
+  value under 95 B gets no bar, only its number). 8 x 2 = 16 rows (rows
+  4-19), a legend "Hunchback / Catacombs, bytes saved" on row 3, and the
+  footnote `each at its own commit` in grey on row 21.
 
-  | Row | Hunchback | Catacombs | Source |
-  |---|---|---|---|
-  | Object arrays | 3,357 | 0 | `7235df6` |
-  | Static frames | 2,304 | 1,818 | measured |
-  | Exit tails | 1,983 | 2,579 | `0e32d14` |
-  | Top of stack | 824 | 1,168 | `21e84ec` |
-  | Static arrays | 0 | 616 | `f140b7c` |
-  | Skip Y reload | 311 | 495 | `93ab351` |
-  | ++ on statics | 28 | ~340 | `465b9d1` |
-  | Logic + const | 85 | 326 | `34a08e9` |
+  | Row | Hunchback | cells | Catacombs | cells | Source |
+  |---|---|---|---|---|---|
+  | Object arrays | 3,357 | 18 | 0 | 0 | `7235df6` |
+  | Static frames | 2,304 | 12 | 1,818 | 10 | measured |
+  | Exit tails | 1,983 | 10 | 2,579 | 14 | `0e32d14` |
+  | Top of stack | 824 | 4 | 1,168 | 6 | `21e84ec` |
+  | Static arrays | 0 | 0 | 616 | 3 | `f140b7c` |
+  | Skip Y reload | 311 | 2 | 495 | 3 | `93ab351` |
+  | ++ on statics | 28 | 0 | ~340 | 2 | `465b9d1` |
+  | Logic + const | 85 | 0 | 326 | 2 | `34a08e9` |
 
-  Footnote in small grey text: `each at its own commit; not additive`.
-- **Build:** on entry the axes and legend. Press 1: all Hunchback bars grow
-  together. Press 2: all Catacombs bars.
-- **Say:** "Which program wins depends on its style: Hunchback builds lots
-  of object arrays, Catacombs indexes lots of static arrays. That is why
-  we measure on two real games, not on a benchmark."
+- **Build:** on entry the labels and legend. Press 1: all Hunchback bars
+  grow together. Press 2: all Catacombs bars.
+- **Say:** "Which optimization pays depends on the program: Hunchback
+  builds object arrays, so the array table wins there; Catacombs indexes
+  static arrays, so that wins there. The structural changes, frames and
+  exit tails, pay everywhere. That's why we measure on two real games."
+  (The one-line mechanisms, if asked: exit tails turn each 17-byte
+  epilogue into a 3-byte jmp; skip Y reload saves 2 bytes per access; top
+  of stack in A drops pha/pla pairs, 400 -> 2 in Hunchback; logic + const
+  makes `x & c` 4 bytes instead of 10; object arrays become one table and
+  one call.)
 - **Sources:** each figure is the commit message of the listed commit
   (`465b9d1`: "Catacombs shrinks by about 340 bytes, Hunchback's main
   segment by 28"; `f140b7c`: "Hunchback unchanged"; `7235df6`: "Catacombs
-  and Demo unchanged", Hunchback "net -3357 B"). Static frames: measured
-  at `5216d06`, main segment with `C64_STATIC_FRAMES=0` vs default:
-  Hunchback 21,209 -> 18,905, Catacombs 39,383 -> 37,565. The figures were
-  taken on different bases (the four 2026-10-30 changes on separate
-  branches), so they do not add up to the merge totals of `bbdf2f5`
-  (Hunchback -6,396 B, Catacombs -3,312 B).
+  and Demo unchanged", Hunchback "net -3357 B"). Static frames: measured at
+  `5216d06`, main segment with `C64_STATIC_FRAMES=0` vs default: Hunchback
+  21,209 -> 18,905, Catacombs 39,383 -> 37,565. The figures were taken on
+  different bases, so they do not add up to the merge totals of `bbdf2f5`
+  (Hunchback -6,396 B, Catacombs -3,312 B). Mechanisms: `0e32d14` ("a
+  17-byte epilogue ... now a 3-byte jmp"), `93ab351` ("2 bytes and 3
+  cycles each"), `21e84ec` ("Boundary pairs: Hunchback 400 -> 2"),
+  `34a08e9` ("4 bytes instead of 10"), `7235df6` ("one #newObjArrayInit
+  call").
 
-### Slide 21 — Frame budget
+### Slide 21 — Worst frame: -19%
 
-- **Layout:** chart (horizontal bars against a full-frame outline).
-- **Title:** `Frame budget` (12)
+- **Layout:** chart (hi-res): bars against a full-frame outline.
+- **Title:** `Worst frame: -19%` (17)
 - **On screen:**
 
 ```screen
-Catacombs: worst frame
-before  257 of 311 lines
-after   208 of 311 lines
-Frame work: -21%
+Catacombs, raster lines per frame
+-49 lines
 ```
 
-- **Visual:** an outline box 31 cells wide = 311 raster lines (one frame),
-  ticked every 50 lines. Inside it, two filled bars: "before" 257 lines
-  (25.7 cells, grey) and "after" 208 lines (20.8 cells, accent). The empty
-  part of the outline is "free for the game".
-- **Build:** on entry the outline and the "before" bar. Press 1: the "after"
-  bar. Press 2: line 4 in the accent colour.
-- **Say:** "Smaller code is also faster code here. The worst frame in
-  Catacombs went from 257 to 208 raster lines of the 311 a frame has, so
-  a fifth of the game's frame work is gone."
-- **Sources:** merge commit `bbdf2f5`: "Catacombs frame work -21% (VICE
-  worst frame 257 -> 208 of 311 lines)". Supporting (speaker only):
-  `21e84ec` top of stack in A alone "9404 -> 8491 cycles/frame (-9.7%)";
-  `4aae54e` division by a constant "About 40% fewer cycles than
-  Divide16Core".
+- **Visual:** column budget: label 7 ("before ", "after  ") | bar 26 |
+  value 5 (" 257", " 208") = 38. The bar area is an outline 26 cells wide
+  = 311 raster lines (one PAL frame as the commit counts it), ticked every
+  50 lines. Filled bars, whole cells (12 lines per cell): before = 21
+  cells (257 lines, grey), after = 17 cells (208 lines, accent). Cells
+  18-21 of the "after" row outlined dashed with "-49 lines" under them.
+  The empty part of the outline is labelled "free for the game".
+- **Build:** on entry the outline and the "before" bar. Press 1: the
+  "after" bar. Press 2: the dashed gap and "-49 lines".
+- **Say:** "Smaller code is faster code here. Catacombs' worst frame went
+  from 257 to 208 of the frame's 311 raster lines: 49 lines, almost a
+  fifth, handed back to the game."
+- **Sources:** merge commit `bbdf2f5`: "VICE worst frame 257 -> 208 of 311
+  lines". -49 = 257 - 208; -19% = 49 / 257 = 19.1%. (The same commit's
+  "frame work -21%" is a different measure, the profiler's average frame
+  work; it is not on the slide.) Speaker extras: `21e84ec` top of stack in
+  A "9404 -> 8491 cycles/frame (-9.7%)"; `4aae54e` division by a constant
+  "About 40% fewer cycles than Divide16Core".
 
 ## 6. Catacombs
 
-### Slide 22 — Catacombs
+### Slide 22 — (no title): Catacombs
 
-- **Layout:** full-bleed image.
-- **Title:** none on the image; the word "Catacombs" is the picture's own
-  logo.
-- **On screen (caption band, rows 21-24, hi-res):**
-
-```screen
-A dungeon crawler, all in C#
-```
-
+- **Layout:** full-bleed image (multicolour, no split, no caption).
+- **Title:** none; the word "Catacombs" is the picture's own logo.
+- **On screen:** nothing but the picture.
 - **Visual:** asset **A2** (the Catacombs title screen: logo, skull wall,
-  the gate with the hero silhouette).
-- **Build:** on entry the picture. Press 1: the caption.
-- **Say:** "Catacombs is the showcase: we set it the bar of the best modern
-  C64 releases and only allowed generic compiler and library changes to
+  the gate with the hero silhouette), rows 1-18, black around it.
+- **Build:** on entry the picture.
+- **Say:** "Catacombs is the showcase. We set it the bar of the best modern
+  C64 releases and allowed only generic compiler and library changes to
   get there."
 - **Sources:** picture: `tools\catacombs-shot.ps1` with no `-Scene` (the
-  real game from power-on: the title). Bar and rules: Catacombs/AAA-BRIEF.md
-  ("The bar", "Technical rules"); merge `c9db78e`.
+  real game from power-on: the title). Bar and rules:
+  Catacombs/AAA-BRIEF.md ("The bar", "Technical rules"); merge `c9db78e`.
 
-### Slide 23 — By the numbers
+### Slide 23 — 3,477 lines of C#
 
-- **Layout:** two-column (picture left, numbers right).
-- **Title:** `By the numbers` (14)
-- **On screen (right column, 15 columns, big number + small label pairs):**
+- **Layout:** image + split: picture in multicolour on rows 0-14, raster
+  split at row 15, title and numbers hi-res on rows 16-24.
+- **Title:** `3,477 lines of C#` (17), in the title font on rows 16-17.
+- **On screen (rows 19-23, 8x8 font):**
 
 ```screen
-3,477
-lines of C#
-61 rooms
-4 guardians
-5 colour themes
-10,478 B free
+61 rooms        4 guardians
+5 themes        3 SID voices
+10,478 bytes still free
 ```
 
 - **Visual:** asset **A3** (the "Bone Warden" encounter: horned skull,
-  name banner, health bar) in the left column. Numbers in the large title
-  font, labels small and grey under them ("3,477" big, "lines of C#"
-  small; "61" big, "rooms" small, and so on).
-- **Build:** on entry the picture. Presses 1-5: one number each.
-- **Say:** "Three and a half thousand lines of C#, sixty-one rooms, four
+  torch pillars, name banner), rows 0-14. Row 15 (the first line below the
+  split) empty and black, as TECH.md requires. Numbers in the accent
+  colour, words in primary text.
+- **Build:** on entry the picture and the title. Press 1: line 1. Press 2:
+  line 2. Press 3: line 3.
+- **Say:** "Three and a half thousand lines of C#: sixty-one rooms, four
   guardians, a three-voice soundtrack, and ten kilobytes still free."
 - **Sources:** 3,477: `wc -l Catacombs/*.cs` at `5216d06`. 61 rooms: floor
   cells in `Catacombs/Maze.cs` `Grid` (12x12, nonzero = floor), counted.
   4 guardians: `Catacombs/Monster.cs` ("skeleton warrior, ghoul, wraith
   ... and the giant spider"). 5 themes: `Catacombs/RoomArt.cs`
-  (`ThemeCount = 5`). 10,478 B: Catacombs/TECH.md. Soundtrack (speaker
-  only): Catacombs/audio/README.md (title jingle 8.6 s, exploration tune
-  92 s loop, combat tune 31 s loop). Picture: `-Scene COMBAT`, a shot
-  about 1.5 s after start.
+  (`ThemeCount = 5`). 3 voices: Catacombs/audio/README.md ("Voice 1 is
+  bass and percussion ..., voice 2 the lead, voice 3 chords"). 10,478:
+  Catacombs/TECH.md. Picture: `-Scene COMBAT`, a shot about 1.5 s after
+  start. Split rule: Catacombs/TECH.md ("Keep the first pixel line of the
+  lower part ... empty").
 
-### Slide 24 — C64 tricks, in C#
+### Slide 24 — Every trick is C#
 
-- **Layout:** bullets with a small picture.
-- **Title:** `C64 tricks, in C#` (17)
-- **On screen:**
+- **Layout:** full-bleed + split: asset A1 again in multicolour on rows
+  0-20, split at row 21, the title and three lines in the hi-res band.
+- **Title:** `Every trick is C#` (17), in the 8x8 font on row 21 (the band
+  has no room for the large font), accent colour.
+- **On screen (rows 22-24):**
 
 ```screen
-Raster split: room multicolour,
-status panel hi-res
+This split: room MC, text hi-res
 Themes: 16-byte colour remaps
-HUD redrawn as tiles: no flicker
 Music on the raster interrupt
 ```
 
-- **Visual:** the lower part of asset **A1** (its rows 13-20, the floor
-  and the skeleton) as a 40x8 strip above the bullets, with a dashed
-  horizontal line labelled "split" along its bottom edge. No new image.
-- **Build:** on entry the strip. Presses 1-4: one bullet each (the first
-  bullet is two lines).
-- **Say:** "Every classic trick is a C# call: the screen changes mode
-  halfway down, rooms are recoloured through a lookup table, and the music
-  player hangs off the same interrupt."
+- **Visual:** the whole of A1 (no crop; the same picture as slide 1, no new
+  memory). A short arrow in the left margin of row 21 pointing at the
+  split line.
+- **Build:** on entry the picture and the title. Presses 1-3: one line
+  each.
+- **Say:** "You have been looking at one of these tricks since slide one:
+  the room is multicolour, the text under it hi-res, switched halfway
+  down the screen. Room themes are a 16-byte colour lookup, and the music
+  player hangs off the same interrupt. All of it is a C# call."
 - **Sources:** Catacombs/TECH.md ("Raster split", `SetSplit(21,
-  ScreenMode.Bitmap)`; `RemapCellColors` "through a 16-byte table";
-  `DrawTiles`: "swapping a tile cannot flicker ... This is how the status
-  panel (`Hud.cs`) updates hearts, digits, the weapon icon and the
-  minimap"; "While a split is on, the system
-  interrupt runs once per video frame ... That includes a C64.Interrupt
-  subscriber (music)"); themes: `Catacombs/RoomArt.cs` (`pal_Theme1..4`).
+  ScreenMode.Bitmap)`; `RemapCellColors` "through a 16-byte table"; "While
+  a split is on, the system interrupt runs once per video frame ... That
+  includes a C64.Interrupt subscriber (music)"); themes:
+  `Catacombs/RoomArt.cs` (`pal_Theme1..4`).
 
 ## 7. Testing
 
-### Slide 25 — Tests on a 6502
+### Slide 25 — Tests run on 6502
 
-- **Layout:** diagram (code top, loop diagram below).
-- **Title:** `Tests on a 6502` (15)
+- **Layout:** diagram (hi-res): code on top, loop diagram below.
+- **Title:** `Tests run on 6502` (17)
 - **On screen (code):**
 
 ```code
@@ -851,10 +906,10 @@ NUnit -> PostSharp aspect
   and back to NUnit, with a green tick inside the NUnit box at the end.
 - **Build:** on entry the code. Press 1: the loop draws box by box (one
   press, animated). Press 2: the green tick. Press 3: last line.
-- **Say:** "The test body is not run as .NET at all: a PostSharp aspect
-  intercepts the call, runs the compiled 6502 routine in our own
-  emulator, and hands the result back to NUnit. So every green test
-  passed on the target CPU."
+- **Say:** "The test body never runs as .NET: a PostSharp aspect intercepts
+  the call, runs the compiled 6502 routine in our own emulator, and hands
+  the result back to NUnit. Every green test passed on the target CPU, and
+  after slide 11 we also check that it tests what it says."
 - **Sources:** CLAUDE.md (`C64TestFramework`: "intercepts each
   [Test]/[TestCase] method call, loads prg/unittest.prg into a
   SimpleEmulator.Emulator, copies method arguments into emulated memory
@@ -867,72 +922,93 @@ NUnit -> PostSharp aspect
 
 ## 8. Live
 
-### Slide 26 — Live
+### Slide 26 — Change it live
 
-- **Layout:** bullets (a checklist).
-- **Title:** `Live` (4)
+- **Layout:** bullets (hi-res checklist), shown while the presenter works
+  on the PC.
+- **Title:** `Change it live` (14)
 - **On screen:**
 
 ```screen
-1 Catacombs on VICE
-2 A breakpoint in C#, on the C64
-3 Break the build: C64006
+1 Play: one hit = half a heart
+2 MonsterDamage = 4 -> 20
+3 Rebuild: one hit = a heart
+4 Breakpoint: hover playerHp
 ```
 
-- **Visual:** the theme's "demo" variant: dark background, a blinking
-  cursor block after the last visible line. Each item gets a tick when
-  done (press).
-- **Build:** on entry the title. Presses 1-3: one item each (the presenter
-  switches to the PC between presses). Press 4-6: ticks.
-- **Say / run:**
-  1. Run `Catacombs\run.bat`, walk two rooms, fight one guardian.
-  2. In VS Code, start "debugging Hunchback on VICE", stop at a breakpoint,
-     hover a field, step over.
-  3. Type `for (uint i = 0; i < 700; i++)` into a C64Lib project, build,
-     show the C64006 error in the error list.
-  Fallback if VICE misbehaves: slides 1, 22, 23 are the screenshots.
-- **Sources:** Catacombs/run.bat; debugger: commits `98c2604` ("run a
-  program on VICE from VS Code and stop at breakpoints"), `c7b9931` ("VS
-  Code launch config for debugging Hunchback on VICE"), `950600a`
-  (object/array inspection); C64006: slide 10.
+- **Visual:** dark "demo" variant of the theme, a blinking cursor block
+  after the last visible line. Each item gets a tick when done.
+- **Build:** on entry the title. Presses 1-4: one item each (the presenter
+  switches to the PC between presses).
+- **Run (one program, Catacombs, throughout; rehearse it):**
+  1. `Catacombs\run.bat`: walk into a guarded room, take a hit (100 HP,
+     10 per half heart, 4 per hit: the bar barely moves).
+  2. In `Catacombs/Monster.cs` change `public const uint MonsterDamage =
+     4;` to `20`.
+  3. `Catacombs\run.bat` again: same room, one hit now takes a whole
+     heart.
+  4. In VS Code put a breakpoint on `Catacombs/Encounter.cs` line 106
+     (`playerHp = playerHp <= Monster.MonsterDamage ? ...`), run the "C64
+     on VICE: Debug Program" command with that file open, take a hit,
+     hover `playerHp`, step over (F10).
+  Fallback: the debugger documents Demo, Hunchback and C64Presentation as
+  targets; Catacombs' debug build compiles and assembles below `$CC00`
+  (checked) but has not been debugged live. If it fails in rehearsal, do
+  step 4 on this deck instead (break in `Presenter.cs`) and keep it to
+  30 seconds.
+- **Say:** "Everything you saw is a normal edit-build-run loop: change a
+  constant in C#, rebuild, and the C64 plays differently; set a
+  breakpoint, and VICE stops on the C# line."
+- **Sources:** `Catacombs/Monster.cs` (`MonsterDamage = 4`),
+  `Catacombs/Program.cs` (`PlayerMaxHp = 100`), `Catacombs/Hud.cs`
+  (`SetHealth`: ten half hearts, a threshold every 10 HP),
+  `Catacombs/Encounter.cs:106`. Debugger: commits `98c2604` ("run a program
+  on VICE from VS Code and stop at breakpoints"), `950600a` (object/array
+  inspection), `vscode-extension/README.md` ("Debugging a whole program on
+  VICE": "the project is taken from the open file's folder"). Catacombs
+  debug build: `Compiler.exe ... program debug` + 64tass at `5216d06`, last
+  segment `$1BF6-$B6FA`.
 
 ## 9. Close
 
-### Slide 27 — Lessons
+### Slide 27 — Four lessons
 
-- **Layout:** bullets.
-- **Title:** `Lessons` (7)
+- **Layout:** bullets (hi-res).
+- **Title:** `Four lessons` (12)
 - **On screen:**
 
 ```screen
 Structure beats peepholes
-Measure every change
-Unsupported = compile error
-Test on the target CPU
+Measure on real programs
+Make silent bugs loud
+Play the game, too
 ```
 
 - **Visual:** each line with a small accent bar on the left; nothing else.
 - **Build:** on entry the title. Presses 1-4: one line each.
-- **Say:**
-  1. "The two structural changes saved thousands of bytes; a typical
-     peephole saved tens."
-  2. "Every change is measured on two real games."
-  3. "A silent miscompile costs a week; an error message costs a minute."
-  4. "Our emulator tests caught real code-generation bugs."
-- **Sources:** 1: `bbdf2f5` (-6,396 B Hunchback) vs `465b9d1` (-28 B) and
-  `4173f55` (-41 B). 2: CLAUDE.md ("Check with Hunchback/measure.bat").
-  3: `4173f55` (700 -> 188) and CLAUDE.md ("never a silent miscompile").
-  4: e.g. `34a08e9` ("fixes a miscompile ... `(c ? x : y) + z`"),
-  `eefca0b` ("Fix 8-bit greater-than branches taken on equality").
+- **Say (one sourced line each):**
+  1. "Static frames saved 2,304 bytes in Hunchback; unrolled shifts saved
+     41."
+  2. "The object-array table saved 3,357 bytes in one game and nothing in
+     the other."
+  3. "One new error message found tests that had never tested anything."
+  4. "A branch bug that our tests missed was found because Catacombs' health
+     bar hung after a killing blow; the tests came after."
+- **Sources:** 1: measured static frames (slide 20) vs `4173f55`
+  ("Catacombs -81 bytes, Hunchback -41"). 2: `7235df6` (Hunchback net
+  -3,357 B; "Catacombs and Demo unchanged"). 3: `93f2aa3` (slide 11). 4:
+  `eefca0b` ("Catacombs' encounter health bar hung after the killing
+  blow"; "Test.Runtime/GreaterBranchEqualityTests ... (7 failed before the
+  fix)").
 
 ### Slide 28 — Thank you
 
-- **Layout:** title.
+- **Layout:** title (hi-res, plus sprites).
 - **Title:** `Thank you` (9)
 - **On screen:**
 
 ```screen
-This deck is C# too.
+This deck is C# too: TBD B free
 github.com/balazsmolnar/
 C64-IL-Compiler
 ```
@@ -941,8 +1017,17 @@ C64-IL-Compiler
   side above the title.
 - **Build:** on entry the title and the URL. Press 1: line 1 (accent).
 - **Say:** "Every slide you have seen was C#, compiled by this compiler and
-  running on a C64. Thank you."
-- **Sources:** this project (`C64Presentation/`); `git remote -v`.
+  running on a C64, with this much memory to spare. Thank you."
+- **TBD at build:** fill in the deck's free bytes from its final build,
+  measured like Catacombs/TECH.md "Free memory": run
+  `C64Presentation\measure.bat`, take the end of the last `Data:` line,
+  free = $CC00 - end - 1 - 1,080 (tables, locals stack and string buffers
+  with `DrawText`; 56 without) - the static frames ("Static frames: ...,
+  N bytes") - the heap the deck needs - 64 per sprite frame beyond 64.
+  Round down to a whole number, write it with a thousands comma; the line
+  stays at most 36 characters.
+- **Sources:** this project (`C64Presentation/`); `git remote -v`;
+  Catacombs/TECH.md (free-memory formula).
 
 ---
 
@@ -960,7 +1045,7 @@ like this (all paths literal, scratch under `.debug-tmp\`).
 - **Static frames on/off (slide 20).** At `5216d06`, `C64_STATIC_FRAMES=0`
   then default: Hunchback main segment 21,209 -> 18,905 (-2,304);
   Catacombs main segment 39,383 -> 37,565 (-1,818).
-- **Snippet S1 (slides 7, 8, 17).** A C64Lib program:
+- **Snippet S1 (slides 7, 8, 18).** A C64Lib program:
 
   ```
   static uint score, bonus;
@@ -983,47 +1068,52 @@ like this (all paths literal, scratch under `.debug-tmp\`).
   700; i++) n++;` prints `error C64006: The constant 700 does not fit in 8
   bits: int and uint are 8-bit values on the C64 (0..255, or -128..127), so
   it would become 188.`
+- **Catacombs debug build (slide 26).** `Compiler.exe
+  Catacombs\bin\Debug\catacombs.dll asm\catacombs_debug
+  asm\catacombs_debug.asm program debug`, then 64tass: last segment
+  `$1BF6-$B6FA`, below `$CC00`.
 
 ---
 
 ## Asset list (for the Art builder)
 
 Budget: 18 KB of compressed images in total. Everything not listed here is
-drawn by the engine (diagrams D1-D8 and charts C1-C3 below cost code, not
+drawn by the engine (diagrams D1-D8 and charts C1-C4 below cost code, not
 image memory). Sizes in 8x8 cells; byte estimates use Catacombs' measured
 assets (`Catacombs/art/build`: `room.img` 3,239 B for a 40x21 room,
-`title.img` 2,475 B).
+`title.img` 2,475 B). Multicolour images are only ever shown above a raster
+split or full-screen; everything that shares rows with text is hi-res.
 
 ### Images
 
 | ID | What | Size (cells) | Mode | Est. | Slides | How to get it |
 |---|---|---|---|---|---|---|
-| A1 | Catacombs room with the skeleton guardian and lit torches, viewport only (no HUD) | 40x21 | multicolour | 3.4 KB | 1, 24 (rows 13-20 reused as a strip) | `tools\catacombs-shot.ps1 -Scene MONSTERROOM`, crop rows 0-20, convert with `tools\c64img.py` |
-| A2 | Catacombs title screen: logo, skull wall, gate with the hero silhouette (no "PRESS FIRE" text) | 40x18 (rows 1-18) | multicolour | 2.5 KB | 22 | `tools\catacombs-shot.ps1` with no `-Scene` |
-| A3 | The "Bone Warden" encounter: horned skull, name banner, health bar | 22x16 (cols 9-30, rows 2-17) | multicolour | 1.6 KB | 23 | `tools\catacombs-shot.ps1 -Scene COMBAT -Shots 2 -IntervalMs 1500`, second shot |
-| A5 | Pixel-art Commodore 64 breadbox (keyboard, rainbow badge), three-quarter view | 18x8 | multicolour | 0.9 KB | 3 | drawn by script in `C64Presentation/art/` |
-| A6 | Six icons on one sheet: "8" chip, stack of plates, object box, recycling arrows, quote marks, picture frame | 6 icons x 3x3 | hi-res | 0.4 KB | 9 (and small markers on 10-15) | drawn by script |
-| A7 | Optional: Hunchback in-game thumbnail | 16x10 | multicolour | 1.0 KB | 19 (beside the bars) | run `prg\hunchback.prg` with `tools\vice-launch.ps1 -KeepOthers`, then `tools\vice-capture.ps1 -ProcessId <pid>`; cut first if over budget |
+| A1 | Catacombs room with the skeleton guardian and lit torches, viewport only (no HUD) | 40x21 | multicolour (above the split at row 21) | 3.4 KB | 1, 24 | `tools\catacombs-shot.ps1 -Scene MONSTERROOM`, crop rows 0-20, convert with `tools\c64img.py` |
+| A2 | Catacombs title screen: logo, skull wall, gate with the hero silhouette (no "PRESS FIRE" text) | 40x18 (rows 1-18) | multicolour (full screen, no text) | 2.5 KB | 22 | `tools\catacombs-shot.ps1` with no `-Scene` |
+| A3 | The "Bone Warden" encounter: horned skull, torch pillars, name banner (no health bar, no HUD) | 40x15 (rows 0-14 of the shot) | multicolour (above the split at row 15) | 2.1 KB | 23 | `tools\catacombs-shot.ps1 -Scene COMBAT -Shots 2 -IntervalMs 1500`, second shot, crop rows 0-14 |
+| A5 | Pixel-art Commodore 64 breadbox (keyboard, badge), three-quarter view | 18x8 | hi-res (two colours per cell) | 0.5 KB | 3 | drawn by script in `C64Presentation/art/` |
+| A6 | Six icons on one sheet: "8" chip, stack of plates, object box, recycling arrows, quote marks, picture frame | 6 icons x 3x3 | hi-res | 0.4 KB | 9 | drawn by script |
 | -- | C# and Commodore logos | sprites | -- | 0 (reuse) | 2, 28 | existing `C64Presentation/sprites.asm` |
 
-Total: about 8.8 KB with A7 (9.8 KB), leaving room in the 18 KB budget for
-any diagram the engine cannot draw (fallback below).
+Total: about 8.9 KB, leaving room in the 18 KB budget for any diagram the
+engine cannot draw (fallback below).
 
-### Engine-drawn diagrams and charts
+### Engine-drawn diagrams and charts (all hi-res)
 
 If one of these cannot be drawn by the engine, the fallback is a hi-res
 image of the same size (line art compresses well: about 0.3-0.8 KB each).
 
 | ID | Slide | Size (cells) | Content |
 |---|---|---|---|
-| D1 | 5 The pipeline | 38x12 | 5 boxes in a snake + 2 small target boxes, labelled arrows |
-| D2 | 6 46 passes | 38x14 | 5 stacked bands, down-arrows, a loop arrow on "Optimize" |
-| D3 | 8 Two stacks | 30x11 | two vertical stacks, the Y pointer, the "pla, sta" arrow |
-| D4 | 11 256 bytes of stack | 38x10 | call tree + "StaticFrames" address strip with shared rows |
-| D5 | 12 One-byte objects | 38x14 | object table (4 rows x 6 columns) + heap strip + 2 arrows |
-| D6 | 13 Garbage collector | 38x18 | the existing animated GC scene, plus the compaction step |
-| D7 | 15 Bitmap graphics | 16x18 | vertical memory map, 5 segments, address labels |
-| D8 | 25 Tests on a 6502 | 38x7 | 4-box loop with arrows and a tick |
-| C1 | 19 Hunchback: -24% | 38x8 | 2 horizontal bars (36,847 / 28,157 B), gap label |
-| C2 | 20 Where bytes went | 38x18 | 8 rows x 2 bars (values in the slide's table), legend |
-| C3 | 21 Frame budget | 38x7 | 311-line outline, bars at 257 and 208, ticks every 50 |
+| D1 | 6 Roslyn does half | 38x12 | 5 boxes in a snake + 2 small target boxes, labelled arrows, "46 passes" |
+| D2 | 8 Add costs 39 bytes | 30x11 | two vertical stacks, the Y pointer, the "pla, sta" arrow |
+| D3 | 11 Our tests lied | 36x4 | strike-through on three numbers, replacement values |
+| D4 | 12 Frames share bytes | 38x10 | call tree + "StaticFrames" address strip with shared rows |
+| D5 | 13 References: 1 byte | 38x12 | object table (4 rows x 6 columns) + heap strip + 2 arrows |
+| D6 | 14 GC without a scan | 38x18 | the existing animated GC scene, plus the compaction step |
+| D7 | 16 Hide under the ROM | 16x18 | vertical memory map, 6 segments, "not to scale" |
+| D8 | 25 Tests run on 6502 | 38x7 | 4-box loop with arrows and a tick |
+| C1 | 18 39 bytes to 12 | 38x2 | 2 bars: 26 and 8 cells |
+| C2 | 19 Hunchback: -24% | 38x6 | 2 bars: 22 and 17 cells, dashed gap |
+| C3 | 20 No single winner | 38x19 | 8 items x 2 bars (cells in the slide's table), legend, footnote |
+| C4 | 21 Worst frame: -19% | 38x6 | 26-cell outline (311 lines), bars of 21 and 17 cells |

@@ -312,6 +312,43 @@ namespace C64Lib
             // -- copy other glyphs over it for a custom font.
             public static void DrawText(uint column, uint row, string text, uint matrix) { }
 
+            // Text in a bitmap font made by tools/c64font.py (embedded with
+            // [assembly: RawAssembly]): proportional, or fixed pitch, 8 or 16
+            // pixels tall (one or two cell rows). x is in pixels, row in
+            // cells; returns the x just past the text (the next glyph's x).
+            //
+            //     ulong x = C64.Screen.DrawFontText(16, 5, "Hello", C64Address.FromLabel("font_Body"), 0xF0);
+            //
+            // Glyph pixels are OR-ed into the bitmap (nothing is erased), so
+            // draw on an empty area. Every cell a glyph touches gets the
+            // colour byte matrix (text colour << 4 | background) -- unless
+            // matrix is 0, which leaves the colours alone (draw into cells
+            // coloured beforehand, or invisibly to reveal later). Hi-res.
+            //
+            // Inline colour: '`' and one character set the text colour to
+            // that character's low 4 bits ("`0".."`9" = colours 0-9, "`:" 10,
+            // "`;" 11, "`<" 12, "`=" 13, "`>" 14, "`?" 15) and move x on to
+            // the next cell, so two colours never share a cell:
+            //     "`3static`? int Add(int a)"
+            // Characters the font lacks are skipped. Nothing is clipped.
+            public static ulong DrawFontText(ulong x, uint row, string text, ulong font, uint matrix) => 0;
+
+            // The width DrawFontText would advance for text (including the
+            // letter spacing after the last glyph and the alignment of
+            // colour changes, counted from x = 0): for centring and right
+            // alignment.
+            public static ulong FontTextWidth(string text, ulong font) => 0;
+
+            // Sets every cell's colours from a saved copy: the matrix byte of
+            // each of the 1000 cells becomes source's byte for that cell with
+            // both colours replaced through the 16-byte table (as in
+            // RemapCellColors). Save the colours once, e.g. with C64.CopyMemory
+            // from Graphics_ColorMatrix, then show them through darker or
+            // lighter tables: a fade out or in, without redrawing anything.
+            // source may be Graphics_ColorMatrix itself. Colour RAM is left
+            // alone. About 2.5 frames.
+            public static void RemapCellColorsFrom(ulong source, ulong table) { }
+
             // Raster split: from cell row `row` to the bottom, the screen is
             // shown as lowerMode (Bitmap = hi-res, or MultiColor) while the
             // rows above stay in the mode set with SetScreenMode. It is the

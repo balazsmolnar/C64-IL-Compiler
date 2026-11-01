@@ -947,7 +947,12 @@ NUnit -> PostSharp aspect
      100 HP, 4 per hit: 96 HP still lights all ten half hearts (half
      heart k is lit while HP >= 1 + 10k), so nothing visibly changes.
   2. In `Catacombs/Monster.cs` change `public const uint MonsterDamage =
-     4;` to `20`.
+     4;` to `20`, then build the C#: `dotnet build
+     Catacombs\Catacombs.csproj`. (`Catacombs\run.bat` alone does NOT
+     rebuild the C#: it only compiles the existing
+     `bin\debug\catacombs.dll` to 6502, and Catacombs.csproj has no
+     post-build step. Don't use `tools\catacombs-shot.ps1` on stage: it
+     builds and runs, but closes VICE after its screenshots.)
   3. `Catacombs\run.bat` again: same room, one hit leaves 80 HP and a
      whole heart goes dark.
   4. In VS Code put a breakpoint on `Catacombs/Encounter.cs` line 106
@@ -956,13 +961,21 @@ NUnit -> PostSharp aspect
      hover `playerHp`, step over (F10).
 - **Time budget (3:00):** run 1 with the walk 0:45, edit and rebuild
   0:20, run 2 with the walk 0:45, debugger with the walk 1:00, spare 0:10.
-  Rehearse the route from the start room to the nearest guardian until it
-  takes under 30 seconds.
-- **Must-pass rehearsal check:** "the breakpoint at `Encounter.cs:106` is
+  The rebuild itself is quick: measured with this exact edit at
+  `5216d06`, `dotnet build Catacombs\Catacombs.csproj` took 1.6 s and the
+  compile-to-6502 + 64tass step (`Catacombs\measure.bat`, the same step
+  `run.bat` runs before launching VICE) 0.4 s, on a machine where the
+  compiler was already built. The rest of the 0:20 is typing and VICE
+  starting. Rehearse the route from the start room to the nearest
+  guardian until it takes under 30 seconds.
+- **Must-pass rehearsal checks:**
+  1. "After the edit and rebuild, the first hit darkens a whole heart."
+     If it doesn't, the C# wasn't rebuilt.
+  2. "The breakpoint at `Encounter.cs:106` is
   hit on VICE and `playerHp` shows its value". The debugger documents
   Demo, Hunchback and C64Presentation as targets; Catacombs' debug build
   compiles and assembles below `$CC00` (checked) but has not been debugged
-  live. If the check fails, **cut step 4** and item 4 from the slide:
+  live. If check 2 fails, **cut step 4** and item 4 from the slide:
   never switch programs on stage. Spend the minute on a longer run 2.
 - **Say:** "Everything you saw is a normal edit-build-run loop: change a
   constant in C#, rebuild, and the C64 plays differently; set a
@@ -1017,35 +1030,40 @@ Play the game, too
 - **Layout:** title (hi-res, plus sprites).
 - **Title:** `Thank you` (9)
 - **On screen:** the number line in the large title font (at most 18
-  characters, e.g. `N,NNN bytes free`), the rest in the 8x8 font:
+  characters, e.g. `N,NNN BYTES FREE`, in capitals like the C64's own
+  boot screen), the rest in the 8x8 font:
 
 ```screen
 This deck is C#, too.
-N,NNN bytes free
+N,NNN BYTES FREE
 github.com/balazsmolnar/
 C64-IL-Compiler
 ```
 
 - **Visual:** the two logo sprites from slide 2 return and settle side by
-  side above the title. "N,NNN bytes free" centred in the large font in
+  side above the title. "N,NNN BYTES FREE" centred in the large font in
   the accent colour, rows 12-13; "This deck is C#, too." on row 10; the
   URL small on rows 18-19.
 - **Build:** on entry the title and the URL. Press 1: "This deck is C#,
   too." Press 2: the number, counting up from 0 to its value in about a
   second.
 - **Say:** "Every slide you have seen was C#, compiled by this compiler and
-  running on a C64, and this is how much memory it left over. Thank you."
+  running on a C64. Every C64 greets you with 38911 BASIC BYTES FREE;
+  this deck leaves this many. Thank you."
 - **Required output of the Slides phase:** the real number, measured on
   the final build and put on this slide; the deck is not done while the
-  slide says N,NNN. Measure it like Catacombs/TECH.md "Free memory": run
-  `C64Presentation\measure.bat`, take the end of the last `Data:` line,
-  free = $CC00 - end - 1 - 1,080 (tables, locals stack and string buffers
-  with `DrawText`; 56 without) - the static frames ("Static frames: ...,
-  N bytes") - the heap the deck needs - 64 per sprite frame beyond 64.
-  Write it with a thousands comma. Report it with the build it was
-  measured on.
+  slide says N,NNN. It is the free memory **before the heap**: the
+  Catacombs/TECH.md "Free memory" formula with no heap reserve, so it is
+  not a judgement call. Run `C64Presentation\measure.bat`, take the end
+  of the last `Data:` line, then free = $CC00 - that end - 1,080 (object
+  tables, locals stack and string buffers with `DrawText`; 56 without) -
+  the static frames (the compiler's "Static frames: ..., N bytes") - 64
+  per sprite frame beyond 64. Write it with a thousands comma. Report it
+  with the commit it was measured on. Slide 23's Catacombs figure (10,478)
+  is the same quantity ("left for more code, assets and the heap").
 - **Sources:** this project (`C64Presentation/`); `git remote -v`;
-  Catacombs/TECH.md (free-memory formula).
+  Catacombs/TECH.md (free-memory formula). "38911 BASIC BYTES FREE": the
+  C64's power-on screen (Commodore 64 Programmer's Reference Guide).
 
 ---
 

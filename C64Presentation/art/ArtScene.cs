@@ -84,7 +84,7 @@ static class ArtScene
         C64.Screen.DrawImage(31, top + 8, C64Address.FromLabel("img_PipeC64"));
         C64.Screen.DrawText(3, top + 4, "C#", 0x1B);
         C64.Screen.DrawText(14, top + 4, "IL", 0x1B);
-        C64.Screen.DrawText(23, top + 4, "COMPILER PASSES", 0x1B);
+        C64.Screen.DrawText(26, top + 4, "COMPILER", 0x1B);
         C64.Screen.DrawText(4, top + 12, "ASM", 0x1B);
         C64.Screen.DrawText(12, top + 12, "64TASS", 0x1B);
         C64.Screen.DrawText(23, top + 12, ".PRG", 0x1B);

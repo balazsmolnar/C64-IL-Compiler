@@ -6,7 +6,7 @@ using C64Lib;
 //     C64.Screen.DrawImage(column, row, C64Address.FromLabel("img_<Label>"));
 // Bytes = what the image adds to the program (the compressed payload).
 
-// --- The storyboard's asset list (DECK.md "Asset list"): 9,842 bytes -------
+// --- The storyboard's asset list (DECK.md "Asset list"): 9,857 bytes -------
 
 // A1 Catacombs room with the skeleton guardian (MONSTERROOM), rows 0-20, split at 21 (slides 1, 24)
 [assembly: RawImage(Resource = "shot_room.img", Label = "ShotRoom")]       // 40x21 mc    3755
@@ -18,20 +18,20 @@ using C64Lib;
 [assembly: RawImage(Resource = "breadbox.img", Label = "Breadbox")]        // 18x8 hires   377
 // A6 six icons, PIXELS ONLY: set the cells' colours first (slide 9, markers 10-15)
 [assembly: RawImage(Resource = "icon_int8.img", Label = "IconInt8")]       // 3x3 hires     76
-[assembly: RawImage(Resource = "icon_stack.img", Label = "IconStack")]     // 3x3 hires     54
-[assembly: RawImage(Resource = "icon_object.img", Label = "IconObject")]   // 3x3 hires     70
+[assembly: RawImage(Resource = "icon_stack.img", Label = "IconStack")]     // 3x3 hires     72
+[assembly: RawImage(Resource = "icon_object.img", Label = "IconObject")]   // 3x3 hires     67
 [assembly: RawImage(Resource = "icon_gc.img", Label = "IconGc")]           // 3x3 hires     74
 [assembly: RawImage(Resource = "icon_string.img", Label = "IconString")]   // 3x3 hires     47
 [assembly: RawImage(Resource = "icon_bitmap.img", Label = "IconBitmap")]   // 3x3 hires     71
 
-// --- Extras, not in the storyboard: 4,451 bytes. Built and embeddable;
+// --- Extras, not in the storyboard: 4,427 bytes. Built and embeddable;
 // declared only in the art review build (or define ART_EXTRAS) so they cost
 // no program memory until a slide uses them. ------------------------------
 #if SCENE_ART || ART_EXTRAS
-[assembly: RawImage(Resource = "title.img", Label = "Title")]              // 40x25 hires  1732
+[assembly: RawImage(Resource = "title.img", Label = "Title")]              // 40x25 hires  1715
 [assembly: RawImage(Resource = "logo_c64.img", Label = "LogoC64")]         //  5x4 hires   129
 [assembly: RawImage(Resource = "logo_csharp.img", Label = "LogoCSharp")]   //  5x5 hires   176
-[assembly: RawImage(Resource = "logo_dotnet.img", Label = "LogoDotNet")]   //  5x5 hires   118
+[assembly: RawImage(Resource = "logo_dotnet.img", Label = "LogoDotNet")]   //  5x5 hires   111
 [assembly: RawImage(Resource = "chip_6502.img", Label = "Chip6502")]       //  8x4 hires   142
 [assembly: RawImage(Resource = "pipe_cs.img", Label = "PipeCs")]           //  8x6 hires   146
 [assembly: RawImage(Resource = "pipe_il.img", Label = "PipeIl")]           //  8x6 hires   141

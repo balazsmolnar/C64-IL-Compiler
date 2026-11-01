@@ -97,6 +97,27 @@ class Pic:
         ink = mask.point(lambda v: 255 if v >= threshold * 255 else 0).convert("1")
         self.img.paste(c, (0, 0, self.w, self.h), ink)
 
+    def smooth(self, x0, y0, x1, y1, ink, bg):
+        """Hand-cleaning for large lettering: a pixel on an edge that sticks
+        out (or in) for a single row or column, while the pixels on both
+        sides of it along the edge agree, takes their value."""
+        g = [[self.get(x, y) for x in range(self.w)] for y in range(self.h)]
+        out = [row[:] for row in g]
+        for y in range(max(1, y0), min(self.h - 1, y1)):
+            for x in range(max(1, x0), min(self.w - 1, x1)):
+                v = g[y][x]
+                if v not in (ink, bg):
+                    continue
+                up, dn, lf, rt = g[y - 1][x], g[y + 1][x], g[y][x - 1], g[y][x + 1]
+                if up == dn != v and lf != rt:          # a one-row bump/notch on a vertical edge
+                    out[y][x] = up
+                elif lf == rt != v and up != dn:        # a one-column one on a horizontal edge
+                    out[y][x] = lf
+        for y in range(y0, y1):
+            for x in range(x0, x1):
+                if out[y][x] != g[y][x]:
+                    self.px(x, y, out[y][x])
+
     def glyphs(self, x, y, s, c, bold=True):
         """The deck's own 8x8 pixel font (PIXEL_FONT): one character per
         8 pixels, so a cell-aligned string gets one cell per character."""
@@ -219,7 +240,11 @@ def dotnet_logo():
     """A violet rounded square with a white ".NET", 5x5 cells."""
     p = Pic(40, 40)
     p.rrect(0, 0, 39, 39, 6, BRAND)
-    p.text(20, 20, ".NET", font(BOLD, 13), WHITE, anchor="mm")
+    f = font(BOLD, 13)
+    w = text_width("NET", f)
+    x = 20 - (w + 3) // 2 + 3                            # "NET" plus a 2 px dot and a 1 px gap
+    p.text(x, 25, "NET", f, WHITE, anchor="ls")
+    p.rect(x - 3, 23, x - 2, 24, WHITE)                  # the dot, on the baseline
     return p
 
 
@@ -311,13 +336,18 @@ def title():
     while text_width("Commodore 64", font(BOLD, size)) > 288:
         size -= 1
     p.text(14, 72, "Commodore 64", font(BOLD, size), TEXT, anchor="ls")
+    p.smooth(0, 40, 320, 76, TEXT, BG)
+    for y in range(60, 64):                      # by hand: the first "o"'s right side straight
+        p.px(60, y, BG)
+        if y > 60:
+            p.px(54, y, TEXT)
     p.rect(16, 81, 39, 82, ACCENT)
     p.text(16, 98, "Compiling .NET IL to 6502 machine code", font(REG, 12), TEXT2, anchor="ls")
     code_card(p, 18, 13, [
         ("C64.Screen.Clear();", "cccgwwwwwwgwwwwwggg"),
         ("Hud.SetHealth(100);", "cccgwwwwwwwwwgyyygg"),
     ])
-    p.poly([(152, 136), (166, 136), (152, 145)], SURFACE)   # the card's tail, towards the machine
+    p.poly([(156, 136), (165, 136), (156, 141)], SURFACE)   # the card's tail, towards the machine
     p.paste(breadbox(), 8, 136)
     return p
 
@@ -344,18 +374,27 @@ def ic_int8(ink=INK):
 
 def ic_stack(ink=INK):
     p = Pic(24, 24)
-    p.rrect(5, 3, 18, 5, 1, ink)                # the top plate, lifted off the stack
-    for y in (9, 13, 17):
-        p.rrect(2, y, 21, y + 2, 1, ink)
+    # rounded plates widening downwards; the top one (the last push) is
+    # lifted and shifted 2 px to the right
+    for x0, y, x1 in ((9, 2, 18), (5, 8, 18), (4, 13, 19), (2, 18, 21)):
+        p.rrect(x0, y, x1, y + 3, 1, ink)
     return p
 
 
 def ic_object(ink=INK):
+    """A cube: the lit top face solid, the two side faces as 2-pixel
+    outlines (slope 2:1, so every edge is a clean pixel staircase)."""
     p = Pic(24, 24)
-    p.line([(12, 2), (21, 7), (21, 16), (12, 21), (2, 16), (2, 7), (12, 2)], ink, 2)
-    p.line([(3, 7), (12, 12), (21, 7)], ink, 2)
-    p.line([(12, 12), (12, 21)], ink, 2)
-    p.poly([(12, 3), (19, 7), (12, 11), (4, 7)], ink)    # the lit top face
+    top = {2: (11, 12), 3: (9, 14), 4: (7, 16), 5: (5, 18), 6: (3, 20), 7: (2, 21),
+           8: (4, 19), 9: (6, 17), 10: (8, 15), 11: (10, 13), 12: (11, 12)}
+    for y, (a, b) in top.items():
+        p.rect(a, y, b, y, ink)
+    p.rect(2, 7, 3, 16, ink)                         # outer side edges
+    p.rect(20, 7, 21, 16, ink)
+    p.rect(11, 12, 12, 21, ink)                      # front edge
+    for i, y in enumerate(range(17, 21)):            # bottom edges
+        p.rect(4 + 2 * i, y, 5 + 2 * i, y, ink)
+        p.rect(18 - 2 * i, y, 19 - 2 * i, y, ink)
     return p
 
 

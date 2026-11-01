@@ -23,11 +23,12 @@
     </ItemGroup>
   </Target>
 
-  <!-- Engine assets: the fonts (art/font/make_fonts.py) and the engine's
-       placeholder art (art/engine/*.py), embedded under their file names. -->
+  <!-- Embedded under their file names: the engine's fonts and logo sprites
+       (art/font/make_fonts.py, art/engine/make_logos.py) and the deck's
+       pictures (art/presentation_art.py -> art/build; declared in Assets.cs). -->
   <ItemGroup>
     <None Remove="sprites.asm" />
-    <EmbeddedResource Include="art\font\build\*.asm;art\engine\build\*.spr;art\engine\build\*.img" LogicalName="%(Filename)%(Extension)" />
+    <EmbeddedResource Include="art\font\build\*.asm;art\engine\build\*.spr;art\build\*.img;art\build\*.spr" LogicalName="%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup>

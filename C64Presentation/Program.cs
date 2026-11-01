@@ -9,6 +9,9 @@ class Program
 {
     static void Main()
     {
+#if SCENE_ART
+        ArtScene.Run();   // art/ArtScene.cs: asset review pages
+#endif
         var slides = new Func<Slide>[]
         {
             () =>  new IntroSlide(),

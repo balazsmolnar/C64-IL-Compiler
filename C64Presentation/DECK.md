@@ -47,7 +47,7 @@ slide; titles say something, they don't just label.
 | 2 | Hook | C# on the C64 | title | 0:20 |
 | 3 | What it is | 64 KB at 1 MHz | two-column | 0:35 |
 | 4 | What it is | It's ordinary C# | code | 0:40 |
-| 5 | What it is | C#, minus generics | two-column | 0:45 |
+| 5 | What it is | What compiles | two-column | 0:45 |
 | 6 | How it works | Roslyn does half | diagram | 0:50 |
 | 7 | How it works | IL is a stack | code | 0:50 |
 | 8 | How it works | Add costs 39 bytes | diagram | 0:40 |
@@ -86,12 +86,14 @@ target CPU), the live edit, and the lessons.
 ### Slide 1 — (no title): a C64 game
 
 - **Layout:** full-bleed image with a raster split: picture in multicolour
-  above row 21, a hi-res caption band in rows 21-24.
+  in rows 0-20, raster split at row 21, a hi-res caption band below.
+  Row 21 stays empty and black (the first line under a split must be
+  blank, Catacombs/TECH.md); the captions sit on rows 22 and 23.
 - **Title:** none.
 - **On screen (caption band, centred, one per press):**
 
 ```screen
-A Commodore 64 game.
+1982 hardware. 2026 game.
 Every line of game logic: C#.
 ```
 
@@ -190,10 +192,10 @@ C64Lib: the C64 as a C# API
   left out. C64Lib stubs and the asm helper macros: CLAUDE.md ("What this
   is").
 
-### Slide 5 — C#, minus generics
+### Slide 5 — What compiles
 
 - **Layout:** two-column (hi-res).
-- **Title:** `C#, minus generics` (18)
+- **Title:** `What compiles` (13)
 - **On screen (left, cells 1-18):**
 
 ```screen
@@ -347,14 +349,14 @@ One line of C#: 39 bytes of 6502
 
 ```screen
 8-bit int   stack   objects
-GC   strings   floats   bitmaps
+GC   strings & floats   bitmaps
 ```
 
 - **Visual:** section background (the theme's section colour, full
   bleed). A row of six hi-res icons (asset **A6**) above the two text
   lines.
 - **Build:** on entry everything.
-- **Say:** "Seven things C# takes for granted that a 6502 does not have."
+- **Say:** "Six things C# takes for granted that a 6502 does not have."
 - **Sources:** agenda of slides 10-16.
 
 ### Slide 10 — int is 8 bits
@@ -419,7 +421,7 @@ This deck: Wait(500) waited 244
 - **Build:** on entry line 1. Presses 1-3: one line each.
 - **Say:** "The day C64006 went in, it failed our own build. Test loops that
   were meant to cover every byte never ran, a test array was empty, and
-  this very deck waited 244 jiffies where the code said 500. Green tests
+  this very deck waited 244 where the code said 500. Green tests
   had been testing nothing."
 - **Sources:** commit `93f2aa3` message: "C64Presentation
   KeyBoard.WaitForKeys: Delay.Wait(500) always waited 244"; "i < 256
@@ -596,7 +598,7 @@ Pictures packed:
   cells 8-15), and "not to scale" in small grey text under it. Six
   segments, each a whole number of cell rows, one colour each:
   `$0000` zero page, 6502 stack (grey, 1 row); `$0800` runtime tables
-  (grey, 1 row); `$1000-$CBFF` program + heap (blue, 8 rows); `$CC00`
+  (grey, 1 row); `$1000-$CBFF` program + heap (blue, 9 rows); `$CC00`
   screen colours (cyan, 1 row); `$D000` I/O, "64 sprite frames" under it
   (violet, 2 rows); `$E000-$FF3F` bitmap, "under ROM" (yellow, 4 rows).
 - **Build:** on entry the bar without the top two segments. Press 1:
@@ -791,9 +793,8 @@ Catacombs, raster lines per frame
   from 257 to 208 of the frame's 311 raster lines: 49 lines, almost a
   fifth, handed back to the game."
 - **Sources:** merge commit `bbdf2f5`: "VICE worst frame 257 -> 208 of 311
-  lines". -49 = 257 - 208; -19% = 49 / 257 = 19.1%. (The same commit's
-  "frame work -21%" is a different measure, the profiler's average frame
-  work; it is not on the slide.) Speaker extras: `21e84ec` top of stack in
+  lines". -49 = 257 - 208; -19% = 49 / 257 = 19.1%. The deck uses only
+  this VICE worst-frame figure. Speaker extras: `21e84ec` top of stack in
   A "9404 -> 8491 cycles/frame (-9.7%)"; `4aae54e` division by a constant
   "About 40% fewer cycles than Divide16Core".
 
@@ -848,25 +849,26 @@ Catacombs, raster lines per frame
 ### Slide 24 — Every trick is C#
 
 - **Layout:** full-bleed + split: asset A1 again in multicolour on rows
-  0-20, split at row 21, the title and three lines in the hi-res band.
-- **Title:** `Every trick is C#` (17), in the 8x8 font on row 21 (the band
+  0-20, split at row 21, a hi-res band below. **No deck chrome** on this
+  slide: no footer, no slide number, no progress bar. Row 21 stays empty
+  and black (the split rule); the title and two lines use rows 22-24.
+- **Title:** `Every trick is C#` (17), in the 8x8 font on row 22 (the band
   has no room for the large font), accent colour.
-- **On screen (rows 22-24):**
+- **On screen (rows 23-24):**
 
 ```screen
-This split: room MC, text hi-res
+Split: room in colour, text hi-res
 Themes: 16-byte colour remaps
-Music on the raster interrupt
 ```
 
 - **Visual:** the whole of A1 (no crop; the same picture as slide 1, no new
-  memory). A short arrow in the left margin of row 21 pointing at the
+  memory). A short arrow in the left margin of row 22 pointing up at the
   split line.
-- **Build:** on entry the picture and the title. Presses 1-3: one line
+- **Build:** on entry the picture and the title. Presses 1-2: one line
   each.
 - **Say:** "You have been looking at one of these tricks since slide one:
-  the room is multicolour, the text under it hi-res, switched halfway
-  down the screen. Room themes are a 16-byte colour lookup, and the music
+  the room is in multicolour, the text under it hi-res, switched near the
+  bottom of the screen. Room themes are a 16-byte colour lookup, and the music
   player hangs off the same interrupt. All of it is a C# call."
 - **Sources:** Catacombs/TECH.md ("Raster split", `SetSplit(21,
   ScreenMode.Bitmap)`; `RemapCellColors` "through a 16-byte table"; "While
@@ -908,7 +910,7 @@ NUnit -> PostSharp aspect
   press, animated). Press 2: the green tick. Press 3: last line.
 - **Say:** "The test body never runs as .NET: a PostSharp aspect intercepts
   the call, runs the compiled 6502 routine in our own emulator, and hands
-  the result back to NUnit. Every green test passed on the target CPU, and
+  the result back to NUnit. Every green test passed on an emulated 6502, and
   after slide 11 we also check that it tests what it says."
 - **Sources:** CLAUDE.md (`C64TestFramework`: "intercepts each
   [Test]/[TestCase] method call, loads prg/unittest.prg into a
@@ -930,9 +932,9 @@ NUnit -> PostSharp aspect
 - **On screen:**
 
 ```screen
-1 Play: one hit = half a heart
+1 Play: a hit barely shows
 2 MonsterDamage = 4 -> 20
-3 Rebuild: one hit = a heart
+3 Rebuild: a hit costs a heart
 4 Breakpoint: hover playerHp
 ```
 
@@ -940,28 +942,35 @@ NUnit -> PostSharp aspect
   after the last visible line. Each item gets a tick when done.
 - **Build:** on entry the title. Presses 1-4: one item each (the presenter
   switches to the PC between presses).
-- **Run (one program, Catacombs, throughout; rehearse it):**
-  1. `Catacombs\run.bat`: walk into a guarded room, take a hit (100 HP,
-     10 per half heart, 4 per hit: the bar barely moves).
+- **Run (one program, Catacombs, throughout):**
+  1. `Catacombs\run.bat`: walk to the nearest guarded room, take a hit.
+     100 HP, 4 per hit: 96 HP still lights all ten half hearts (half
+     heart k is lit while HP >= 1 + 10k), so nothing visibly changes.
   2. In `Catacombs/Monster.cs` change `public const uint MonsterDamage =
      4;` to `20`.
-  3. `Catacombs\run.bat` again: same room, one hit now takes a whole
-     heart.
+  3. `Catacombs\run.bat` again: same room, one hit leaves 80 HP and a
+     whole heart goes dark.
   4. In VS Code put a breakpoint on `Catacombs/Encounter.cs` line 106
      (`playerHp = playerHp <= Monster.MonsterDamage ? ...`), run the "C64
      on VICE: Debug Program" command with that file open, take a hit,
      hover `playerHp`, step over (F10).
-  Fallback: the debugger documents Demo, Hunchback and C64Presentation as
-  targets; Catacombs' debug build compiles and assembles below `$CC00`
-  (checked) but has not been debugged live. If it fails in rehearsal, do
-  step 4 on this deck instead (break in `Presenter.cs`) and keep it to
-  30 seconds.
+- **Time budget (3:00):** run 1 with the walk 0:45, edit and rebuild
+  0:20, run 2 with the walk 0:45, debugger with the walk 1:00, spare 0:10.
+  Rehearse the route from the start room to the nearest guardian until it
+  takes under 30 seconds.
+- **Must-pass rehearsal check:** "the breakpoint at `Encounter.cs:106` is
+  hit on VICE and `playerHp` shows its value". The debugger documents
+  Demo, Hunchback and C64Presentation as targets; Catacombs' debug build
+  compiles and assembles below `$CC00` (checked) but has not been debugged
+  live. If the check fails, **cut step 4** and item 4 from the slide:
+  never switch programs on stage. Spend the minute on a longer run 2.
 - **Say:** "Everything you saw is a normal edit-build-run loop: change a
   constant in C#, rebuild, and the C64 plays differently; set a
   breakpoint, and VICE stops on the C# line."
 - **Sources:** `Catacombs/Monster.cs` (`MonsterDamage = 4`),
   `Catacombs/Program.cs` (`PlayerMaxHp = 100`), `Catacombs/Hud.cs`
-  (`SetHealth`: ten half hearts, a threshold every 10 HP),
+  (`SetHealth`: ten half hearts; `threshold` starts at 1 and grows by
+  10; a half heart is lit while `hp >= threshold`),
   `Catacombs/Encounter.cs:106`. Debugger: commits `98c2604` ("run a program
   on VICE from VS Code and stop at breakpoints"), `950600a` (object/array
   inspection), `vscode-extension/README.md` ("Debugging a whole program on
@@ -985,6 +994,8 @@ Play the game, too
 ```
 
 - **Visual:** each line with a small accent bar on the left; nothing else.
+  (Kept as its own slide on purpose: the talk still ends on slide 28's
+  number, not on these bullets.)
 - **Build:** on entry the title. Presses 1-4: one line each.
 - **Say (one sourced line each):**
   1. "Static frames saved 2,304 bytes in Hunchback; unrolled shifts saved
@@ -1005,27 +1016,34 @@ Play the game, too
 
 - **Layout:** title (hi-res, plus sprites).
 - **Title:** `Thank you` (9)
-- **On screen:**
+- **On screen:** the number line in the large title font (at most 18
+  characters, e.g. `N,NNN bytes free`), the rest in the 8x8 font:
 
 ```screen
-This deck is C# too: TBD B free
+This deck is C#, too.
+N,NNN bytes free
 github.com/balazsmolnar/
 C64-IL-Compiler
 ```
 
 - **Visual:** the two logo sprites from slide 2 return and settle side by
-  side above the title.
-- **Build:** on entry the title and the URL. Press 1: line 1 (accent).
+  side above the title. "N,NNN bytes free" centred in the large font in
+  the accent colour, rows 12-13; "This deck is C#, too." on row 10; the
+  URL small on rows 18-19.
+- **Build:** on entry the title and the URL. Press 1: "This deck is C#,
+  too." Press 2: the number, counting up from 0 to its value in about a
+  second.
 - **Say:** "Every slide you have seen was C#, compiled by this compiler and
-  running on a C64, with this much memory to spare. Thank you."
-- **TBD at build:** fill in the deck's free bytes from its final build,
-  measured like Catacombs/TECH.md "Free memory": run
+  running on a C64, and this is how much memory it left over. Thank you."
+- **Required output of the Slides phase:** the real number, measured on
+  the final build and put on this slide; the deck is not done while the
+  slide says N,NNN. Measure it like Catacombs/TECH.md "Free memory": run
   `C64Presentation\measure.bat`, take the end of the last `Data:` line,
   free = $CC00 - end - 1 - 1,080 (tables, locals stack and string buffers
   with `DrawText`; 56 without) - the static frames ("Static frames: ...,
   N bytes") - the heap the deck needs - 64 per sprite frame beyond 64.
-  Round down to a whole number, write it with a thousands comma; the line
-  stays at most 36 characters.
+  Write it with a thousands comma. Report it with the build it was
+  measured on.
 - **Sources:** this project (`C64Presentation/`); `git remote -v`;
   Catacombs/TECH.md (free-memory formula).
 

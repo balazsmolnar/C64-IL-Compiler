@@ -54,6 +54,21 @@ must be true: take them from the code, `git log` and commit messages, and
 
 Navigation stays: SPACE / joystick fire = next, B = back.
 
+## The code is part of the demo
+
+The deck's own source is shown off as "this deck is C# too", so it must
+read like modern, idiomatic C#: file-scoped namespaces, object and
+collection initializers / collection expressions (`[a, b]`), target-typed
+`new()`, `init` properties, expression-bodied members, switch expressions
+and patterns, string interpolation, raw string literals, primary
+constructors, `static` and `readonly` where they fit, small focused
+classes, no C-in-C# (magic numbers, manual index juggling, copy-pasted
+blocks). Slides stay real C# code -- never a data/script format -- written
+as declarative initializers where possible, with custom code only for
+genuinely animated slides. When a modern construct is not supported by the
+compiler yet, prefer adding generic compiler support (with tests, pay only
+for what you use) over writing old-style C#; if that is too big, note it.
+
 ## Technical rules
 
 - Compiler / C64Lib / asm runtime changes are welcome but must be GENERIC

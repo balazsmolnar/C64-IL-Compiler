@@ -27,10 +27,18 @@ PAL_CLOCK = 985248
 
 
 def grab(prg, png, seconds):
-    prg, png = os.path.abspath(prg), os.path.abspath(png)
-    os.makedirs(os.path.dirname(png), exist_ok=True)
-    if os.path.exists(png):
-        os.remove(png)
+    return grab_many(prg, [(png, seconds)])[0]
+
+
+def grab_many(prg, shots):
+    """One VICE instance, several screenshots: shots = [(png, seconds), ...]."""
+    prg = os.path.abspath(prg)
+    shots = sorted(((os.path.abspath(p), t) for p, t in shots), key=lambda s: s[1])
+    for png, _ in shots:
+        os.makedirs(os.path.dirname(png), exist_ok=True)
+        if os.path.exists(png):
+            os.remove(png)
+    png = shots[0][0]
     port = vice_record._free_port()
     config = os.path.join(os.path.dirname(png), "vice-grab.ini")
     args = [vice_record.VICE, "-config", config, "-pal", "-warp",
@@ -39,21 +47,22 @@ def grab(prg, png, seconds):
     proc = subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     deadline = time.time() + 120
     try:
-        while True:
-            if proc.poll() is not None:
-                raise RuntimeError("VICE exited by itself (code %s)" % proc.returncode)
-            if time.time() > deadline:
-                raise RuntimeError("VICE never reached %d emulated seconds" % seconds)
-            try:
-                reply = vice_record._monitor(port, "sw")
-            except OSError:
-                time.sleep(0.5)
-                continue
-            m = re.search(r"Stopwatch:\s*(\d+)", reply)
-            if m and int(m.group(1)) >= seconds * PAL_CLOCK:
-                break
-            time.sleep(0.3)
-        vice_record._monitor(port, 'screenshot "%s" 2' % png.replace("\\", "/"), wait=1.0)
+        for png, seconds in shots:
+            while True:
+                if proc.poll() is not None:
+                    raise RuntimeError("VICE exited by itself (code %s)" % proc.returncode)
+                if time.time() > deadline:
+                    raise RuntimeError("VICE never reached %d emulated seconds" % seconds)
+                try:
+                    reply = vice_record._monitor(port, "sw")
+                except OSError:
+                    time.sleep(0.5)
+                    continue
+                m = re.search(r"Stopwatch:\s*(\d+)", reply)
+                if m and int(m.group(1)) >= seconds * PAL_CLOCK:
+                    break
+                time.sleep(0.1)
+            vice_record._monitor(port, 'screenshot "%s" 2' % png.replace("\\", "/"), wait=1.0)
         try:
             vice_record._monitor(port, "quit", wait=0.5)
         except OSError:
@@ -62,9 +71,10 @@ def grab(prg, png, seconds):
     finally:
         if proc.poll() is None:
             proc.kill()
-    if not os.path.exists(png):
-        raise RuntimeError("no screenshot written to " + png)
-    return png
+    for png, _ in shots:
+        if not os.path.exists(png):
+            raise RuntimeError("no screenshot written to " + png)
+    return [png for png, _ in shots]
 
 
 if __name__ == "__main__":

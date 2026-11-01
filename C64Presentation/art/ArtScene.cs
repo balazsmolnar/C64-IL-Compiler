@@ -34,7 +34,7 @@ static class ArtScene
         else if (page == 4)
             Boss();
         else if (page == 5)
-            C64.Screen.DrawImage(0, 1, C64Address.FromLabel("img_ShotTitle"));   // A2: full screen, no split
+            C64.Screen.DrawImage(2, 3, C64Address.FromLabel("img_ShotTitle"));   // A2: 36x18, centred, rows 3-20
         else
             Machine();
         C64.Screen.EndUpdate();
@@ -85,7 +85,7 @@ static class ArtScene
         C64.Screen.DrawText(3, top + 4, "C#", 0x1B);
         C64.Screen.DrawText(14, top + 4, "IL", 0x1B);
         C64.Screen.DrawText(23, top + 4, "COMPILER PASSES", 0x1B);
-        C64.Screen.DrawText(2, top + 12, "6502ASM", 0x1B);
+        C64.Screen.DrawText(4, top + 12, "ASM", 0x1B);
         C64.Screen.DrawText(12, top + 12, "64TASS", 0x1B);
         C64.Screen.DrawText(23, top + 12, ".PRG", 0x1B);
         C64.Screen.DrawText(33, top + 12, "C64", 0x1B);
@@ -96,8 +96,8 @@ static class ArtScene
     {
         C64.Screen.DrawImage(0, 0, C64Address.FromLabel("img_ShotBoss"));
         C64.Screen.SetSplit(15, ScreenMode.Bitmap);
-        C64.Screen.DrawText(2, 17, "A3: ROWS 0-14, SPLIT AT 15", 0xF0);
-        C64.Screen.DrawText(2, 19, "BY THE NUMBERS ...", 0x30);
+        C64.Screen.DrawText(12, 16, "THE BONE WARDEN", 0x30);   // its name, in hi-res
+        C64.Screen.DrawText(2, 19, "A3: ROWS 0-14, SPLIT AT 15", 0xF0);
     }
 
     // A5 at the storyboard's spot (cells 1-18, rows 7-14), A6 below it:
@@ -106,7 +106,7 @@ static class ArtScene
     {
         C64.Screen.DrawImage(1, 7, C64Address.FromLabel("img_Breadbox"));
         C64.Screen.DrawText(21, 8, "64 KB RAM", 0x10);
-        C64.Screen.DrawText(21, 10, "~1 MHZ 6510 CPU", 0x10);
+        C64.Screen.DrawText(21, 10, "1 MHZ 6510 CPU", 0x10);
         C64.Screen.SetCellColors(0, 17, 40, 4, 0x30, Colors.Black);
         C64.Screen.DrawImage(2, 18, C64Address.FromLabel("img_IconInt8"));
         C64.Screen.DrawImage(8, 18, C64Address.FromLabel("img_IconStack"));

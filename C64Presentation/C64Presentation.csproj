@@ -29,6 +29,8 @@
 
   <ItemGroup>
     <EmbeddedResource Include="sprites.asm" />
+    <!-- The deck's pictures (art/presentation_art.py -> art/build; declared in Assets.cs) -->
+    <EmbeddedResource Include="art\build\*.img;art\build\*.spr" LogicalName="%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup>

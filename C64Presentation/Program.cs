@@ -20,6 +20,10 @@ class Program
             () => new DemoSlide(),
             MemoryLayoutSlide.Create,
             () => new GarbageCollectorSlide(),
+            EngineShowcaseSlides.Section,
+            EngineShowcaseSlides.Machine,
+            EngineShowcaseSlides.Chart,
+            EngineShowcaseSlides.Diagram,
             () => new DemoSlide(),
         };
 

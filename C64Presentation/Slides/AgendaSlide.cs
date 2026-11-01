@@ -1,5 +1,5 @@
 ﻿using C64Lib;
-using C64Presentation.Animations;
+using C64Presentation.Helper;
 using C64Presentation.SlideElements;
 
 namespace C64Presentation.Slides;
@@ -12,22 +12,21 @@ static class AgendaSlide
         {
             Elements = new SlideElement[]
             {
-                new Title() { Text = "AGENDA" },
+                new Title() { Text = "Agenda" },
                 new BulletList()
                 {
-                    Left = 5, Top = 10,
                     Items = new[]
                     {
-                        "WHAT IS IT?",
-                        "HOW DOES IT WORK?", 
-                        "FEATURES",
-                        "GARBAGE COLLECTION",
-                        "INTEGRATION TESTS"
+                        "What is it?",
+                        "How does it work?",
+                        "Features",
+                        "Garbage collection",
+                        "Integration tests"
                     },
-                    Color = Colors.Green
+                    Top = 6,
+                    Wait = true
                 }
-            },
-            Animation = new DiagonalClearAnimation()
+            }
         };
     }
 }

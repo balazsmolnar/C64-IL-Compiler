@@ -3,31 +3,42 @@ using C64Presentation.Helper;
 
 namespace C64Presentation.SlideElements;
 
+// Code on a panel in the C64's blue (Theme.Code): the fixed-pitch face, one character per cell (at most
+// Width - 2 columns), with syntax colours written inline (Theme.Kw / Ty /
+// Str / Num / Com / Pl; at a fixed pitch they cost no column):
+//
+//     Theme.Kw + "static " + Theme.Ty + "int" + Theme.Pl + " Add(...)"
+//
+// Caption: a label on the first row, like an editor tab ("Program.cs",
+// "IL", "6502"); the code then starts a row lower. Drawing it again
+// replaces the code: the old lines vanish and the new ones are typed in,
+// the card stays. Color: the default text colour (Theme.Body).
 class CodeBlock : SlideElement
 {
     public uint X, Y, Width, Height;
     public string[] Lines;
+    public string Caption;
     public Colors Color;
-
-    private const uint SPACE = 0x20;
+    public bool Wait;
 
     public override void Draw()
     {
-        uint a = X;
-        uint b = Y;
-
-        for (uint x = a; x < X+Width; x++)
+        if (Wait)
+            Deck.Step();
+        Deck.Show();                // code keeps its own colours: drawn live
+        Box.DrawCard(X, Y, Width, Height, Theme.Accent, Theme.Code);
+        Helper.Screen.ClearRect(X, Y + 1, Width, Height - 1);
+        uint row = Y + 1;
+        if (Caption != null)
         {
-            for (uint y = b; y < Y+Height; y++)
-            {
-                C64.Screen.SetChar(x,y,SPACE);
-            }
+            Text.Draw(Helper.Screen.X(X + 1), row, Caption, Colors.LightBlue, Theme.Code);
+            row++;
         }
-
-        var yy = Y;
+        Colors color = Theme.Or(Color, Theme.Body);
         foreach (var line in Lines)
         {
-            C64.Screen.Write(X, yy++, line, Colors.White);
+            Text.Code(X + 1, row, line, color);
+            row++;
         }
     }
 }

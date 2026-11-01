@@ -3,11 +3,10 @@ using C64Presentation.Helper;
 
 namespace C64Presentation.SlideElements;
 
+// A two-by-two (or three-part) sprite logo drifting inside a box, bouncing
+// off its edges (sprite coordinates). Scale 2 = expanded sprites.
 class MovingLogo
 {
-    const int SPRITE_WIDTH = 48;
-    const int SPRITE_HEIGHT = 42;
-
     public ulong MinX;
     public uint MinY;
 
@@ -16,58 +15,52 @@ class MovingLogo
 
     public ulong X;
     public uint Y;
-    public const ulong VX = 2;
-    public const uint VY = 1;
+    public uint Scale;          // 0 or 1 = normal, 2 = expanded; steps 1 px
 
     public Sprite SpriteTL;
     public Sprite SpriteTR;
     public Sprite SpriteBL;
     public Sprite SpriteBR;
 
-    private bool left;
-    private bool up;
-    private uint counter;
-
-    private ulong delay1X;
-    private bool delay1Inc;
-    private ulong delay2X;
-    private bool delay2Inc;
+    private bool right;
+    private bool down;
 
     public void Init()
     {
-        delay1X = 10;
-        delay1Inc = true;
-
-        delay2X = 10;
-        delay2Inc = false;
-
-        Sprites.SetupLogo(true);
+        Sprites.SetupLogo(Scale == 2);
+        if (Scale == 0)
+            Scale = 1;
         Sprites.SetVisible(true);
+        Place();
     }
+
     public void Step()
     {
-        X = left ? X + VX : X - VX;
-        Y = up ? Y + VY : Y - VY;
+        X = right ? X + 1 : X - 1;
+        Y = down ? Y + 1 : Y - 1;
 
-        if (X >= MaxX || X <MinX)
-            left = !left ;
+        if (X >= MaxX || X <= MinX)
+            right = !right;
 
-        if (Y >= MaxY || Y < MinY)
-            up = !up;
+        if (Y >= MaxY || Y <= MinY)
+            down = !down;
+        Place();
+    }
 
+    void Place()
+    {
+        ulong w = Scale == 2 ? 48ul : 24ul;
+        uint h = Scale == 2 ? 42u : 21u;
         SpriteTL.X = X;
         SpriteTL.Y = Y;
         SpriteBL.X = X;
-        SpriteBL.Y = Y+SPRITE_HEIGHT;
-
-        SpriteTR.X = X + SPRITE_WIDTH + delay1X - 5;
+        SpriteBL.Y = Y + h;
+        SpriteTR.X = X + w;
         SpriteTR.Y = Y;
-
         if (SpriteBR != null)
         {
-            SpriteBR.X = X + SPRITE_WIDTH + delay2X - 5;
-            SpriteBR.Y = Y + SPRITE_HEIGHT;
+            SpriteBR.X = X + w;
+            SpriteBR.Y = Y + h;
         }
-
     }
 }

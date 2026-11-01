@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using C64Lib;
-using C64Presentation.Animations;
+﻿using C64Lib;
+using C64Presentation.Helper;
 using C64Presentation.SlideElements;
 
 namespace C64Presentation.Slides;
@@ -17,29 +12,24 @@ class WhatIsItSlide
         {
             Elements = new SlideElement[]
             {
-                new Title() { Text = "WHAT IS IT?" },
+                new Title() { Text = "What is it?" },
                 new BulletList()
                 {
-                    Left = 0, Top = 7,
                     Items = new[]
                     {
-                        "RUNNING .NET CODE ON C64",
-                        "CHALLENGES",
+                        "Running .NET code on the C64",
+                        "Challenges:",
                     },
-                    Color = Colors.Green,
                     Wait = true
                 },
-                new Table { X = 0, Y = 12, CollNum = 4, RowNum = 4, CellHeight = 3, CellWidth = 10, WaitAfterRow = true, TextColor = Colors.Grey3, BorderColor = Colors.Grey1, Texts = new []
+                new Table { Y = 10, CollNum = 4, RowNum = 4, ColumnWidths = new uint[] { 9, 8, 9, 10 }, WaitAfterRow = true, Texts = new []
                 {
-                    "", "C64", "PC", "DIFF",
-                    "MEMORY", "64K", "32GB", "*524,288",
-                    "CPU", "1MHZ", "8*1.8GHZ", "*14,400",
-                    "BITS", "8", "64", "*8"
+                    "", "C64", "PC", "Ratio",
+                    "Memory", "64 KB", "32 GB", "x524,288",
+                    "CPU", "1 MHz", "8x1.8 GHz", "x14,400",
+                    "Bits", "8", "64", "x8"
                 }},
-            },
-
-            Animation = new DiagonalClearAnimation()
+            }
         };
     }
-
 }

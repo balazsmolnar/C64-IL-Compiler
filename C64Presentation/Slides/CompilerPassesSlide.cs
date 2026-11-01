@@ -1,101 +1,91 @@
 ﻿using C64Lib;
-using C64Presentation.Animations;
+using C64Presentation.Helper;
 using C64Presentation.SlideElements;
 
 namespace C64Presentation.Slides;
 
+// The pipeline C# -> IL -> asm -> prg, one stage per press, with the code
+// of each stage replacing the previous one below.
 class CompilerPassesSlide
 {
+    const string K = Theme.Kw, T = Theme.Ty, P = Theme.Pl, N = Theme.Num, C = Theme.Com;
 
     public static Slide Create()
     {
-        var prgCodeBlock = new CodeBlock()
-        {
-            Lines = new string[]
-            {
-                ".3C0F   A4 24      LDY STACKPOINTER",
-                ".3C11   B9 FF C6   LDA LOCALSSTACK-1,Y",
-                ".3C14   48         PHA",
-                ".3C15   A4 24      LDY STACKPOINTER",
-                ".3C17   B9 FE C6   LDA LOCALSSTACK-2,Y",
-                ".3C1A   48         PHA",
-                ".3C1B   68         PLA",
-                ".3C1C   85 32      STA $32",
-                ".3C1E   68         PLA",
-                ".3C1F   18         CLC",
-                ".3C20   65 32      ADC $32",
-                ".3C22   48         PHA",
-            },
-            X = 0,
-            Y = 13,
-            Width = 40,
-            Height = 10
-        };
         var csCodeBlock = new CodeBlock()
         {
+            Caption = "C#",
             Lines = new[]
             {
-                "  STATIC INT ADD(INT A, INT B) => A+B",
+                K + "static " + T + "int" + P + " Add(" + T + "int" + P + " a, " + T + "int" + P + " b)",
+                "    => a + b;",
             },
-            X = 0,
-            Y = 15,
-            Width = 38,
-            Height = 10
-
+            X = 2, Y = 10, Width = 36, Height = 11
         };
 
         var ilCodeBlock = new CodeBlock()
         {
+            Caption = "IL",
             Lines = new[]
             {
-                "IL0000: LDARG.0",
-                "IL0001: LDARG.1",
-                "IL0002: ADD",
-                "IL0003: RET"
+                C + "IL0000: " + K + "ldarg.0",
+                C + "IL0001: " + K + "ldarg.1",
+                C + "IL0002: " + K + "add",
+                C + "IL0003: " + K + "ret",
             },
-            X = 0,
-            Y = 15,
-            Width = 38,
-            Height = 10
+            X = 2, Y = 10, Width = 36, Height = 11
         };
 
         var asmCodeBlock = new CodeBlock()
         {
+            Caption = "64tass macros",
             Lines = new[]
             {
-                "ADD:",
-                "  #INIT-LOCALS-PULL-PARAMETERS 0, [0,0]",
-                "  #LOCALS-PUSH-VALUE8 1 ; LDARG.0",
-                "  #LOCALS-PUSH-VALUE8 2 ; LDARG.1",
-                "  #ADD8 ; ADD",
-                "  #METHOD-EXIT 4, [] ; RET",
+                T + "Add:",
+                K + "  #init_locals_pull_parameters" + P + " 0",
+                K + "  #locals_push_value8" + N + " 1  " + C + "; ldarg.0",
+                K + "  #locals_push_value8" + N + " 2  " + C + "; ldarg.1",
+                K + "  #add8               " + C + "; add",
+                K + "  #method_exit" + N + " 4      " + C + "; ret",
             },
-            X = 0,
-            Y = 15,
-            Width = 38,
-            Height = 10
+            X = 2, Y = 10, Width = 36, Height = 11
         };
 
-
+        var prgCodeBlock = new CodeBlock()
+        {
+            Caption = "6502",
+            Lines = new string[]
+            {
+                C + ".3C0F A4 24     " + K + "LDY" + P + " STACKPOINTER",
+                C + ".3C11 B9 FF C6  " + K + "LDA" + P + " LOCALSSTACK-1,Y",
+                C + ".3C14 48        " + K + "PHA",
+                C + ".3C15 A4 24     " + K + "LDY" + P + " STACKPOINTER",
+                C + ".3C17 B9 FE C6  " + K + "LDA" + P + " LOCALSSTACK-2,Y",
+                C + ".3C1A 48        " + K + "PHA",
+                C + ".3C1B 68        " + K + "PLA",
+                C + ".3C1C 85 32     " + K + "STA" + P + " $32",
+                C + ".3C1E 68        " + K + "PLA",
+            },
+            X = 2, Y = 10, Width = 36, Height = 11
+        };
 
         return new SimpleSlide()
         {
             Elements = new SlideElement[]
             {
-                new Title() {Text = "HOW DOES IT WORK?"},
+                new Title() {Text = "How does it work?"},
                 csCodeBlock,
-                new Box() { X = 0, Y = 6, Width = 4, Height = 7, Text = "C#", Color = Colors.Cyan, WaitAfter = true },
-                new RightArrow() { X = 4, Y= 9, Width = 8, Text1 = ".NET", Text2 = "COMP"},
+                new Box() { X = 2, Y = 5, Width = 5, Height = 3, Text = "C#", Color = Theme.Accent, WaitAfter = true },
+                new RightArrow() { X = 7, Y = 6, Width = 5, Text1 = ".NET" },
                 ilCodeBlock,
-                new Box() { X = 12, Y = 6, Width = 4, Height = 7, Text = "IL", Color = Colors.Violet, WaitAfter = true },
-                new RightArrow() { X = 16, Y= 9, Width = 6, Text2 = "(*)"},
+                new Box() { X = 12, Y = 5, Width = 5, Height = 3, Text = "IL", Color = Colors.Violet, WaitAfter = true },
+                new RightArrow() { X = 17, Y = 6, Width = 5, Text1 = "ours" },
                 asmCodeBlock,
-                new Box() { X = 22, Y = 6, Width = 5, Height = 7, Text = "ASM", Color = Colors.LightGreen, WaitAfter = true  },
-                new RightArrow() { X = 27, Y= 9, Width = 8, Text2 = "64TASS"},
+                new Box() { X = 22, Y = 5, Width = 5, Height = 3, Text = "asm", Color = Theme.Good, WaitAfter = true },
+                new RightArrow() { X = 27, Y = 6, Width = 6, Text1 = "64tass" },
                 prgCodeBlock,
-                new Box() { X = 35, Y = 6, Width = 5, Height = 7, Text = "PRG", Color = Colors.Yellow },
-            },
-            Animation = new RandomDisappearAnimation()
+                new Box() { X = 33, Y = 5, Width = 5, Height = 3, Text = "prg", Color = Theme.Accent2 },
+            }
         };
     }
 }

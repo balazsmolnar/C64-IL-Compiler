@@ -1,71 +1,46 @@
 ﻿using C64Lib;
 using C64Presentation.Helper;
 using C64Presentation.SlideElements;
-using Screen = C64Presentation.Helper.Screen;
 
 namespace C64Presentation;
 
+// The cover: title, subtitle, author; the C# logo drifts in the left
+// margin and the Commodore logo in the right one until the press.
 class IntroSlide : Slide
 {
     public override void Present()
     {
-
-        Screen.Clear(Colors.Green);
-        C64.Screen.Write(17, 12, "F  O  R", Colors.Green);
-
-        var c64Logo = new MovingLogo
-        {
-            SpriteTL = C64.Sprites.Sprite0,
-            SpriteBL = C64.Sprites.Sprite1,
-            SpriteTR = C64.Sprites.Sprite2,
-            SpriteBR = C64.Sprites.Sprite3,
-            MinX = 220,
-            MaxX = 265,
-            MinY = 50,
-            MaxY = 170,
-            X = 220,
-            Y = 160
-        };
+        Master.Cover("C# on the C64", "Compiling .NET IL to 6502");
 
         var csharpLogo = new MovingLogo
         {
             SpriteTL = C64.Sprites.Sprite4,
             SpriteBL = C64.Sprites.Sprite5,
             SpriteTR = C64.Sprites.Sprite6,
-            SpriteBR = null,
-            MinX = 30,
-            MaxX = 90,
-            MinY = 50,
-            MaxY = 170,
-            X = 50,
-            Y = 50
+            MinX = 30, MaxX = 46, MinY = 70, MaxY = 170,
+            X = 34, Y = 90
         };
-
-        c64Logo.Init();
-        csharpLogo.Init();
-        for (; ; )
+        var c64Logo = new MovingLogo
         {
-            Delay.Wait(100);
-            if (KeyBoard.AdvancePressed())
-            {
-                break;
-            }
+            SpriteTL = C64.Sprites.Sprite0,
+            SpriteBL = C64.Sprites.Sprite1,
+            SpriteTR = C64.Sprites.Sprite2,
+            SpriteBR = C64.Sprites.Sprite3,
+            MinX = 266, MaxX = 282, MinY = 70, MaxY = 170,
+            X = 278, Y = 150
+        };
+        csharpLogo.Init();
+        c64Logo.Init();
 
-            c64Logo.Step();
+        Deck.Reveal();
+        while (!KeyBoard.AdvancePressed())
+        {
+            C64.Screen.WaitForVBlank();
+            C64.Screen.WaitForVBlank();
             csharpLogo.Step();
+            c64Logo.Step();
         }
-
-
     }
 
-    public override void CleanUp()
-    {
-        C64.Sprites.Sprite0.Visible = false;
-        C64.Sprites.Sprite1.Visible = false;
-        C64.Sprites.Sprite2.Visible = false;
-        C64.Sprites.Sprite3.Visible = false;
-        C64.Sprites.Sprite4.Visible = false;
-        C64.Sprites.Sprite5.Visible = false;
-        C64.Sprites.Sprite6.Visible = false;
-    }
+    public override void CleanUp() => Sprites.SetVisible(false);
 }

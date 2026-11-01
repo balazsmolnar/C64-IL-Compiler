@@ -3,76 +3,63 @@ using C64Presentation.Helper;
 
 namespace C64Presentation.SlideElements;
 
+// A card: a filled panel (Theme.Card) with a 2 px accent bar along its top
+// edge and its text centred (the middle row; Caption, if any, in the row
+// below it). Diagram nodes, memory blocks, labels. Hollow: no fill (an
+// empty slot: just the bar). ConnectToLeft: a 1 px divider down its left
+// edge, for a row of boxes that touch.
+//
+//     new Box { X = 2, Y = 6, Width = 8, Height = 3, Text = "C#", Color = Theme.Accent }
 class Box : SlideElement
 {
     public uint X, Y, Width, Height;
     public string Text;
-    public Colors TextColor;
-    public Colors BorderColor;
+    public string Caption;
+    public Colors TextColor;        // default Theme.Heading
+    public Colors BorderColor;      // the accent bar; default Theme.Accent
+    public bool Hollow;
 
     public Colors Color
     {
-        get => TextColor;
-        set
-        {
-            TextColor = value;
-            BorderColor = value;
-        }
+        get => BorderColor;
+        set => BorderColor = value;
     }
 
     public bool WaitAfter;
+    public bool Wait;
     public bool ConnectToLeft;
-    public bool ConnectToTop;
-
-    private const uint TL_CORNER = 0x70;
-    private const uint TL_CORNER_CONNECT_LEFT = 0x72;
-    private const uint TL_CORNER_CONNECT_TOP = 0x6B;
-    private const uint TR_CORNER = 0x6E;
-    private const uint TR_CORNER_TOP = 0x73;
-    private const uint BL_CORNER = 0x6D;
-    private const uint BL_CORNER_CONNECT = 0x71;
-    private const uint BR_CORNER = 0x7D;
-    private const uint CROSS = 0x5B;
-    private const uint H_LINE = 0x43;
-    private const uint V_LINE = 0x5D;
 
     public override void Draw()
     {
-        var tlCorner = TL_CORNER;
-        if (ConnectToTop && ConnectToLeft)
-            tlCorner = CROSS;
-        else if (ConnectToLeft)
-            tlCorner = TL_CORNER_CONNECT_LEFT;
-        else if (ConnectToTop)
-            tlCorner = TL_CORNER_CONNECT_TOP;
-
-        C64.Screen.SetChar(X, Y, tlCorner, BorderColor);
-        C64.Screen.SetChar(X + Width - 1, Y,  ConnectToTop ? TR_CORNER_TOP : TR_CORNER, BorderColor);
-        C64.Screen.SetChar(X, Y + Height - 1,  ConnectToLeft ? BL_CORNER_CONNECT : BL_CORNER, BorderColor);
-        C64.Screen.SetChar(X + Width - 1, Y + Height - 1, BR_CORNER, BorderColor);
-
-        for (uint x = X + 1; x < Width - 1 + X; x++)
+        if (Wait)
+            Deck.Step();
+        Colors fill = Hollow ? Theme.Background : Theme.Card;
+        DrawCard(X, Y, Width, Height, Theme.Or(BorderColor, Theme.Accent), fill);
+        ulong x = Helper.Screen.X(X);
+        if (ConnectToLeft)
         {
-            C64.Screen.SetChar(x, Y, H_LINE, BorderColor);
-            C64.Screen.SetChar(x, Y + Height - 1, H_LINE, BorderColor);
+            Deck.Paint(X, Y + 1, 1, Height - 1, Theme.Background, fill);
+            Helper.Screen.Line(x, Helper.Screen.X(Y + 1), x, Helper.Screen.X(Y + Height) - 1);
         }
-
-        for (uint y = Y + 1; y < Height - 1 + Y; y++)
-        {
-            C64.Screen.SetChar(X, y, V_LINE, BorderColor);
-            C64.Screen.SetChar(X + Width - 1, y, V_LINE, BorderColor);
-        }
-
-        int length = Text.Length;
-        uint startX = ((Width - (uint)length) >> 1) + (uint)X;
-        uint startY = Y + ((Height - 1) >> 1);
-
-        C64.Screen.Write(startX, startY, Text, TextColor);
-
+        uint row = Y + Height / 2;
+        if (Caption != null && Height > 3)
+            row--;
+        ulong w = Helper.Screen.X(Width);
+        if (Text != null)
+            Helper.Text.Center(x, w, row, Text, Theme.Or(TextColor, Theme.Heading), fill);
+        if (Caption != null)
+            Helper.Text.Center(x, w, row + 1, Caption, Theme.Body, fill);
         if (WaitAfter)
-        {
-            KeyBoard.WaitForKeys();
-        }
+            Deck.Step();
+    }
 
+    // The panel alone: fill, accent bar.
+    public static void DrawCard(uint x, uint y, uint width, uint height, Colors accent, Colors fill)
+    {
+        Deck.Paint(x, y + 1, width, height - 1, fill, fill);
+        Deck.Paint(x, y, width, 1, accent, fill);
+        ulong px = Helper.Screen.X(x);
+        ulong py = Helper.Screen.X(y);
+        Helper.Screen.Fill(px, py, px + Helper.Screen.X(width) - 1, py + 1);
     }
 }

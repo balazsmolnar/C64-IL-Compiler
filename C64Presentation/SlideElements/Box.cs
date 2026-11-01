@@ -33,24 +33,29 @@ class Box : SlideElement
     {
         if (Wait)
             Deck.Step();
-        Colors fill = Hollow ? Theme.Background : Theme.Card;
-        DrawCard(X, Y, Width, Height, Theme.Or(BorderColor, Theme.Accent), fill);
-        ulong x = Helper.Screen.X(X);
-        if (ConnectToLeft)
-        {
-            Deck.Paint(X, Y + 1, 1, Height - 1, Theme.Background, fill);
-            Helper.Screen.Line(x, Helper.Screen.X(Y + 1), x, Helper.Screen.X(Y + Height) - 1);
-        }
-        uint row = Y + Height / 2;
-        if (Caption != null && Height > 3)
-            row--;
-        ulong w = Helper.Screen.X(Width);
-        if (Text != null)
-            Helper.Text.Center(x, w, row, Text, Theme.Or(TextColor, Theme.Heading), fill);
-        if (Caption != null)
-            Helper.Text.Center(x, w, row + 1, Caption, Theme.Body, fill);
+        Render(X, Y, Width, Height, Text, Caption, Theme.Or(TextColor, Theme.Heading), Theme.Or(BorderColor, Theme.Accent),
+            Hollow ? Theme.Background : Theme.Card, ConnectToLeft);
         if (WaitAfter)
             Deck.Step();
+    }
+
+    public static void Render(uint x, uint y, uint width, uint height, string text, string caption, Colors textColor, Colors accent, Colors fill, bool divider)
+    {
+        DrawCard(x, y, width, height, accent, fill);
+        ulong px = Helper.Screen.X(x);
+        if (divider)
+        {
+            Deck.Paint(x, y + 1, 1, height - 1, Theme.Background, fill);
+            Helper.Screen.Line(px, Helper.Screen.X(y + 1), px, Helper.Screen.X(y + height) - 1);
+        }
+        uint row = y + height / 2;
+        if (caption != null && height > 3)
+            row--;
+        ulong w = Helper.Screen.X(width);
+        if (text != null)
+            Helper.Text.Center(px, w, row, text, textColor, fill);
+        if (caption != null)
+            Helper.Text.Center(px, w, row + 1, caption, Theme.Body, fill);
     }
 
     // The panel alone: fill, accent bar.

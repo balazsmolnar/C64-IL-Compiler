@@ -21,31 +21,40 @@ class Table : SlideElement
 
     public override void Draw()
     {
-        uint left = X == 0 ? Theme.Left : X;
-        uint total = 0;
-        for (uint c = 0; c < CollNum; c++)
-            total += Column(c);
-
-        uint index = 0;
-        uint y = Y;
-        for (uint r = 0; r < RowNum; r++)
+        uint columns = CollNum;
+        uint[] widths = ColumnWidths;
+        if (widths == null)
         {
-            if (r != 0 && WaitAfterRow)
-                Deck.Step();
+            widths = new uint[columns];
+            for (uint c = 0; c < columns; c++)
+                widths[c] = CellWidth == 0 ? 9 : CellWidth;
+        }
+        Render(X == 0 ? Theme.Left : X, Y, RowNum, columns, widths, Texts, WaitAfterRow);
+    }
+
+    static void Render(uint left, uint y, uint rows, uint columns, uint[] widths, string[] texts, bool wait)
+    {
+        uint total = 0;
+        for (uint c = 0; c < columns; c++)
+            total += widths[c];
+        uint index = 0;
+        for (uint r = 0; r < rows; r++)
+        {
             bool header = r == 0;
+            if (!header && wait)
+                Deck.Step();
             Colors bg = header ? Theme.Card : Theme.Background;
             if (header)
-                Deck.Paint(left, y, total, 1, Theme.Accent, Theme.Card);
+                Deck.Paint(left, y, total, 1, Theme.Heading, Theme.Card);
             ulong x = Helper.Screen.X(left);
-            for (uint c = 0; c < CollNum; c++)
+            for (uint c = 0; c < columns; c++)
             {
-                ulong w = Helper.Screen.X(Column(c));
-                string text = Texts[index++];
-                Colors fg = header ? Theme.Heading : (c == 0 ? Theme.Body : Theme.Heading);
+                ulong w = Helper.Screen.X(widths[c]);
                 if (c == 0)
-                    Text.Draw(x + 6, y, text, fg, bg);
+                    Text.Draw(x + 6, y, texts[index], header ? Theme.Heading : Theme.Body, bg);
                 else
-                    Text.Right(x + w - 7, y, text, fg, bg);
+                    Text.Right(x + w - 7, y, texts[index], Theme.Heading, bg);
+                index++;
                 x += w;
             }
             if (!header)
@@ -57,6 +66,4 @@ class Table : SlideElement
             y += 2;
         }
     }
-
-    uint Column(uint c) => ColumnWidths != null ? ColumnWidths[c] : (CellWidth == 0 ? 9 : CellWidth);
 }

@@ -20,23 +20,26 @@ class Callout : SlideElement
     {
         if (Wait)
             Deck.Step();
-        uint left = X == 0 ? Theme.Left : X;
-        uint width = Width == 0 ? Theme.Width : Width;
+        string[] lines = Lines;
         uint height = Height;
         if (height == 0)
-            height = (uint)Lines.Length + (Attribution != null ? 4u : 2u);
-        Colors accent = Theme.Or(Accent, Theme.Accent);
-        Deck.Paint(left, Y, width, height, Theme.Card, Theme.Card);
-        Deck.Paint(left, Y, 1, height, accent, Theme.Card);
+            height = (uint)lines.Length + (Attribution != null ? 4u : 2u);
+        Render(X == 0 ? Theme.Left : X, Y, Width == 0 ? Theme.Width : Width, height, lines, Attribution, Theme.Or(Accent, Theme.Accent));
+    }
+
+    static void Render(uint left, uint top, uint width, uint height, string[] lines, string attribution, Colors accent)
+    {
+        Deck.Paint(left, top, width, height, Theme.Card, Theme.Card);
+        Deck.Paint(left, top, 1, height, accent, Theme.Card);
         ulong x = Helper.Screen.X(left);
-        Helper.Screen.Fill(x, Helper.Screen.X(Y), x + 2, Helper.Screen.X(Y + height) - 1);
-        uint row = Y + 1;
-        foreach (var line in Lines)
+        Helper.Screen.Fill(x, Helper.Screen.X(top), x + 2, Helper.Screen.X(top + height) - 1);
+        uint row = top + 1;
+        foreach (var line in lines)
         {
             Text.Draw(x + 12, row, line, Theme.Heading, Theme.Card);
             row++;
         }
-        if (Attribution != null)
-            Text.Draw(x + 12, row + 1, Attribution, accent, Theme.Card);
+        if (attribution != null)
+            Text.Draw(x + 12, row + 1, attribution, accent, Theme.Card);
     }
 }

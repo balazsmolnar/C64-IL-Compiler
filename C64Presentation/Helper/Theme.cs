@@ -16,7 +16,9 @@ fade_Levels
 
 namespace C64Presentation.Helper;
 
-// The deck's look: one palette and one grid, used by every element.
+// The deck's look: one palette and one grid, used by every element. The
+// palette is art/ART.md's: black, Grey1 surface, Grey2 rules, Grey3 body,
+// white titles, cyan accent, yellow second accent, violet for C#/.NET.
 //
 // Screen: hi-res bitmap, 40 x 25 cells of 8 x 8 pixels, two colours per cell.
 //
@@ -33,13 +35,14 @@ static class Theme
 {
     // Palette.
     public const Colors Background = Colors.Black;
-    public const Colors Card = Colors.Grey1;        // panels, boxes, table header
-    public const Colors Code = Colors.Blue;         // code panels: the C64's own blue, on purpose
+    public const Colors Card = Colors.Grey1;        // surface: cards, panels, code, table header
+    public const Colors Code = Colors.Grey1;        // code panels (the same surface)
     public const Colors Heading = Colors.White;     // titles, emphasis
     public const Colors Body = Colors.Grey3;        // running text
-    public const Colors Muted = Colors.Grey2;       // captions, footer, secondary
+    public const Colors Muted = Colors.Grey2;       // rules, captions, footer, inactive
     public const Colors Accent = Colors.Cyan;       // rules, bullets, highlights, bars
-    public const Colors Accent2 = Colors.Yellow;    // a second highlight (numbers, "after")
+    public const Colors Accent2 = Colors.Yellow;    // a second accent, sparingly
+    public const Colors Brand = Colors.Violet;      // C# / .NET marks only
     public const Colors Good = Colors.LightGreen;
     public const Colors Bad = Colors.LightRed;
 
@@ -55,13 +58,13 @@ static class Theme
     public const string Red = "`:";    // Bad
     public const string Green = "`=";  // Good
 
-    // Syntax colours for CodeBlock lines (free at a fixed pitch), chosen
-    // for the blue code panel: comments in the C64's light blue.
+    // Syntax colours for CodeBlock lines (free at a fixed pitch), on the
+    // Grey1 surface: the theme's palette only.
     public const string Kw = "`3";     // keywords: cyan
     public const string Ty = "`1";     // types, names: white
-    public const string Str = "`=";    // strings: light green
+    public const string Str = "`7";    // strings: yellow
     public const string Num = "`7";    // numbers: yellow
-    public const string Com = "`>";    // comments: light blue
+    public const string Com = "`<";    // comments: mid grey
     public const string Pl = "`?";     // plain: light grey
 
     // Glyphs: "~" is an arrow, "\\" a bullet dot, "^" a tick (both fonts).

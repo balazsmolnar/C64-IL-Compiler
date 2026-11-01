@@ -24,6 +24,7 @@ class Program
             EngineShowcaseSlides.Machine,
             EngineShowcaseSlides.Chart,
             EngineShowcaseSlides.Diagram,
+            EngineShowcaseSlides.Picture,
             () => new DemoSlide(),
         };
 

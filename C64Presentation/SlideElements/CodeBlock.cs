@@ -3,7 +3,7 @@ using C64Presentation.Helper;
 
 namespace C64Presentation.SlideElements;
 
-// Code on a panel in the C64's blue (Theme.Code): the fixed-pitch face, one character per cell (at most
+// Code on a card (Theme.Code): the fixed-pitch face, one character per cell (at most
 // Width - 2 columns), with syntax colours written inline (Theme.Kw / Ty /
 // Str / Num / Com / Pl; at a fixed pitch they cost no column):
 //
@@ -31,7 +31,7 @@ class CodeBlock : SlideElement
         uint row = Y + 1;
         if (Caption != null)
         {
-            Text.Draw(Helper.Screen.X(X + 1), row, Caption, Colors.LightBlue, Theme.Code);
+            Text.Draw(Helper.Screen.X(X + 1), row, Caption, Theme.Muted, Theme.Code);
             row++;
         }
         Colors color = Theme.Or(Color, Theme.Body);

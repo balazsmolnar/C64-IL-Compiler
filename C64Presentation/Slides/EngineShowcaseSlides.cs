@@ -4,6 +4,7 @@ using C64Presentation.SlideElements;
 
 // Engine placeholder art (art/engine/make_chip.py).
 [assembly: RawImage(Resource = "chip.img", Label = "Chip")]
+[assembly: RawImage(Resource = "backdrop.img", Label = "Backdrop")]
 
 namespace C64Presentation.Slides;
 
@@ -28,6 +29,10 @@ static class EngineShowcaseSlides
             new Callout { Y = 17, Wait = true, Lines = new[] { "Everything that follows is about fitting", "C# into " + Theme.Hi + "that." } },
         }
     };
+
+    // No chrome: a multicolour picture over rows 0-20, captions in the
+    // hi-res band below the split, built in one by one.
+    public static Slide Picture() => new PictureSlide();
 
     // A chart: before/after bars that grow, with the values at their ends.
     public static Slide Chart() => new SimpleSlide
@@ -72,4 +77,16 @@ class SectionElement : SlideElement
     public string Part, Title, Subtitle;
 
     public override void Draw() => Master.Section(Part, Title, Subtitle);
+}
+
+class PictureSlide : Slide
+{
+    public override void Present()
+    {
+        Master.Picture(C64Address.FromLabel("img_Backdrop"), 0, 0, 21, null);
+        Deck.Step();
+        Text.Center(0, 320, 22, "A full-bleed picture, no chrome.", Theme.Body);
+        Deck.Step();
+        Text.Center(0, 320, 23, "Captions build in " + Theme.Hi + "below the split.", Theme.Body);
+    }
 }

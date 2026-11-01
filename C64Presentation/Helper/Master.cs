@@ -16,7 +16,7 @@ static class Master
         // Accent bar (24 x 2 px) then a hairline to the right margin.
         Deck.Paint(Theme.Left, Theme.RuleRow, 3, 1, Theme.Accent, Theme.Background);
         Screen.Fill(16, 26, 39, 27);
-        Deck.Paint(Theme.Left + 3, Theme.RuleRow, Theme.Width - 3, 1, Theme.Card, Theme.Background);
+        Deck.Paint(Theme.Left + 3, Theme.RuleRow, Theme.Width - 3, 1, Theme.Muted, Theme.Background);
         Screen.Line(44, 27, 303, 27);
         Footer();
     }
@@ -63,12 +63,15 @@ static class Master
         Footer();
     }
 
-    // A full-bleed picture with an optional caption centred in the hi-res
-    // band under it (row 22). No title, no footer.
-    public static void Picture(ulong image, string caption)
+    // A multicolour picture with no chrome (no title, no footer), its
+    // top-left cell at (column, row); from cell row `split` down the screen
+    // is hi-res for text (Text works there as anywhere); 25 = no split.
+    // Caption: centred one row below the split.
+    //     Master.Picture(C64Address.FromLabel("img_ShotRoom"), 0, 0, 21, "A Commodore 64 game.");
+    public static void Picture(ulong image, uint column, uint row, uint split, string caption)
     {
-        Deck.Picture(image);
+        Deck.Picture(image, column, row, split);
         if (caption != null)
-            Text.Center(0, 320, 22, caption, Theme.Body);
+            Text.Center(0, 320, split + 1, caption, Theme.Body);
     }
 }

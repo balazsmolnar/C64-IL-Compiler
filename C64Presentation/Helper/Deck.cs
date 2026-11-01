@@ -7,8 +7,8 @@ namespace C64Presentation.Helper;
 // A slide is drawn while the screen is blanked (Begin), then faded in from
 // black (Reveal); leaving it fades it out to black (FadeOut). Both fades
 // run the screen's colours through the fade_Levels tables (Theme.cs) from a
-// copy saved in the old text screen at $0400, which a bitmap program does
-// not use: nothing is redrawn, no pixel changes, no garbage.
+// copy saved in the old text screen ($0418-$07FF), which a bitmap program
+// does not show: nothing is redrawn, no pixel changes, no garbage.
 //
 // Builds: Step() waits for "advance"; whatever is drawn after it is a build
 // step: it is drawn invisibly (cells painted background on background) and
@@ -34,7 +34,11 @@ static class Deck
     static ulong[] markPx_ = new ulong[24];
     static ulong[] markFont_ = new ulong[24];
 
-    const ulong Saved = 0x0400;
+    // The colour save buffer: 1000 bytes at $0418-$07FF, in the old text
+    // screen a bitmap program does not show. Not from $0400: the KERNAL
+    // keeps writing the character under its (home) cursor there. The last 8
+    // bytes are the text screen's sprite pointers, unused in bitmap mode.
+    const ulong Saved = 0x0418;
 
     public static bool Building => building_;
 
@@ -58,6 +62,7 @@ static class Deck
         {
             C64.Screen.ClearSplit();
             C64.Screen.SetScreenMode(ScreenMode.Bitmap);
+            C64.Screen.SetBackgroundColor(Theme.Background);
             picture_ = false;
         }
         C64.Screen.BeginUpdate();
@@ -97,27 +102,31 @@ static class Deck
         {
             // A picture's third colour is in colour RAM, which the fade
             // tables do not reach: cleared once the rest is dark.
+            // (FillMemory/CopyMemory write bytes 1..size of the address
+            // given, or 0..255 for size 0: three whole pages, then the
+            // last 232 bytes from one below.)
             ulong colorRam = 0xD800;
-            C64.FillMemory(colorRam, 0, 250);
-            C64.FillMemory(colorRam + 250, 0, 250);
-            C64.FillMemory(colorRam + 500, 0, 250);
-            C64.FillMemory(colorRam + 750, 0, 250);
+            C64.FillMemory(colorRam, 0, 0);
+            C64.FillMemory(colorRam + 256, 0, 0);
+            C64.FillMemory(colorRam + 512, 0, 0);
+            C64.FillMemory(colorRam + 767, 0, 232);
         }
         C64.Screen.BeginUpdate();
         C64.Screen.ClearBitmap();
     }
 
-    // A full-bleed multicolour picture (tools/c64img.py, 40 x 21 cells,
-    // --bg 0) over rows 0-20, with rows 21-24 hi-res below a raster split
-    // for captions (Text works there as anywhere). The next slide switches
-    // back by itself. A picture cuts in rather than fading (its colour RAM
-    // colour is not in the saved copy) but fades out like any slide.
-    public static void Picture(ulong image)
+    // A multicolour picture (tools/c64img.py, --bg 0) at (column, row),
+    // with the rows from `split` down hi-res below a raster split (for
+    // captions); split 25 = the whole screen multicolour. The next slide
+    // switches back by itself. Its colour RAM colour is not in the saved
+    // copy, so that one colour cuts in and out instead of fading.
+    public static void Picture(ulong image, uint column, uint row, uint split)
     {
         C64.Screen.SetScreenMode(ScreenMode.MultiColor);
-        C64.Screen.SetSplit(21, ScreenMode.Bitmap);
+        if (split < 25)
+            C64.Screen.SetSplit(split, ScreenMode.Bitmap);
         C64.Screen.BeginUpdate();
-        C64.Screen.DrawImage(0, 0, image);
+        C64.Screen.DrawImage(column, row, image);
         picture_ = true;
     }
 
@@ -200,9 +209,11 @@ static class Deck
     static void Save()
     {
         ulong matrix = C64Address.FromLabel("Graphics_ColorMatrix");
-        C64.CopyMemory(Saved, matrix, 250);
-        C64.CopyMemory(Saved + 250, matrix + 250, 250);
-        C64.CopyMemory(Saved + 500, matrix + 500, 250);
-        C64.CopyMemory(Saved + 750, matrix + 750, 250);
+        // CopyMemory copies bytes 1..size (0..255 for size 0): three pages,
+        // then the last 232 bytes from one below.
+        C64.CopyMemory(Saved, matrix, 0);
+        C64.CopyMemory(Saved + 256, matrix + 256, 0);
+        C64.CopyMemory(Saved + 512, matrix + 512, 0);
+        C64.CopyMemory(Saved + 767, matrix + 767, 232);
     }
 }

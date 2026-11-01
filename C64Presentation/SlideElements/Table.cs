@@ -50,7 +50,7 @@ class Table : SlideElement
             }
             if (!header)
             {
-                Deck.Paint(left, y + 1, total, 1, Theme.Card, Theme.Background);
+                Deck.Paint(left, y + 1, total, 1, Theme.Muted, Theme.Background);
                 ulong ly = Helper.Screen.X(y + 1) + 3;
                 Helper.Screen.Line(Helper.Screen.X(left), ly, Helper.Screen.X(left + total) - 1, ly);
             }

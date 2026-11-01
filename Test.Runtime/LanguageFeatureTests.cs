@@ -33,6 +33,24 @@ public class LanguageFeatureTests
     // Not a constant Roslyn could fold into its caller.
     static string Suffix() => "o";
 
+    static ulong counter16;
+    static ulong Bump16() { counter16 += 300; return counter16; }
+    static string Name() => "abc";
+
+    // A call whose ulong / string result is ignored must take both bytes off
+    // the stack (it used to take one, so the caller returned to a wrong
+    // address). Several discards in a row, then a normal return.
+    [Test]
+    public void Ignored_16_Bit_Results_Leave_The_Stack_Balanced()
+    {
+        counter16 = 0;
+        Bump16();
+        Bump16();
+        Name();
+        Bump16();
+        Assert.IsTrue(counter16 == 900);
+    }
+
     [Test]
     public void Byte_Array_Stores_And_Loads_Elements()
     {

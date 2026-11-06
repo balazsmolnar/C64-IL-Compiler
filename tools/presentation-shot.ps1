@@ -27,7 +27,11 @@ param(
     [int]$WaitSeconds = 10,
     [int]$Shots = 1,
     [int]$IntervalMs = 400,
-    [switch]$NoBuild
+    [switch]$NoBuild,
+    # How VICE's drive 8 runs the deck's disk: True = true drive emulation
+    # (real 1541 timing), Virtual = VICE's fast virtual drive, Default =
+    # whatever VICE is configured for.
+    [ValidateSet('Default', 'True', 'Virtual')][string]$Drive = 'Default'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -50,7 +54,14 @@ if (-not $NoBuild) {
     $out | Where-Object { $_ -match '^(Data|Gap):' }
 }
 
-$launch = & "$tools\vice-launch.ps1" -Prg "$Root\prg\presentation.prg" -WaitSeconds $WaitSeconds -KeepOthers
+# The disk image when the deck has files on the disk (disk.txt), else the .prg.
+$image = if (Test-Path "$Root\prg\presentation.d64") { "$Root\prg\presentation.d64" } else { "$Root\prg\presentation.prg" }
+$driveArgs = switch ($Drive) {
+    'True'    { @('-drive8truedrive') }
+    'Virtual' { @('+drive8truedrive', '-trapdevice8') }
+    default   { @() }
+}
+$launch = & "$tools\vice-launch.ps1" -Prg $image -WaitSeconds $WaitSeconds -KeepOthers -ViceArgs $driveArgs
 if ($launch -notmatch '^RUNNING:(\d+)') { Write-Output $launch; exit 1 }
 $vicePid = [int]$Matches[1]
 

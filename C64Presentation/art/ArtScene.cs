@@ -30,11 +30,11 @@ static class ArtScene
         else if (page == 2)
             Pipeline(4);
         else if (page == 3)
-            Shot(0, 0, C64Address.FromLabel("img_ShotRoom"), "A1: THE ROOM, ROWS 0-20");
+            Shot(0, 0, ArtDisk.Load(DiskPicture.ShotRoom), "A1: THE ROOM, ROWS 0-20");
         else if (page == 4)
             Boss();
         else if (page == 5)
-            C64.Screen.DrawImage(2, 3, C64Address.FromLabel("img_ShotTitle"));   // A2: 36x18, centred, rows 3-20
+            C64.Screen.DrawImage(2, 3, ArtDisk.Load(DiskPicture.ShotTitle));   // A2: 36x18, centred, rows 3-20
         else
             Machine();
         C64.Screen.EndUpdate();
@@ -94,7 +94,7 @@ static class ArtScene
     // A3: rows 0-14 multicolour, hi-res from row 15.
     static void Boss()
     {
-        C64.Screen.DrawImage(0, 0, C64Address.FromLabel("img_ShotBoss"));
+        C64.Screen.DrawImage(0, 0, ArtDisk.Load(DiskPicture.ShotBoss));
         C64.Screen.SetSplit(15, ScreenMode.Bitmap);
         C64.Screen.DrawText(12, 16, "THE BONE WARDEN", 0x30);   // its name, in hi-res
         C64.Screen.DrawText(2, 19, "A3: ROWS 0-14, SPLIT AT 15", 0xF0);

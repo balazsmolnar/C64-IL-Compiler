@@ -679,6 +679,7 @@ Screen_EndUpdate:
 .include "./c64Joystick.asm"
 .include "./C64Sound.asm"
 .include "./C64Music.asm"
+.include "./C64Disk.asm"
 .include "./c64Keys.asm"
 .include "./C64Debug.asm"
 .include "./C64Graphics.asm"

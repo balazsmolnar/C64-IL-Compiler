@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Launches VICE (x64sc) autostarting a .prg, and reports whether it's still
+  Launches VICE (x64sc) autostarting a .prg or a disk image (.d64), and reports whether it's still
   running after a wait -- the first step of the vice-verify skill's
   launch/capture/close sequence (see .claude/skills/vice-verify/SKILL.md).
 
@@ -24,7 +24,10 @@ param(
     # Leave other running x64sc.exe instances alone (several agents each
     # driving their own VICE at once). The caller must then pass the printed
     # pid to vice-capture.ps1/vice-close.ps1 via -ProcessId.
-    [switch]$KeepOthers
+    [switch]$KeepOthers,
+    # More x64sc options, e.g. '+drive8truedrive' (virtual drive) or
+    # '-drive8truedrive' (true drive emulation) for a .d64.
+    [string[]]$ViceArgs = @()
 )
 
 $ErrorActionPreference = 'Stop'
@@ -46,7 +49,7 @@ if (-not $KeepOthers) {
     Start-Sleep -Milliseconds 300
 }
 
-$p = Start-Process -FilePath $ViceExe -ArgumentList '-autostart', $Prg -PassThru
+$p = Start-Process -FilePath $ViceExe -ArgumentList (@($ViceArgs) + @('-autostart', "`"$Prg`"")) -PassThru
 Start-Sleep -Seconds $WaitSeconds
 
 if ($p.HasExited) {

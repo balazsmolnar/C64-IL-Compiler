@@ -67,6 +67,16 @@ if "%QUIET%"=="1" (
 )
 if errorlevel 1 exit /b %errorlevel%
 
-if "%DO_RUN%"=="1" start "" "%VICE_EXE%" -moncommands "%PRG_DIR%\%PRG_NAME%.labels" "%PRG_DIR%\%PRG_NAME%.prg"
+rem A disk.txt in the project directory (the caller's cwd) lists data files
+rem for C64.Disk.Load: then the program and those files also go onto
+rem <prgDir>\<prgName>.d64 (see tools\make-d64.ps1), and --run starts that.
+set "RUN_IMAGE=%PRG_DIR%\%PRG_NAME%.prg"
+if exist "disk.txt" (
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0make-d64.ps1" -Prg "%PRG_DIR%\%PRG_NAME%.prg" -Manifest "disk.txt" -Out "%PRG_DIR%\%PRG_NAME%.d64"
+    if errorlevel 1 exit /b 1
+    set "RUN_IMAGE=%PRG_DIR%\%PRG_NAME%.d64"
+)
+
+if "%DO_RUN%"=="1" start "" "%VICE_EXE%" -moncommands "%PRG_DIR%\%PRG_NAME%.labels" -autostart "%RUN_IMAGE%"
 
 exit /b 0

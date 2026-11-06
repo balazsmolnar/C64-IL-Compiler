@@ -19,6 +19,9 @@ public class DiagnosticsTests
 {
     static int counter;
 
+    // The asm folder of the last CompileProgram call.
+    static string lastOutDir;
+
     // Compiles `source` (which may use C64Lib) and runs the C64 compiler on it.
     // Returns the exit code and everything the compiler printed.
     static (int exitCode, string output) CompileProgram(string source)
@@ -47,6 +50,7 @@ public class DiagnosticsTests
 
         var outDir = Path.Combine(dir, "asm");
         Directory.CreateDirectory(outDir);
+        lastOutDir = outDir;
         var errors = new StringWriter();
         var exit = Program.Run(new[] { dll, outDir, Path.Combine(dir, "entry.asm"), "program" }, errors);
         return (exit, errors.ToString());
@@ -158,6 +162,18 @@ class Program
         var (exit, output) = CompileProgram(Wrap(Input,
             "ulong w = In.N; for (ulong i = 0; i < 700; i++) w = w + 1000; uint b = In.N + 200; int m = -128; return b + (uint)m + (uint)(w & 255);"));
         Assert.That(exit, Is.EqualTo(0), output);
+    }
+
+    // --- the class library -------------------------------------------------
+
+    [Test]
+    public void Disk_Load_Compiles_And_Links_Its_Routine()
+    {
+        var (exit, output) = CompileProgram(Wrap("",
+            "return C64.Disk.Load(\"picture\", 0x4000UL) ? 1u : 0u;"));
+        Assert.That(exit, Is.EqualTo(0), output);
+        var flags = File.ReadAllText(Path.Combine(lastOutDir, "library_flags.asm"));
+        Assert.That(flags, Does.Contain("Flag_Disk_Load = 1"), flags);
     }
 
     // --- types ------------------------------------------------------------

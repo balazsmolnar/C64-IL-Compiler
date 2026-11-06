@@ -8,12 +8,14 @@ using C64Lib;
 
 // --- The storyboard's asset list (DECK.md "Asset list"): 9,857 bytes -------
 
-// A1 Catacombs room with the skeleton guardian (MONSTERROOM), rows 0-20, split at 21 (slides 1, 24)
-[assembly: RawImage(Resource = "shot_room.img", Label = "ShotRoom")]       // 40x21 mc    3755
-// A2 Catacombs title screen, 36x18: DrawImage(2, 3, ..), full screen (slide 22)
-[assembly: RawImage(Resource = "shot_title.img", Label = "ShotTitle")]     // 36x18 mc    2748
-// A3 the Bone Warden encounter, rows 0-14, above a split at row 15 (slide 23)
-[assembly: RawImage(Resource = "shot_boss.img", Label = "ShotBoss")]       // 40x15 mc    2570
+// The three Catacombs shots (9,073 bytes) are files on the deck's disk
+// (disk.txt), not part of the program: ArtDisk.Load(DiskPicture.X) loads one
+// into a single shared buffer and returns its address for DrawImage. The
+// buffer is sized for the largest of them by art/presentation_art.py.
+//   A1 ShotRoom   40x21 mc  3755  DrawImage(0, 0, ..), split at 21 (slides 1, 24)
+//   A2 ShotTitle  36x18 mc  2748  DrawImage(2, 3, ..), full screen (slide 22)
+//   A3 ShotBoss   40x15 mc  2570  DrawImage(0, 0, ..), split at 15 (slide 23)
+[assembly: RawAssembly(Resource = "picture_buffer.asm")]                   // buf_Picture  3755
 // A5 the C64 breadbox, hi-res (slide 3)
 [assembly: RawImage(Resource = "breadbox.img", Label = "Breadbox")]        // 18x8 hires   377
 // A6 six icons, PIXELS ONLY: set the cells' colours first (slide 9, markers 10-15)

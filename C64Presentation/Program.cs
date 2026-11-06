@@ -12,6 +12,9 @@ class Program
 #if SCENE_ART
         ArtScene.Run();   // art/ArtScene.cs: asset review pages
 #endif
+#if SCENE_DISK
+        DiskScene.Run();  // art/DiskScene.cs: a picture loaded from the disk
+#endif
         var slides = new Func<Slide>[]
         {
             () =>  new IntroSlide(),

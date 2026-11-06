@@ -14,6 +14,13 @@ class Thing
     public uint Id;
 }
 
+class InitPair
+{
+    public uint Left { get; init; }
+    public uint Right { get; init; }
+    public uint Count { get; set; }
+}
+
 [TestFixture]
 public class LanguageFeatureTests
 {
@@ -49,6 +56,44 @@ public class LanguageFeatureTests
         Name();
         Bump16();
         Assert.IsTrue(counter16 == 900);
+    }
+
+    static uint Bounce(uint steps)
+    {
+        uint offset = 0;
+        bool up = true;
+        for (uint i = 0; i < steps; i++)
+        {
+            offset = up ? offset + 1 : offset - 1;   // a branch target inside x = x + 1
+            if (offset == 0 || offset == 3)
+                up = !up;
+        }
+        return offset;
+    }
+
+    // `x = c ? x + 1 : x - 1`: the increment fusion must not swallow the
+    // join label (it used to make both arms increment).
+    [Test]
+    public void Conditional_Increment_And_Decrement_Of_One_Local()
+    {
+        Assert.AreEqual(Bounce(3), 3u);
+        Assert.AreEqual(Bounce(5), 1u);
+        Assert.AreEqual(Bounce(6), 0u);
+        Assert.AreEqual(Bounce(7), 1u);
+    }
+
+    // Auto-properties ({ get; set; } and { get; init; }) compile to plain
+    // field stores and loads, object initializers included.
+    [Test]
+    public void Auto_Properties_With_Init_Behave_Like_Fields()
+    {
+        var p = new InitPair { Left = 7, Right = 9 };
+        Assert.AreEqual(p.Left + p.Right, 16u);
+        p.Count = 3;
+        p.Count = p.Count + 2;
+        Assert.AreEqual(p.Count, 5u);
+        InitPair[] pairs = [new() { Left = 1, Right = 2 }, new() { Left = 3, Right = 4 }];
+        Assert.AreEqual(pairs[1].Left + pairs[0].Right, 5u);
     }
 
     [Test]

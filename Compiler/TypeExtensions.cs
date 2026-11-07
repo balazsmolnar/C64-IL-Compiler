@@ -25,9 +25,12 @@ static class TypeExtension
             if (LayoutCache.TryGetValue(type, out var cached))
                 return cached;
             var layout = new List<FieldInfo>();
-            if (type.BaseType != null && type.BaseType.Assembly == type.Assembly)
+            // A class-library type (Func<T>) keeps its flat, references-first
+            // layout.
+            bool program = type.Assembly == MethodBaseExtension.ProgramAssembly;
+            if (program && type.BaseType != null && type.BaseType.Assembly == type.Assembly)
                 layout.AddRange(type.BaseType.GetInstanceLayout());
-            layout.AddRange(type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+            layout.AddRange(type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | (program ? BindingFlags.DeclaredOnly : 0))
                 .Where(f => !f.IsLiteral)
                 .OrderBy(f => f.FieldType.IsReferenceCounted() ? 0 : 1));
             LayoutCache[type] = layout;

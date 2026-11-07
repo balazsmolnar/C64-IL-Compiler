@@ -157,6 +157,7 @@ class ILObjectArrayInitializerOptimizer : ICompilerMethodPass
             // the same allocation with all-zero initial bytes.
             var parts = lines[k].RawParameter.ToString().Split(',').Select(x => x.Trim()).ToArray();
             if (parts.Length != 4 || parts[3] != "0" ||
+                ConstructorSupport.Kind(MethodBaseExtension.ProgramAssembly.ManifestModule.ResolveMethod((int)lines[k].OriginalParameter)) != ConstructorKind.Trivial ||
                 !int.TryParse(parts[0], out var size) || !int.TryParse(parts[1], out var refs))
                 return null;
             element = new Element { Size = size, ReferenceFields = refs, VTable = parts[2], Mem = Enumerable.Repeat("0", size).ToArray() };

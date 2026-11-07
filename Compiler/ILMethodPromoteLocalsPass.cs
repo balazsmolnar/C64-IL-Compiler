@@ -303,6 +303,14 @@ class ILMethodPromoteLocalsPass : ICompilerMethodPass
             }
             if (!SafeOpCodes.Contains(line.OpCode))
                 return false;
+            // A constructor that does real work is a call into this
+            // program (ConstructorSupport), not just the allocation.
+            if (line.OpCode == ILOpCode.Newobj)
+            {
+                var ctor = context.CompilerContext.Assembly.ManifestModule.ResolveMethod((int)line.OriginalParameter);
+                if (ctor != null && ConstructorSupport.Kind(ctor) == ConstructorKind.Call)
+                    return false;
+            }
         }
         return true;
     }

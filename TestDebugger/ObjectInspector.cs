@@ -159,8 +159,7 @@ class ObjectInspector
     private List<(string, InspectedValue)> ExpandObject(Type type, int heapAddress)
     {
         var result = new List<(string, InspectedValue)>();
-        var fields = type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
-            .Where(f => !f.IsLiteral);
+        var fields = type.GetInstanceLayout();
         foreach (var field in fields)
             result.Add((FriendlyFieldName(field.Name), Read(field.FieldType, heapAddress + _compilerContext.GetFieldPosition(field))));
         return result;

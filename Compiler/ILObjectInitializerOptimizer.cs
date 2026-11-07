@@ -35,8 +35,12 @@ class ILObjectInitializerOptimizer : ICompilerMethodPass
                 // GetIntParam on a null ToString().
                 lines[i].RawParameter != null &&
                 this.GetStringParam(lines[i].RawParameter, 3).Trim() == "0" &&
-                lines[i + 1].Operation is OpDup)
+                (lines[i + 1].Operation is OpDup || IsConstantInit(context, lines[i])))
             {
+                // A constructor of constant field stores (field initializers,
+                // ConstructorSupport) gives the starting bytes; the object
+                // initializer's stores come after it, as in C#.
+                bool constantInit = IsConstantInit(context, lines[i]);
                 lines[i].Optimized = true;
 
                 var size = this.GetIntParam(lines[i].RawParameter, 0);
@@ -50,7 +54,9 @@ class ILObjectInitializerOptimizer : ICompilerMethodPass
                 var referenceFields = this.GetIntParam(lines[i].RawParameter, 1);
                 var vtable = this.GetStringParam(lines[i].RawParameter, 2);
 
-                string[] mem = Enumerable.Repeat("0", size).ToArray();
+                string[] mem = constantInit
+                    ? ConstructorSupport.InitialBytes(context.CompilerContext, ResolveCtor(context, lines[i]), size)
+                    : Enumerable.Repeat("0", size).ToArray();
 
                 int index = i + 1;
                 while (
@@ -106,7 +112,7 @@ class ILObjectInitializerOptimizer : ICompilerMethodPass
                 // Nothing constant to fold (every store in the initializer
                 // is computed): #newObjInit would only be a bigger #newObj
                 // plus an all-zero data row.
-                if (index == i + 1)
+                if (index == i + 1 && !constantInit)
                 {
                     lines[i].Optimized = false;
                     continue;
@@ -122,6 +128,12 @@ class ILObjectInitializerOptimizer : ICompilerMethodPass
             }
         }
     }
+
+    private static System.Reflection.MethodBase ResolveCtor(CompilerMethodContext context, ILOperation line) =>
+        context.CompilerContext.Assembly.ManifestModule.ResolveMethod((int)line.OriginalParameter);
+
+    private static bool IsConstantInit(CompilerMethodContext context, ILOperation line) =>
+        ConstructorSupport.Kind(ResolveCtor(context, line)) == ConstructorKind.ConstantInit;
 
     private int GetIntParam(object parameter, int index)
     {

@@ -181,6 +181,34 @@ NewObjArrayInit_Next
   rts
 .endif
 
+; #newObjCtor (heap.asm) with constructor arguments: puts the new object's
+; handle twice under the Y argument bytes on top of the hardware stack, by
+; moving our return address and the arguments two bytes down. Linked only
+; when the compiler emitted one (OpNewObj, Compiler/Operands/OperandBase.cs).
+; Inputs: A = handle, Y = argument bytes (1..). Destroys A, X, Y.
+.weak
+Flag_NewObjInsertThis = 0
+.endweak
+.if Flag_NewObjInsertThis
+NewObjInsertThis
+  sta zp_ctor_result
+  tsx
+  dex
+  dex
+  txs                       ; two new bytes; nothing below SP is touched
+  iny
+  iny                       ; the return address + the arguments
+- lda $0103,x
+  sta $0101,x
+  inx
+  dey
+  bne -
+  lda zp_ctor_result        ; X: the two freed bytes, just under the arguments
+  sta $0101,x
+  sta $0102,x
+  rts
+.endif
+
 findEmptySlot
   ; Find an empty entry in the object table --> X
   ldx #0

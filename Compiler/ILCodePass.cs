@@ -92,7 +92,26 @@ class ILCodePass : ICompilerPass
                 CheckFields(context, @type);
 
                 var methods = @type.GetMethods(BindingFlags.Static | BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public).OfType<MethodBase>();
-                var staticConstructors = @type.GetConstructors(BindingFlags.Static | BindingFlags.NonPublic).OfType<MethodBase>();
+                var staticConstructors = @type.GetConstructors(BindingFlags.Static | BindingFlags.NonPublic).OfType<MethodBase>()
+                    // Instance constructors that do real work (see
+                    // ConstructorSupport): newobj calls them.
+                    .Concat(ConstructorSupport.CompiledConstructors(@type, context.Assembly));
+
+                if (ConstructorSupport.IsRecord(@type))
+                {
+                    var anyCtor = @type.GetConstructors(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly).FirstOrDefault();
+                    var location = anyCtor == null ? null : context.SourceLocator.Locate(anyCtor, null);
+                    context.Diagnostics.Add(new CompilerDiagnostic
+                    {
+                        Code = DiagnosticCodes.UnsupportedDeclaration,
+                        Message = $"The record '{@type.Name}' is not supported: C# generates Equals, GetHashCode, ToString and a copy constructor for it, which need the class library.",
+                        Hint = $"Use a class with a primary constructor instead: class {@type.Name}(...) {{ ... }}.",
+                        File = location?.file,
+                        Line = location?.line ?? 0,
+                        Method = @type.Name,
+                    });
+                    continue;
+                }
                 // var constructors = @type.GetConstructors(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).OfType<MethodBase>();
                 // if (constructors.Count() > 1)
                 //     throw new Exception($"Only 1 constructor supported (at the moment). Type : {@type} ");

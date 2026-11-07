@@ -70,8 +70,22 @@
         public static Sound Sound => null;
         public static Debug Debug => null;
         public static bool IsKeyPressed(Keys key) => false;
+        /// <summary>
+        /// Copies the <paramref name="size"/> bytes at
+        /// <paramref name="source"/> .. source+size-1 to
+        /// <paramref name="dest"/> .. dest+size-1. <paramref name="size"/>
+        /// is 1-255, and 0 means 256 (a whole page). The copy runs from the
+        /// last byte down, so overlapping ranges are only safe when
+        /// dest is above source (moving bytes up).
+        /// </summary>
         public static void CopyMemory(ulong dest, ulong source, uint size) { }
+        /// <summary>
+        /// Writes <paramref name="value"/> to the <paramref name="size"/>
+        /// bytes <paramref name="dest"/> .. dest+size-1. <paramref name="size"/>
+        /// is 1-255, and 0 means 256 (a whole page).
+        /// </summary>
         public static void FillMemory(ulong dest, uint value, uint size) { }
+        /// <summary>The byte at <paramref name="address"/> + <paramref name="x"/> (x 0-255).</summary>
         public static uint GetMemory(ulong address, uint x) => 0;
         // The 16-bit (low byte first) value at address + index * 2: entry
         // `index` (0-127) of a table of words, e.g. a RawAssembly

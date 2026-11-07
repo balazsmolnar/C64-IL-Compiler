@@ -259,20 +259,15 @@ class IntroScroll
 
     // Shifts row[0..38] = row[1..39] (leaves row[39], the newly-vacated
     // rightmost column, untouched -- the caller overwrites it separately).
-    // Can't do this as one direct in-place CopyMemory(row, row+1, 39): that
-    // macro's copy loop walks its index from size down to 1, i.e. always
-    // writes high-to-low, which is only safe for a right shift -- on this
-    // left shift it would clobber not-yet-read source bytes. Routing
-    // through the non-overlapping introScrollTempRow buffer sidesteps that
-    // regardless of the copy direction. See GameData.asm's comment on that
-    // buffer for the exact index math (CopyMemory(dest, source, size) only
-    // ever touches offsets 1..size relative to each base, never offset 0 --
-    // both calls below are based one address short of where the real data
-    // starts to line that up).
+    // Can't do this as one direct in-place CopyMemory(row, row+1, 39):
+    // CopyMemory copies from the last byte down, which is only safe for a
+    // right shift -- on this left shift it would clobber not-yet-read
+    // source bytes. Routing through the non-overlapping introScrollTempRow
+    // buffer sidesteps that.
     private static void ShiftRowLeft(ulong row)
     {
         var temp = C64Address.FromLabel("introScrollTempRow");
-        C64.CopyMemory(temp - 1, row, Cols - 1);
-        C64.CopyMemory(row - 1, temp - 1, Cols - 1);
+        C64.CopyMemory(temp, row + 1, Cols - 1);
+        C64.CopyMemory(row, temp, Cols - 1);
     }
 }

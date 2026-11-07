@@ -144,10 +144,13 @@ A, X, Y: 8 bits
 
 - **Layout:** code (hi-res), two text lines below.
 - **Title:** `It's ordinary C#` (16)
-- **On screen (code, 8 lines):**
+- **On screen (code, 9 lines: the one exception to the 8-line rule, for
+  idiomatic braces; the panel is rows 4-12, the two text lines rows 14-15,
+  which still fits above the footer):**
 
 ```code
-class Star {
+class Star
+{
   public uint X { get; set; }
   public uint Dx { get; init; }
   public void Move() => X += Dx;
@@ -165,9 +168,9 @@ C64Lib: the C64 as a C# API
 ```
 
 - **Visual:** code in a panel with the theme's code background; a thin
-  rule between the class (lines 1-5) and the three statements (lines 6-8),
-  with a small grey label `in Main` beside line 6.
-- **Build:** on entry the class. Press 1: lines 6-8. Presses 2-3: one text
+  rule between the class (lines 1-6) and the three statements (lines 7-9),
+  with a small grey label `in Main` beside line 7.
+- **Build:** on entry the class. Press 1: lines 7-9. Presses 2-3: one text
   line each.
 - **Say:** "Auto-properties, an init-only property set by an object
   initializer, an expression-bodied method, a collection expression with
@@ -190,7 +193,7 @@ C64Lib: the C64 as a C# API
     slide, so the slide uses `{ get; set; }`.
   - Top-level statements fail to link: they compile to a method named
     `<Main>$`, and 64tass reports "not defined symbol 'Program_Main'". So
-    lines 6-8 sit in a `Main` method.
+    lines 7-9 sit in a `Main` method.
 
 ### Slide 4 — What compiles
 
@@ -214,8 +217,8 @@ COMPILE ERROR
 generics
 interfaces
 struct, double
-try, throw
-LINQ, most BCL
+try, throw, LINQ
+constructor logic
 ```
 
 - **Visual:** "WORKS" heading in light green, "COMPILE ERROR" in light
@@ -229,9 +232,13 @@ Every error has a code and a hint
 - **Build:** on entry the headings. Press 1: left column. Press 2: right
   column. Press 3: the bottom line.
 - **Say:** "You get classes with virtual methods, arrays, strings, floats
-  and a garbage collector. You don't get generics, interfaces, structs or
-  exceptions, and the compiler tells you so with an error and a hint,
-  never by producing wrong code."
+  and a garbage collector. You don't get generics, interfaces, structs,
+  exceptions or constructor logic: you set fields with an object
+  initializer, exactly as slide 3 did. The compiler tells you so with an
+  error and a hint, never by producing wrong code."
+  (The "constructor logic" line and its clause in the Say are kept easy
+  to drop: if constructor support is added later, delete both and the
+  right column is still 5 lines.)
 - **Sources:** works: `Compiler/Diagnostics.cs` ("Only your own code,
   C64Lib.*, MathF.Sin/Cos/Sqrt, Console.Write/WriteLine(string),
   GC.Collect(), Func<T>.Invoke(), numeric ToString() and the string basics
@@ -242,7 +249,13 @@ Every error has a code and a hint
   `Compiler/Operands/OperandBase.cs` ("Interfaces are not supported yet");
   struct, double, try/throw `Compiler/Diagnostics.cs` (`Describe`: "A
   struct (user-defined value type)", "double-precision floating point",
-  "try/catch/finally", "The 'throw' statement"); LINQ and the rest of the
+  "try/catch/finally", "The 'throw' statement"); constructor logic
+  `Compiler/Operands/OperandBase.cs:447` (C64004: "The constructor of
+  '{t.Name}' does real work (sets a field, including a field initializer
+  such as 'int x = 5;', or calls a method), which is not supported yet.",
+  hint "Set the fields where you create the object, with an object
+  initializer ..."), also hit by the primary-constructor try on slide 3;
+  LINQ and the rest of the
   class library: C64002 ("a call into the .NET class library ... with no
   C64 implementation"). Codes and hints: CLAUDE.md ("Unsupported C# is a
   compile error").
@@ -700,7 +713,7 @@ Result comes back in A
   1.5 bytes per cell: before = 26 cells (grey), after = 8 cells (accent).
 - **Build:** on entry the before bar. Press 1: the after bar and the code.
   Presses 2-4: one text line each.
-- **Say:** "Same Add, today's compiler. The arguments sit at fixed
+- **Say:** "Remember 39 bytes? Same Add, today's compiler. The arguments sit at fixed
   addresses, the caller writes them with plain loads and stores, and the
   result never touches the stack: six instructions."
 - **Prepared answer** ("I'd write that in 8 bytes"): "Yes: `lda a / clc /
@@ -1223,7 +1236,8 @@ like this (all paths literal, scratch under `.debug-tmp\`).
 - **Snippet S2 (slide 3).** A C64Lib project (`LangVersion` latest):
 
   ```
-  class Star {
+  class Star
+  {
     public uint X { get; set; }
     public uint Dx { get; init; }
     public void Move() => X += Dx;
@@ -1245,7 +1259,9 @@ like this (all paths literal, scratch under `.debug-tmp\`).
   Built with the compiler at `70da6e5` (presentation-modern), compiled
   (static frames: 6 of 6 methods), assembled (`$1000-$1920`) and run in
   VICE (`tools\vice-launch.ps1 -KeepOthers`, then
-  `tools\vice-capture.ps1`): `2` in the top-left corner. Variants tried
+  `tools\vice-capture.ps1`): `2` in the top-left corner. (The verified
+  file had `class Star {` on one line; the brace on its own line is
+  whitespace only.) Variants tried
   the same way: `X { get; private set; }` with `Speed { get; init; }`
   also prints `2`; the primary-constructor version (`class Star(uint
   speed)`, `[new(1), new(2)]`) fails with C64004 (text on slide 3); the

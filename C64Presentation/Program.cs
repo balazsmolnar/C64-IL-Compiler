@@ -7,6 +7,9 @@ static class Program
 {
     // The deck, in order. Each entry builds its slide when it is shown, so
     // only one slide's objects live on the heap at a time.
+#if SCENE_ENGINE
+    static readonly Func<Slide>[] Slides = EngineGallery.Slides;
+#else
     static readonly Func<Slide>[] Slides =
     [
         () => new IntroSlide(),
@@ -20,6 +23,7 @@ static class Program
         () => new GarbageCollectorSlide(),
         () => new DemoSlide(),
     ];
+#endif
 
     static void Main()
     {

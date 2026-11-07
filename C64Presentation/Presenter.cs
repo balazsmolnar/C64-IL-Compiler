@@ -1,6 +1,7 @@
-﻿using System;
+using System;
 using C64Lib;
 using C64Presentation.Helper;
+using C64Presentation.Slides;
 
 namespace C64Presentation;
 

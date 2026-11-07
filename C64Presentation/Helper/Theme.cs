@@ -37,7 +37,9 @@ static class Theme
 {
     // Palette.
     public const Colors Background = Colors.Black;
-    public const Colors Card = Colors.Grey1;        // surface: cards, panels, code, table header
+    public const Colors Card = Colors.Grey1;        // surface: cards, panels, table header
+    public const Colors Code = Colors.Black;        // code panels: black in a Grey1 frame, for contrast
+    public const Colors Frame = Colors.Grey1;       // frames, tracks
     public const Colors Heading = Colors.White;     // titles, text on cards
     public const Colors Body = Colors.Grey3;        // running text
     public const Colors Muted = Colors.Grey2;       // rules, captions, footer, inactive
@@ -56,7 +58,7 @@ static class Theme
     public const string Dim = "`<";    // Muted
     public const string Red = "`:";    // Bad
 
-    // Syntax colours for code (free at the fixed pitch), on the Grey1 card.
+    // Syntax colours for code (free at the fixed pitch), on the black code panel.
     public const string Kw = "`3";     // keywords, mnemonics: cyan
     public const string Ty = "`1";     // types, names, plain code: white
     public const string Str = "`7";    // strings, numbers: yellow
@@ -92,6 +94,13 @@ static class Theme
         uint paper = (uint)bg;
         return (ink << 4) | paper;
     }
+
+    // Element defaults. The compiler runs no field initializers or
+    // constructor bodies, and has no Nullable<T>, so an element property left
+    // at its default (0, or Colors.Black) means "the theme's value": write
+    // Theme.Auto to say so explicitly. (Position 0 therefore cannot be asked
+    // for; nothing in the grid uses column or row 0 for content.)
+    public const uint Auto = 0;
 
     // A colour property left at its default (black) means "the theme's".
     public static Colors Or(Colors color, Colors fallback) => color == Colors.Black ? fallback : color;

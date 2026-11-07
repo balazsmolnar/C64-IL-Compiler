@@ -19,7 +19,7 @@ class Arrow : SlideElement
     public uint ToCol { get; init; }
     public uint ToRow { get; init; }
     public bool VerticalFirst { get; init; }
-    public string Text { get; init; }
+    public string? Text { get; init; }
     public Colors Color { get; init; }
     public bool Wait { get; init; }
 
@@ -41,9 +41,9 @@ class Arrow : SlideElement
             Label(Text, FromCol, FromRow, cornerCol, cornerRow, ToRow);
     }
 
-    static ulong X(uint column) => Helper.Screen.X(column) + 3;
+    static ulong X(uint column) => Helper.Screen.Px(column) + 3;
 
-    static ulong Y(uint row) => Helper.Screen.X(row) + 4;
+    static ulong Y(uint row) => Helper.Screen.Px(row) + 3;   // 4 px under a label in the row above
 
     static uint Min(uint a, uint b) => a < b ? a : b;
 
@@ -90,13 +90,13 @@ class Arrow : SlideElement
         if (cornerRow == fromRow && cornerCol != fromCol)
         {
             uint left = Min(fromCol, cornerCol);
-            Helper.Text.Center(Helper.Screen.X(left), Helper.Screen.X(Span(fromCol, cornerCol)), fromRow - 1, text, Theme.Muted);
+            Helper.Text.Center(Helper.Screen.Px(left), Helper.Screen.Px(Span(fromCol, cornerCol)), fromRow - 1, text, Theme.Muted);
             return;
         }
         uint row = Min(fromRow, toRow) + (Span(fromRow, toRow) >> 1);
-        ulong beside = Helper.Screen.X(cornerCol + 1) + 4;
-        if (beside + Helper.Text.Width(text) > Helper.Screen.X(Theme.Right))
-            Helper.Text.Right(Helper.Screen.X(cornerCol) - 5, row, text, Theme.Muted);
+        ulong beside = Helper.Screen.Px(cornerCol + 1) + 4;
+        if (beside + Helper.Text.Width(text) > Helper.Screen.Px(Theme.Right))
+            Helper.Text.Right(Helper.Screen.Px(cornerCol) - 5, row, text, Theme.Muted);
         else
             Helper.Text.Draw(beside, row, text, Theme.Muted);
     }

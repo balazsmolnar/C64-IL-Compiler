@@ -1,4 +1,4 @@
-﻿using C64Lib;
+using C64Lib;
 
 namespace C64Presentation.Helper;
 

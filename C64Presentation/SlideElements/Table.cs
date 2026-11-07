@@ -3,70 +3,67 @@ using C64Presentation.Helper;
 
 namespace C64Presentation.SlideElements;
 
-// A table: a header row on a card (white text), then the rows, each
-// followed by a hairline. Texts are row by row, the header first. Column
-// widths in cells: ColumnWidths, or CellWidth (default 9) for all. The
-// first column is left aligned (Body colour), the others right aligned
-// (numbers; white). WaitAfterRow builds it row by row. X default Theme.Left.
+// A table: a Header row (white on black, a 2 px cyan rule under it), then
+// the Rows, each followed by a Grey2 hairline; two cell rows per row.
+// Widths: each column's width in cells. The first column is left aligned
+// in Grey3, the others right aligned in white (numbers). WaitAfterRow:
+// each row after the header is a build step. X: Auto = Theme.Left.
 //
-//     new Table { Y = 10, CollNum = 3, RowNum = 3, ColumnWidths = new uint[] { 16, 10, 10 },
-//                 Texts = new[] { "", "Before", "After", "Hunchback", "36,847", "28,157", ... } }
-class Table : SlideElement
+//     new Table
+//     {
+//         Y = 10, Widths = [9, 8, 9, 10], WaitAfterRow = true,
+//         Header = ["", "C64", "PC", "Ratio"],
+//         Rows = [["Memory", "64 KB", "32 GB", "x524,288"], ["CPU", "1 MHz", "8x1.8 GHz", "x14,400"]],
+//     }
+sealed class Table : SlideElement
 {
+    const ulong Padding = 6;
+
     public uint X { get; init; }
     public uint Y { get; init; }
-    public uint RowNum { get; init; }
-    public uint CollNum { get; init; }
-    public uint CellWidth { get; init; }
-    public uint[] ColumnWidths { get; init; }
-    public string[] Texts { get; init; }
+    public required uint[] Widths { get; init; }
+    public required string[] Header { get; init; }
+    public required string[][] Rows { get; init; }
     public bool WaitAfterRow { get; init; }
 
     public override void Draw()
     {
-        uint columns = CollNum;
-        uint[] widths = ColumnWidths;
-        if (widths == null)
+        uint left = Theme.OrCells(X, Theme.Left);
+        uint total = 0;
+        foreach (var width in Widths)
+            total += width;
+        uint row = Y;
+        DrawRow(left, row, Header, Theme.Heading);
+        Rule(left, row + 1, total, Theme.Accent, 2, 0);
+        foreach (var cells in Rows)
         {
-            widths = new uint[columns];
-            for (uint c = 0; c < columns; c++)
-                widths[c] = Theme.OrCells(CellWidth, 9);
+            row += 2;
+            if (WaitAfterRow)
+                Deck.Step();
+            DrawRow(left, row, cells, Theme.Body);
+            Rule(left, row + 1, total, Theme.Muted, 1, 3);
         }
-        Render(Theme.OrCells(X, Theme.Left), Y, RowNum, columns, widths, Texts, WaitAfterRow);
     }
 
-    static void Render(uint left, uint y, uint rows, uint columns, uint[] widths, string[] texts, bool wait)
+    void DrawRow(uint left, uint row, string[] cells, Colors firstColumn)
     {
-        uint total = 0;
-        for (uint c = 0; c < columns; c++)
-            total += widths[c];
-        uint index = 0;
-        for (uint r = 0; r < rows; r++)
+        ulong x = Screen.Px(left);
+        for (uint c = 0; c < cells.Length; c++)
         {
-            bool header = r == 0;
-            if (!header && wait)
-                Deck.Step();
-            Colors bg = header ? Theme.Card : Theme.Background;
-            if (header)
-                Deck.Paint(left, y, total, 1, Theme.Heading, Theme.Card);
-            ulong x = Helper.Screen.X(left);
-            for (uint c = 0; c < columns; c++)
-            {
-                ulong w = Helper.Screen.X(widths[c]);
-                if (c == 0)
-                    Text.Draw(x + 6, y, texts[index], header ? Theme.Heading : Theme.Body, bg);
-                else
-                    Text.Right(x + w - 7, y, texts[index], Theme.Heading, bg);
-                index++;
-                x += w;
-            }
-            if (!header)
-            {
-                Deck.Paint(left, y + 1, total, 1, Theme.Muted, Theme.Background);
-                ulong ly = Helper.Screen.X(y + 1) + 3;
-                Helper.Screen.Line(Helper.Screen.X(left), ly, Helper.Screen.X(left + total) - 1, ly);
-            }
-            y += 2;
+            ulong width = Screen.Px(Widths[c]);
+            if (c == 0)
+                Text.Draw(x + Padding, row, cells[c], firstColumn);
+            else
+                Text.Right(x + width - Padding - 1, row, cells[c], Theme.Heading);
+            x += width;
         }
+    }
+
+    // A rule `thickness` px tall, `offset` px down into its cell row.
+    static void Rule(uint left, uint row, uint width, Colors color, ulong thickness, ulong offset)
+    {
+        Deck.Paint(left, row, width, 1, color, Theme.Background);
+        ulong y = Screen.Px(row) + offset;
+        Screen.Fill(Screen.Px(left), y, Screen.Px(left + width) - 1, y + thickness - 1);
     }
 }

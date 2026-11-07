@@ -1,4 +1,4 @@
-﻿using C64Lib;
+using C64Lib;
 using C64Presentation.Helper;
 
 namespace C64Presentation.SlideElements;
@@ -10,15 +10,15 @@ namespace C64Presentation.SlideElements;
 // divider down its left edge, for a row of boxes that touch.
 //
 //     new Box { X = 2, Y = 6, Width = 8, Height = 3, Text = "C#", Color = Theme.Brand }
-class Box : SlideElement
+sealed class Box : SlideElement
 {
     public uint X { get; init; }
     public uint Y { get; init; }
     public uint Width { get; init; }
     public uint Height { get; init; }
-    public string Text { get; init; }
-    public string Caption { get; init; }
-    public Colors Color { get; init; }      // the accent bar; default Theme.Accent
+    public string? Text { get; init; }
+    public string? Caption { get; init; }
+    public Colors Color { get; init; }      // the accent bar; Auto = Theme.Accent
     public bool Hollow { get; init; }
     public bool ConnectToLeft { get; init; }
     public bool Wait { get; init; }
@@ -28,38 +28,31 @@ class Box : SlideElement
     {
         if (Wait)
             Deck.Step();
-        Render(X, Y, Width, Height, Text, Caption, Theme.Or(Color, Theme.Accent),
-            Hollow ? Theme.Background : Theme.Card, ConnectToLeft);
+        var fill = Hollow ? Theme.Background : Theme.Card;
+        Card(X, Y, Width, Height, Theme.Or(Color, Theme.Accent), fill);
+        ulong x = Screen.Px(X), width = Screen.Px(Width);
+        if (ConnectToLeft)
+        {
+            Deck.Paint(X, Y + 1, 1, Height - 1, Theme.Background, fill);
+            Screen.Line(x, Screen.Px(Y + 1), x, Screen.Px(Y + Height) - 1);
+        }
+        var ink = Hollow ? Theme.Body : Theme.Heading;
+        bool captioned = Caption != null;
+        uint row = captioned ? Y + 1 : Y + Height / 2;
+        if (Text != null)
+            Helper.Text.Center(x, width, row, Text, ink, fill);
+        if (captioned)
+            Helper.Text.Center(x, width, row + 2, Caption!, ink, fill);
         if (WaitAfter)
             Deck.Step();
     }
 
-    public static void Render(uint x, uint y, uint width, uint height, string text, string caption, Colors accent, Colors fill, bool divider)
-    {
-        DrawCard(x, y, width, height, accent, fill);
-        ulong px = Helper.Screen.X(x);
-        if (divider)
-        {
-            Deck.Paint(x, y + 1, 1, height - 1, Theme.Background, fill);
-            Helper.Screen.Line(px, Helper.Screen.X(y + 1), px, Helper.Screen.X(y + height) - 1);
-        }
-        ulong w = Helper.Screen.X(width);
-        var ink = fill == Theme.Card ? Theme.Heading : Theme.Body;
-        bool captioned = caption != null && caption.Length != 0;
-        uint row = captioned ? y + 1 : y + height / 2;
-        if (text != null)
-            Helper.Text.Center(px, w, row, text, ink, fill);
-        if (captioned)
-            Helper.Text.Center(px, w, row + 2, caption, ink, fill);
-    }
-
     // The panel alone: fill, accent bar.
-    public static void DrawCard(uint x, uint y, uint width, uint height, Colors accent, Colors fill)
+    public static void Card(uint column, uint row, uint width, uint height, Colors accent, Colors fill)
     {
-        Deck.Paint(x, y + 1, width, height - 1, fill, fill);
-        Deck.Paint(x, y, width, 1, accent, fill);
-        ulong px = Helper.Screen.X(x);
-        ulong py = Helper.Screen.X(y);
-        Helper.Screen.Fill(px, py, px + Helper.Screen.X(width) - 1, py + 1);
+        Deck.Paint(column, row + 1, width, height - 1, fill, fill);
+        Deck.Paint(column, row, width, 1, accent, fill);
+        ulong x = Screen.Px(column), y = Screen.Px(row);
+        Screen.Fill(x, y, x + Screen.Px(width) - 1, y + 1);
     }
 }

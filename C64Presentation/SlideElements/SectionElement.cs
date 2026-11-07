@@ -11,10 +11,10 @@ namespace C64Presentation.SlideElements;
 //                          Icon = C64Address.FromLabel("img_SecChip") }
 class SectionElement : SlideElement
 {
-    public string Number { get; init; }
-    public string Title { get; init; }
-    public string Subtitle { get; init; }
+    public string? Number { get; init; }
+    public required string Title { get; init; }
+    public required string Subtitle { get; init; }
     public ulong Icon { get; init; }
 
-    public override void Draw() => Master.Section(Number, Title, Subtitle, Icon);
+    public override void Draw() => Master.Section(Number ?? "", Title, Subtitle, Icon);
 }

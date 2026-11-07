@@ -1,4 +1,4 @@
-﻿namespace C64Presentation;
+namespace C64Presentation.Slides;
 
 // A slide draws itself in Present (the screen is blanked and faded in
 // afterwards, see Helper/Deck); builds call Deck.Step() between parts.
@@ -7,5 +7,5 @@ abstract class Slide
 {
     public abstract void Present();
 
-    public virtual void CleanUp() {}
+    public virtual void CleanUp() { }
 }

@@ -3,21 +3,29 @@ using C64Presentation.Helper;
 
 namespace C64Presentation.SlideElements;
 
-// A horizontal bar chart: per bar a label (left), a 6 px bar from the
-// axis, and its value text after it. Values set the lengths (Max fills the
-// bar area), ValueTexts are what is printed. One bar every Pitch rows
-// (default 2); BarColors per bar (default cyan). Legend: names for the
-// first BarColors, in a row above the bars (which move down two rows).
-// Outline: each bar gets a Grey2 frame at full scale, its empty part
-// dashed, ticks every TickEvery under it, and the value past the frame
-// ("208 of 311 lines"). Wait: build bar by bar; a bar drawn live grows.
+// A horizontal bar chart. Each Bar is a label (left), a 6 px bar from the
+// axis scaled so Max fills the bar area, and its value text after it; a bar
+// too short to show (under 4 px) gets only its value. One bar every Pitch
+// rows (2; 1 for two series on consecutive rows). Legend: colour dots and
+// names on a row above the bars. Outline: each bar gets a Grey2 frame at
+// full scale with ticks every TickEvery under it, and its value past the
+// frame. Gap: a dashed box between two bars' ends on the second bar's row,
+// with its text under it ("-8,690 B"). Wait: each bar is a build step; a
+// bar drawn live grows from the axis.
 // Defaults: X Theme.Left, Y Theme.BodyTop, Width Theme.Width, LabelWidth 12,
 // ValueWidth 7. The storyboard's 38-column budget: X = 1, Width = 38.
 //
-//     new BarChart { Labels = ["Oct 17", "Oct 31"], Values = [36847, 28157],
-//                    ValueTexts = ["36,847 B", "28,157 B"], Max = 37000,
-//                    BarColors = [Theme.Muted, Theme.Accent], Wait = true }
-class BarChart : SlideElement
+//     new BarChart
+//     {
+//         Max = 37000, LabelWidth = 7, Wait = true,
+//         Bars =
+//         [
+//             new() { Label = "Oct 17", Value = 36847, Text = "36,847 B", Color = Theme.Muted },
+//             new() { Label = "Oct 31", Value = 28157, Text = "28,157 B" },
+//         ],
+//         Gap = new() { From = 0, To = 1, Text = "-8,690 B" },
+//     }
+sealed class BarChart : SlideElement
 {
     public uint X { get; init; }
     public uint Y { get; init; }
@@ -25,99 +33,164 @@ class BarChart : SlideElement
     public uint LabelWidth { get; init; }
     public uint ValueWidth { get; init; }
     public uint Pitch { get; init; }
-    public string[] Labels { get; init; }
-    public ulong[] Values { get; init; }
-    public string[] ValueTexts { get; init; }
-    public Colors[] BarColors { get; init; }
-    public string[] Legend { get; init; }
+    public required Bar[] Bars { get; init; }
+    public LegendItem[]? Legend { get; init; }
+    public BarGap? Gap { get; init; }
     public ulong Max { get; init; }
     public bool Outline { get; init; }
     public ulong TickEvery { get; init; }
     public bool Wait { get; init; }
 
-    // Shared by every bar of the chart being drawn.
-    static uint column_, cells_;
-    static ulong max_, tickEvery_;
-    static bool outline_;
-
     public override void Draw()
     {
         uint left = Theme.OrCells(X, Theme.Left);
         uint labelWidth = Theme.OrCells(LabelWidth, 12);
-        column_ = left + labelWidth;
-        cells_ = Theme.OrCells(Width, Theme.Width) - labelWidth - Theme.OrCells(ValueWidth, 7);
-        max_ = Max;
-        tickEvery_ = TickEvery;
-        outline_ = Outline;
+        var scale = new BarScale
+        {
+            Column = left + labelWidth,
+            Cells = Theme.OrCells(Width, Theme.Width) - labelWidth - Theme.OrCells(ValueWidth, 7),
+            Max = Max,
+            Outline = Outline,
+            TickEvery = TickEvery,
+        };
         uint row = Theme.OrCells(Y, Theme.BodyTop);
         if (Legend != null)
         {
-            ulong x = Helper.Screen.X(column_);
-            for (uint i = 0; i < Legend.Length; i++)
+            ulong x = Screen.Px(scale.Column);
+            foreach (var item in Legend)
             {
-                Text.Draw(x + 1, row, Theme.Dot, BarColors[i]);
-                x = (Text.Draw(x + 10, row, Legend[i], Theme.Body) + 23) / 8 * 8;
+                Text.Draw(x + 1, row, Theme.Dot, item.Color);
+                x = (Text.Draw(x + 10, row, item.Name, Theme.Body) + 23) / 8 * 8;
             }
             row += 2;
         }
-        for (uint i = 0; i < Labels.Length; i++)
+        uint pitch = Theme.OrCells(Pitch, 2);
+        uint firstRow = row;
+        foreach (var bar in Bars)
         {
             if (Wait)
                 Deck.Step();
-            Text.Draw(Helper.Screen.X(left), row, Labels[i], Theme.Body);
-            Bar(row, Values[i], ValueTexts != null ? ValueTexts[i] : "", BarColors != null ? BarColors[i] : Theme.Accent);
-            row += Theme.OrCells(Pitch, 2);
+            Text.Draw(Screen.Px(left), row, bar.Label, Theme.Body);
+            bar.Draw(scale, row);
+            row += pitch;
+        }
+        if (Gap != null)
+        {
+            if (Wait)
+                Deck.Step();
+            Gap.Draw(scale, Bars, firstRow, pitch);
         }
     }
+}
 
-    static void Bar(uint row, ulong value, string valueText, Colors color)
+// One bar of a BarChart.
+sealed class Bar
+{
+    public required string Label { get; init; }
+    public ulong Value { get; init; }
+    public string? Text { get; init; }
+    public Colors Color { get; init; }          // Auto = Theme.Accent
+
+    public void Draw(BarScale scale, uint row)
     {
-        ulong area = Helper.Screen.X(cells_);
-        ulong length = Scale(value, area);
-        ulong x0 = Helper.Screen.X(column_);
-        ulong y = Helper.Screen.X(row);
+        ulong length = scale.Length(Value);
+        ulong x0 = Screen.Px(scale.Column);
+        ulong y = Screen.Px(row);
         Deck.Show();
         bool live = Deck.Live;
-        if (outline_)
-            Frame(row, x0, y, area, length);
-        Deck.Paint(column_, row, (uint)((length + 7) / 8), 1, color, Theme.Background);
-        for (ulong done = 0; done < length;)     // grows two cells a frame when live
+        if (scale.Outline)
+            scale.Frame(row);
+        if (length >= BarScale.Shortest)
         {
-            ulong next = live && done + 16 < length ? done + 16 : length;
-            Helper.Screen.Fill(x0 + done, y + 1, x0 + next - 1, y + 6);
-            done = next;
-            if (live)
-                C64.Screen.WaitForVBlank();
+            Deck.Paint(scale.Column, row, (uint)((length + 7) / 8), 1, Theme.Or(Color, Theme.Accent), Theme.Background);
+            for (ulong done = 0; done < length;)     // grows two cells a frame when live
+            {
+                ulong next = live && done + 16 < length ? done + 16 : length;
+                Screen.Fill(x0 + done, y + 1, x0 + next - 1, y + 6);
+                done = next;
+                if (live)
+                    C64.Screen.WaitForVBlank();
+            }
         }
-        Text.Draw((x0 + (outline_ ? area + 8 : length) + 11) / 8 * 8, row, valueText, Theme.Heading);
+        ulong end = scale.Outline ? Screen.Px(scale.Cells) + 8 : length;
+        Helper.Text.Draw((x0 + end + 11) / 8 * 8, row, Text ?? "", Theme.Heading);
     }
+}
 
-    // value * area / max in 16 bits: halve both until max fits a byte.
-    static ulong Scale(ulong value, ulong area)
+// A dashed box from the end of bar To to the end of bar From, on bar To's
+// row, and its text centred under it.
+sealed class BarGap
+{
+    public uint From { get; init; }
+    public uint To { get; init; }
+    public required string Text { get; init; }
+
+    public void Draw(BarScale scale, Bar[] bars, uint firstRow, uint pitch)
     {
-        ulong max = max_;
+        uint row = firstRow + To * pitch;
+        ulong x0 = Screen.Px(scale.Column);
+        // From the first whole cell after the shorter bar (its last cell keeps its colour).
+        ulong start = (x0 + scale.Length(bars[To].Value) + 7) / 8 * 8, end = x0 + scale.Length(bars[From].Value) - 1;
+        uint first = (uint)(start / 8), last = (uint)(end / 8);
+        Deck.Paint(first, row, last - first + 1, 1, Theme.Heading, Theme.Background);
+        ulong y = Screen.Px(row);
+        for (ulong x = start; x < end; x += 3)        // the top and bottom edges
+        {
+            Screen.Line(x, y, x, y);
+            Screen.Line(x, y + 7, x, y + 7);
+        }
+        for (ulong yy = y; yy < y + 8; yy += 3)          // the two ends
+        {
+            Screen.Line(start, yy, start, yy);
+            Screen.Line(end, yy, end, yy);
+        }
+        // Under the box; under an outline's bottom rule too.
+        Helper.Text.Center(start, end - start + 1, row + (scale.Outline ? 2u : 1u), Text, Theme.Heading);
+    }
+}
+
+// The scale shared by a chart's bars.
+sealed class BarScale
+{
+    public const ulong Shortest = 4;    // shorter bars show only their value
+
+    public uint Column { get; init; }
+    public uint Cells { get; init; }
+    public ulong Max { get; init; }
+    public bool Outline { get; init; }
+    public ulong TickEvery { get; init; }
+
+    // value * area / Max in 16 bits: halve both until Max fits a byte.
+    public ulong Length(ulong value)
+    {
+        ulong max = Max;
         while (max > 255)
         {
             max /= 2;
             value /= 2;
         }
-        ulong length = value * area / max;
-        return length == 0 ? 1 : length;
+        return value * Screen.Px(Cells) / max;
     }
 
-    // A Grey2 frame one pixel outside the full-scale bar, ticks under it,
-    // and the empty part of the bar's row dashed (from the next whole cell).
-    static void Frame(uint row, ulong x0, ulong y, ulong area, ulong length)
+    // A Grey2 frame one pixel outside the full-scale bar, ticks under it.
+    public void Frame(uint row)
     {
-        Deck.Paint(column_, row - 1, cells_ + 1, 3, Theme.Muted, Theme.Background);
-        C64.Screen.DrawRectangle(x0, y - 1, x0 + area, y + 8);
-        for (ulong t = tickEvery_; t != 0 && t < max_; t += tickEvery_)
+        ulong x0 = Screen.Px(Column), y = Screen.Px(row), area = Screen.Px(Cells);
+        Deck.Paint(Column, row - 1, Cells + 1, 3, Theme.Muted, Theme.Background);
+        Screen.Frame(x0, y - 1, x0 + area, y + 8);
+        if (TickEvery == 0)
+            return;
+        for (ulong t = TickEvery; t < Max; t += TickEvery)
         {
-            ulong tx = x0 + Scale(t, area);
-            Helper.Screen.Line(tx, y + 9, tx, y + 10);
+            ulong tx = x0 + Length(t);
+            Screen.Line(tx, y + 9, tx, y + 10);
         }
-        ulong x = x0 + (length + 15) / 8 * 8;
-        for (; x + 1 < x0 + area; x += 4)
-            Helper.Screen.Line(x, y + 3, x + 1, y + 3);
     }
+}
+
+// A colour and its meaning, for a chart's legend.
+sealed class LegendItem
+{
+    public required string Name { get; init; }
+    public Colors Color { get; init; }
 }

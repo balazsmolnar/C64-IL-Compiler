@@ -1,6 +1,8 @@
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text;
+using Compiler.Ops;
 
 namespace Compiler;
 
@@ -35,6 +37,40 @@ class ILEntryPointPass : ICompilerPass
 
         File.WriteAllText(context.EntryFilePath, template
             .Replace("{{FOLDER}}", folder)
-            .Replace("{{STATIC_CTORS}}", staticCtorCalls));
+            .Replace("{{STATIC_CTORS}}", staticCtorCalls)
+            .Replace("{{CALL_MAIN}}", CallMain(context)));
+    }
+
+    // The call of the assembly's entry point, whatever C# named it: a
+    // declared `static void Main()` is Program_Main, but top-level
+    // statements compile to `<Main>$(string[] args)` (label
+    // Program_x_Main__), and Main may take `string[] args` or return int.
+    // A parameterless void Main -- every program so far -- is a plain
+    // `jsr`, exactly as the template used to hard-code it.
+    private static string CallMain(CompilerContext context)
+    {
+        var main = context.Assembly.EntryPoint;
+        if (main == null)
+            return "jsr Program_Main";
+
+        var sb = new StringBuilder();
+        // `args`: there is no command line, so it is null (a body that reads
+        // it is rejected, ILMethodCodePass). Pushed like any argument.
+        foreach (var parameter in main.GetParameters())
+            for (int i = 0; i < parameter.ParameterType.GetStorageBytes(); i++)
+                sb.Append("lda #0\npha\n");
+
+        var frame = context.GetStaticFrame(main);
+        bool callerStores = frame != null && !frame.CalleePulls;
+        if (callerStores)
+            sb.Append(OpCall.StaticFramePulls(frame).Replace("\n    ", "\n"));
+        sb.Append($"jsr {main.GetLabel()}");
+
+        // An int Main's result: in A/X for a caller-stores static frame,
+        // otherwise left on the stack -- drop it, BASIC's SYS gets the rts.
+        if (main.ReturnType != typeof(void) && !callerStores)
+            for (int i = 0; i < main.ReturnType.GetStorageBytes(); i++)
+                sb.Append("\npla");
+        return sb.ToString();
     }
 }

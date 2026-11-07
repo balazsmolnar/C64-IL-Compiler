@@ -20,11 +20,12 @@ public class DiagnosticsTests
     static int counter;
 
     // The asm folder of the last CompileProgram call.
-    static string lastOutDir;
+    internal static string lastOutDir;
 
     // Compiles `source` (which may use C64Lib) and runs the C64 compiler on it.
     // Returns the exit code and everything the compiler printed.
-    static (int exitCode, string output) CompileProgram(string source)
+    // Extra arguments go to the compiler (e.g. --no-static-frames).
+    internal static (int exitCode, string output) CompileProgram(string source, params string[] extraArgs)
     {
         var dir = Path.Combine(Path.GetTempPath(), "c64_diag_tests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(dir);
@@ -52,7 +53,7 @@ public class DiagnosticsTests
         Directory.CreateDirectory(outDir);
         lastOutDir = outDir;
         var errors = new StringWriter();
-        var exit = Program.Run(new[] { dll, outDir, Path.Combine(dir, "entry.asm"), "program" }, errors);
+        var exit = Program.Run(new[] { dll, outDir, Path.Combine(dir, "entry.asm"), "program" }.Concat(extraArgs).ToArray(), errors);
         return (exit, errors.ToString());
     }
 

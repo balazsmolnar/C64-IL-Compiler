@@ -101,7 +101,7 @@ public class PlayerStats
         var coarse = (levelNumber >> 2) & 3;
         var fine = levelNumber & 3;
         var pixel = C64.GetMemory(C64Address.FromLabel("tbl_LevelMarkerPixel"), fine);
-        C64.FillMemory(C64Address.FromLabel("(charset+$31C)"), pixel, 2);
+        C64.FillMemory(C64Address.FromLabel("(charset+$31D)"), pixel, 2);
         C64.Screen.SetChar(1 + coarse, 22, LevelMarkerChar, Colors.LightGreen);
     }
 

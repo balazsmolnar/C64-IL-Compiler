@@ -98,8 +98,8 @@ static class Hud
     // The hearts' body colour (columns 1-10 of rows 22 and 23).
     static void Beat(uint body)
     {
-        C64.FillMemory(C64Address.FromLabel("Graphics_ColorMatrix+880"), body, 10); // writes bytes 1..10
-        C64.FillMemory(C64Address.FromLabel("Graphics_ColorMatrix+920"), body, 10);
+        C64.FillMemory(C64Address.FromLabel("Graphics_ColorMatrix+881"), body, 10);
+        C64.FillMemory(C64Address.FromLabel("Graphics_ColorMatrix+921"), body, 10);
     }
 
     // A picture two cells tall (rows 22-23), `width` cells wide, at `column`.

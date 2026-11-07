@@ -214,15 +214,24 @@ Flag_C64_CopyMemory = 0
 .endweak
 .if Flag_C64_CopyMemory
 
+; C64.CopyMemory(dest, source, size): bytes source .. source+size-1 to
+; dest .. dest+size-1, size 1-255, 0 = 256. Copies from the last byte down,
+; so an overlapping copy to a HIGHER address (dest > source) is correct; one
+; to a lower address is not. Y runs size-1 .. 1 in the loop (lda sets Z, so
+; the loop tests dey's), then offset 0 after it.
 C64_CopyMemory
     #stack_save_return_adress zp_tmp1_low
     #stack_pull_int_y
     #stack_pull_pointer zp_param3_low
     #stack_pull_pointer zp_param4_low
+    dey
+    beq +
 -   lda (zp_param3_low),y
     sta (zp_param4_low),y
     dey
     bne -
++   lda (zp_param3_low),y
+    sta (zp_param4_low),y
 
     #stack_return_to_saved_address zp_tmp1_low
 .endif
@@ -232,15 +241,16 @@ Flag_C64_FillMemory = 0
 .endweak
 .if Flag_C64_FillMemory
 
+; C64.FillMemory(dest, value, size): value into dest .. dest+size-1, size
+; 1-255, 0 = 256. sta leaves the flags alone: bne tests dey's result.
 C64_FillMemory
     #stack_save_return_adress zp_tmp1_low
     #stack_pull_int_y
     #stack_pull_int_x
     #stack_pull_pointer zp_param4_low
     txa
--
+-   dey
     sta (zp_param4_low),y
-    dey
     bne -
 
     #stack_return_to_saved_address zp_tmp1_low

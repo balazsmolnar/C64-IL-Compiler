@@ -10,7 +10,7 @@ namespace C64Presentation.Slides;
 // being processed. The phase on the right lights up as it starts.
 sealed class GarbageCollectorSlide : Slide
 {
-    const uint ObjectRow = 6, RefsRow = 9, StackRow = 13, HeapRow = 17;
+    const uint ObjectRow = 6, RefsRow = 9, StackRow = 14, HeapRow = 18;
     const uint ObjectWidth = 3, ObjectPitch = 4, StackCellWidth = 2;
     const uint PhaseColumn = 28;
     static readonly string[] Phases = ["1 Roots", "2 Mark", "3 Sort", "4 Slide down"];
@@ -41,8 +41,8 @@ sealed class GarbageCollectorSlide : Slide
         Master.Content("GC without a scan");
         DrawObjects();
         DrawPhases();
-        Label(StackRow - 1, "mark stack");
-        Label(HeapRow - 1, "heap");
+        Label(StackRow - 2, "mark stack");
+        Label(HeapRow - 2, "heap");
         DrawHeap();
 
         Phase(0);
@@ -98,7 +98,7 @@ sealed class GarbageCollectorSlide : Slide
         Deck.Step();
         uint column = Theme.Left + IndexOf(o) * ObjectPitch;
         if (color == Theme.Background)
-            Deck.Paint(column, ObjectRow - 1, ObjectWidth, 5, Theme.Background, Theme.Background);
+            Deck.Paint(column, ObjectRow - 1, ObjectPitch, 5, Theme.Background, Theme.Background);
         else
             Deck.Paint(column, ObjectRow, ObjectWidth, 1, color, Theme.Card);
     }

@@ -162,7 +162,7 @@ sta $0301
 ; static readonly field with a real initializer needs this to run once
 ; before Program_Main touches it.
 {{STATIC_CTORS}}
-jsr Program_Main
+{{CALL_MAIN}}
 
 ; Main returned: BASIC's own error handling needs its vector back
 ; ($e38b is the power-on value).

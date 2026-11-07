@@ -21,8 +21,8 @@ static class Minimap
 
     public static void Init()
     {
-        C64.FillMemory(C64Address.FromLabel("hud_Map-1"), 0, 144); // FillMemory writes bytes 1..size
-        C64.CopyMemory(C64Address.FromLabel("hud_Map+99"), C64Address.FromLabel("hud_MapSill-1"), 44); // the window's sill (CopyMemory copies bytes 1..size)
+        C64.FillMemory(C64Address.FromLabel("hud_Map"), 0, 144);
+        C64.CopyMemory(C64Address.FromLabel("hud_Map+100"), C64Address.FromLabel("hud_MapSill"), 44); // the window's sill
         mask_ = 0;
 #if SCENE_TIMING || SCENE_TIMINGM
         C64.Screen.SetSplit(21, ScreenMode.Bitmap); // the timing readout is hi-res text
@@ -54,7 +54,7 @@ static class Minimap
 
     static void Store(uint value)
     {
-        C64.FillMemory(C64Address.FromLabel("hud_Map-1") + index_, value, 2);
+        C64.FillMemory(C64Address.FromLabel("hud_Map") + index_, value, 2);
         C64.Screen.DrawTiles(column_, row_, 1, 1, C64Address.FromLabel("hud_Map"), index_ >> 3);
     }
 }

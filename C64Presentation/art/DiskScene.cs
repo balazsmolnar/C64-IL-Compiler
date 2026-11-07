@@ -77,6 +77,6 @@ static class TimeOfDay
     public static uint ElapsedTenths => FromBcd(C64.GetMemory(Seconds, 0)) * 10 + FromBcd(C64.GetMemory(Tenths, 0));
 
     static uint FromBcd(uint value) => (value >> 4) * 10 + (value & 0x0F);
-    static void Set(ulong register, uint value) => C64.FillMemory(register - 1, value, 1);   // FillMemory writes bytes 1..size
+    static void Set(ulong register, uint value) => C64.FillMemory(register, value, 1);
 }
 #endif

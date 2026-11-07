@@ -18,8 +18,7 @@ using C64Lib;
 //   pal_Prompt               the prompt's colour cycle
 [assembly: RawAssembly(Resource = "title_tables.asm")]
 
-// Sprite set-up, copied straight into the VIC registers (C64.CopyMemory
-// copies bytes 1..n, hence the "- 1" labels):
+// Sprite set-up, copied straight into the VIC registers:
 //   ttl_Pos   $D000-$D010  x, y of sprites 0-7, then the x high bits
 //   ttl_Look  $D01B-$D02E  priority, multicolour mask, x expansion, (two
 //                          read-only registers), border, background, (three
@@ -34,12 +33,6 @@ ttl_Look    .byte 0,$ff,0, 0,0, 0,0, 0,0,0, 7,8, 0,2,2,7,7,2,0,0
 ttl_Ptr     .byte frm_Title+7,frm_Title,frm_Title+1,frm_Title+6,frm_Title+6,frm_Title+4,frm_Title+3,frm_Title+7
 ttl_Eyes    .byte 2,10,8,10
 ttl_Cool    .byte 2,2,8,8,7,7
-ttl_PosSrc  = ttl_Pos - 1
-ttl_LookSrc = ttl_Look - 1
-ttl_PtrSrc  = ttl_Ptr - 1
-ttl_PosDst  = $d000 - 1
-ttl_LookDst = $d01b - 1
-ttl_PtrDst  = Graphics_ColorMatrix + $3f8 - 1
 ")]
 
 namespace Catacombs;
@@ -58,7 +51,7 @@ static class TitleScreen
 
     const uint Rows = 21;               // cell rows of the picture
     const uint PromptRow = 22, InfoRow = 24;
-    const ulong SpriteEnable = 0xD014, SpriteExpandY = 0xD016;   // register - 1: FillMemory fills bytes 1..n
+    const ulong SpriteEnable = 0xD015, SpriteExpandY = 0xD017;
 
     static uint kind_;
     static uint tick_;                  // video frames, wraps at 256
@@ -119,9 +112,9 @@ static class TitleScreen
         // pointers; none expanded, none switched on yet.
         C64.FillMemory(SpriteEnable, 0, 1);
         C64.FillMemory(SpriteExpandY, 0, 1);
-        C64.CopyMemory(C64Address.FromLabel("ttl_PosDst"), C64Address.FromLabel("ttl_PosSrc"), 17);
-        C64.CopyMemory(C64Address.FromLabel("ttl_LookDst"), C64Address.FromLabel("ttl_LookSrc"), 20);
-        C64.CopyMemory(C64Address.FromLabel("ttl_PtrDst"), C64Address.FromLabel("ttl_PtrSrc"), 8);
+        C64.CopyMemory(0xD000UL, C64Address.FromLabel("ttl_Pos"), 17);
+        C64.CopyMemory(0xD01BUL, C64Address.FromLabel("ttl_Look"), 20);
+        C64.CopyMemory(C64Address.FromLabel("Graphics_ColorMatrix+$3f8"), C64Address.FromLabel("ttl_Ptr"), 8);
         C64.Screen.EndUpdate();
 
         // Light spreads from the gate outwards. On the victory screen only
@@ -202,7 +195,7 @@ static class TitleScreen
             // skull's eyes smoulder.
             if (kind_ == Title)
                 C64.Screen.SetCellColors(10, PromptRow, 19, 1, C64.GetMemory(C64Address.FromLabel("pal_Prompt"), (tick_ >> 3) & 7), Colors.Black);
-            C64.FillMemory(0xD02BUL, C64.GetMemory(C64Address.FromLabel("ttl_Eyes"), (tick_ >> 3) & 3), 1);   // sprite 5's colour
+            C64.FillMemory(0xD02CUL, C64.GetMemory(C64Address.FromLabel("ttl_Eyes"), (tick_ >> 3) & 3), 1);   // sprite 5's colour
         }
 
         // Embers rise from the flames, cooling from yellow through orange to
@@ -212,7 +205,7 @@ static class TitleScreen
             ember_ = 40;
         C64.Sprites.Sprite3.Y = 60 + ember_;
         C64.Sprites.Sprite4.Y = 64 + ember_;
-        C64.FillMemory(0xD029UL, C64.GetMemory(C64Address.FromLabel("ttl_Cool"), ember_ >> 3), 2);
+        C64.FillMemory(0xD02AUL, C64.GetMemory(C64Address.FromLabel("ttl_Cool"), ember_ >> 3), 2);
 
         if (kind_ == Title && tick_ == 128)
         {
@@ -266,7 +259,7 @@ static class TitleScreen
             C64.Screen.RemapCellColors(0, 0, 40, 25, table_);
             // the sprites' colours ($D025-$D02E) go dark with the screen
             for (phase_ = 0x25; phase_ < 0x2F; phase_++)
-                C64.FillMemory(0xCFFFUL + phase_, C64.GetMemory(table_, C64.GetMemory(0xD000UL, phase_) & 15), 1);
+                C64.FillMemory(0xD000UL + phase_, C64.GetMemory(table_, C64.GetMemory(0xD000UL, phase_) & 15), 1);
             if (column_ == 2)
                 C64.FillMemory(SpriteEnable, 0, 1);   // the sprites go a step early
         }

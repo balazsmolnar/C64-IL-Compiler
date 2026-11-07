@@ -235,15 +235,13 @@ static class Deck
     }
 }
 
-// 1000-byte (one per cell) copies and fills. THE ONE PLACE that works around
-// C64.CopyMemory/FillMemory writing bytes 1..size of the address given (or
-// 0..255 for size 0): three whole pages, then the last 232 bytes from one
-// below. When those calls write address..address+size-1, this becomes four
-// plain 250-byte calls.
+// 1000-byte (one per cell) copies and fills: three whole pages (size 0 =
+// 256), then the last 232 bytes. C64.CopyMemory/FillMemory write
+// address..address+size-1.
 static class ScreenBytes
 {
     const uint Tail = 232;
-    const ulong TailStart = 767;    // 768 - 1: bytes 768..999
+    const ulong TailStart = 768;    // bytes 768..999
 
     public static void Copy(ulong dest, ulong source)
     {

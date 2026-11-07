@@ -15,7 +15,7 @@ public class JoystickAndLoopTests
     [Test]
     public void Joystick2_Ignores_The_Keyboard_Column_Left_Selected()
     {
-        C64.FillMemory(0xDBFFUL, 0xEF, 1);     // FillMemory writes bytes 1..n: this is $DC00
+        C64.FillMemory(0xDC00UL, 0xEF, 1);
         uint pressed = (uint)C64.Joysticks.Joystick2.Pressed;
         Assert.AreEqual(pressed, 0u);
     }

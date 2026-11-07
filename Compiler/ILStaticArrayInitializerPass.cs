@@ -6,11 +6,12 @@ using Compiler.Ops;
 namespace Compiler;
 
 // Recognizes Roslyn's codegen for a `<primitive>[] = { lit, lit, ... }`
-// array literal, wherever it's assigned -- a static field (Stsfld), an
-// instance field (Stfld), or a local (Stloc/Stloc_s):
+// array literal, wherever it goes -- a static field (Stsfld), an instance
+// field (Stfld), a local, an argument, or further element stores of the
+// non-constant elements (ILConstantArrayInitializerOptimizer's run style):
 //   ldc.i4 <length>; newarr; dup; ldtoken <PrivateImplementationDetails blob field>;
 //   call RuntimeHelpers.InitializeArray(Array, RuntimeFieldHandle);
-//   st(s)fld|stloc(_s) <target>
+//   <whatever consumes the array>
 //
 // Originally Stsfld-only, reading the target field's value back via
 // reflection (FieldInfo.GetValue(null) on a static field, after letting
@@ -46,15 +47,14 @@ class ILStaticArrayInitializerPass : ICompilerMethodPass
             return;
 
         var lines = context.Lines;
-        for (int i = 1; i + 4 < lines.Count; i++)
+        for (int i = 1; i + 3 < lines.Count; i++)
         {
             if (lines[i].Optimized ||
                 !(lines[i].Operation is OpNewArr) ||
                 !(lines[i + 1].Operation is OpDup) ||
                 lines[i + 2].OpCode != ILOpCode.Ldtoken ||
                 !(lines[i + 3].Operation is OpCall) ||
-                !(lines[i - 1].Operation is OpLdConst) ||
-                !(lines[i + 4].Operation is OpStsfld or OpStfld or OpStloc or OpStloc_s))
+                !(lines[i - 1].Operation is OpLdConst))
                 continue;
 
             var callTarget = context.CompilerContext.Assembly.ManifestModule.ResolveMethod((int)lines[i + 3].OriginalParameter);

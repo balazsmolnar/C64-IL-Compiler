@@ -38,3 +38,5 @@ asm/unittest_runtime.asm
 
 # Python bytecode (tools/*.py, Catacombs/art/*.py)
 __pycache__/
+asm/unittest_programs/**
+asm/unittest_programs.asm

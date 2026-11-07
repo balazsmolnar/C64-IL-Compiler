@@ -165,6 +165,10 @@ class Program
                         // one table, before any later pass fuses the Dup/Ldc
                         // index pushes around them.
                         new ILObjectArrayInitializerOptimizer(),
+                        // Constant string/primitive elements stored right
+                        // after a Newarr: one #newArrInit table (before the
+                        // index pushes get fused, like the pass above).
+                        new ILConstantArrayInitializerOptimizer(),
                         new ILStaticArrayInitializerPass(),
                         new ILMethodSetVariableOptimizer(),
                         new ILMethodBranchIfLessOptimizer(),

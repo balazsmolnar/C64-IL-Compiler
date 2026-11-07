@@ -135,6 +135,7 @@ class Program
                         new ILMethodDebugLabelPass(),
                         new ILMethodNextInstructionPass(),
                         new ILMethodBuildEvaluationStackPass(),
+                        new ILTrivialConstructorCallPass(),
                         new ILAddressFromLabelPass(),
                         new ILNumericToStringPass(),
                         new ILStringOpsPass(),

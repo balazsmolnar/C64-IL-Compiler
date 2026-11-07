@@ -38,3 +38,7 @@ asm/unittest_runtime.asm
 
 # Python bytecode (tools/*.py, Catacombs/art/*.py)
 __pycache__/
+
+# Third unit-test project (Test.Language)
+asm/unittest_language/**
+asm/unittest_language.asm

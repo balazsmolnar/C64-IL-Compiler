@@ -121,12 +121,13 @@ class CompilerContext
     public List<string> StaticConstructorLabels { get; } = new List<string>();
     public int GetFieldPosition(FieldInfo field)
     {
-        var t = field.ReflectedType;
+        // The declaring type's layout: the same offset in every derived
+        // object (TypeExtension.GetInstanceLayout).
+        var t = field.DeclaringType;
         var pos = 0;
-        var fields = t.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-        foreach (var f in fields.Where(f => !f.IsLiteral).OrderBy(f => f.FieldType.IsReferenceCounted() ? 0 : 1))
+        foreach (var f in t.GetInstanceLayout())
         {
-            if (f == field)
+            if (f.IsSameField(field))
                 break;
             pos += f.FieldType.GetStorageBytes();
         }

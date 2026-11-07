@@ -64,10 +64,8 @@ static class Helper
     {
         var emulator = AssembleAndLoad(TopLevel, noStaticFrames);
         Run(emulator);
-        // C64_FillMemory (asm/C64.asm) fills address+1 .. address+size, so
-        // FillMemory(0x0340UL, v, 1) lands at $0341.
-        Assert.That(emulator.GetMemory(0x0341), Is.EqualTo(14), "Twice(3 + 4) via a local function and a class");
-        Assert.That(emulator.GetMemory(0x0342), Is.EqualTo(7), "a static class in the same file");
+        Assert.That(emulator.GetMemory(0x0340), Is.EqualTo(14), "Twice(3 + 4) via a local function and a class");
+        Assert.That(emulator.GetMemory(0x0341), Is.EqualTo(7), "a static class in the same file");
     }
 
     [TestCase(false, TestName = "Int_Returning_Main_With_Args_Runs_With_Static_Frames")]
@@ -78,7 +76,7 @@ static class Helper
         // left on the stack under BASIC's SYS return address.
         var emulator = AssembleAndLoad("using C64Lib;\nC64.FillMemory(0x0340UL, 9, 1);\nreturn 5;\n", noStaticFrames);
         Run(emulator);
-        Assert.That(emulator.GetMemory(0x0341), Is.EqualTo(9));
+        Assert.That(emulator.GetMemory(0x0340), Is.EqualTo(9));
     }
 
     [Test]

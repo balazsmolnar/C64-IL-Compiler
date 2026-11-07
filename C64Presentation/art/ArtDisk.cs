@@ -33,7 +33,7 @@ static class ArtDisk
         {
             inBuffer = C64.Disk.Load(FileName(picture), buffer) ? picture : DiskPicture.None;
             if (inBuffer == DiskPicture.None)
-                C64.FillMemory(buffer - 1, EmptyPicture, 1);   // FillMemory writes bytes 1..size
+                C64.FillMemory(buffer, EmptyPicture, 1);
         }
         return buffer;
     }

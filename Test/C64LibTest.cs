@@ -74,11 +74,9 @@ public class C64LibTest
         Assert.AreEqual(C64.Screen.GetChar(6, 6), 99); // untouched by the terminated write
     }
 
-    // C64_FillMemory's loop (asm/C64.asm) counts Y down from the size
-    // parameter with "dey/bne -", which wraps a size of 0 through all 256
-    // values before stopping -- the idiomatic "fill a whole 256-byte page"
-    // this codebase relies on throughout (Screen.Clear etc.), not "fill
-    // zero bytes".
+    // FillMemory(dest, value, 0) fills a whole 256-byte page (Screen.Clear
+    // etc.), not zero bytes. The rest of FillMemory/CopyMemory's semantics
+    // are pinned in Test.Runtime/MemoryRoutineTests.cs.
     [Test]
     public void FillMemory_Zero_Size_Fills_Whole_Page()
     {
@@ -87,32 +85,27 @@ public class C64LibTest
         Assert.AreEqual(C64.GetMemory(0x0400UL, 255), 7u);
     }
 
-    // Same dey/bne loop: for a nonzero size N, it writes offsets N down to
-    // 1 -- never offset 0. Real call sites already depend on this
-    // (Wall.BuildBasicWall's 199-byte CopyMemory, C64Presentation's
-    // RandomDisappearAnimation), so it's documented here directly rather
-    // than left as an easy-to-get-wrong implicit assumption.
     [Test]
-    public void FillMemory_Nonzero_Size_Starts_At_Offset_One()
+    public void FillMemory_Writes_Dest_To_Dest_Plus_Size_Minus_One()
     {
         C64.FillMemory(0x0500UL, 3, 0); // clear the page first
-        C64.FillMemory(0x0500UL, 9, 5);
-        Assert.AreEqual(C64.GetMemory(0x0500UL, 0), 3u); // offset 0: untouched
+        C64.FillMemory(0x0501UL, 9, 5);
+        Assert.AreEqual(C64.GetMemory(0x0500UL, 0), 3u); // before the range
         Assert.AreEqual(C64.GetMemory(0x0500UL, 1), 9u);
         Assert.AreEqual(C64.GetMemory(0x0500UL, 5), 9u);
-        Assert.AreEqual(C64.GetMemory(0x0500UL, 6), 3u); // past the filled range
+        Assert.AreEqual(C64.GetMemory(0x0500UL, 6), 3u); // past the range
     }
 
     [Test]
     public void CopyMemory_Copies_Source_To_Dest()
     {
         C64.FillMemory(0x0600UL, 0, 0);
-        C64.FillMemory(0x0600UL, 42, 3); // source offsets 1..3 = 42, per the quirk above
+        C64.FillMemory(0x0600UL, 42, 3); // source offsets 0..2 = 42
         C64.FillMemory(0x0700UL, 0, 0);
         C64.CopyMemory(0x0700UL, 0x0600UL, 3);
-        Assert.AreEqual(C64.GetMemory(0x0700UL, 0), 0u);
-        Assert.AreEqual(C64.GetMemory(0x0700UL, 1), 42u);
-        Assert.AreEqual(C64.GetMemory(0x0700UL, 3), 42u);
+        Assert.AreEqual(C64.GetMemory(0x0700UL, 0), 42u);
+        Assert.AreEqual(C64.GetMemory(0x0700UL, 2), 42u);
+        Assert.AreEqual(C64.GetMemory(0x0700UL, 3), 0u);
     }
 
     // SimpleEmulator has no IRQ simulation at all (Emulator.cs's own
@@ -127,16 +120,11 @@ public class C64LibTest
     // and reading c64_delay_init/c64_delay_last directly, plus a
     // breakpoint inside the poll loop with `set` to advance $a2 mid-wait
     // and confirm it exits at exactly the right tick.
-    //
-    // FillMemory(dest, value, 1) writes to dest+1, never dest itself (see
-    // CopyMemory_Copies_Source_To_Dest's own "offsets 1..3" comment above
-    // for the same quirk) -- 0x00A1, not 0x00A2, pokes the jiffy clock's
-    // own low byte.
     [Test]
     public void Delay_Returns_Immediately_When_Enough_Time_Already_Elapsed_Since_Last_Call()
     {
         C64.Delay(0); // first call ever: seeds c64_delay_last from "now" (0 in a fresh emulator); s50=0 always returns immediately
-        C64.FillMemory(0x00A1UL, 10, 1); // pretend 10 jiffies have passed since that first call
+        C64.FillMemory(0x00A2UL, 10, 1); // pretend 10 jiffies have passed since that first call
         C64.Delay(5); // elapsed (10-0=10) already >= 5 -- must not hang
         Assert.IsTrue(true); // reaching here (no emulator step-limit timeout) is the pass condition
     }
@@ -154,8 +142,8 @@ public class C64LibTest
     public void Delay_Returns_Immediately_Across_A_256_Tick_Gap()
     {
         C64.Delay(0); // seeds c64_delay_last = (hi=0, lo=0)
-        C64.FillMemory(0x00A0UL, 1, 1); // middle byte ($A1) = 1
-        C64.FillMemory(0x00A1UL, 0, 1); // low byte ($A2) = 0 -- now = 256 ticks since last
+        C64.FillMemory(0x00A1UL, 1, 1); // middle byte ($A1) = 1
+        C64.FillMemory(0x00A2UL, 0, 1); // low byte ($A2) = 0 -- now = 256 ticks since last
         C64.Delay(5); // elapsed (256-0=256) already >= 5 -- must not hang
         Assert.IsTrue(true);
     }

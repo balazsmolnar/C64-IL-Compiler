@@ -22,7 +22,7 @@ namespace C64Lib
     // MatrixHigh/MatrixLow are per-cell (Screen.SetBitmapColors' high/low
     // nibble). ColorRam is also per-cell, but a separate 1000-byte area
     // ($D800) from the video matrix -- reachable today via
-    // C64.FillMemory(0xD800, ..., 1000), no new API needed. Ignored (hi-res
+    // C64.FillMemory(0xD800, ..., 250) four times, no new API needed. Ignored (hi-res
     // mode's `on` keeps its current on/off meaning) unless the screen is
     // currently in MultiColor mode.
     public enum BitmapColorSource : uint

@@ -73,7 +73,7 @@ class Wall : GameObject
         C64.FillMemory(C64Address.FromLabel("colorMemory+$02B8"), (uint)color, 0);
         C64.FillMemory(C64Address.FromLabel("colorMemory+$0300"), (uint)color, 0);
 
-        C64.CopyMemory(C64Address.FromLabel("screenMemory+$0320"), C64Address.FromLabel("tbl_WallBaseChars"), 199);
+        C64.CopyMemory(C64Address.FromLabel("screenMemory+$0320"), C64Address.FromLabel("tbl_WallBaseChars"), 200);
 
         uint d = 0;
         for (uint y = 3; y < 11; y++)

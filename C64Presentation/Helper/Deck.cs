@@ -23,6 +23,7 @@ static class Deck
     static bool revealed_;
     static bool picture_;
     static bool building_;
+    static bool onSurface_;     // the step is drawn onto a visible surface
     static uint marks_;
     static uint[] markX_ = new uint[24];
     static uint[] markY_ = new uint[24];
@@ -39,6 +40,7 @@ static class Deck
     // keeps writing the character under its (home) cursor there. The last 8
     // bytes are the text screen's sprite pointers, unused in bitmap mode.
     const ulong Saved = 0x0418;
+    const ulong ColorRam = 0xD800;
 
     public static bool Building => building_;
 
@@ -102,14 +104,7 @@ static class Deck
         {
             // A picture's third colour is in colour RAM, which the fade
             // tables do not reach: cleared once the rest is dark.
-            // (FillMemory/CopyMemory write bytes 1..size of the address
-            // given, or 0..255 for size 0: three whole pages, then the
-            // last 232 bytes from one below.)
-            ulong colorRam = 0xD800;
-            C64.FillMemory(colorRam, 0, 0);
-            C64.FillMemory(colorRam + 256, 0, 0);
-            C64.FillMemory(colorRam + 512, 0, 0);
-            C64.FillMemory(colorRam + 767, 0, 232);
+            ScreenBytes.Fill(ColorRam, 0);
         }
         C64.Screen.BeginUpdate();
         C64.Screen.ClearBitmap();
@@ -141,6 +136,32 @@ static class Deck
         KeyBoard.WaitForKeys();
 #endif
         building_ = true;
+        onSurface_ = false;
+    }
+
+    // Starts hidden drawing without waiting: what follows fades in at the
+    // next Show/Step. onSurface: it goes onto a surface that stays visible
+    // (new code on a code card), so its background does not fade.
+    public static void Build(bool onSurface)
+    {
+        Show();
+        building_ = true;
+        onSurface_ = onSurface;
+    }
+
+    // Fades the foreground of a rectangle down to its background (text on a
+    // card going out before new text comes in).
+    public static void Dim(uint column, uint row, uint width, uint height, Colors fg, Colors bg)
+    {
+        uint paper = (uint)bg;
+        for (uint k = 3; k > 0; k--)
+        {
+            C64.Screen.SetCellColors(column, row, width, height,
+                (C64.GetMemory(Level(k), (uint)fg) << 4) | paper, Colors.Black);
+            C64.Screen.WaitForVBlank();
+            C64.Screen.WaitForVBlank();
+        }
+        C64.Screen.SetCellColors(column, row, width, height, Theme.Matrix(bg, bg), Colors.Black);
     }
 
     // Fades in what the current build step drew.
@@ -156,7 +177,8 @@ static class Deck
             ulong table = Level(k);
             for (uint i = 0; i < marks_; i++)
             {
-                uint m = (C64.GetMemory(table, markFg_[i]) << 4) | C64.GetMemory(table, markBg_[i]);
+                uint bg = onSurface_ ? markBg_[i] : C64.GetMemory(table, markBg_[i]);
+                uint m = (C64.GetMemory(table, markFg_[i]) << 4) | bg;
                 // The last step redraws text in its own colours (inline
                 // colour changes included); its pixels are already there.
                 if (k == 4 && markText_[i] != null)
@@ -171,7 +193,8 @@ static class Deck
     }
 
     // Colours a rectangle of cells: fg for set pixels, bg for the rest.
-    // During a build step the cells stay hidden (bg on bg) until Show.
+    // During a build step the cells stay hidden until Show: black, or the
+    // surface's own colour when drawing onto one (Build(true)).
     public static void Paint(uint column, uint row, uint width, uint height, Colors fg, Colors bg)
     {
         if (!building_)
@@ -179,7 +202,7 @@ static class Deck
             C64.Screen.SetCellColors(column, row, width, height, Theme.Matrix(fg, bg), Colors.Black);
             return;
         }
-        C64.Screen.SetCellColors(column, row, width, height, Theme.Matrix(bg, bg), Colors.Black);
+        C64.Screen.SetCellColors(column, row, width, height, onSurface_ ? Theme.Matrix(bg, bg) : 0, Colors.Black);
         if (marks_ == 24)
             return;
         markX_[marks_] = column;
@@ -208,12 +231,33 @@ static class Deck
 
     static void Save()
     {
-        ulong matrix = C64Address.FromLabel("Graphics_ColorMatrix");
-        // CopyMemory copies bytes 1..size (0..255 for size 0): three pages,
-        // then the last 232 bytes from one below.
-        C64.CopyMemory(Saved, matrix, 0);
-        C64.CopyMemory(Saved + 256, matrix + 256, 0);
-        C64.CopyMemory(Saved + 512, matrix + 512, 0);
-        C64.CopyMemory(Saved + 767, matrix + 767, 232);
+        ScreenBytes.Copy(Saved, C64Address.FromLabel("Graphics_ColorMatrix"));
+    }
+}
+
+// 1000-byte (one per cell) copies and fills. THE ONE PLACE that works around
+// C64.CopyMemory/FillMemory writing bytes 1..size of the address given (or
+// 0..255 for size 0): three whole pages, then the last 232 bytes from one
+// below. When those calls write address..address+size-1, this becomes four
+// plain 250-byte calls.
+static class ScreenBytes
+{
+    const uint Tail = 232;
+    const ulong TailStart = 767;    // 768 - 1: bytes 768..999
+
+    public static void Copy(ulong dest, ulong source)
+    {
+        C64.CopyMemory(dest, source, 0);
+        C64.CopyMemory(dest + 256, source + 256, 0);
+        C64.CopyMemory(dest + 512, source + 512, 0);
+        C64.CopyMemory(dest + TailStart, source + TailStart, Tail);
+    }
+
+    public static void Fill(ulong dest, uint value)
+    {
+        C64.FillMemory(dest, value, 0);
+        C64.FillMemory(dest + 256, value, 0);
+        C64.FillMemory(dest + 512, value, 0);
+        C64.FillMemory(dest + TailStart, value, Tail);
     }
 }

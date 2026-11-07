@@ -15,10 +15,13 @@ namespace C64Presentation.SlideElements;
 // rather than fading in. Full-bleed multicolour pictures: Master.Picture.
 class ImageElement : SlideElement
 {
-    public uint Column, Row, Width, Height;
-    public ulong Image;
-    public string Caption;
-    public bool Wait;
+    public uint Column { get; init; }
+    public uint Row { get; init; }
+    public uint Width { get; init; }
+    public uint Height { get; init; }
+    public ulong Image { get; init; }
+    public string Caption { get; init; }
+    public bool Wait { get; init; }
 
     public override void Draw()
     {

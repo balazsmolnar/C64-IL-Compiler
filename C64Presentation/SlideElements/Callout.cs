@@ -3,32 +3,33 @@ using C64Presentation.Helper;
 
 namespace C64Presentation.SlideElements;
 
-// A callout / quote: a card with a 3 px accent bar down its left edge, the
-// lines in white (one per row, from the second row) and an optional
-// attribution in the accent colour under them. Defaults: X Theme.Left,
-// Width Theme.Width, Height = lines + 2 (+ 2 with an attribution),
-// Accent Theme.Accent.
+// A key message: a card with a 3 px accent bar down its left edge, the
+// lines in the 16 px heading face (white, about 30 characters each, 16 px
+// apart) and an optional attribution line in Grey3 under them. Defaults: X
+// Theme.Left, Width Theme.Width, Accent Theme.Accent; the height follows
+// the lines.
+//
+//     new Callout { Y = 16, Lines = ["Everything else is about", "fitting C# into that."] }
 class Callout : SlideElement
 {
-    public uint X, Y, Width, Height;
-    public string[] Lines;
-    public string Attribution;
-    public Colors Accent;
-    public bool Wait;
+    public uint X { get; init; }
+    public uint Y { get; init; }
+    public uint Width { get; init; }
+    public string[] Lines { get; init; }
+    public string Attribution { get; init; }
+    public Colors Accent { get; init; }
+    public bool Wait { get; init; }
 
     public override void Draw()
     {
         if (Wait)
             Deck.Step();
-        string[] lines = Lines;
-        uint height = Height;
-        if (height == 0)
-            height = (uint)lines.Length + (Attribution != null ? 4u : 2u);
-        Render(X == 0 ? Theme.Left : X, Y, Width == 0 ? Theme.Width : Width, height, lines, Attribution, Theme.Or(Accent, Theme.Accent));
+        Render(Theme.OrCells(X, Theme.Left), Y, Theme.OrCells(Width, Theme.Width), Lines, Attribution, Theme.Or(Accent, Theme.Accent));
     }
 
-    static void Render(uint left, uint top, uint width, uint height, string[] lines, string attribution, Colors accent)
+    static void Render(uint left, uint top, uint width, string[] lines, string attribution, Colors accent)
     {
+        uint height = (uint)lines.Length * 2 + (attribution != null ? 3u : 1u) + 1;
         Deck.Paint(left, top, width, height, Theme.Card, Theme.Card);
         Deck.Paint(left, top, 1, height, accent, Theme.Card);
         ulong x = Helper.Screen.X(left);
@@ -36,10 +37,10 @@ class Callout : SlideElement
         uint row = top + 1;
         foreach (var line in lines)
         {
-            Text.Draw(x + 12, row, line, Theme.Heading, Theme.Card);
-            row++;
+            Text.Heading(x + 12, row, line, Theme.Heading, Theme.Card);
+            row += 2;
         }
         if (attribution != null)
-            Text.Draw(x + 12, row + 1, attribution, accent, Theme.Card);
+            Text.Draw(x + 12, row + 1, attribution, Theme.Body, Theme.Card);
     }
 }

@@ -14,9 +14,9 @@ class Sprites
         Setup(C64.Sprites.Sprite1, frame + 1, Colors.LightBlue, expand);
         Setup(C64.Sprites.Sprite2, frame + 2, Colors.LightBlue, expand);
         Setup(C64.Sprites.Sprite3, frame + 3, Colors.LightRed, expand);
-        Setup(C64.Sprites.Sprite4, frame, Theme.Accent, expand);
-        Setup(C64.Sprites.Sprite5, frame + 1, Theme.Accent, expand);
-        Setup(C64.Sprites.Sprite6, frame + 4, Theme.Accent, expand);
+        Setup(C64.Sprites.Sprite4, frame, Theme.Brand, expand);
+        Setup(C64.Sprites.Sprite5, frame + 1, Theme.Brand, expand);
+        Setup(C64.Sprites.Sprite6, frame + 4, Theme.Brand, expand);
     }
 
     static void Setup(Sprite sprite, uint frame, Colors color, bool expand)

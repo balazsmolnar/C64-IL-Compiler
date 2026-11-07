@@ -1,36 +1,31 @@
 ﻿using System;
-using C64Lib;
-using C64Presentation.SlideElements;
 using C64Presentation.Slides;
 
 namespace C64Presentation;
 
-class Program
+static class Program
 {
+    // The deck, in order. Each entry builds its slide when it is shown, so
+    // only one slide's objects live on the heap at a time.
+    static readonly Func<Slide>[] Slides =
+    [
+        () => new IntroSlide(),
+        AgendaSlide.Create,
+        WhatIsItSlide.Create,
+        CompilerPassesSlide.Create,
+        () => new DemoSlide(),
+        FeaturesSlide.Create,
+        () => new DemoSlide(),
+        MemoryLayoutSlide.Create,
+        () => new GarbageCollectorSlide(),
+        () => new DemoSlide(),
+    ];
+
     static void Main()
     {
 #if SCENE_ART
         ArtScene.Run();   // art/ArtScene.cs: asset review pages
 #endif
-        var slides = new Func<Slide>[]
-        {
-            () =>  new IntroSlide(),
-            AgendaSlide.Create,
-            WhatIsItSlide.Create,
-            CompilerPassesSlide.Create,
-            () => new DemoSlide(),
-            FeaturesSlide.Create,
-            () => new DemoSlide(),
-            MemoryLayoutSlide.Create,
-            () => new GarbageCollectorSlide(),
-            EngineShowcaseSlides.Section,
-            EngineShowcaseSlides.Machine,
-            EngineShowcaseSlides.Chart,
-            EngineShowcaseSlides.Diagram,
-            EngineShowcaseSlides.Picture,
-            () => new DemoSlide(),
-        };
-
-        Presenter.Present(slides);
+        Presenter.Present(Slides);
     }
 }

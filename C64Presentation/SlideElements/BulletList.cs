@@ -3,37 +3,40 @@ using C64Presentation.Helper;
 
 namespace C64Presentation.SlideElements;
 
-// Bullets: an accent dot (level 0) or a dash (level 1) and the text, one
-// item every Pitch rows from (Left, Top). Wait = build them in one by one.
-// Defaults: Left = Theme.Left, Top = Theme.BodyTop, Pitch = 2, Color = Body.
+// Bullets: an accent dot (level 0) or a dash (level 1), 5 px of air, then
+// the text; one item every Pitch rows from (Left, Top). Wait = build them
+// in one by one. Defaults: Left Theme.Left, Top Theme.BodyTop, Pitch 2,
+// Color Body.
 //
-//     new BulletList { Items = new[] { "One", "Two" }, Wait = true }
+//     new BulletList { Items = ["Structure beats peepholes", "Measure every change"], Wait = true }
 class BulletList : SlideElement
 {
-    public string[] Items;
-    public uint Left;
-    public uint Top;
-    public uint Pitch;
-    public uint Level;
-    public Colors Color;
-    public bool Wait;
+    const ulong DotOffset = 1;     // the dot's left pixel in its cell
+    const ulong TextOffset = 10;   // the text's left pixel: 5 px after the dot
+    const uint DefaultPitch = 2;
+
+    public string[] Items { get; init; }
+    public uint Left { get; init; }
+    public uint Top { get; init; }
+    public uint Pitch { get; init; }
+    public uint Level { get; init; }
+    public Colors Color { get; init; }
+    public bool Wait { get; init; }
 
     public override void Draw()
     {
-        uint column = (Left == 0 ? Theme.Left : Left) + Level + Level;
-        uint row = Top == 0 ? Theme.BodyTop : Top;
-        uint pitch = Pitch == 0 ? 2 : Pitch;
-        Colors color = Theme.Or(Color, Theme.Body);
-        ulong x = Helper.Screen.X(column);
+        ulong x = Helper.Screen.X(Theme.OrCells(Left, Theme.Left) + Level + Level);
+        uint row = Theme.OrCells(Top, Theme.BodyTop);
+        uint pitch = Theme.OrCells(Pitch, DefaultPitch);
+        var color = Theme.Or(Color, Theme.Body);
+        string mark = Level == 0 ? Theme.Dot : "-";
+        var markColor = Level == 0 ? Theme.Accent : Theme.Muted;
         foreach (var item in Items)
         {
             if (Wait)
                 Deck.Step();
-            if (Level == 0)
-                Text.Draw(x + 1, row, Theme.Dot, Theme.Accent);
-            else
-                Text.Draw(x + 2, row, "-", Theme.Muted);
-            Text.Draw(x + 9, row, item, color);
+            Text.Draw(x + DotOffset, row, mark, markColor);
+            Text.Draw(x + TextOffset, row, item, color);
             row += pitch;
         }
     }

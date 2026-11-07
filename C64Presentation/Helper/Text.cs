@@ -2,13 +2,15 @@ using C64Lib;
 
 namespace C64Presentation.Helper;
 
-// Typography. Three faces from art/font (see Theme for the colours):
+// Typography. Four faces from art/font (see Theme for the colours):
 //   Draw     body text: 8 px proportional sans, one cell row
-//   Heading  titles: 16 px bold, two cell rows
-//   Code     the body glyphs at a fixed 8 px pitch, one glyph per cell
+//   Heading  titles and key messages: 16 px bold, two cell rows
+//   Big      the title face doubled: 32 px, four cell rows (cover, numbers)
+//   Code     a fixed 8 px pitch, one glyph per cell, a blank top pixel line
+//            so code lines can sit on consecutive rows
 // x is in pixels, row in cells; each returns the x after the text. Strings
-// may change colour inline (Theme.Hi ... Theme.Off). Special glyphs in both
-// fonts: Theme.Arrow "~", Theme.Dot "\\", Theme.Tick "^".
+// may change colour inline (Theme.Hi ... Theme.Off). Special glyphs in every
+// face: Theme.Arrow, Theme.Dot, Theme.Tick.
 static class Text
 {
     public static ulong Draw(ulong x, uint row, string text, Colors fg, Colors bg = Theme.Background)
@@ -17,12 +19,17 @@ static class Text
     public static ulong Heading(ulong x, uint row, string text, Colors fg = Theme.Heading, Colors bg = Theme.Background)
         => Put(x, row, text, C64Address.FromLabel("font_Title"), fg, bg, 2);
 
-    public static ulong Code(uint column, uint row, string text, Colors fg = Theme.Body, Colors bg = Theme.Code)
-        => Put((ulong)column * 8, row, text, C64Address.FromLabel("font_BodyMono"), fg, bg, 1);
+    public static ulong Big(ulong x, uint row, string text, Colors fg = Theme.Heading, Colors bg = Theme.Background)
+        => Put(x, row, text, C64Address.FromLabel("font_TitleBig"), fg, bg, 4);
+
+    public static ulong Code(uint column, uint row, string text, Colors fg = Theme.Heading, Colors bg = Theme.Card)
+        => Put(Screen.X(column), row, text, C64Address.FromLabel("font_BodyMono"), fg, bg, 1);
 
     public static ulong Width(string text) => C64.Screen.FontTextWidth(text, C64Address.FromLabel("font_Body"));
 
     public static ulong HeadingWidth(string text) => C64.Screen.FontTextWidth(text, C64Address.FromLabel("font_Title"));
+
+    public static ulong BigWidth(string text) => C64.Screen.FontTextWidth(text, C64Address.FromLabel("font_TitleBig"));
 
     // Centred between pixel x and x + width.
     public static void Center(ulong x, ulong width, uint row, string text, Colors fg, Colors bg = Theme.Background)

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using C64Lib;
 using C64Presentation.Helper;
 using C64Presentation.SlideElements;
@@ -140,11 +140,11 @@ class GarbageCollectorSlide : Slide
                         refs = refs + " ";
                     refs = refs + r.Id;
                 }
-                new Box { X = hx, Y = 17, Width = o.Size + 1, Height = 4, Text = o.Id, Caption = refs, BorderColor = Theme.Accent2, ConnectToLeft = hx != Theme.Left }.Draw();
+                new Box { X = hx, Y = 17, Width = o.Size + 1, Height = 4, Text = o.Id, Caption = refs, Color = Theme.Accent2, ConnectToLeft = hx != Theme.Left }.Draw();
                 hx += o.Size + 1;
             }
             if (hx < Theme.Right)
-                new Box { X = hx, Y = 17, Width = Theme.Right - hx, Height = 4, Text = "free", TextColor = Theme.Muted, BorderColor = Theme.Card, Hollow = true }.Draw();
+                new Box { X = hx, Y = 17, Width = Theme.Right - hx, Height = 4, Text = "free", Color = Theme.Card, Hollow = true }.Draw();
         }
     }
 }

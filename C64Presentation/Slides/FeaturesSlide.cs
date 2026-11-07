@@ -1,26 +1,29 @@
-﻿using C64Lib;
-using C64Presentation.Helper;
+﻿using C64Presentation.Helper;
 using C64Presentation.SlideElements;
 
 namespace C64Presentation.Slides;
 
 // Two columns: data types left, object orientation and memory right.
-class FeaturesSlide
+static class FeaturesSlide
 {
-    public static Slide Create()
+    public static Slide Create() => new SimpleSlide
     {
-        return new SimpleSlide()
-        {
-            Elements = new SlideElement[]
+        Elements =
+        [
+            new Title { Text = "Features" },
+            Heading(Theme.LeftColumn, 5, "Data types", wait: false),
+            new BulletList
             {
-                new Title() { Text = "Features" },
-                new TextElement() { X = Theme.LeftColumn, Y = 5, Text = "Data types", Color = Theme.Accent },
-                new BulletList() { Top = 7, Wait = true, Items = new [] { "int, uint: 8 bits", "long, ulong: 16 bits", "float", "string (max 255 bytes)", "object (255)", "array (max 255 items)" } },
-                new TextElement() { X = Theme.RightColumn, Y = 5, Text = "Object-oriented", Color = Theme.Accent, Wait = true },
-                new BulletList() { Left = Theme.RightColumn, Top = 7, Wait = true, Items = new [] { "Inheritance", "Virtual methods", "Abstract methods" } },
-                new TextElement() { X = Theme.RightColumn, Y = 14, Text = "Memory", Color = Theme.Accent, Wait = true },
-                new BulletList() { Left = Theme.RightColumn, Top = 16, Items = new [] { "Garbage collector" } },
-            }
-        };
-    }
+                Top = 7, Wait = true,
+                Items = ["int, uint: 8 bits", "long, ulong: 16 bits", "float", "string (max 255 bytes)", "object (255)", "array (max 255 items)"],
+            },
+            Heading(Theme.RightColumn, 5, "Object-oriented"),
+            new BulletList { Left = Theme.RightColumn, Top = 7, Wait = true, Items = ["Inheritance", "Virtual methods", "Abstract methods"] },
+            Heading(Theme.RightColumn, 14, "Memory"),
+            new BulletList { Left = Theme.RightColumn, Top = 16, Items = ["Garbage collector"] },
+        ]
+    };
+
+    static TextElement Heading(uint column, uint row, string text, bool wait = true)
+        => new() { X = column, Y = row, Text = text, Color = Theme.Accent, Wait = wait };
 }

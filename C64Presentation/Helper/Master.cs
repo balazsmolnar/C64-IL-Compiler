@@ -3,75 +3,89 @@ using C64Lib;
 namespace C64Presentation.Helper;
 
 // The master layouts: a content slide (title, rule, footer), the cover, a
-// section divider, and a full-bleed picture (Deck.Picture). See Theme.
+// section divider and a full-bleed picture. See Theme for the grid.
 static class Master
 {
     public const string DeckTitle = "C# on the C64";
     public const string Author = "Balazs Molnar";
 
+    const ulong ScreenPixels = 320;
+    const ulong ContentLeft = Theme.Left * Theme.CellPixels;           // 16
+    const ulong ContentRight = Theme.Right * Theme.CellPixels - 1;     // 303
+    const ulong RuleY = Theme.RuleRow * Theme.CellPixels + 2;          // 26
+    const ulong ProgressY = Theme.ProgressRow * Theme.CellPixels + 3;  // 195
+
     // Title at the top left, the accent rule under it, the footer.
     public static void Content(string title)
     {
-        Text.Heading(16, Theme.TitleRow, title);
-        // Accent bar (24 x 2 px) then a hairline to the right margin.
-        Deck.Paint(Theme.Left, Theme.RuleRow, 3, 1, Theme.Accent, Theme.Background);
-        Screen.Fill(16, 26, 39, 27);
-        Deck.Paint(Theme.Left + 3, Theme.RuleRow, Theme.Width - 3, 1, Theme.Muted, Theme.Background);
-        Screen.Line(44, 27, 303, 27);
+        Text.Heading(ContentLeft, Theme.TitleRow, title);
+        Rule(Theme.RuleRow);
         Footer();
     }
 
-    // Deck title, "n / total" and the progress bar.
+    // The accent stub (24 x 2 px) and a Grey2 hairline to the right margin.
+    static void Rule(uint row)
+    {
+        ulong y = Screen.X(row) + 2;
+        Deck.Paint(Theme.Left, row, 3, 1, Theme.Accent, Theme.Background);
+        Screen.Fill(ContentLeft, y, ContentLeft + 23, y + 1);
+        Deck.Paint(Theme.Left + 3, row, Theme.Width - 3, 1, Theme.Muted, Theme.Background);
+        Screen.Line(ContentLeft + 28, y + 1, ContentRight, y + 1);
+    }
+
+    // Deck title, "n / total" and the progress bar, all receding (Grey2).
     public static void Footer()
     {
-        Text.Draw(16, Theme.FooterRow, DeckTitle, Theme.Muted);
-        Text.Right(303, Theme.FooterRow, $"{Deck.Number + 1} / {Deck.Count}", Theme.Muted);
+        Text.Draw(ContentLeft, Theme.FooterRow, DeckTitle, Theme.Muted);
+        Text.Right(ContentRight, Theme.FooterRow, $"{Deck.Number + 1} / {Deck.Count}", Theme.Muted);
 
         // Progress: accent up to this slide, a dark track after it.
-        ulong end = 16 + 288 * (ulong)(Deck.Number + 1) / (ulong)Deck.Count;
+        ulong end = ContentLeft + (ContentRight + 1 - ContentLeft) * (Deck.Number + 1) / Deck.Count;
         uint done = (uint)((end + 7) / 8);   // first cell that is all track
-        Deck.Paint(2, 24, done - 2, 1, Theme.Accent, Theme.Background);
-        Screen.Fill(16, 195, end - 1, 196);
+        Deck.Paint(Theme.Left, Theme.ProgressRow, done - Theme.Left, 1, Theme.Accent, Theme.Background);
+        Screen.Fill(ContentLeft, ProgressY, end - 1, ProgressY + 1);
         if (done < Theme.Right)
         {
-            Deck.Paint(done, 24, Theme.Right - done, 1, Theme.Card, Theme.Background);
-            Screen.Fill(Screen.X(done), 195, 303, 196);
+            Deck.Paint(done, Theme.ProgressRow, Theme.Right - done, 1, Theme.Card, Theme.Background);
+            Screen.Fill(Screen.X(done), ProgressY, ContentRight, ProgressY + 1);
         }
     }
 
-    // The cover (and closing) slide: the big title, an accent rule, the
-    // subtitle and the author, centred. No footer.
+    // The cover (and closing) slide: the title at twice the title size, an
+    // accent rule, the subtitle and the author, centred. No footer. Rows
+    // 2-8 are left for the logos (IntroSlide).
     public static void Cover(string title, string subtitle)
     {
-        Text.CenterHeading(0, 320, 9, title);
-        Deck.Paint(18, 12, 4, 1, Theme.Accent, Theme.Background);
-        Screen.Fill(148, 98, 171, 99);
-        Text.Center(0, 320, 13, subtitle, Theme.Body);
-        Text.Center(0, 320, 16, Author, Theme.Muted);
+        Text.Big((ScreenPixels - Text.BigWidth(title) + 4) / 2, 9, title);
+        Deck.Paint(18, 14, 4, 1, Theme.Accent, Theme.Background);
+        Screen.Fill(148, 114, 171, 115);
+        Text.Center(0, ScreenPixels, 16, subtitle, Theme.Body);
+        Text.Center(0, ScreenPixels, 19, Author, Theme.Muted);
     }
 
-    // A section divider: a full-width band (rows 8-15) with an accent bar,
-    // the part label, the title and a subtitle; footer below.
-    public static void Section(string part, string title, string subtitle)
+    // A section divider on black: the part number in big cyan figures, the
+    // title in the heading face under an accent rule, the subtitle, and the
+    // section's 6x6 icon on the right (0 = none). Footer as usual.
+    public static void Section(string number, string title, string subtitle, ulong icon)
     {
-        Deck.Paint(0, 8, 40, 8, Theme.Card, Theme.Card);
-        Deck.Paint(Theme.Left, 9, 1, 6, Theme.Accent, Theme.Card);
-        Screen.Fill(16, 74, 19, 121);
-        Text.Draw(32, 9, part, Theme.Accent, Theme.Card);
-        Text.Heading(32, 11, title, Theme.Heading, Theme.Card);
-        Text.Draw(32, 14, subtitle, Theme.Body, Theme.Card);
+        Text.Big(ContentLeft, 5, number, Theme.Accent);
+        Rule(10);
+        Text.Heading(ContentLeft, 12, title);
+        Text.Draw(ContentLeft, 15, subtitle, Theme.Body);
+        if (icon != 0)
+            C64.Screen.DrawImage(31, 4, icon);
         Footer();
     }
 
     // A multicolour picture with no chrome (no title, no footer), its
     // top-left cell at (column, row); from cell row `split` down the screen
-    // is hi-res for text (Text works there as anywhere); 25 = no split.
-    // Caption: centred one row below the split.
+    // is hi-res for text; 25 = no split. Caption: centred one row below the
+    // split. The image is an address, so a picture loaded from disk into a
+    // buffer works as well as an embedded one.
     //     Master.Picture(C64Address.FromLabel("img_ShotRoom"), 0, 0, 21, "A Commodore 64 game.");
     public static void Picture(ulong image, uint column, uint row, uint split, string caption)
     {
         Deck.Picture(image, column, row, split);
-        if (caption != null)
-            Text.Center(0, 320, split + 1, caption, Theme.Body);
+        Text.Center(0, ScreenPixels, split + 1, caption, Theme.Body);
     }
 }

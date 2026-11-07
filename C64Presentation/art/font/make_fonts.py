@@ -3,8 +3,13 @@
 Builds the deck's fonts (C64Presentation/art/font/build/fonts.asm, embedded by
 the .csproj) from the hand-editable glyph files next to this script:
 
-    body.txt   8-line proportional sans, hand drawn -> font_Body, font_BodyMono
-    title.txt  16-line bold sans for titles          -> font_Title
+    body.txt   8-line proportional sans, hand drawn -> font_Body
+               and the code face, fixed 8 px pitch   -> font_BodyMono
+    title.txt  16-line bold sans for titles          -> font_Title, font_TitleBig (2x)
+
+The code face draws the body glyphs with leading: pixel line 1 left out
+and a blank line on top (capitals 6 px), so code lines can sit on
+consecutive cell rows without touching. No extra glyph data.
 
     python C64Presentation/art/font/make_fonts.py            # build + previews
     python C64Presentation/art/font/make_fonts.py --bootstrap-title
@@ -69,9 +74,10 @@ def main():
     build = os.path.join(HERE, "build")
     os.makedirs(build, exist_ok=True)
     parts, total = [], 0
-    for src, label, mono in (("body.txt", "Body", 8), ("title.txt", "Title", 0)):
-        font = c64font.load(os.path.join(HERE, src))
-        asm, size = c64font.build(font, label, mono)
+    body = c64font.load(os.path.join(HERE, "body.txt"))
+    for src, label, mono, big, font in (("body.txt", "Body", 8, False, body),
+                                        ("title.txt", "Title", 0, True, c64font.load(os.path.join(HERE, "title.txt")))):
+        asm, size = c64font.build(font, label, mono, big, leading=bool(mono))
         parts.append(asm)
         total += size
         print(f"{src}: {len(font.glyphs)} glyphs, {size} bytes")

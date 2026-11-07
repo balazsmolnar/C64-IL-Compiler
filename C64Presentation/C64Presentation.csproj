@@ -15,6 +15,7 @@
   <PropertyGroup>
     <StartSlide Condition="'$(StartSlide)' == ''">0</StartSlide>
     <DefineConstants Condition="'$(Scene)' != ''">$(DefineConstants);SCENE;SCENE_$(Scene)</DefineConstants>
+    <DefineConstants Condition="'$(NoShots)' == '1'">$(DefineConstants);NO_SHOTS</DefineConstants>
   </PropertyGroup>
   <Target Name="WriteSceneConfig" BeforeTargets="CoreCompile">
     <WriteLinesToFile File="$(IntermediateOutputPath)SceneConfig.g.cs" Lines="namespace C64Presentation%3B static class SceneConfig { public const int StartSlide = $(StartSlide)%3B }" Overwrite="true" WriteOnlyWhenDifferent="true" />

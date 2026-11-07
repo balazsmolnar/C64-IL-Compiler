@@ -1,32 +1,20 @@
-﻿using C64Lib;
-using C64Presentation.Helper;
-using C64Presentation.SlideElements;
+﻿using C64Presentation.SlideElements;
 
 namespace C64Presentation.Slides;
 
 static class AgendaSlide
 {
-    public static Slide Create()
+    public static Slide Create() => new SimpleSlide
     {
-        return new SimpleSlide()
-        {
-            Elements = new SlideElement[]
+        Elements =
+        [
+            new Title { Text = "Agenda" },
+            new BulletList
             {
-                new Title() { Text = "Agenda" },
-                new BulletList()
-                {
-                    Items = new[]
-                    {
-                        "What is it?",
-                        "How does it work?",
-                        "Features",
-                        "Garbage collection",
-                        "Integration tests"
-                    },
-                    Top = 6,
-                    Wait = true
-                }
-            }
-        };
-    }
+                Top = 6,
+                Wait = true,
+                Items = ["What is it?", "How does it work?", "Features", "Garbage collection", "Integration tests"],
+            },
+        ]
+    };
 }

@@ -1,4 +1,4 @@
-﻿using C64Lib;
+using C64Lib;
 using C64Presentation.Helper;
 
 namespace C64Presentation.SlideElements;
@@ -13,11 +13,14 @@ namespace C64Presentation.SlideElements;
 //                 Texts = new[] { "", "Before", "After", "Hunchback", "36,847", "28,157", ... } }
 class Table : SlideElement
 {
-    public uint X, Y, RowNum, CollNum;
-    public uint CellWidth;
-    public uint[] ColumnWidths;
-    public string[] Texts;
-    public bool WaitAfterRow;
+    public uint X { get; init; }
+    public uint Y { get; init; }
+    public uint RowNum { get; init; }
+    public uint CollNum { get; init; }
+    public uint CellWidth { get; init; }
+    public uint[] ColumnWidths { get; init; }
+    public string[] Texts { get; init; }
+    public bool WaitAfterRow { get; init; }
 
     public override void Draw()
     {
@@ -27,9 +30,9 @@ class Table : SlideElement
         {
             widths = new uint[columns];
             for (uint c = 0; c < columns; c++)
-                widths[c] = CellWidth == 0 ? 9 : CellWidth;
+                widths[c] = Theme.OrCells(CellWidth, 9);
         }
-        Render(X == 0 ? Theme.Left : X, Y, RowNum, columns, widths, Texts, WaitAfterRow);
+        Render(Theme.OrCells(X, Theme.Left), Y, RowNum, columns, widths, Texts, WaitAfterRow);
     }
 
     static void Render(uint left, uint y, uint rows, uint columns, uint[] widths, string[] texts, bool wait)

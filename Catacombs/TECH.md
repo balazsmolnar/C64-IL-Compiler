@@ -115,6 +115,15 @@ mc2=None, transparent=None, count=None, preview=None, quiet=False)`.
   instant.
 - The vector calls (`DrawLine`, `DrawRectangle`, `DrawBitmap`...) still work
   on top of an image; they change pixels, not cell colours.
+- Images can also live on the program's disk instead of in memory:
+  `C64.Disk.Load("name", buffer)` (KERNAL LOAD, secondary address 0) puts
+  a file into RAM the program reserves, e.g. a `[RawAssembly]` `.fill`
+  sized for the largest image, and `DrawImage` takes that address. The
+  files are the image payloads (what `[RawImage]` embeds), listed in a
+  `disk.txt` next to the project's run.bat; the build then writes
+  `prg/<name>.d64` (`tools/make-d64.ps1`). A 1541 reads about 370 bytes a
+  second, so a 3.7 KB picture is 10 s: load while a screen without a split
+  is showing. `C64Presentation/art/ArtDisk.cs` is a worked example.
 
 ### Per-cell colours
 

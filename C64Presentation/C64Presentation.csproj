@@ -15,7 +15,6 @@
   <PropertyGroup>
     <StartSlide Condition="'$(StartSlide)' == ''">0</StartSlide>
     <DefineConstants Condition="'$(Scene)' != ''">$(DefineConstants);SCENE;SCENE_$(Scene)</DefineConstants>
-    <DefineConstants Condition="'$(NoShots)' == '1'">$(DefineConstants);NO_SHOTS</DefineConstants>
   </PropertyGroup>
   <Target Name="WriteSceneConfig" BeforeTargets="CoreCompile">
     <WriteLinesToFile File="$(IntermediateOutputPath)SceneConfig.g.cs" Lines="namespace C64Presentation%3B static class SceneConfig { public const int StartSlide = $(StartSlide)%3B }" Overwrite="true" WriteOnlyWhenDifferent="true" />
@@ -24,12 +23,13 @@
     </ItemGroup>
   </Target>
 
-  <!-- Embedded under their file names: the engine's fonts and logo sprites
-       (art/font/make_fonts.py, art/engine/make_logos.py) and the deck's
-       pictures (art/presentation_art.py -> art/build; declared in Assets.cs). -->
   <ItemGroup>
     <None Remove="sprites.asm" />
-    <EmbeddedResource Include="art\font\build\*.asm;art\engine\build\*.spr;art\build\*.img;art\build\*.spr" LogicalName="%(Filename)%(Extension)" />
+    <EmbeddedResource Include="sprites.asm" />
+    <!-- The engine's fonts and logo sprites (art/font, art/engine), the deck's
+         pictures (art/presentation_art.py -> art/build; declared in Assets.cs),
+         and picture_buffer.asm, the RAM the pictures on the disk (disk.txt) load into -->
+    <EmbeddedResource Include="art\font\build\*.asm;art\engine\build\*.spr;art\build\*.img;art\build\*.spr;art\build\*.asm" LogicalName="%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup>

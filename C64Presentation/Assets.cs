@@ -11,13 +11,14 @@
 // The title picture (opens the deck, slide 1): storyboard round 5.
 [assembly: RawImage(Resource = "title.img", Label = "Title")]              // 40x25 hires  1715
 
-// NO_SHOTS (msbuild -p:NoShots=1, or the environment variable NoShots=1): a
-// build without the multicolour screenshot, for working on the
-// engine while they do not fit beside it (they are to load from disk).
-#if !NO_SHOTS
-// A1 Catacombs room with the skeleton guardian (MONSTERROOM), rows 0-20, split at 21 (slides 1, 24)
-[assembly: RawImage(Resource = "shot_room.img", Label = "ShotRoom")]       // 40x21 mc    3755
-#endif
+// The three Catacombs shots (9,073 bytes) are files on the deck's disk
+// (disk.txt), not part of the program: ArtDisk.Load(DiskPicture.X) loads one
+// into a single shared buffer and returns its address for DrawImage. The
+// buffer is sized for the largest of them by art/presentation_art.py.
+//   A1 ShotRoom   40x21 mc  3755  DrawImage(0, 0, ..), split at 21 (slides 1, 24)
+//   A2 ShotTitle  36x18 mc  2748  DrawImage(2, 3, ..), full screen (slide 22)
+//   A3 ShotBoss   40x15 mc  2570  DrawImage(0, 0, ..), split at 15 (slide 23)
+[assembly: RawAssembly(Resource = "picture_buffer.asm")]                   // buf_Picture  3755
 // A5 the C64 breadbox, hi-res (slide 3)
 [assembly: RawImage(Resource = "breadbox.img", Label = "Breadbox")]        // 18x8 hires   377
 // A6 six icons, PIXELS ONLY: set the cells' colours first (slide 9, markers 10-15)

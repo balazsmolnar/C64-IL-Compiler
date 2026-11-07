@@ -11,6 +11,26 @@ declared in `../Assets.cs`. The budget is 18 KB of compressed images.
   until a slide wants one. To use one, move its line out of the `#if`.
 - **Everything together: 14,284 bytes.**
 
+## Pictures on the disk
+
+A1, A2 and A3 (9,073 bytes) are not embedded. `presentation_art.py` also
+writes them, the same compressed bytes, to `art/build/disk/*.bin`, and
+`../disk.txt` lists them, so the build writes `prg/presentation.d64` with
+the program and the files `shotroom`, `shottitle` and `shotboss`
+(`tools/make-d64.ps1`, run by `tools/compile-and-assemble.bat`). The script
+also writes `art/build/picture_buffer.asm`: one buffer, `buf_Picture`,
+sized for the largest picture (3,755 bytes). `art/ArtDisk.cs` loads a
+picture into it and returns the address for `DrawImage`:
+
+    C64.Screen.DrawImage(0, 0, ArtDisk.Load(DiskPicture.ShotRoom));
+
+Call it while the previous slide is still showing: the screen stays as it
+is during the load. A picture already in the buffer is not loaded again; a
+failed load draws nothing. Load times, measured with `-Scene DISK -Slide
+0/1/2` (`art/DiskScene.cs`, which prints them): A1 10.1 s, A2 7.6 s, A3
+7.3 s on a 1541 (VICE true drive emulation, `presentation-shot.ps1 -Drive
+True`); 0.2-0.3 s on VICE's virtual drive (`-Drive Virtual`).
+
 ## Regenerating
 
     python C64Presentation/art/presentation_art.py
@@ -109,15 +129,16 @@ the section slide's own colours. Ink = the high nibble.
 ## Assets
 
 Bytes = the compressed payload, which is what the image adds to the program.
-The label is used as `C64Address.FromLabel("img_<Label>")`.
+The label is used as `C64Address.FromLabel("img_<Label>")`; A1-A3 are
+on the disk instead and are drawn with `ArtDisk.Load(DiskPicture.<Label>)`.
 
 ### Storyboard assets (always declared)
 
 | ID | File (art/build) | Label | Cells | Mode | Bytes | Place with |
 |---|---|---|---|---|---|---|
-| A1 | shot_room.img | ShotRoom | 40x21 | mc | 3755 | `DrawImage(0, 0, ..)`, split at 21. Slide 24's strip is its rows 13-20: draw it whole and blank the rows above, or ask for a separate 40x8 crop (about 1.4 KB) |
-| A2 | shot_title.img | ShotTitle | 36x18 | mc | 2748 | `DrawImage(2, 3, ..)`, full screen. Title-screen columns 2-37, rows 0-17 (logo to gate): no "PRESS FIRE", no half skulls at the edges |
-| A3 | shot_boss.img | ShotBoss | 40x15 | mc | 2570 | `DrawImage(0, 0, ..)`, split at 15, the name in hi-res on row 16 (see Modes) |
+| A1 | shot_room.img (disk: shotroom) | ShotRoom | 40x21 | mc | 3755 | `DrawImage(0, 0, ..)`, split at 21. Slide 24's strip is its rows 13-20: draw it whole and blank the rows above, or ask for a separate 40x8 crop (about 1.4 KB) |
+| A2 | shot_title.img (disk: shottitle) | ShotTitle | 36x18 | mc | 2748 | `DrawImage(2, 3, ..)`, full screen. Title-screen columns 2-37, rows 0-17 (logo to gate): no "PRESS FIRE", no half skulls at the edges |
+| A3 | shot_boss.img (disk: shotboss) | ShotBoss | 40x15 | mc | 2570 | `DrawImage(0, 0, ..)`, split at 15, the name in hi-res on row 16 (see Modes) |
 | A5 | breadbox.img | Breadbox | 18x8 | hires | 377 | `DrawImage(1, 7, ..)`. The breadbox from the front: light-grey body with domed back corners and a highlight, rainbow badge stripes, a crease, dark-brown keys in the C64's staggered rows (wide CTRL, RETURN and SHIFTs, a space bar), an F-key column, a grey front lip with a red power light, a dark base |
 | A6 | icon_int8.img | IconInt8 | 3x3 | hires, pixels only | 76 | a chip with an "8" |
 | A6 | icon_stack.img | IconStack | 3x3 | hires, pixels only | 72 | rounded plates widening downwards, the top one lifted and offset |

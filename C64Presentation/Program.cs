@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using C64Presentation.Slides;
 
 namespace C64Presentation;
@@ -25,6 +25,9 @@ static class Program
     {
 #if SCENE_ART
         ArtScene.Run();   // art/ArtScene.cs: asset review pages
+#endif
+#if SCENE_DISK
+        DiskScene.Run();  // art/DiskScene.cs: a picture loaded from the disk
 #endif
         Presenter.Present(Slides);
     }

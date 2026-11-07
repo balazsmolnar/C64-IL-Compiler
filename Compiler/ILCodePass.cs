@@ -108,6 +108,11 @@ class ILCodePass : ICompilerPass
                     // MulticastDelegate members, say): not ours to compile.
                     if (method.DeclaringType != null && method.DeclaringType.Assembly != context.Assembly)
                         continue;
+                    // An auto-property accessor: every call to it compiles to
+                    // the field access itself (ILMethodCodePass), so it is
+                    // never called.
+                    if (ILMethodCodePass.IsAutoPropertyAccessor(method, context.Assembly.ManifestModule, out _, out _))
+                        continue;
 
                     // MethodBase.IsConstructor is deliberately false for a
                     // static constructor (.NET's own docs: it "excludes

@@ -1080,6 +1080,22 @@ class OpPop : OpBase
     {
         operation.StackContent.RemoveLast(1);
     }
+
+    // A discarded value takes all of its bytes off the stack: a ulong or
+    // string result (2 bytes) or a float (5), not just the top byte -- e.g.
+    // a call returning ulong used as a statement.
+    public override string Emit(CompilerMethodContext context, ILOperation operation)
+    {
+        int bytes = operation.PreviousInstructions.Count > 0
+            ? operation.PreviousInstructions[0].StackContent.Last().GetStorageBytes()
+            : 1;
+        return bytes switch
+        {
+            1 => "#stack_pop",
+            2 => "#stack_pop16",
+            _ => $"#stack_pop_n {bytes}",
+        };
+    }
 }
 
 class OpPushBase : OpBase

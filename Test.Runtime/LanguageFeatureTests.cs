@@ -14,6 +14,13 @@ class Thing
     public uint Id;
 }
 
+class InitPair
+{
+    public uint Left { get; init; }
+    public uint Right { get; init; }
+    public uint Count { get; set; }
+}
+
 [TestFixture]
 public class LanguageFeatureTests
 {
@@ -32,6 +39,62 @@ public class LanguageFeatureTests
 
     // Not a constant Roslyn could fold into its caller.
     static string Suffix() => "o";
+
+    static ulong counter16;
+    static ulong Bump16() { counter16 += 300; return counter16; }
+    static string Name() => "abc";
+
+    // A call whose ulong / string result is ignored must take both bytes off
+    // the stack (it used to take one, so the caller returned to a wrong
+    // address). Several discards in a row, then a normal return.
+    [Test]
+    public void Ignored_16_Bit_Results_Leave_The_Stack_Balanced()
+    {
+        counter16 = 0;
+        Bump16();
+        Bump16();
+        Name();
+        Bump16();
+        Assert.IsTrue(counter16 == 900);
+    }
+
+    static uint Bounce(uint steps)
+    {
+        uint offset = 0;
+        bool up = true;
+        for (uint i = 0; i < steps; i++)
+        {
+            offset = up ? offset + 1 : offset - 1;   // a branch target inside x = x + 1
+            if (offset == 0 || offset == 3)
+                up = !up;
+        }
+        return offset;
+    }
+
+    // `x = c ? x + 1 : x - 1`: the increment fusion must not swallow the
+    // join label (it used to make both arms increment).
+    [Test]
+    public void Conditional_Increment_And_Decrement_Of_One_Local()
+    {
+        Assert.AreEqual(Bounce(3), 3u);
+        Assert.AreEqual(Bounce(5), 1u);
+        Assert.AreEqual(Bounce(6), 0u);
+        Assert.AreEqual(Bounce(7), 1u);
+    }
+
+    // Auto-properties ({ get; set; } and { get; init; }) compile to plain
+    // field stores and loads, object initializers included.
+    [Test]
+    public void Auto_Properties_With_Init_Behave_Like_Fields()
+    {
+        var p = new InitPair { Left = 7, Right = 9 };
+        Assert.AreEqual(p.Left + p.Right, 16u);
+        p.Count = 3;
+        p.Count = p.Count + 2;
+        Assert.AreEqual(p.Count, 5u);
+        InitPair[] pairs = [new() { Left = 1, Right = 2 }, new() { Left = 3, Right = 4 }];
+        Assert.AreEqual(pairs[1].Left + pairs[0].Right, 5u);
+    }
 
     [Test]
     public void Byte_Array_Stores_And_Loads_Elements()

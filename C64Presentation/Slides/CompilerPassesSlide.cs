@@ -1,101 +1,52 @@
 ﻿using C64Lib;
-using C64Presentation.Animations;
+using C64Presentation.Helper;
 using C64Presentation.SlideElements;
 
 namespace C64Presentation.Slides;
 
-class CompilerPassesSlide
+// The pipeline C# -> IL -> macros -> 6502, one stage per press; each
+// stage's code replaces the previous one on the card below.
+static class CompilerPassesSlide
 {
+    const string K = Theme.Kw, T = Theme.Ty, N = Theme.Num, C = Theme.Com;
+    const uint CodeTop = 10;
 
-    public static Slide Create()
+    public static Slide Create() => new SimpleSlide
     {
-        var prgCodeBlock = new CodeBlock()
-        {
-            Lines = new string[]
-            {
-                ".3C0F   A4 24      LDY STACKPOINTER",
-                ".3C11   B9 FF C6   LDA LOCALSSTACK-1,Y",
-                ".3C14   48         PHA",
-                ".3C15   A4 24      LDY STACKPOINTER",
-                ".3C17   B9 FE C6   LDA LOCALSSTACK-2,Y",
-                ".3C1A   48         PHA",
-                ".3C1B   68         PLA",
-                ".3C1C   85 32      STA $32",
-                ".3C1E   68         PLA",
-                ".3C1F   18         CLC",
-                ".3C20   65 32      ADC $32",
-                ".3C22   48         PHA",
-            },
-            X = 0,
-            Y = 13,
-            Width = 40,
-            Height = 10
-        };
-        var csCodeBlock = new CodeBlock()
-        {
-            Lines = new[]
-            {
-                "  STATIC INT ADD(INT A, INT B) => A+B",
-            },
-            X = 0,
-            Y = 15,
-            Width = 38,
-            Height = 10
+        Elements =
+        [
+            new Title { Text = "How does it work?" },
+            Code("Program.cs", [$"{K}static uint {T}Add(uint a, uint b)", "    => a + b;"]),
+            Stage(2, "C#", Theme.Brand),
+            Step(7, ".NET"),
+            Code("IL", [$"{K}ldarg.0", $"{K}ldarg.1", $"{K}add", $"{K}ret"]),
+            Stage(12, "IL", Theme.Brand),
+            Step(17, "ours"),
+            Code("64tass macros", [
+                $"{K}#locals_push_value8 {N}1 {C}; ldarg.0",
+                $"{K}#locals_push_value8 {N}2 {C}; ldarg.1",
+                $"{K}#add8                {C}; add",
+                $"{K}#method_exit {N}4, []    {C}; ret"]),
+            Stage(22, "asm", Theme.Accent2),
+            Step(27, "64tass"),
+            Code("6502, today: 12 bytes", [
+                $"{T}Program_Add",
+                $"  {K}lda {T}SF_TOP-512  {C}; b",
+                $"  {K}sta {T}zp_param1_low",
+                $"  {K}lda {T}SF_TOP-511  {C}; a",
+                $"  {K}clc",
+                $"  {K}adc {T}zp_param1_low",
+                $"  {K}rts             {C}; sum in A"]),
+            Stage(32, "prg", Theme.Accent, wait: false),
+        ]
+    };
 
-        };
+    static Box Stage(uint x, string name, Colors color, bool wait = true)
+        => new() { X = x, Y = 5, Width = 5, Height = 3, Text = name, Color = color, WaitAfter = wait };
 
-        var ilCodeBlock = new CodeBlock()
-        {
-            Lines = new[]
-            {
-                "IL0000: LDARG.0",
-                "IL0001: LDARG.1",
-                "IL0002: ADD",
-                "IL0003: RET"
-            },
-            X = 0,
-            Y = 15,
-            Width = 38,
-            Height = 10
-        };
+    static Arrow Step(uint x, string label)
+        => new() { FromCol = x, FromRow = 6, ToCol = x + 4, ToRow = 6, Text = label };
 
-        var asmCodeBlock = new CodeBlock()
-        {
-            Lines = new[]
-            {
-                "ADD:",
-                "  #INIT-LOCALS-PULL-PARAMETERS 0, [0,0]",
-                "  #LOCALS-PUSH-VALUE8 1 ; LDARG.0",
-                "  #LOCALS-PUSH-VALUE8 2 ; LDARG.1",
-                "  #ADD8 ; ADD",
-                "  #METHOD-EXIT 4, [] ; RET",
-            },
-            X = 0,
-            Y = 15,
-            Width = 38,
-            Height = 10
-        };
-
-
-
-        return new SimpleSlide()
-        {
-            Elements = new SlideElement[]
-            {
-                new Title() {Text = "HOW DOES IT WORK?"},
-                csCodeBlock,
-                new Box() { X = 0, Y = 6, Width = 4, Height = 7, Text = "C#", Color = Colors.Cyan, WaitAfter = true },
-                new RightArrow() { X = 4, Y= 9, Width = 8, Text1 = ".NET", Text2 = "COMP"},
-                ilCodeBlock,
-                new Box() { X = 12, Y = 6, Width = 4, Height = 7, Text = "IL", Color = Colors.Violet, WaitAfter = true },
-                new RightArrow() { X = 16, Y= 9, Width = 6, Text2 = "(*)"},
-                asmCodeBlock,
-                new Box() { X = 22, Y = 6, Width = 5, Height = 7, Text = "ASM", Color = Colors.LightGreen, WaitAfter = true  },
-                new RightArrow() { X = 27, Y= 9, Width = 8, Text2 = "64TASS"},
-                prgCodeBlock,
-                new Box() { X = 35, Y = 6, Width = 5, Height = 7, Text = "PRG", Color = Colors.Yellow },
-            },
-            Animation = new RandomDisappearAnimation()
-        };
-    }
+    static CodeBlock Code(string caption, string[] lines)
+        => new() { X = Theme.Left, Y = CodeTop, Caption = caption, Lines = lines };
 }

@@ -36,6 +36,9 @@ Flag_Screen_MirrorCellColors = 0
 Flag_Screen_SetScrollX = 0
 Flag_Screen_DrawText = 0
 Flag_Screen_DrawTiles = 0
+Flag_Screen_DrawFontText = 0
+Flag_Screen_FontTextWidth = 0
+Flag_Screen_RemapCellColorsFrom = 0
 Flag_Screen_SetSplit = 0
 Flag_Screen_ClearSplit = 0
 ; 1 when the program uses double buffering (Screen.SetDrawBuffer/SwapBuffers):
@@ -3050,6 +3053,468 @@ Screen_DrawText_Row:
 +   inc zp_text_index
     bne Screen_DrawText_Char
 Screen_DrawText_Done:
+    #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+; ---------------------------------------------------------------------------
+; Screen.DrawFontText(x, row, text, font, matrix) -> x after the text
+; Screen.FontTextWidth(text, font) -> width in pixels
+;
+; Text in a bitmap font made by tools/c64font.py: proportional (each glyph
+; its own width, plus the font's letter spacing) or fixed pitch (every glyph
+; centred in `advance` pixels). x is in pixels (0-319), row in cells; the
+; font is 8 or 16 pixel lines tall (one or two cell rows). Glyph pixels are
+; OR-ed into the bitmap, so glyphs may share a byte; nothing is erased.
+; Every cell a glyph touches gets the colour byte `matrix` (hi-res: text
+; colour << 4 | background), unless matrix is 0: then no colour is written.
+; In the text, '`' followed by one character sets the text colour (high
+; nibble) to that character's low four bits ('0'-'9' = 0-9, ':' = 10,
+; ';' = 11, '<' = 12, '=' = 13, '>' = 14, '?' = 15) and moves x up to the
+; next cell boundary, so the two colours never share a cell.
+;
+; Font layout (c64font.py): lines, advance (0 = proportional), spacing,
+; first code, count, .word widths, .word low bytes, .word high bytes of the
+; glyph addresses (count entries each, indexed by screen code - first),
+; scale (1, or 2: every pixel drawn 2x2, so a 16-line font is 32 lines tall;
+; advance is in drawn pixels, spacing in font pixels; +$80 = leading: pixel
+; line 0 is drawn blank and line 1 shows the glyph's line 0, dropping its
+; line 1 -- one pixel of space above every line, for code set solid).
+; A glyph is ceil(width/8) strips of `lines` bytes, left strip first, each
+; byte one pixel line (bit 7 = leftmost).
+; ---------------------------------------------------------------------------
+.if Flag_Screen_DrawFontText | Flag_Screen_FontTextWidth
+zp_ft_dst      = $02   ; bitmap address of the strip's cell
+zp_ft_dst_high = $03
+zp_ft_mat      = $04   ; matrix address of the strip's cell
+zp_ft_mat_high = $05
+zp_ft_x        = $06   ; pen x (pixels)
+zp_ft_x_high   = $07
+zp_ft_row      = $08
+zp_ft_color    = $09   ; matrix byte (0 = leave colours alone)
+zp_ft_text     = $0a
+zp_ft_text_high = $0b
+zp_ft_glyph    = $0c   ; current strip's bytes
+zp_ft_glyph_high = $0d
+zp_ft_lines    = $0e
+zp_ft_adv      = $0f
+zp_ft_spacing  = $10
+zp_ft_first    = $11
+zp_ft_count    = $12
+zp_ft_wptr     = $13   ; widths
+zp_ft_wptr_high = $14
+zp_ft_lptr     = $15   ; glyph address low bytes
+zp_ft_lptr_high = $16
+zp_ft_hptr     = $17   ; glyph address high bytes
+zp_ft_hptr_high = $18
+zp_ft_w        = $19   ; glyph pixels still to draw
+zp_ft_shift    = $1a
+zp_ft_index    = $1b
+zp_ft_tmp      = $1c
+zp_ft_right    = $1d
+zp_ft_draw     = $1e   ; 0 = only measure
+zp_ft_dx       = $1f   ; strip x, low byte (high byte: Font_DxHigh)
+
+; In: the font address in zp_ft_glyph, the text in zp_ft_text, the pen in
+; zp_ft_x, zp_ft_draw. Out: zp_ft_x past the text.
+Font_Run:
+    ldy #0
+-   lda (zp_ft_glyph),y           ; header: 5 bytes, then 3 words
+    sta zp_ft_lines,y
+    iny
+    cpy #11
+    bne -
+    lda (zp_ft_glyph),y           ; scale, leading
+    and #$80
+    sta Font_Lead
+    lda (zp_ft_glyph),y
+    and #$7f
+    sta Font_Scale
+    lda zp_ft_lines
+    ldx Font_Scale
+    cpx #2
+    bne +
+    asl zp_ft_spacing
+    asl
++   sta Font_OutLines
+    lda #0
+    sta zp_ft_index
+Font_Run_Next:
+    ldy zp_ft_index
+    lda (zp_ft_text),y
+    bne +
+    rts
++   inc zp_ft_index
+    cmp #$40                      ; '`': colour change
+    bne Font_Run_Glyph
+    iny
+    lda (zp_ft_text),y
+    bne +
+    rts
++   inc zp_ft_index
+    ldx zp_ft_color
+    beq +                         ; colours off: only the alignment
+    asl
+    asl
+    asl
+    asl
+    sta zp_ft_tmp
+    txa
+    and #$0f
+    ora zp_ft_tmp
+    sta zp_ft_color
++   lda zp_ft_x
+    and #7
+    beq Font_Run_Next
+    lda zp_ft_x
+    ora #7
+    clc
+    adc #1
+    sta zp_ft_x
+    bcc Font_Run_Next
+    inc zp_ft_x_high
+    bcs Font_Run_Next
+Font_Run_Glyph:
+    sec
+    sbc zp_ft_first
+    cmp zp_ft_count
+    bcs Font_Run_Next             ; not in the font: nothing, no advance
+    tay
+    lda (zp_ft_wptr),y
+    ldx Font_Scale
+    cpx #2
+    bne +
+    asl                           ; drawn width
++   sta zp_ft_w
+    lda (zp_ft_lptr),y
+    sta zp_ft_glyph
+    lda (zp_ft_hptr),y
+    sta zp_ft_glyph_high
+    lda zp_ft_x                   ; strip x = pen, centred in a fixed pitch
+    sta zp_ft_dx
+    lda zp_ft_x_high
+    sta Font_DxHigh
+    lda zp_ft_adv
+    beq Font_Run_Prop
+    sec
+    sbc zp_ft_w
+    lsr
+    clc
+    adc zp_ft_dx
+    sta zp_ft_dx
+    bcc +
+    inc Font_DxHigh
++   lda zp_ft_adv
+    bne Font_Run_Advance
+Font_Run_Prop:
+    lda zp_ft_w
+    clc
+    adc zp_ft_spacing
+Font_Run_Advance:
+    clc
+    adc zp_ft_x
+    sta zp_ft_x
+    bcc +
+    inc zp_ft_x_high
++   lda zp_ft_draw
+    beq Font_Run_Next
+    lda #0
+    sta Font_Half
+Font_Run_Strip:
+    lda zp_ft_w
+    beq Font_Run_Next
+    jsr Font_DrawStrip
+    lda zp_ft_w                   ; next strip: 8 pixels on, `lines` bytes on
+    sec
+    sbc #8
+    bcs +
+    lda #0
++   sta zp_ft_w
+    lda zp_ft_dx
+    clc
+    adc #8
+    sta zp_ft_dx
+    bcc +
+    inc Font_DxHigh
++   lda Font_Scale                ; 2x: each source strip makes two
+    cmp #2
+    bne +
+    lda Font_Half
+    eor #1
+    sta Font_Half
+    bne Font_Run_Strip            ; its right half next
++   lda zp_ft_glyph
+    clc
+    adc zp_ft_lines
+    sta zp_ft_glyph
+    bcc Font_Run_Strip
+    inc zp_ft_glyph_high
+    bcs Font_Run_Strip
+
+; Draws the strip at zp_ft_glyph (zp_ft_lines bytes, at most 8 pixels wide:
+; zp_ft_w) with its left edge at pixel zp_ft_dx of cell row zp_ft_row.
+Font_DrawStrip:
+    lda zp_ft_dx
+    and #7
+    sta zp_ft_shift
+    lda Font_DxHigh             ; column = dx / 8
+    lsr
+    lda zp_ft_dx
+    ror
+    lsr
+    lsr
+    sta zp_ft_tmp
+    ldx zp_ft_row                 ; matrix = ColorMatrix + row*40 + column
+    lda Font_Row40_Low,x
+    clc
+    adc zp_ft_tmp
+    sta zp_ft_mat
+    lda Font_Row40_High,x
+    adc #0
+    sta zp_ft_mat_high
+    lda zp_ft_dx                  ; bitmap = Bitmap + row*320 + (dx & ~7)
+    and #$f8
+    clc
+    adc Font_Row320_Low,x
+    sta zp_ft_dst
+    lda Font_DxHigh
+    adc Font_Row320_High,x
+    sta zp_ft_dst_high
+    lda #0
+    sta Font_Line
+Font_DrawStrip_Band:
+    lda zp_ft_color               ; colour the cell(s) of this band
+    beq ++
+    ldy #0
+    sta (zp_ft_mat),y
+    ldx zp_ft_shift
+    beq ++
+    pha
+    txa
+    clc
+    adc zp_ft_w
+    cmp #9
+    pla
+    bcc ++                        ; the strip ends inside this cell
+    iny
+    sta (zp_ft_mat),y
++
++   ldx #8
+Font_DrawStrip_Line:
+    ldy Font_Line
+    lda Font_Scale
+    cmp #2
+    beq Font_DrawStrip_Double
+    lda Font_Lead
+    beq ++
+    tya                           ; leading: line 0 blank, line 1 = line 0
+    beq Font_DrawStrip_Skip
+    cmp #1
+    bne +
+    ldy #0
++
++   lda (zp_ft_glyph),y
+    jmp Font_DrawStrip_Byte
+Font_DrawStrip_Double:            ; 2x: line/2, one nibble, each bit doubled
+    tya
+    lsr
+    tay
+    lda (zp_ft_glyph),y
+    ldy Font_Half
+    bne +
+    lsr
+    lsr
+    lsr
+    lsr
++   and #$0f
+    tay
+    lda Font_Double,y
+Font_DrawStrip_Byte:
+    beq Font_DrawStrip_Skip       ; an empty line changes nothing
+    ldy #0
+    sty zp_ft_right
+    ldy zp_ft_shift
+    beq +
+-   lsr
+    ror zp_ft_right
+    dey
+    bne -
++   sta zp_ft_tmp
+    lda Font_Line
+    and #7
+    tay
+    lda zp_ft_tmp
+    ora (zp_ft_dst),y
+    sta (zp_ft_dst),y
+    lda zp_ft_right
+    beq Font_DrawStrip_Skip
+    tya
+    ora #8
+    tay
+    lda zp_ft_right
+    ora (zp_ft_dst),y
+    sta (zp_ft_dst),y
+Font_DrawStrip_Skip:
+    inc Font_Line
+    dex
+    bne Font_DrawStrip_Line
+    lda Font_Line
+    cmp Font_OutLines
+    bcs Font_DrawStrip_Done
+    lda zp_ft_dst                 ; second band: one cell row down
+    clc
+    adc #<320
+    sta zp_ft_dst
+    lda zp_ft_dst_high
+    adc #>320
+    sta zp_ft_dst_high
+    lda zp_ft_mat
+    clc
+    adc #40
+    sta zp_ft_mat
+    bcc Font_DrawStrip_Band
+    inc zp_ft_mat_high
+    bcs Font_DrawStrip_Band
+Font_DrawStrip_Done:
+    rts
+
+Font_Line   .byte 0             ; pixel line of the strip (0 to lines-1)
+Font_DxHigh .byte 0
+Font_Scale  .byte 1
+Font_Lead   .byte 0             ; $80: leading (see the font layout)
+Font_OutLines .byte 8
+Font_Half   .byte 0             ; 2x: 0 = the strip's left nibble, 1 = right
+Font_Double .byte $00,$03,$0c,$0f,$30,$33,$3c,$3f,$c0,$c3,$cc,$cf,$f0,$f3,$fc,$ff
+Font_Row40_Low:
+    .for _r = 0, _r < 25, _r += 1
+    .byte <(Graphics_ColorMatrix + _r * 40)
+    .next
+Font_Row40_High:
+    .for _r = 0, _r < 25, _r += 1
+    .byte >(Graphics_ColorMatrix + _r * 40)
+    .next
+Font_Row320_Low:
+    .for _r = 0, _r < 25, _r += 1
+    .byte <(Graphics_Bitmap + _r * 320)
+    .next
+Font_Row320_High:
+    .for _r = 0, _r < 25, _r += 1
+    .byte >(Graphics_Bitmap + _r * 320)
+    .next
+.endif
+
+.if Flag_Screen_DrawFontText
+Screen_DrawFontText:
+    #stack_save_return_adress zp_tmp1_low
+    #stack_pull_int zp_ft_color
+    #stack_pull_pointer zp_ft_glyph
+    #stack_pull_pointer zp_ft_text
+    #stack_pull_int zp_ft_row
+    #stack_pull_int16 zp_ft_x
+    lda #1
+    sta zp_ft_draw
+    #gfx_ram_on
+    jsr Font_Run
+    #gfx_ram_off
+    lda zp_ft_x_high
+    pha
+    lda zp_ft_x
+    pha
+    #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+.if Flag_Screen_FontTextWidth
+Screen_FontTextWidth:
+    #stack_save_return_adress zp_tmp1_low
+    #stack_pull_pointer zp_ft_glyph
+    #stack_pull_pointer zp_ft_text
+    lda #0
+    sta zp_ft_draw
+    sta zp_ft_color
+    sta zp_ft_x
+    sta zp_ft_x_high
+    jsr Font_Run
+    lda zp_ft_x_high
+    pha
+    lda zp_ft_x
+    pha
+    #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+; ---------------------------------------------------------------------------
+; Screen.RemapCellColorsFrom(source, table): every cell's matrix byte becomes
+; source's byte for that cell (1000 bytes in screen order, e.g. a copy of
+; Graphics_ColorMatrix made with C64.CopyMemory) with both colours replaced
+; through the 16-byte table, as RemapCellColors does. Fades: save the
+; screen's colours once, then show them through a series of darker or
+; lighter tables -- in either direction, since the saved copy is never
+; changed. source may be Graphics_ColorMatrix itself (an in-place remap of
+; the whole screen). Colour RAM is not touched. About 50 cycles per cell:
+; 2.5 frames for the screen.
+; ---------------------------------------------------------------------------
+.if Flag_Screen_RemapCellColorsFrom
+zp_rf_src      = $02
+zp_rf_src_high = $03
+zp_rf_dst      = $04
+zp_rf_dst_high = $05
+zp_rf_tmp      = $06
+zp_rf_pages    = $07
+Screen_RemapCellColorsFrom:
+    #stack_save_return_adress zp_tmp1_low
+    pla                           ; table
+    sta Screen_RemapCellColorsFrom_T1+1
+    sta Screen_RemapCellColorsFrom_T2+1
+    pla
+    sta Screen_RemapCellColorsFrom_T1+2
+    sta Screen_RemapCellColorsFrom_T2+2
+    #stack_pull_pointer zp_rf_src
+    lda #<Graphics_ColorMatrix
+    sta zp_rf_dst
+    lda #>Graphics_ColorMatrix
+    sta zp_rf_dst_high
+    lda #4                        ; 4 x 250 cells
+    sta zp_rf_pages
+Screen_RemapCellColorsFrom_Page:
+    ldy #249
+Screen_RemapCellColorsFrom_Cell:
+    lda (zp_rf_src),y
+    pha
+    and #$0f
+    tax
+Screen_RemapCellColorsFrom_T1:
+    lda $ffff,x
+    and #$0f
+    sta zp_rf_tmp
+    pla
+    lsr
+    lsr
+    lsr
+    lsr
+    tax
+Screen_RemapCellColorsFrom_T2:
+    lda $ffff,x
+    asl
+    asl
+    asl
+    asl
+    ora zp_rf_tmp
+    sta (zp_rf_dst),y
+    dey
+    cpy #$ff
+    bne Screen_RemapCellColorsFrom_Cell
+    lda zp_rf_src
+    clc
+    adc #250
+    sta zp_rf_src
+    bcc +
+    inc zp_rf_src_high
++   lda zp_rf_dst
+    clc
+    adc #250
+    sta zp_rf_dst
+    bcc +
+    inc zp_rf_dst_high
++   dec zp_rf_pages
+    bne Screen_RemapCellColorsFrom_Page
     #stack_return_to_saved_address zp_tmp1_low
 .endif
 

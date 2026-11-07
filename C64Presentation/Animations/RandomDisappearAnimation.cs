@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -18,7 +18,7 @@ class RandomDisappearAnimation : Animation
         for (ulong i = 0; i < 1000; i++)
         {
             tmp += primeNumber;
-            if (tmp > 1000)
+            if (tmp >= 1000)
                 tmp -= 1000;
             C64.FillMemory(C64Address.FromLabel("(screenMemory)")+tmp, 32, 1);
         }

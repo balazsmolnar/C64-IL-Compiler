@@ -113,6 +113,13 @@ class Program
     }
 
     [Test]
+    public void Record_Class_Is_Rejected_Not_Crashed()
+    {
+        var output = Errors("record class Named(string Name);", "return 1;");
+        AssertReports(output, "C64004", "record 'Named'", "init properties");
+    }
+
+    [Test]
     public void Class_Cast_Is_Rejected()
     {
         var output = Errors("class A { } class B : A { public uint Y; }", "A a = new B(); B b = (B)a; return b.Y;");

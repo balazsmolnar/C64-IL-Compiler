@@ -61,6 +61,20 @@ class ILCodePass : ICompilerPass
         {
             if (@type.IsValueType)
                 continue;
+            // A record class: Roslyn generates value equality, a copy
+            // constructor and a ToString built on StringBuilder, none of
+            // which the C64 has (it used to crash the vtable pass).
+            if (@type.GetMethod("<Clone>$", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic) != null)
+            {
+                context.Diagnostics.Add(new CompilerDiagnostic
+                {
+                    Code = DiagnosticCodes.UnsupportedDeclaration,
+                    Message = $"The record '{@type.Name}' is not supported.",
+                    Hint = "Use a class with init properties (new T { A = 1, B = 2 }) instead.",
+                    Method = @type.Name,
+                });
+                continue;
+            }
             // context.GlobalOutputFile.WriteLine($".include \".\\\\{type.Name}.asm\"");
 
             // FullName, not Name -- two different types can share a short

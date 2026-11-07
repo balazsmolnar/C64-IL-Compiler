@@ -1,131 +1,168 @@
 # C64Presentation: the engine
 
 How slides are drawn: the display base, the fonts, the theme, the master
-layouts, the elements, transitions and builds. Read `DECK-BRIEF.md` first;
-`art/ART.md` for the pictures.
+layouts, the elements, transitions and builds. Read `DECK-BRIEF.md` first,
+and `art/ART.md` for the pictures.
 
 ## Decisions
 
 - **Display: hi-res bitmap** (`ScreenMode.Bitmap`, 320x200, two colours per
-  8x8 cell), the "high" layout of `Catacombs/TECH.md` (bitmap under the
-  KERNAL ROM, matrix at $CC00). Crisp text and 1-pixel lines everywhere.
-  **Multicolour pictures** go above a raster split (`Master.Picture`), hi-res
-  text below it: split at 21 (A1, a caption band), 15 (A3), or none (A2,
-  whole screen multicolour).
-- **Text: our own fonts, drawn by the runtime** (`C64.Screen.DrawFontText`,
-  new, generic): proportional, x in pixels, glyphs OR-ed into the bitmap.
-  The ROM font and `DrawText` are not used at all (which also leaves
-  $0800-$0BFF to the runtime's tables).
-  - **Body**: 8 px, hand drawn (`art/font/body.txt`): capitals 7 px,
-    x-height 5, one-pixel descenders, a slashed zero; about 6 px a letter,
-    so a 36-cell line holds ~48 characters.
-  - **Title**: 16 px bold (`art/font/title.txt`), bootstrapped from DejaVu
-    Sans Bold (free licence) at 14 px and kept as editable pixel art; about
-    9 px a letter, ~30 characters across the content width.
-  - **Code**: the body glyphs at a fixed 8 px pitch (`font_BodyMono`), one
-    glyph per cell, so syntax colours can change at every character.
-  - Special glyphs in both fonts: `~` arrow, `\` bullet dot, `^` tick
-    (`Theme.Arrow`, `Theme.Dot`, `Theme.Tick`). `@` cannot be drawn (it ends
-    a string), `"` cannot be in a string literal, `` ` `` is the colour escape.
-- **Inline colour**: `` `x `` in any string sets the text colour to x's low
-  nibble (`Theme.Hi`, `Hi2`, `White`, `Off`, `Dim`, `Red`, `Green`; for code
-  `Theme.Kw`, `Ty`, `Str`, `Num`, `Com`, `Pl`). Constant strings fold, so
-  `"a " + Theme.Hi + "b"` costs nothing. In proportional text a colour
-  change moves on to the next cell (two colours never share a cell, a hi-res
-  limit); at the code pitch it costs nothing.
-- **Palette** (`art/ART.md`): black background, Grey1 surface (cards, code,
-  table header), Grey2 rules / muted text, Grey3 body, white titles, cyan
-  accent, yellow second accent (sparingly), violet for C#/.NET only.
-- **Grid** (`Theme`): content columns 2-37 (16 px margins); title rows 1-2,
-  accent rule row 3, body rows 5-20, footer row 23 (deck title left,
-  "n / total" right), progress bar row 24. Two columns: 2-18 and 21-37.
-- **Transitions: fade through black.** The screen's colours are saved
-  ($0418-$07FF, the unused text screen) and shown through four fade tables
-  (`fade_Levels` in Theme.cs) with `C64.Screen.RemapCellColorsFrom` (new,
-  generic: no pixel is redrawn, about 2.5 frames a step). Each slide is
-  drawn while the screen is blanked, so nothing half-drawn is ever seen.
-- **Builds: fade in.** `Deck.Step()` waits for the press; what follows is
-  drawn with its cells hidden (background on background) and faded in
-  through the same levels at the next step; text is redrawn in its own
-  colours at the last level, so inline colours survive. Arrows and bars
-  drawn after a step are drawn live and grow; code blocks are typed in.
+  8x8 cell) in the "high" layout of `Catacombs/TECH.md`. **Multicolour
+  pictures** go above a raster split with `Master.Picture(image, column, row,
+  split, caption)`: split 21 for A1, 25 for no split. `image` is an address,
+  so a picture loaded from the disk (`ArtDisk.Load`, `buf_Picture`) works the
+  same as an embedded one.
+- **Text: the deck's own fonts**, drawn by the generic
+  `C64.Screen.DrawFontText` (x in pixels, glyphs OR-ed in). The ROM font and
+  `DrawText` are not used.
+  - **Body** (`art/font/body.txt`): 8 px, hand-drawn, proportional. Capitals
+    are 7 px, the x-height 5 px; A is pointed, W is 7 px wide, zero is
+    slashed. A 36-cell line holds about 48 characters.
+  - **Heading** (`title.txt`): 16 px bold. It started from DejaVu Sans Bold
+    and is now edited as pixel art.
+  - **Big**: the heading glyphs drawn at 2x (32 px), set by a scale byte in
+    the font header. Used for the cover title and section numbers.
+  - **Code**: the body glyphs at a fixed 8 px pitch, with *leading* (a header
+    flag): pixel line 0 is blank and the glyph's line 1 is dropped. Code lines
+    sit on consecutive rows without touching, and no extra glyph data is
+    needed.
+  - Special glyphs in every face: `~` is an arrow, `\` a bullet dot, `^` a
+    tick (`Theme.Arrow`, `Theme.Dot`, `Theme.Tick`).
+- **Inline colour**: `` `x `` sets the colour (`Theme.Hi`, `Hi2`, `White`,
+  `Off`, `Dim`, `Red`; for code `Kw`, `Ty`, `Str`, `Num`, `Com`, `Pl`).
+  Interpolated constants fold at compile time: `$"{Theme.Kw}ldarg.0"`.
+- **Palette** (ART.md):
+  - black background;
+  - Grey1 surface;
+  - Grey2 rules and footer;
+  - Grey3 body text;
+  - white titles, and the **only** text colour on Grey1 (code comments in
+    Grey3 excepted);
+  - cyan accent, yellow second accent;
+  - violet for C#/.NET only.
+- **Grid** (`Theme`):
+  - content columns 2-37;
+  - title rows 1-2 and the accent rule on row 3;
+  - body rows 5-20;
+  - footer row 23 and the progress bar on row 24;
+  - two columns: 2-18 and 21-37.
+- **Transitions: fade through black.** The colours are saved at
+  $0418-$07FF and stepped through `fade_Levels` with `RemapCellColorsFrom`.
+  Every colour fades by brightness through the greys (cyan goes 15 → 12 →
+  11 → 0, never through blue). The Grey1 surface is darker than any text on
+  it at every level, so no card shows before its text. Slides are drawn
+  blanked.
+- **Builds:** `Deck.Step()` waits for the press, then the step is drawn
+  hidden and faded in, and text is redrawn in its real colours at the end.
+  - Arrows and bars drawn after a step grow.
+  - A `CodeBlock` drawn over a shown one dims the old code out, then fades
+    the new code in on the same card (`Deck.Build(onSurface: true)`).
 
-## Writing a slide
+## Writing a slide: idiomatic C#
 
-A slide is a `SimpleSlide` of elements (or a `Slide` subclass with
-`Present()` for anything animated). Fields left at 0 / `Colors.Black` /
-null take the theme default (the compiler has no field initializers).
-`Wait = true` makes an element a build step (`WaitAfter` on Box: step after).
+Slides are declarative initializers. Elements have `init` properties, and
+anything left at its default takes the theme's value. The compiler turns
+auto-property accessors into plain field accesses, so this costs the same as
+public fields. Custom `Present()` code is only for animated slides.
 
 ```csharp
-static Slide Pipeline() => new SimpleSlide
+static class PipelineSlide
 {
-    Elements = new SlideElement[]
+    public static Slide Create() => new SimpleSlide
     {
-        new Title { Text = "The pipeline" },
-        new Box { X = 2, Y = 6, Width = 8, Height = 3, Text = "C#" },
-        new RightArrow { X = 10, Y = 7, Width = 5, Text1 = "dotnet build", Wait = true },
-        new Box { X = 15, Y = 6, Width = 8, Height = 3, Text = "IL .dll", Color = Theme.Brand },
-        new BulletList { Top = 12, Wait = true, Items = new[] { "Roslyn: " + Theme.Hi + "free", "Ours: IL ~ 6502" } },
-    }
-};
+        Elements =
+        [
+            new Title { Text = "The pipeline" },
+            new Box { X = 2, Y = 6, Width = 8, Height = 3, Text = "C#", Color = Theme.Brand },
+            new Arrow { FromCol = 10, FromRow = 7, ToCol = 14, ToRow = 7, Text = "dotnet build", Wait = true },
+            new Box { X = 15, Y = 6, Width = 8, Height = 3, Text = "IL .dll", Color = Theme.Brand },
+            new BulletList { Top = 12, Wait = true, Items = [$"Roslyn: {Theme.Hi}free", "Ours: IL ~ 6502"] },
+        ]
+    };
+}
 ```
 
-and add it to `Program.cs`'s list. The deck runs in VICE with
-`tools\presentation-shot.ps1` (`-Slide N`, `-Scene HOLD` shows every build
+Add it to `Program.Slides`. Look at it in VICE with
+`tools\presentation-shot.ps1` (`-Slide N`; `-Scene HOLD` shows every build
 at once, `-Scene AUTO` presses by itself).
 
 ## Element API
 
-| Element | Fields (defaults) | Notes |
+| Element | Properties (defaults) | Notes |
 |---|---|---|
-| `Title` | `Text` | content master: title, accent rule, footer |
-| `SectionElement` | `Part`, `Title`, `Subtitle` | full-width Grey1 band, accent bar, footer |
-| `TextElement` | `X`, `Y` cells, `Text`, `Color` (Body), `Heading` (16 px face) | one line; inline colours |
-| `BulletList` | `Items`, `Left` (2), `Top` (5), `Pitch` (2), `Level` (0 dot / 1 dash), `Color` (Body), `Wait` | one item per step |
-| `CodeBlock` | `X`, `Y`, `Width`, `Height`, `Lines`, `Caption` (tab row), `Color` (Body), `Wait` | Grey1 card, fixed pitch, `Theme.Kw`... colours; drawing again replaces the code |
-| `Table` | `X` (2), `Y`, `RowNum`, `CollNum`, `ColumnWidths` or `CellWidth` (9), `Texts` (header first), `WaitAfterRow` | header on a card; column 0 left, others right aligned; hairline per row (2 rows each) |
-| `Box` | `X`, `Y`, `Width`, `Height`, `Text`, `Caption`, `TextColor` (white), `Color`/`BorderColor` (accent bar, cyan), `Hollow`, `ConnectToLeft`, `Wait`, `WaitAfter` | a card: diagram node, memory block, band |
-| `RightArrow` | `X`, `Y`, `Width`, `Text1` above, `Text2` below, `Color` (cyan), `Wait` | grows when drawn after a step |
-| `DownArrow` | `X`, `Y`, `Height`, `Text` (right of it), `Color`, `Wait` | same, downwards |
-| `BarChart` | `Labels`, `Values` (ulong), `ValueTexts`, `Max`, `BarColors` (cyan), `X` (2), `Y` (5), `Width` (36), `LabelWidth` (12), `ValueWidth` (7), `Pitch` (2), `Wait` | label / bar / value; bars grow; 38-column budget: `X = 1, Width = 38` |
-| `ImageElement` | `Column`, `Row`, `Width`, `Height`, `Image` (`C64Address.FromLabel("img_X")`), `Caption`, `Wait` | hi-res images (`c64img --mode hires`) anywhere on the grid |
-| `Callout` | `Lines`, `Attribution`, `Y`, `X` (2), `Width` (36), `Height` (lines + 2/4), `Accent` (cyan), `Wait` | quote / key message card with an accent bar |
+| `Title` | `Text` | Content master: title, rule, footer. |
+| `SectionElement` | `Number`, `Title`, `Subtitle`, `Icon` (an `img_Sec*` address; 0 = none) | On black: a big cyan number, rule, heading, 6x6 icon on the right. |
+| `TextElement` | `X`, `Y`, `Text`, `Face` (`Body` / `Heading` / `Big`), `Color` (Body, or white for headings), `Strike`, `Wait` | One line. `Strike` draws a 1 px rule through the text, for an old value. |
+| `BulletList` | `Items`, `Left` (2), `Top` (5), `Pitch` (2), `Level` (0 = dot, 1 = dash), `Color`, `Wait` | 5 px between the mark and the text. |
+| `CodeBlock` | `X`, `Y`, `Width` (36), `Lines`, `Caption`, `Wait` | Grey1 card with a 1-cell padding. Caption on row 1, code from row 3, at most `Width` - 2 columns. Height = lines + 2 (+2 with a caption). |
+| `Table` | `X` (2), `Y`, `RowNum`, `CollNum`, `ColumnWidths` or `CellWidth` (9), `Texts`, `WaitAfterRow` | Header row: white on Grey1. Then rows with hairlines, two rows each. |
+| `Box` | `X`, `Y`, `Width`, `Height`, `Text`, `Caption`, `Color` (accent bar, cyan), `Hollow`, `ConnectToLeft`, `Wait`, `WaitAfter` | A card. With a caption: text on row 1, caption two rows lower, so `Height` ≥ 4. |
+| `Arrow` | `FromCol`, `FromRow`, `ToCol`, `ToRow`, `VerticalFirst`, `Text`, `Color`, `Wait` | Any direction, straight or L-shaped; grows when drawn after a press. The label goes above a horizontal leg, or beside a vertical one, clamped to the content columns. |
+| `BarChart` | `Labels`, `Values`, `ValueTexts`, `Max`, `BarColors`, `Legend`, `Outline`, `TickEvery`, `X`, `Y`, `Width`, `LabelWidth` (12), `ValueWidth` (7), `Pitch` (2), `Wait` | Layout: label, bar, value. `Outline` adds a full-scale frame, a dashed rest and ticks. The 38-column budget is `X = 1, Width = 38`. |
+| `MemoryMap` | `X`, `Y`, `Width` (8), `Names`, `Addresses`, `Heights`, `Colors`, `Note`, `Wait` | Stacked segments, high addresses first, addresses in Grey2 on the left. |
+| `ImageElement` | `Column`, `Row`, `Width`, `Height`, `Image`, `Caption`, `Wait` | A hi-res image. |
+| `Callout` | `Lines`, `Attribution`, `Y`, `X` (2), `Width` (36), `Accent` | The key message in the 16 px face, 16 px between lines, with an accent bar. |
 
-Lower level, for `Present()` code: `Master.Content(title)`, `Master.Cover(title, subtitle)`,
-`Master.Section(part, title, subtitle)`, `Master.Picture(image, column, row, split, caption)`
-(no chrome), `Master.Footer()`; `Text.Draw / Heading / Code / Center / CenterHeading / Right /
-Width`; `Deck.Paint(column, row, w, h, fg, bg)` (cell colours, build-aware), `Deck.Step()`,
-`Deck.Show()`, `Deck.Reveal()` (call before a live animation loop), `Deck.Live`;
-`Helper.Screen.Fill / Line / ClearRect` (pixels); `Box.DrawCard`, `Arrow.Draw`, `BarChart.Bar`.
-Live slides (`IntroSlide`, `DemoSlide`) loop on `KeyBoard.AdvancePressed()` after `Deck.Reveal()`.
+Lower level, for `Present()`:
+
+- `Master.Content`, `Master.Cover`, `Master.Section`, `Master.Picture`,
+  `Master.Footer`;
+- `Text.Draw`, `Heading`, `Big`, `Code`, `Center`, `Right`, `Width`;
+- `Deck.Paint`, `Step`, `Show`, `Reveal`, `Build`, `Dim`, `Live`;
+- `Screen.Fill`, `Line`, `ClearRect`, `X`;
+- `Box.DrawCard`.
+
+Live slides (`IntroSlide`, `DemoSlide`) call `Deck.Reveal()`, then loop on
+`KeyBoard.AdvancePressed()`.
 
 ## Rules of thumb (hi-res)
 
-- One foreground colour per cell: keep differently coloured things in
-  different cells (bullet dot and text, label and bar, value and bar).
-- A Paint sets whole cells; pixels come from Text / Fill / Line / images.
-- Charts: two bars cannot share a cell row in different colours; use a row
-  each (`Pitch = 1`).
-- Pictures: hi-res images anywhere; multicolour only via `Master.Picture`
-  (one split). A picture's colour-RAM colour cuts in/out rather than fading.
-- Strings: `"`, `@` impossible; `~ \ ^` are glyphs; no `null` string
-  arguments (use "").
+- Each cell has one foreground colour. Keep differently coloured things in
+  different cells.
+- Lines of the 8 px body face sit 16 px apart; code uses the code face,
+  8 px apart.
+- Multicolour pictures only through `Master.Picture` (one split). Their
+  colour-RAM colour cuts in and out instead of fading.
+- In strings, `"` and `@` can't be used, and `~`, `\` and `^` are glyphs.
+  Pass "" rather than `null` for "no text" where a method takes a string.
 
-## Runtime additions (generic, flag-gated: nothing for programs that don't call them)
+## Modern C# in this compiler
 
-- `C64.Screen.DrawFontText(x, row, text, font, matrix) -> x`, `FontTextWidth(text, font)`
-  (asm/C64Graphics.asm, ~470 bytes with both); fonts from `tools/c64font.py`.
-- `C64.Screen.RemapCellColorsFrom(source, table)` (~80 bytes).
-- Compiler fix: a discarded ulong/string/float result (`Pop`) now takes all
-  its bytes off the stack (it took one; the deck crashed into BRK).
+| Construct | Compiles | Cost |
+|---|---|---|
+| File-scoped namespaces, expression-bodied members, raw string literals, interpolation of constants, `static` classes, named constants | yes | 0 |
+| Collection expressions `[a, b]`, target-typed `new()` | yes | byte for byte the same as `new T[] { }` (measured: 283 B both ways) |
+| `{ get; init; }` / `{ get; set; }` auto-properties | yes | the same as fields (compiler change: accessor calls become field accesses, and the accessors are not compiled; −2.7 KB on this deck) |
+| `switch` expressions, `is` patterns (`n is > 3 and < 9`), `?:`, `??` | yes | ordinary branches |
+| Primary constructors, field initializers, constructors with a body | **no** (C64004) | The compiler never calls a constructor body. Supporting that is a larger compiler change, not done. |
+| Tuples, deconstruction | no (generic `ValueTuple`) | |
+| Overloads of one name | no: labels don't tell them apart | Use distinct names (`Theme.Or` / `Theme.OrCells`). |
+
+## Runtime and compiler additions (generic; nothing for programs that don't use them)
+
+- `C64.Screen.DrawFontText` / `FontTextWidth`: header flags for scale 2 and
+  leading (`tools/c64font.py --big`, `--leading`).
+- `C64.Screen.RemapCellColorsFrom(source, table)`.
+- Compiler fixes and features:
+  - A discarded ulong/string/float result is popped whole.
+  - A peephole window never contains a branch target (`x = c ? x + 1 : x - 1`
+    used to increment in both arms).
+  - Auto-properties compile to fields.
+
+## Memory (with the art of storyboard round 5)
+
+| Item | Bytes |
+|---|---|
+| Program end | $C034 (normal build) |
+| Free | about 2.9 KB ($CC00 − end − 56 − 107 bytes of static frames), before the heap |
+| Engine C# | about 15.5 KB (incl. the GC slide's `Stack`, 0.5 KB) |
+| Fonts | 3,300 |
+| `buf_Picture` | 3,755 (the disk shots load into it) |
+| Title picture | 1,715 |
+| A5 + A6 | about 780 |
+| Typical slide | Title + 5-item `BulletList` = 420 B of code + about 80 B of strings. A table slide is about 1 KB. |
 
 ## Assets owned by the engine
 
-- `art/font/make_fonts.py` -> `art/font/build/fonts.asm` (3,285 bytes: body
-  1,040 incl. the mono header, title 2,245).
-- `art/engine/make_logos.py` -> `logos.spr` (the C# and Commodore logo
-  sprites, from `sprites.asm`; five frames under the I/O area, 0 bytes of
-  program memory).
-- `art/engine/make_chip.py`, `make_backdrop.py`: placeholders (297 and 513
-  bytes) used only by `Slides/EngineShowcaseSlides.cs`; drop them with it.
+- `art/font/make_fonts.py` → `art/font/build/fonts.asm`.
+- `art/engine/make_logos.py` → `logos.spr`: the C# and Commodore sprites.

@@ -3074,7 +3074,11 @@ Screen_DrawText_Done:
 ;
 ; Font layout (c64font.py): lines, advance (0 = proportional), spacing,
 ; first code, count, .word widths, .word low bytes, .word high bytes of the
-; glyph addresses (count entries each, indexed by screen code - first).
+; glyph addresses (count entries each, indexed by screen code - first),
+; scale (1, or 2: every pixel drawn 2x2, so a 16-line font is 32 lines tall;
+; advance is in drawn pixels, spacing in font pixels; +$80 = leading: pixel
+; line 0 is drawn blank and line 1 shows the glyph's line 0, dropping its
+; line 1 -- one pixel of space above every line, for code set solid).
 ; A glyph is ceil(width/8) strips of `lines` bytes, left strip first, each
 ; byte one pixel line (bit 7 = leftmost).
 ; ---------------------------------------------------------------------------
@@ -3119,6 +3123,19 @@ Font_Run:
     iny
     cpy #11
     bne -
+    lda (zp_ft_glyph),y           ; scale, leading
+    and #$80
+    sta Font_Lead
+    lda (zp_ft_glyph),y
+    and #$7f
+    sta Font_Scale
+    lda zp_ft_lines
+    ldx Font_Scale
+    cpx #2
+    bne +
+    asl zp_ft_spacing
+    asl
++   sta Font_OutLines
     lda #0
     sta zp_ft_index
 Font_Run_Next:
@@ -3163,7 +3180,11 @@ Font_Run_Glyph:
     bcs Font_Run_Next             ; not in the font: nothing, no advance
     tay
     lda (zp_ft_wptr),y
-    sta zp_ft_w
+    ldx Font_Scale
+    cpx #2
+    bne +
+    asl                           ; drawn width
++   sta zp_ft_w
     lda (zp_ft_lptr),y
     sta zp_ft_glyph
     lda (zp_ft_hptr),y
@@ -3196,6 +3217,8 @@ Font_Run_Advance:
     inc zp_ft_x_high
 +   lda zp_ft_draw
     beq Font_Run_Next
+    lda #0
+    sta Font_Half
 Font_Run_Strip:
     lda zp_ft_w
     beq Font_Run_Next
@@ -3212,6 +3235,13 @@ Font_Run_Strip:
     sta zp_ft_dx
     bcc +
     inc Font_DxHigh
++   lda Font_Scale                ; 2x: each source strip makes two
+    cmp #2
+    bne +
+    lda Font_Half
+    eor #1
+    sta Font_Half
+    bne Font_Run_Strip            ; its right half next
 +   lda zp_ft_glyph
     clc
     adc zp_ft_lines
@@ -3271,7 +3301,34 @@ Font_DrawStrip_Band:
 +   ldx #8
 Font_DrawStrip_Line:
     ldy Font_Line
+    lda Font_Scale
+    cmp #2
+    beq Font_DrawStrip_Double
+    lda Font_Lead
+    beq ++
+    tya                           ; leading: line 0 blank, line 1 = line 0
+    beq Font_DrawStrip_Skip
+    cmp #1
+    bne +
+    ldy #0
++
++   lda (zp_ft_glyph),y
+    jmp Font_DrawStrip_Byte
+Font_DrawStrip_Double:            ; 2x: line/2, one nibble, each bit doubled
+    tya
+    lsr
+    tay
     lda (zp_ft_glyph),y
+    ldy Font_Half
+    bne +
+    lsr
+    lsr
+    lsr
+    lsr
++   and #$0f
+    tay
+    lda Font_Double,y
+Font_DrawStrip_Byte:
     beq Font_DrawStrip_Skip       ; an empty line changes nothing
     ldy #0
     sty zp_ft_right
@@ -3301,7 +3358,7 @@ Font_DrawStrip_Skip:
     dex
     bne Font_DrawStrip_Line
     lda Font_Line
-    cmp zp_ft_lines
+    cmp Font_OutLines
     bcs Font_DrawStrip_Done
     lda zp_ft_dst                 ; second band: one cell row down
     clc
@@ -3322,6 +3379,11 @@ Font_DrawStrip_Done:
 
 Font_Line   .byte 0             ; pixel line of the strip (0 to lines-1)
 Font_DxHigh .byte 0
+Font_Scale  .byte 1
+Font_Lead   .byte 0             ; $80: leading (see the font layout)
+Font_OutLines .byte 8
+Font_Half   .byte 0             ; 2x: 0 = the strip's left nibble, 1 = right
+Font_Double .byte $00,$03,$0c,$0f,$30,$33,$3c,$3f,$c0,$c3,$cc,$cf,$f0,$f3,$fc,$ff
 Font_Row40_Low:
     .for _r = 0, _r < 25, _r += 1
     .byte <(Graphics_ColorMatrix + _r * 40)

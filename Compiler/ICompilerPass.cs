@@ -164,6 +164,9 @@ class CompilerContext
     }
     public bool IsLive(Type type) => LiveTypes == null || LiveTypes.Contains(type);
 
+    // ILInitializerTempPass: can a method reach GC.Collect?
+    public Dictionary<MethodBase, bool> MayCollect { get; } = new();
+
     public List<string> InitValues { get; } = new();
 
     // (width, divisor) of every DivConst8_<d>/DivConst16_<d> routine some
@@ -250,6 +253,10 @@ class CompilerMethodContext
     // second, narrower defense this doesn't make redundant: handle 0,
     // which is never a real allocated slot, per findEmptySlot's own
     // `inx` before its first check).
+    // Locals no instruction uses any more (ILInitializerTempPass): never
+    // stored, so there is nothing to zero or release.
+    public HashSet<int> DeadLocals { get; } = new();
+
     public List<string> GetLocalRefPositions()
     {
         var refPositions = new List<string>();
@@ -257,7 +264,7 @@ class CompilerMethodContext
         var variables = body.LocalVariables;
         for (int i = 0; i < variables.Count; i++)
         {
-            if (variables[i].LocalType.IsReferenceCounted())
+            if (variables[i].LocalType.IsReferenceCounted() && !DeadLocals.Contains(i))
                 refPositions.Add(GetLocalVariableReferencePosition(i).ToString());
         }
         return refPositions;

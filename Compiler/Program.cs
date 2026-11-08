@@ -142,6 +142,9 @@ class Program
                         new ILMethodDebugLabelPass(),
                         new ILMethodNextInstructionPass(),
                         new ILMethodBuildEvaluationStackPass(),
+                        // Spilled object-initializer temporaries back to the
+                        // dup form (needs the stack depths just built).
+                        new ILInitializerTempPass(),
                         new ILTrivialConstructorCallPass(),
                         new ILAddressFromLabelPass(),
                         new ILNumericToStringPass(),

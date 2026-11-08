@@ -66,12 +66,14 @@ sealed class BarChart : SlideElement
         }
         uint pitch = Theme.OrCells(Pitch, 2);
         uint firstRow = row;
-        foreach (var bar in Bars)
+        for (uint i = 0; i < Bars.Length; i++)
         {
             if (Wait)
                 Deck.Step();
+            var bar = Bars[i];
             Text.Draw(Screen.Px(left), row, bar.Label, Theme.Body);
-            bar.Draw(scale, row);
+            // The gap's shorter bar: its value goes past the dashed box.
+            bar.Draw(scale, row, Gap != null && i == Gap.To ? Bars[Gap.From].Value : bar.Value);
             row += pitch;
         }
         if (Gap != null)
@@ -91,7 +93,9 @@ sealed class Bar
     public string? Text { get; init; }
     public Colors Color { get; init; }          // Auto = Theme.Accent
 
-    public void Draw(BarScale scale, uint row)
+    // valueAfter: the value whose bar end the value text follows (Value,
+    // or the longer bar's when a gap box sits after this one).
+    public void Draw(BarScale scale, uint row, ulong valueAfter)
     {
         ulong length = scale.Length(Value);
         ulong x0 = Screen.Px(scale.Column);
@@ -112,7 +116,7 @@ sealed class Bar
                     C64.Screen.WaitForVBlank();
             }
         }
-        ulong end = scale.Outline ? Screen.Px(scale.Cells) + 8 : length;
+        ulong end = scale.Outline ? Screen.Px(scale.Cells) + 8 : scale.Length(valueAfter);
         Helper.Text.Draw((x0 + end + 11) / 8 * 8, row, Text ?? "", Theme.Heading);
     }
 }
@@ -134,12 +138,12 @@ sealed class BarGap
         uint first = (uint)(start / 8), last = (uint)(end / 8);
         Deck.Paint(first, row, last - first + 1, 1, Theme.Heading, Theme.Background);
         ulong y = Screen.Px(row);
-        for (ulong x = start; x < end; x += 3)        // the top and bottom edges
+        for (ulong x = start; x < end; x += 3)        // the top and bottom edges, level with the bar
         {
-            Screen.Line(x, y, x, y);
-            Screen.Line(x, y + 7, x, y + 7);
+            Screen.Line(x, y + 1, x, y + 1);
+            Screen.Line(x, y + 6, x, y + 6);
         }
-        for (ulong yy = y; yy < y + 8; yy += 3)          // the two ends
+        for (ulong yy = y + 1; yy < y + 7; yy += 2)      // the two ends
         {
             Screen.Line(start, yy, start, yy);
             Screen.Line(end, yy, end, yy);

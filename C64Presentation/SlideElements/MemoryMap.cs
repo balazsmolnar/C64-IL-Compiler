@@ -62,8 +62,12 @@ sealed class Segment
         Deck.Paint(column, row, 1, Height, Theme.Or(Color, Theme.Accent), Theme.Card);
         ulong x = Screen.Px(column), top = Screen.Px(row), bottom = Screen.Px(row + Height) - 1;
         Screen.Fill(x, top, x + 2, bottom - 1);
-        Text.Draw(x + 8, row + (Height - 1) / 2, Name, Theme.Heading, Theme.Card);
-        if (Detail != null && Height > 2)
-            Text.Draw(x + 8, row + (Height - 1) / 2 + 1, Detail, Theme.Body, Theme.Card);
+        // Name and Detail centred as a pair, so the Detail never sits on
+        // the segment's last row against the next segment's name.
+        bool detail = Detail != null && Height > 2;
+        uint nameRow = row + (Height - (detail ? 2u : 1u)) / 2;
+        Text.Draw(x + 8, nameRow, Name, Theme.Heading, Theme.Card);
+        if (detail)
+            Text.Draw(x + 8, nameRow + 1, Detail!, Theme.Body, Theme.Card);
     }
 }

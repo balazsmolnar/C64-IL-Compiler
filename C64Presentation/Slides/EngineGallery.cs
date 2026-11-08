@@ -29,12 +29,12 @@ static class EngineGallery
                 X = 8, Y = 5, Width = 8, Note = "not to scale",
                 Segments =
                 [
-                    new() { Name = "bitmap", Detail = "under ROM", Address = "$E000", Height = 4, Color = Theme.Accent2 },
+                    new() { Name = "bitmap", Detail = "under ROM", Address = "$E000", Height = 3, Color = Theme.Accent2 },
                     new() { Name = "I/O", Detail = "sprites", Address = "$D000", Height = 3, Color = Theme.Muted },
-                    new() { Name = "colours", Address = "$CC00", Height = 1, Color = Theme.Accent },
-                    new() { Name = "program", Detail = "+ heap", Address = "$1000", Height = 5, Color = Theme.Body },
-                    new() { Name = "tables", Address = "$0800", Height = 1, Color = Theme.Muted },
-                    new() { Name = "zero page", Address = "$0000", Height = 1, Color = Theme.Muted },
+                    new() { Name = "colours", Address = "$CC00", Height = 2, Color = Theme.Accent },
+                    new() { Name = "program", Detail = "+ heap", Address = "$1000", Height = 3, Color = Theme.Body },
+                    new() { Name = "tables", Address = "$0800", Height = 2, Color = Theme.Muted },
+                    new() { Name = "zero page", Address = "$0000", Height = 2, Color = Theme.Muted },
                 ],
             },
             Fact(5, "Bitmap under the KERNAL ROM", wait: true),
@@ -85,7 +85,7 @@ static class EngineGallery
                     Saved("Top of stack", 824, "824"), Other(1168, "1,168"),
                     Saved("Static arrays", 0, "0"), Other(616, "616"),
                     Saved("Skip Y reload", 311, "311"), Other(495, "495"),
-                    Saved("++ on statics", 28, "28"), Other(340, "~340"),
+                    Saved("++ on statics", 28, "28"), Other(340, "340"),
                     Saved("Logic + const", 85, "85"), Other(326, "326"),
                 ],
             },
@@ -155,7 +155,7 @@ static class EngineGallery
         [
             new Title { Text = "64 KB at 1 MHz" },
             new ImageElement { Column = 1, Row = 7, Width = 18, Height = 8, Image = C64Address.FromLabel("img_Breadbox"), Caption = "Commodore 64, 1982" },
-            new BulletList { Left = Theme.RightColumn, Top = 6, Wait = true, Items = ["64 KB RAM", "~1 MHz 6510 CPU", "A, X, Y: 8 bits", "256-byte stack", "320x200, 16 colours"] },
+            new BulletList { Left = Theme.RightColumn, Top = 6, Wait = true, Items = ["64 KB RAM", "1 MHz 6510 CPU", "A, X, Y: 8 bits", "256-byte stack", "320x200, 16 colours"] },
         ]
     };
 

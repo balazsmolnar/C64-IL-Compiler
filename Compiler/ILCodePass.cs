@@ -137,7 +137,10 @@ class ILCodePass : ICompilerPass
                     // static constructor (.NET's own docs: it "excludes
                     // type initializers") -- check the name instead.
                     if (method.IsStatic && method.Name == ".cctor")
+                    {
                         context.StaticConstructorLabels.Add(method.GetLabel());
+                        context.StaticConstructors.Add(method);
+                    }
 
                     var methodContext = new CompilerMethodContext()
                     {

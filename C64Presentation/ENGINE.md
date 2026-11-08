@@ -91,15 +91,15 @@ at once, `-Scene AUTO` presses by itself).
 | Element | Properties (defaults) | Notes |
 |---|---|---|
 | `Title` | `Text` | Content master: title, rule, footer. |
-| `SectionElement` | `Number`, `Title`, `Subtitle`, `Icon` (an `img_Sec*` address; 0 = none) | On black: a big cyan number, rule, heading, 6x6 icon on the right. |
+| `SectionElement` | `Number`, `Title`, `Subtitle`, `Icon` (an `img_Sec*` address; 0 = none) | On black: the part number big in Grey2, the title 2x in white, the subtitle, the icon top right. No number: a plain title slide (`DemoSlide`: the LIVE badge sits in the footer). |
 | `TextElement` | `X`, `Y`, `Text`, `Face` (`Body` / `Heading` / `Big`), `Color` (Body, or white for headings), `Strike`, `Wait` | One line. `Strike` draws a 1 px rule through the text, for an old value. |
 | `BulletList` | `Items`, `Left` (2), `Top` (5), `Pitch` (2), `Level` (0 = dot, 1 = dash), `Color`, `Wait` | 5 px between the mark and the text. |
-| `CodeBlock` | `X`, `Y`, `Width` (36), `Lines`, `Caption`, `Wait` | Grey1 card with a 1-cell padding. Caption on row 1, code from row 3, at most `Width` - 2 columns. Height = lines + 2 (+2 with a caption). |
-| `Table` | `X` (2), `Y`, `RowNum`, `CollNum`, `ColumnWidths` or `CellWidth` (9), `Texts`, `WaitAfterRow` | Header row: white on Grey1. Then rows with hairlines, two rows each. |
+| `CodeBlock` | `X`, `Y`, `Width` (36), `Rows`, `Lines`, `Caption`, `Replace`, `Wait` | Black panel, Grey1 1 px frame. Caption on row 1, code from row 3 in the mono face with leading (underscores and descenders clear the next line). `Replace`: the old code is swapped row by row, never an empty card. |
+| `Table` | `X` (2), `Y`, `Widths`, `Header`, `Rows` (`string[][]`), `WaitAfterRow` | Header labels in white on black over a 2 px cyan rule; rows with Grey2 hairlines, two cell rows each. First column left aligned, the rest right aligned. |
 | `Box` | `X`, `Y`, `Width`, `Height`, `Text`, `Caption`, `Color` (accent bar, cyan), `Hollow`, `ConnectToLeft`, `Wait`, `WaitAfter` | A card. With a caption: text on row 1, caption two rows lower, so `Height` ≥ 4. |
 | `Arrow` | `FromCol`, `FromRow`, `ToCol`, `ToRow`, `VerticalFirst`, `Text`, `Color`, `Wait` | Any direction, straight or L-shaped; grows when drawn after a press. The label goes above a horizontal leg, or beside a vertical one, clamped to the content columns. |
-| `BarChart` | `Labels`, `Values`, `ValueTexts`, `Max`, `BarColors`, `Legend`, `Outline`, `TickEvery`, `X`, `Y`, `Width`, `LabelWidth` (12), `ValueWidth` (7), `Pitch` (2), `Wait` | Layout: label, bar, value. `Outline` adds a full-scale frame, a dashed rest and ticks. The 38-column budget is `X = 1, Width = 38`. |
-| `MemoryMap` | `X`, `Y`, `Width` (8), `Names`, `Addresses`, `Heights`, `Colors`, `Note`, `Wait` | Stacked segments, high addresses first, addresses in Grey2 on the left. |
+| `BarChart` | `Bars` (`Bar`: `Label`, `Value`, `Text`, `Color`), `Legend` (`LegendItem`: `Name`, `Color`), `Gap` (`BarGap`: `From`, `To`, `Text`), `Max`, `Outline`, `TickEvery`, `X`, `Y`, `Width`, `LabelWidth` (12), `ValueWidth` (7), `Pitch` (2), `Wait` | Label, bar, value. `Gap`: a dashed box level with the shorter bar, up to the longer bar's end, its text under it, and the shorter bar's value after the box. `Outline` adds a full-scale frame with ticks. The 38-column budget is `X = 1, Width = 38`. |
+| `MemoryMap` | `X`, `Y`, `Width` (8), `Segments` (`Segment`: `Name`, `Address`, `Detail`, `Height`, `Color`), `Note`, `Wait` | Stacked segments, high addresses first, addresses right aligned in Grey2 on the left. Give every segment 2 rows or more (addresses on adjacent rows touch); a `Detail` needs 3. |
 | `ImageElement` | `Column`, `Row`, `Width`, `Height`, `Image`, `Caption`, `Wait` | A hi-res image. |
 | `Callout` | `Lines`, `Attribution`, `Y`, `X` (2), `Width` (36), `Accent` | The key message in the 16 px face, 16 px between lines, with an accent bar. |
 
@@ -109,8 +109,17 @@ Lower level, for `Present()`:
   `Master.Footer`;
 - `Text.Draw`, `Heading`, `Big`, `Code`, `Center`, `Right`, `Width`;
 - `Deck.Paint`, `Step`, `Show`, `Reveal`, `Build`, `Dim`, `Live`;
-- `Screen.Fill`, `Line`, `ClearRect`, `X`;
-- `Box.DrawCard`.
+- `Screen.Fill`, `Line`, `Frame`, `ClearRect`, `Px`;
+- `Box.Card`.
+
+`PictureSlide` (EngineGallery.cs) and `Master.Picture(image, column, row,
+split, caption)`: a multicolour picture above a raster split (rows 15 and
+21 are shot) with a caption under it.
+
+The gallery: `dotnet build C64Presentation -p:Scene=ENGINE` builds
+`Slides/EngineGallery.cs` (D7, C2, C3, C4, D8, two split pictures, a
+callout, two columns, a section) instead of the deck, and holds each slide
+like `-Scene HOLD`.
 
 Live slides (`IntroSlide`, `DemoSlide`) call `Deck.Reveal()`, then loop on
 `KeyBoard.AdvancePressed()`.
@@ -134,7 +143,9 @@ Live slides (`IntroSlide`, `DemoSlide`) call `Deck.Reveal()`, then loop on
 | Collection expressions `[a, b]`, target-typed `new()` | yes | byte for byte the same as `new T[] { }` (measured: 283 B both ways) |
 | `{ get; init; }` / `{ get; set; }` auto-properties | yes | the same as fields (compiler change: accessor calls become field accesses, and the accessors are not compiled; −2.7 KB on this deck) |
 | `switch` expressions, `is` patterns (`n is > 3 and < 9`), `?:`, `??` | yes | ordinary branches |
-| Primary constructors, field initializers, constructors with a body | **no** (C64004) | The compiler never calls a constructor body. Supporting that is a larger compiler change, not done. |
+| Primary constructors, field initializers, constructors with a body | yes since the constructor support merge (a1f6cdc) | Not used here: a two-field `LegendItem(string name, Colors color)` cost 189 B more than `new() { Name = .., Color = .. }` (a constructor routine and its calls instead of inline stores). |
+| `record` / `record struct`, `struct`, `Nullable<T>` | no (C64004 / C64003) | |
+| 3-part string concatenation (`$"{a}{b}{c}"`) | no (`String.Concat` with 3 arguments, C64002) | Two 2-part steps. |
 | Tuples, deconstruction | no (generic `ValueTuple`) | |
 | Overloads of one name | no: labels don't tell them apart | Use distinct names (`Theme.Or` / `Theme.OrCells`). |
 
@@ -148,19 +159,25 @@ Live slides (`IntroSlide`, `DemoSlide`) call `Deck.Reveal()`, then loop on
   - A peephole window never contains a branch target (`x = c ? x + 1 : x - 1`
     used to increment in both arms).
   - Auto-properties compile to fields.
+  - Static constructors run in dependency order (a static initializer that
+    reads another type's static field runs after that type's), so
+    `static readonly Func<Slide>[] Slides = EngineGallery.Slides;` works.
 
-## Memory (with the art of storyboard round 5)
+## Memory (round 3, plain build, with the art)
 
 | Item | Bytes |
 |---|---|
-| Program end | $C034 (normal build) |
-| Free | about 2.9 KB ($CC00 − end − 56 − 107 bytes of static frames), before the heap |
-| Engine C# | about 15.5 KB (incl. the GC slide's `Stack`, 0.5 KB) |
+| Program end | $C919; static frames to $C9EA |
+| Free | about 530 B before $CC00, before the heap |
+| Engine C# | about 16.7 KB: Deck, Text, Master, Theme, the elements and the chart/map types (BarChart 1,247, BarGap 1,087, Bar 873, BarScale 722, MemoryMap + Segment 964, Callout 631, Arrow 2,122) |
 | Fonts | 3,300 |
 | `buf_Picture` | 3,755 (the disk shots load into it) |
-| Title picture | 1,715 |
-| A5 + A6 | about 780 |
-| Typical slide | Title + 5-item `BulletList` = 420 B of code + about 80 B of strings. A table slide is about 1 KB. |
+| Typical slide | Agenda (title + 5 bullets) 420 B of code; a table slide (What is it) 1,100 B; Features (two columns) 1,107 B; plus strings |
+| GC slide | 4,249 B |
+
+Every class compiles even when no slide uses it, so the chart and map
+types (about 5.5 KB) are in the deck build before any deck slide uses
+them. The gallery build (`-p:Scene=ENGINE`) ends at $BC27.
 
 ## Assets owned by the engine
 

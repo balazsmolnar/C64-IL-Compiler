@@ -59,11 +59,32 @@ class ILObjectInitializerOptimizer : ICompilerMethodPass
                     : Enumerable.Repeat("0", size).ToArray();
 
                 int index = i + 1;
-                while (
+                int depth0 = lines[i].StackContent.Count;
+                // Bytes a computed store (kept as code, see TrySkip) writes:
+                // a constant for them must not be folded into the initial
+                // bytes, where the computed store would no longer win.
+                var computed = new HashSet<int>();
+                int prefixEnd = -1;      // where the folded run ends if nothing was skipped
+                bool foldedAfterSkip = false;
+                while (true)
+                {
+                    if (!(
                     lines[index].Operation is OpDup &&
                     (lines[index + 1].Operation is OpLdConst || lines[index + 1].Operation is OpLdstr) &&
                     (lines[index + 2].Operation is OpStfld ||
-                     ((lines[index + 2].OpCode is ILOpCode.Conv_i8 or ILOpCode.Conv_u8) && lines[index + 3].Operation is OpStfld)))
+                     ((lines[index + 2].OpCode is ILOpCode.Conv_i8 or ILOpCode.Conv_u8) && lines[index + 3].Operation is OpStfld))))
+                    {
+                        if (TrySkip(context, lines, index, depth0, out var next, out var skipPos, out var skipSize))
+                        {
+                            if (prefixEnd < 0)
+                                prefixEnd = index;
+                            for (int b = 0; b < skipSize; b++)
+                                computed.Add(skipPos + b);
+                            index = next;
+                            continue;
+                        }
+                        break;
+                    }
                 {
                     // there is a conversion between ldc and setfld -- only
                     // when the line after the ldc is not already the Stfld.
@@ -93,6 +114,10 @@ class ILObjectInitializerOptimizer : ICompilerMethodPass
                     }
                     var value = GetStringParam(lines[index + 1].RawParameter, 0);
                     var pos = GetIntParam(lines[index + (conv ? 3 : 2)].RawParameter, 0);
+                    if (computed.Contains(pos) || (is16 && computed.Contains(pos + 1)))
+                        break;
+                    if (prefixEnd >= 0)
+                        foldedAfterSkip = true;
                     mem[pos] = $"<{value}";
                     if (is16)
                     {
@@ -108,11 +133,14 @@ class ILObjectInitializerOptimizer : ICompilerMethodPass
 
                     index += conv ? 4 : 3;
                 }
+                }
 
                 // Nothing constant to fold (every store in the initializer
                 // is computed): #newObjInit would only be a bigger #newObj
                 // plus an all-zero data row.
-                if (index == i + 1 && !constantInit)
+                if (prefixEnd < 0)
+                    prefixEnd = index;
+                if (prefixEnd == i + 1 && !foldedAfterSkip && !constantInit)
                 {
                     lines[i].Optimized = false;
                     continue;
@@ -124,9 +152,50 @@ class ILObjectInitializerOptimizer : ICompilerMethodPass
                 };
                 newOperation.RawParameter = newOperation.Operation.ConvertParameter(context, null);
                 newOperation.StackContent = lines[i].StackContent;
-                lines.Insert(index, newOperation);
+                // After the folded run, as before (ILObjectArrayInitializerOptimizer
+                // expects it there), unless constants were folded past a kept
+                // computed store: then right after the newobj, so the computed
+                // stores run on the new object.
+                lines.Insert(foldedAfterSkip ? i + 1 : prefixEnd, newOperation);
             }
         }
+    }
+
+    // `dup; <any value>; stfld F` on the new object, kept as code: the
+    // constant stores after it can still be folded into the initial bytes
+    // (the object is fresh and only on the stack, so no code in between can
+    // see the order of its field writes). The stfld that takes the dup'd
+    // object is the first one back at the newobj's stack depth. Straight-line
+    // code only; the stfld must still be a plain, unfused one.
+    private static bool TrySkip(CompilerMethodContext context, List<ILOperation> lines, int index, int depth0,
+        out int next, out int pos, out int size)
+    {
+        next = pos = size = 0;
+        if (index >= lines.Count || lines[index].Optimized || lines[index].Label != null || lines[index].Operation is not OpDup)
+            return false;
+        int k = index + 1;
+        while (k < lines.Count && lines[k].StackContent != null && lines[k].StackContent.Count > depth0)
+        {
+            var l = lines[k];
+            if (l.Label != null || l.OpCode.IsBranch() || l.OpCode is ILOpCode.Switch or ILOpCode.Ret)
+                return false;
+            k++;
+        }
+        if (k >= lines.Count || k == index + 1 || lines[k].Optimized || lines[k].Label != null
+            || lines[k].Operation is not OpStfld || lines[k].StackContent == null || lines[k].StackContent.Count != depth0)
+            return false;
+        try
+        {
+            var field = context.CompilerContext.Assembly.ManifestModule.ResolveField((int)lines[k].OriginalParameter);
+            size = field.FieldType.GetStorageBytes();
+            pos = int.Parse(lines[k].RawParameter.ToString().Split(',')[0]);
+        }
+        catch
+        {
+            return false;
+        }
+        next = k + 1;
+        return true;
     }
 
     private static System.Reflection.MethodBase ResolveCtor(CompilerMethodContext context, ILOperation line) =>

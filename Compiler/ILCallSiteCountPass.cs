@@ -374,6 +374,10 @@ class ILCallSiteCountPass : ICompilerPass
                     continue;
                 if (method.IsAbstract)
                     continue;
+                // Dead code (ILReachabilityPass) is compiled only for its
+                // diagnostics: its calls must not count.
+                if (!context.IsLive(method))
+                    continue;
 
                 yield return method;
             }

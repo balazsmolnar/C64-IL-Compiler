@@ -148,6 +148,22 @@ class CompilerContext
         method != null && StaticFrames.Count > 0
         && StaticFrames.TryGetValue(ILStaticFramePass.Normalize(method), out var info) ? info : null;
 
+    // ILReachabilityPass: the methods and types that can ever be used (null:
+    // the pass is off and everything is live). See IsLive.
+    public bool DeadCodeElimination { get; set; } = true;
+    public HashSet<MethodBase> LiveMethods { get; set; }
+    public HashSet<Type> LiveTypes { get; set; }
+    // Only methods the pass looked at can be dead: anything else is kept.
+    public HashSet<MethodBase> AnalyzedMethods { get; set; }
+    public bool IsLive(MethodBase method)
+    {
+        if (LiveMethods == null)
+            return true;
+        var m = ILStaticFramePass.Normalize(method);
+        return LiveMethods.Contains(m) || !AnalyzedMethods.Contains(m);
+    }
+    public bool IsLive(Type type) => LiveTypes == null || LiveTypes.Contains(type);
+
     public List<string> InitValues { get; } = new();
 
     // (width, divisor) of every DivConst8_<d>/DivConst16_<d> routine some

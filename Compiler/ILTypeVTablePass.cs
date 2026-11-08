@@ -18,7 +18,9 @@ class ILTypeVTablePass : ICompilerTypePass
 
         foreach (var m in @type.GetVirtualMethods())
         {
-            labels.Add(m.GetLabel());
+            // A dead method (ILReachabilityPass) is never dispatched to and
+            // has no label: its slot keeps its index, holding 0.
+            labels.Add(context.CompilerContext.IsLive(m) ? m.GetLabel() : "0");
         }
 
         // FullName, not Name -- must match OpNewObj's own vtable reference

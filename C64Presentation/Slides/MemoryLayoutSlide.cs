@@ -1,4 +1,4 @@
-using C64Presentation.Helper;
+﻿using C64Presentation.Helper;
 using C64Presentation.SlideElements;
 
 namespace C64Presentation.Slides;
@@ -8,7 +8,7 @@ namespace C64Presentation.Slides;
 // its rows, then the heap strip with the pointers, then two lines.
 static class MemoryLayoutSlide
 {
-    const uint TableRow = 4, HeapRow = 14, LinksRow = 12, TextRow = 18;
+    const uint TableRow = 5, HeapRow = 15, LinksRow = 13, TextRow = 19;
 
     public static Slide Create() => new SimpleSlide
     {
@@ -19,12 +19,12 @@ static class MemoryLayoutSlide
             {
                 Y = TableRow, Widths = [6, 8, 5, 5, 5, 7], WaitAfterRow = true,
                 Header = ["handle", "heap ptr", "size", "refs", "roots", "vtable"],
-                Rows = [["1", "", "", "", "", ""], ["2", "", "", "", "", ""], ["255", "", "", "", "", ""]],
+                Rows = [["1", "$4000", "5", "1", "1", "Node"], ["2", "$4008", "4", "0", "0", "Text"], ["255", "-", "-", "-", "-", "-"]],
             },
             Link(10, 10, wait: true),
             Link(13, 17),
-            Heap(8, 5, "1"), Heap(13, 3, "3", true), Heap(16, 4, "2", true), Heap(20, 2, "5", true),
-            new Box { X = 22, Y = HeapRow, Width = 16, Height = 3, Text = "free", Color = Theme.Frame, Hollow = true },
+            Heap(8, 5, "1"), Heap(13, 3, "3", true), Heap(16, 4, "2", true), Heap(20, 3, "5", true),
+            new Box { X = 23, Y = HeapRow, Width = 15, Height = 3, Text = "free", Color = Theme.Frame, Hollow = true },
             Line(TextRow, "A reference is a 1-byte handle: 255 objects", wait: true),
             Line(TextRow + 2, $"Handle {Theme.Arrow} table {Theme.Arrow} heap address"),
         ]

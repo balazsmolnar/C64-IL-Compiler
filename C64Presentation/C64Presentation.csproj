@@ -18,8 +18,8 @@
     <DefineConstants Condition="'$(Scene)' != ''">$(DefineConstants);SCENE;SCENE_$(Scene)</DefineConstants>
     <!-- -Scene ENGINE: the engine gallery (Slides/EngineGallery.cs) instead of
          the deck, with the art extras (section icons) and without the deck's
-         own slides, so that it fits. -->
-    <DefineConstants Condition="'$(Scene)' == 'ENGINE'">$(DefineConstants);ART_EXTRAS</DefineConstants>
+         own slides, so that it fits. It holds each slide like -Scene HOLD. -->
+    <DefineConstants Condition="'$(Scene)' == 'ENGINE'">$(DefineConstants);ART_EXTRAS;SCENE_HOLD</DefineConstants>
   </PropertyGroup>
   <Target Name="WriteSceneConfig" BeforeTargets="CoreCompile">
     <WriteLinesToFile File="$(IntermediateOutputPath)SceneConfig.g.cs" Lines="namespace C64Presentation%3B static class SceneConfig { public const int StartSlide = $(StartSlide)%3B }" Overwrite="true" WriteOnlyWhenDifferent="true" />

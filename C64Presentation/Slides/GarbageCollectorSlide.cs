@@ -1,4 +1,4 @@
-using C64Lib;
+﻿using C64Lib;
 using C64Presentation.Helper;
 using C64Presentation.SlideElements;
 
@@ -26,9 +26,9 @@ sealed class GarbageCollectorSlide : Slide
 
     public override void Present()
     {
-        HeapObject one = new() { Id = "1", Size = 2, Root = true }, two = new() { Id = "2", Size = 2 },
-            three = new() { Id = "3", Size = 4, Root = true }, four = new() { Id = "4", Size = 2 },
-            five = new() { Id = "5", Size = 2 }, six = new() { Id = "6", Size = 4 };
+        HeapObject one = new() { Id = "1", Size = 3, Root = true }, two = new() { Id = "2", Size = 3 },
+            three = new() { Id = "3", Size = 4, Root = true }, four = new() { Id = "4", Size = 3 },
+            five = new() { Id = "5", Size = 3 }, six = new() { Id = "6", Size = 4 };
         one.References = [three, four];
         two.References = [one, six];
         three.References = [one, four, five];
@@ -87,7 +87,11 @@ sealed class GarbageCollectorSlide : Slide
                 Text.Center(ObjectX(i), Screen.Px(ObjectWidth), ObjectRow - 1, "root", Theme.Body);
             string refs = Theme.Arrow;
             foreach (var r in o.References!)
+            {
+                if (refs.Length > 1)
+                    refs = $"{refs},";
                 refs = $"{refs}{r.Id}";
+            }
             Text.Center(ObjectX(i), Screen.Px(ObjectPitch), RefsRow, refs, Theme.Body);
         }
     }

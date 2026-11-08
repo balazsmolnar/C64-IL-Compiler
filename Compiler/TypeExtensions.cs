@@ -7,6 +7,54 @@ namespace Compiler;
 
 static class TypeExtension
 {
+    // The instance fields of an object of `type`, in heap order: the base
+    // class's own layout first (so a base class's code finds its fields at
+    // the same offsets in every derived object, private ones included --
+    // a primary constructor's captured parameter, an auto-property's
+    // backing field), then the fields `type` itself declares, references
+    // first. Class-library bases (System.Object) contribute nothing.
+    //
+    // The GC traces an object's first referenceFields bytes as references
+    // (asm/helper/object.asm), so the references have to be a prefix of the
+    // whole layout: ReferenceFieldCount reports a reference field that is
+    // not (a derived class adding one under a base class with value fields).
+    static public List<FieldInfo> GetInstanceLayout(this Type type)
+    {
+        lock (LayoutCache)
+        {
+            if (LayoutCache.TryGetValue(type, out var cached))
+                return cached;
+            var layout = new List<FieldInfo>();
+            // A class-library type (Func<T>) keeps its flat, references-first
+            // layout.
+            bool program = type.Assembly == MethodBaseExtension.ProgramAssembly;
+            if (program && type.BaseType != null && type.BaseType.Assembly == type.Assembly)
+                layout.AddRange(type.BaseType.GetInstanceLayout());
+            layout.AddRange(type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | (program ? BindingFlags.DeclaredOnly : 0))
+                .Where(f => !f.IsLiteral)
+                .OrderBy(f => f.FieldType.IsReferenceCounted() ? 0 : 1));
+            LayoutCache[type] = layout;
+            return layout;
+        }
+    }
+
+    private static readonly Dictionary<Type, List<FieldInfo>> LayoutCache = new();
+
+    static public int GetInstanceSize(this Type type) =>
+        type.GetInstanceLayout().Sum(f => f.FieldType.GetStorageBytes());
+
+    // How many leading fields are references, or -1 when a reference field
+    // comes after a value field (see GetInstanceLayout).
+    static public int ReferenceFieldCount(this Type type)
+    {
+        var layout = type.GetInstanceLayout();
+        int prefix = layout.TakeWhile(f => f.FieldType.IsReferenceCounted()).Count();
+        return layout.Skip(prefix).Any(f => f.FieldType.IsReferenceCounted()) ? -1 : prefix;
+    }
+
+    static public bool IsSameField(this FieldInfo a, FieldInfo b) =>
+        a.MetadataToken == b.MetadataToken && a.Module == b.Module;
+
     static public bool IsReferenceCounted(this Type type)
     {
         if (type.IsValueType)

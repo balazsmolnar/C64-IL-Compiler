@@ -14,6 +14,31 @@ class ILMethodCodePass : ICompilerMethodPass
 
         CheckDeclaration(context);
         Decode(context);
+        CheckEntryPointArguments(context);
+    }
+
+    // The entry point (Main(string[] args), or the `<Main>$` that top-level
+    // statements compile to, which always takes `args`) is called with a
+    // null `args` (ILEntryPointPass): a C64 program has no command line.
+    // Reading it would only find null, so it is rejected instead.
+    private static void CheckEntryPointArguments(CompilerMethodContext context)
+    {
+        var method = context.Method;
+        if (method != context.CompilerContext.Assembly.EntryPoint || method.GetParameters().Length == 0)
+            return;
+        foreach (var line in context.Lines)
+        {
+            bool usesArgs = line.OpCode is ILOpCode.Ldarg_0
+                || (line.OpCode is ILOpCode.Ldarg_s or ILOpCode.Ldarga_s or ILOpCode.Starg_s
+                    or ILOpCode.Ldarg or ILOpCode.Ldarga or ILOpCode.Starg
+                    && line.OriginalParameter is int index && index == 0);
+            if (!usesArgs)
+                continue;
+            context.CurrentIlOffset = line.Position;
+            throw new UnsupportedFeatureException(DiagnosticCodes.UnsupportedDeclaration,
+                "The command-line arguments ('args') are not supported: a C64 program is started with SYS, which passes none.",
+                "Remove the use of 'args'. Top-level statements and Main(string[] args) themselves are fine as long as 'args' is not read.");
+        }
     }
 
     // Decodes context.Method's raw IL into context.Lines. Factored out of

@@ -21,6 +21,10 @@
   -->
   <ItemGroup>
     <ProjectReference Include="..\Compiler\Compiler.csproj" />
+    <!-- TopLevelStatementsTests runs a whole assembled program (64tass) on
+         it: a program with its own entry point, which Test/'s harness can't
+         express. -->
+    <ProjectReference Include="..\SimpleEmulator\SimpleEmulator.csproj" />
   </ItemGroup>
 
   <ItemGroup>

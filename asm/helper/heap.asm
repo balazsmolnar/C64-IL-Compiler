@@ -52,6 +52,36 @@ newObj .macro size, referenceFields, objDescriptor, ctor
 .endm
 
 ;
+; Creates a new object whose constructor does real work (Compiler/
+; ConstructorSupport.cs). The constructor's argBytes argument bytes are
+; already on the stack; the new handle goes in twice UNDER them: the lower
+; copy is the constructor's `this` (its prologue, or the static-frame pulls
+; that follow this macro, take it last), the upper one is what newobj
+; leaves on the stack once the constructor has returned. The compiler
+; emits the call itself right after this macro.
+;
+newObjCtor .macro size, referenceFields, objDescriptor, argBytes
+
+  lda #<\objDescriptor
+  sta zp_param0_low
+  lda #>\objDescriptor
+  sta zp_param0_high
+
+  lda #\size
+  ldy #\referenceFields
+
+  jsr newObjL
+
+  .if \argBytes == 0
+    pha
+    pha
+  .else
+    ldy #\argBytes
+    jsr NewObjInsertThis
+  .endif
+.endm
+
+;
 ; Creates a new object on the heap and initializes with default values
 ; Inputs:
 ; size: Size of the object on the heap

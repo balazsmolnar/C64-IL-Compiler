@@ -40,3 +40,7 @@ asm/unittest_runtime.asm
 __pycache__/
 asm/unittest_programs/**
 asm/unittest_programs.asm
+
+# Third unit-test project (Test.Language)
+asm/unittest_language/**
+asm/unittest_language.asm

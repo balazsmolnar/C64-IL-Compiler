@@ -152,6 +152,19 @@ class OpCall : OpBase
     // else throws here, cleanly, instead of downstream in 64tass.
     public override string Emit(CompilerMethodContext context, ILOperation operation)
     {
+        // A constructor's call to a base/this(...) constructor that is not
+        // compiled (System.Object's, or a trivial one -- ConstructorSupport):
+        // nothing to run, just drop `this` and the arguments. The common
+        // `ldarg.0; call base()` pair is removed outright by
+        // ILTrivialConstructorCallPass.
+        var target = context.CompilerContext.Assembly.ManifestModule.ResolveMethod((int)operation.OriginalParameter) as MethodBase;
+        if (target != null && ConstructorSupport.IsInstanceConstructor(target)
+            && !ConstructorSupport.IsCompiled(target, context.CompilerContext.Assembly))
+        {
+            if (operation.Optimized)
+                return "; base constructor";
+            return string.Join("\n    ", Enumerable.Repeat("pla", ConstructorSupport.ArgumentBytes(target) + 1));
+        }
         if (!operation.Optimized)
             EnsureCallIsResolvable(context, operation);
         var text = base.Emit(context, operation);
@@ -367,64 +380,6 @@ class OpNewObj : OpBase
     {
     }
 
-    // A constructor body is only ever safe to silently skip (see the "ctor"
-    // hardcoded to "0" below) when it does nothing but forward its
-    // arguments to a base constructor -- Ldarg*/Call/Nop/Ret. Anything else
-    // (most importantly Stfld, but really any other opcode too: a call to
-    // some other method, arithmetic, a branch...) is real constructor logic
-    // that this compiler has never actually executed for ANY ordinary
-    // class: #newObj's own ctor parameter is hardcoded to "0" (no call at
-    // all) for everything except the special-cased Func<T> delegate type,
-    // so a constructor body doing real work silently leaves the object's
-    // fields at their zero-initialized heap default instead -- found via a
-    // real crash this way (see ILPropertyGetterOptimizer.cs's own history/
-    // this compiler's regression tests for the investigation). Flag it as
-    // a compile-time error instead of miscompiling silently.
-    private static readonly System.Reflection.Metadata.ILOpCode[] SafeToSkipOpCodes =
-    {
-        System.Reflection.Metadata.ILOpCode.Ldarg_0,
-        System.Reflection.Metadata.ILOpCode.Ldarg_1,
-        System.Reflection.Metadata.ILOpCode.Ldarg_2,
-        System.Reflection.Metadata.ILOpCode.Ldarg_3,
-        System.Reflection.Metadata.ILOpCode.Ldarg_s,
-        System.Reflection.Metadata.ILOpCode.Call,
-        System.Reflection.Metadata.ILOpCode.Nop,
-        System.Reflection.Metadata.ILOpCode.Ret,
-    };
-
-    internal static bool ConstructorHasUnsupportedBody(MethodBase ctor)
-    {
-        var body = ctor.GetMethodBody();
-        if (body == null)
-            return false;
-
-        var il = body.GetILAsByteArray();
-        var index = 0;
-        var calls = 0;
-        while (index < il.Length)
-        {
-            System.Reflection.Metadata.ILOpCode opCode;
-            if (il[index] >= 254)
-                opCode = (System.Reflection.Metadata.ILOpCode)(il[index++] * 256 + il[index++]);
-            else
-                opCode = (System.Reflection.Metadata.ILOpCode)(il[index++]);
-
-            if (Array.IndexOf(SafeToSkipOpCodes, opCode) < 0)
-                return true;
-
-            // The one allowed Call is the base constructor; a second one is
-            // real work (another method) that would be skipped too.
-            if (opCode == System.Reflection.Metadata.ILOpCode.Call && ++calls > 1)
-                return true;
-
-            if (!CommandMap.Supported(opCode))
-                return true; // can't even check its parameter size safely
-
-            index += CommandMap.Get(opCode).ParameterSize;
-        }
-        return false;
-    }
-
     public override object ConvertParameter(CompilerMethodContext context, ILOperation operation)
     {
         var method = context.CompilerContext.Assembly.ManifestModule.ResolveMethod((int)operation.RawParameter);
@@ -442,33 +397,29 @@ class OpNewObj : OpBase
         if (typeof(Delegate).IsAssignableFrom(t) && !t.Name.StartsWith("Func"))
             return null;
 
-        if (t.Assembly != typeof(Func<object>).Assembly && ConstructorHasUnsupportedBody(method))
-            throw new UnsupportedFeatureException(DiagnosticCodes.UnsupportedDeclaration,
-                $"The constructor of '{t.Name}' does real work (sets a field, including a field initializer such as 'int x = 5;', or calls a method), which is not supported yet.",
-                "Set the fields where you create the object, with an object initializer (new " + t.Name + " { Field = value }), or add an Init() method and call it after new.");
-
         // new List<T>(), new StringBuilder(), new Random()...: a class-library
         // type has no implementation here (its "vtable" label would not exist).
         if (!OpCall.IsResolvable(method, context.CompilerContext.Assembly))
             throw UnsupportedCalls.For(method);
 
-        var size = 0;
-        var referenceFields = 0;
-        foreach (var f in t.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
-        {
-            size += f.FieldType.GetStorageBytes();
-            if (f.FieldType.IsReferenceCounted())
-                referenceFields++;
-        }
-        //var label = context.CompilerContext.Assembly.ManifestModule.ResolveMethod(operation.RawParameter).GetLabel();
-
+        var size = t.GetInstanceSize();
+        var referenceFields = t.ReferenceFieldCount();
+        if (referenceFields < 0)
+            throw new UnsupportedFeatureException(DiagnosticCodes.UnsupportedDeclaration,
+                $"The class '{t.Name}' declares a reference field (an object or array) while its base class '{t.BaseType.Name}' has value fields, which is not supported: the garbage collector needs all reference fields at the start of the object.",
+                $"Declare the reference fields in the base class '{t.BaseType.Name}', or give '{t.Name}' no base class.");
 
         var vtable = t.IsGenericType ? "0" : $"{t.FullName.ToValidName()}_VTable";
-        // var ctor = $"{t.Name}_x_ctor";
-        var ctor = "0";
 
+        // The constructor to call: only one that does real work
+        // (ConstructorSupport); "0" for a trivial or constant-only one,
+        // whose effect is the allocation itself (plus its initial bytes,
+        // see Emit and ILObjectInitializerOptimizer).
+        var ctor = "0";
         if (t.Assembly == typeof(Func<object>).Assembly)
             ctor = $"{t.Name}_x_ctor".ToValidName();
+        else if (ConstructorSupport.Kind(method) == ConstructorKind.Call)
+            ctor = method.GetLabel();
         return $"{size}, {referenceFields}, {vtable}, {ctor}";
     }
 
@@ -485,13 +436,51 @@ class OpNewObj : OpBase
     // path already proven by Test/FuncTest.cs). Instance-bound delegates (a
     // non-null target) aren't supported -- #stack_construct_static_delegate
     // discards whatever's under the method pointer unconditionally.
+    //
+    // A program constructor (ConstructorSupport):
+    //   Trivial       #newObj; arguments it ignores are dropped first.
+    //   ConstantInit  #newObjInit with the constructor's constants as the
+    //                 initial bytes (unless ILObjectInitializerOptimizer
+    //                 already folded this line into its own #newObjInit).
+    //   Call          #newObjCtor puts the handle under the arguments, then
+    //                 the constructor is called like any instance method
+    //                 (a static frame's pulls, or the plain jsr).
     public override string Emit(CompilerMethodContext context, ILOperation operation)
     {
         var method = context.CompilerContext.Assembly.ManifestModule.ResolveMethod((int)operation.OriginalParameter) as MethodBase;
         var t = method.ReflectedType;
         if (typeof(Delegate).IsAssignableFrom(t) && !t.Name.StartsWith("Func"))
             return "#stack_construct_static_delegate";
-        return base.Emit(context, operation);
+        if (t.Assembly == typeof(Func<object>).Assembly || operation.Optimized)
+            return base.Emit(context, operation);
+
+        var parts = operation.RawParameter.ToString().Split(',').Select(x => x.Trim()).ToArray();
+        int argBytes = ConstructorSupport.ArgumentBytes(method);
+        switch (ConstructorSupport.Kind(method))
+        {
+            case ConstructorKind.ConstantInit:
+            {
+                var mem = ConstructorSupport.InitialBytes(context.CompilerContext, method, int.Parse(parts[0]));
+                var label = context.CompilerContext.GetInitValueLabel(string.Join(',', mem));
+                return $"#newObjInit {parts[0]}, {parts[1]}, {parts[2]}, {label}, 0";
+            }
+            case ConstructorKind.Call:
+            {
+                if (argBytes > 0)
+                    context.CompilerContext.UsedLibraryLabels.Add("NewObjInsertThis");
+                var jsr = $"jsr {method.GetLabel()}";
+                var frame = context.CompilerContext.GetStaticFrame(method);
+                var call = frame == null || frame.CalleePulls ? jsr : OpCall.StaticFrameCall(frame, jsr);
+                return $"#newObjCtor {parts[0]}, {parts[1]}, {parts[2]}, {argBytes}\n    {call}";
+            }
+            default:
+            {
+                var text = base.Emit(context, operation);
+                for (int i = 0; i < argBytes; i++)
+                    text = "pla\n    " + text;
+                return text;
+            }
+        }
     }
 
     public override void SetStackContent(CompilerMethodContext context, ILOperation operation)

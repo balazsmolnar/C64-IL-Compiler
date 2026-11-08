@@ -112,8 +112,12 @@ class ILStaticFramePass : ICompilerPass
 
             foreach (var line in lines)
             {
+                // Newobj calls a constructor that does real work
+                // (ConstructorSupport); for the others the target is not
+                // a compiled method and drops out below.
                 if (line.OpCode != ILOpCode.Call && line.OpCode != ILOpCode.Callvirt
-                    && line.OpCode != ILOpCode.Ldftn && line.OpCode != ILOpCode.Ldvirtftn)
+                    && line.OpCode != ILOpCode.Ldftn && line.OpCode != ILOpCode.Ldvirtftn
+                    && line.OpCode != ILOpCode.Newobj)
                     continue;
                 MethodBase target;
                 try
@@ -228,7 +232,9 @@ class ILStaticFramePass : ICompilerPass
             return "virtual";
         if (undecodable)
             return "not compilable";
-        if (method is not MethodInfo info)
+        // An instance constructor (ConstructorSupport) returns nothing; a
+        // static one runs once at startup, nothing to gain.
+        if (method is ConstructorInfo && method.IsStatic)
             return "constructor";
         if (method.IsAbstract || method.GetMethodBody() == null)
             return "no body";
@@ -262,7 +268,7 @@ class ILStaticFramePass : ICompilerPass
             localBytes += l.LocalType.GetStorageBytes();
         }
 
-        var ret = info.ReturnType;
+        var ret = (method as MethodInfo)?.ReturnType ?? typeof(void);
         if (ret != typeof(void))
         {
             if (phase1 && ret.IsReferenceCounted())
@@ -401,7 +407,8 @@ class ILStaticFramePass : ICompilerPass
             if (type.IsValueType)
                 continue;
             var methods = type.GetMethods(BindingFlags.Static | BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.DeclaredOnly).OfType<MethodBase>();
-            var staticConstructors = type.GetConstructors(BindingFlags.Static | BindingFlags.NonPublic).OfType<MethodBase>();
+            var staticConstructors = type.GetConstructors(BindingFlags.Static | BindingFlags.NonPublic).OfType<MethodBase>()
+                .Concat(ConstructorSupport.CompiledConstructors(type, context.Assembly));
             foreach (var method in methods.Concat(staticConstructors))
             {
                 if (method.DeclaringType == null || method.DeclaringType.Assembly != context.Assembly)

@@ -117,7 +117,7 @@ class Program
     public void Record_Class_Is_Rejected_Not_Crashed()
     {
         var output = Errors("record class Named(string Name);", "return 1;");
-        AssertReports(output, "C64004", "record 'Named'", "init properties");
+        AssertReports(output, "C64004", "record 'Named'", "primary constructor");
     }
 
     [Test]
@@ -252,18 +252,53 @@ class Program
         AssertReports(output, "C64004", "method 'Get' of the generic class 'Box<...>'");
     }
 
-    [Test]
-    public void Constructor_With_A_Body_Points_At_Object_Initializers()
+    // --- constructors (Compiler/ConstructorSupport.cs) -----------------------
+
+    static string Compiles(string types, string body)
     {
-        var output = Errors("class A { public uint X; public A(uint x) { X = x; } }", "var a = new A(5); return a.X;");
-        AssertReports(output, "C64004", "constructor of 'A' does real work", "object initializer");
+        var (exit, output) = CompileProgram(Wrap(types, body));
+        Assert.That(exit, Is.EqualTo(0), output);
+        return File.ReadAllText(Path.Combine(lastOutDir, "Program.asm"));
     }
 
     [Test]
-    public void Field_Initializer_Is_Recognised_As_Constructor_Work()
+    public void Constructor_With_A_Body_Is_Called_After_Allocation()
     {
-        var output = Errors("class A { public uint X = 7; }", "var a = new A(); return a.X;");
-        AssertReports(output, "C64004", "field initializer");
+        var asm = Compiles("class A { public uint X; public A(uint x) { X = x; } }", "var a = new A(5); return a.X;");
+        Assert.That(asm, Does.Contain("#newObjCtor 1, 0, A_VTable, 1"));
+        Assert.That(asm, Does.Contain("A_x_ctor"));
+    }
+
+    [Test]
+    public void Field_Initializers_Become_The_Initial_Bytes()
+    {
+        // No constructor call at all: the constants are the object's
+        // initial bytes, like an object initializer's.
+        var asm = Compiles("class A { public uint X = 7; public uint Y { get; set; } = 3; }", "var a = new A(); return a.X;");
+        Assert.That(asm, Does.Contain("#newObjInit"));
+        Assert.That(asm, Does.Not.Contain("newObjCtor"));
+        Assert.That(asm, Does.Not.Contain("A_x_ctor"));
+    }
+
+    [Test]
+    public void Primary_Constructor_And_Base_Chaining_Compile()
+    {
+        Compiles("class A(uint legs) { public uint Legs => legs; } class B(uint t) : A(4) { public uint T => t; }",
+            "var b = new B(2); return b.Legs + b.T;");
+    }
+
+    [Test]
+    public void Record_Is_Rejected_With_A_Hint()
+    {
+        var output = Errors("record class P(uint X);", "var p = new P(1); return p.X;");
+        AssertReports(output, "C64004", "The record 'P' is not supported", "primary constructor");
+    }
+
+    [Test]
+    public void Derived_Reference_Field_Under_Base_Value_Fields_Is_Rejected()
+    {
+        var output = Errors("class A { public uint X; } class B : A { public A Other; }", "var b = new B(); return b.X;");
+        AssertReports(output, "C64004", "declares a reference field", "base class 'A'");
     }
 
     // --- class library calls -------------------------------------------------

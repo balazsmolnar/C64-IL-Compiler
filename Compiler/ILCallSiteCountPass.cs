@@ -175,8 +175,10 @@ class ILCallSiteCountPass : ICompilerPass
                         context.MandatoryStandalone.Add(target);
                     }
                 }
-                else if (line.OpCode == ILOpCode.Ldftn)
+                else if (line.OpCode == ILOpCode.Ldftn || line.OpCode == ILOpCode.Newobj)
                 {
+                    // A constructor newobj calls (ConstructorSupport) must
+                    // stay a real subroutine, like a delegate target.
                     var target = context.Assembly.ManifestModule.ResolveMethod((int)line.OriginalParameter) as MethodBase;
                     if (target != null)
                         context.MandatoryStandalone.Add(target);
@@ -361,7 +363,8 @@ class ILCallSiteCountPass : ICompilerPass
                 continue;
 
             var methods = type.GetMethods(BindingFlags.Static | BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public).OfType<MethodBase>();
-            var staticConstructors = type.GetConstructors(BindingFlags.Static | BindingFlags.NonPublic).OfType<MethodBase>();
+            var staticConstructors = type.GetConstructors(BindingFlags.Static | BindingFlags.NonPublic).OfType<MethodBase>()
+                .Concat(ConstructorSupport.CompiledConstructors(type, context.Assembly));
 
             foreach (var method in methods.Concat(staticConstructors).Where(m => m.DeclaringType != typeof(object)))
             {

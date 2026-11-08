@@ -11,12 +11,11 @@ namespace Compiler.UnitTests;
 [TestFixture]
 public class CompileTimeCheckTests
 {
-    // --- OpNewObj.ConstructorHasUnsupportedBody -------------------------
+    // --- ConstructorSupport.Kind -----------------------------------------
     //
-    // #newObj never calls an ordinary class's constructor (ctor is
-    // hardcoded to "0"), so a constructor doing real work would be silently
-    // skipped. Only a constructor that does nothing but forward to a base
-    // constructor is safe to skip.
+    // A constructor that only forwards to an empty base constructor is
+    // never called; one that only stores constants becomes the object's
+    // initial bytes; anything else is compiled and called by newobj.
 
     class NoExplicitCtor
     {
@@ -62,24 +61,41 @@ public class CompileTimeCheckTests
         public CallsAnotherMethod() { Helper(); }
     }
 
-    static bool Unsupported(Type t) =>
-        OpNewObj.ConstructorHasUnsupportedBody(t.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)[0]);
+    static ConstructorKind Kind(Type t)
+    {
+        // Only the program's own constructors are analysed.
+        var saved = MethodBaseExtension.ProgramAssembly;
+        MethodBaseExtension.ProgramAssembly = t.Assembly;
+        try
+        {
+            return ConstructorSupport.Kind(t.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)[0]);
+        }
+        finally
+        {
+            MethodBaseExtension.ProgramAssembly = saved;
+        }
+    }
 
     [TestCase(typeof(NoExplicitCtor))]
     [TestCase(typeof(EmptyCtor))]
-    [TestCase(typeof(ForwardsArgsToBase))]
-    public void Constructor_ThatDoesNothingButCallBase_IsSafeToSkip(Type t)
+    public void Constructor_ThatDoesNothingButCallBase_IsTrivial(Type t)
     {
-        Assert.That(Unsupported(t), Is.False);
+        Assert.That(Kind(t), Is.EqualTo(ConstructorKind.Trivial));
     }
 
     [TestCase(typeof(AssignsField))]
-    [TestCase(typeof(AssignsFieldFromParameter))]
     [TestCase(typeof(FieldInitializer))]
-    [TestCase(typeof(CallsAnotherMethod))]
-    public void Constructor_DoingRealWork_IsRejected(Type t)
+    public void Constructor_StoringConstants_IsConstantInit(Type t)
     {
-        Assert.That(Unsupported(t), Is.True);
+        Assert.That(Kind(t), Is.EqualTo(ConstructorKind.ConstantInit));
+    }
+
+    [TestCase(typeof(ForwardsArgsToBase))]
+    [TestCase(typeof(AssignsFieldFromParameter))]
+    [TestCase(typeof(CallsAnotherMethod))]
+    public void Constructor_DoingRealWork_IsCalled(Type t)
+    {
+        Assert.That(Kind(t), Is.EqualTo(ConstructorKind.Call));
     }
 
     // --- OpCall.IsResolvable --------------------------------------------

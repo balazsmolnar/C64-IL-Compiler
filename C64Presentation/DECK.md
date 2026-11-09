@@ -410,6 +410,8 @@ GC   strings & floats   bitmaps
 - **Say:** "Six things C# takes for granted that a 6502 does not have."
 - **Sources:** agenda of slides 10-16.
 
+- **As built** (`Slides/Part2/HardPartsSlide.cs`): the engine section master (number `05`, the section's number in this file; the `sec_chip` icon top right, no subtitle). The six A6 icons in two rows of three, each with its label beside it: the two text lines above become the labels (`8-bit int`, `stack`, `objects` / `GC`, `strings & floats`, `bitmaps`), so every icon names its topic.
+
 ### Slide 10 — int is 8 bits
 
 - **Layout:** two-column (hi-res): type table on top, code and error below.
@@ -453,6 +455,8 @@ would become 188.
   "The constant 700 does not fit in 8 bits: int and uint are 8-bit values
   on the C64 (0..255, or -128..127), so it would become 188."
 
+- **As built** (`IntIs8BitsSlide.cs`): the table as two side-by-side tables (`C# type` | `size`), the code line in a 26-cell code panel, `-> 188` in grey right of it, the error in the code face (IDE-like: consecutive rows) with a red bar; the red underline on `700` comes with the error (press 3).
+
 ### Slide 11 — Our tests lied
 
 - **Layout:** bullets (hi-res).
@@ -479,6 +483,8 @@ This deck: Wait(500) waited 244
   loops that ran zero times (DivConstRoutineTests, ShiftConstTests ...)";
   "RandomTests' new uint[256] (an empty array)". Arithmetic: 256 & 255 =
   0; 500 & 255 = 244.
+
+- **As built** (`TestsLiedSlide.cs`): as specified; the struck value, the real one and the rest of the line each start on a cell edge (one colour per cell), so the gap before a struck value is 2-8 px.
 
 ### Slide 12 — Frames share bytes
 
@@ -517,6 +523,8 @@ in 39 bytes of frames
   frames: 118 of 125 methods (9 callee-pulls), 39 bytes") and
   Catacombs/TECH.md ("39 bytes of static frames").
 
+- **As built** (`FramesSlide.cs`): text left (rows 5-19), tree right (boxes 5 wide, the Update/Move branch cyan, Draw/Hud yellow), the `StaticFrames` strip at cells 34-37, rows 6-13; on press 2 the frames fade in one after another (Main, Update, Draw onto Update's rows as a cyan/yellow checker, Move, Hud the same, the free row) instead of sliding. The full-stack icon is A6 `icon_stack` in red with a red up-arrow beside it.
+
 ### Slide 13 — References: 1 byte
 
 - **Layout:** diagram (hi-res).
@@ -553,6 +561,8 @@ Full: ?OUT OF MEMORY ERROR
   `asm/helper/fault.asm` (header: "?<MESSAGE> ERROR", red border;
   `Runtime_FaultMsg0 .text "OUT OF MEMORY"`).
 
+- **As built** (`ReferencesSlide.cs`): table rows 1 and 2 only (the engine critic's table), heap strip rows 12-14; the text in rows 16-20: line 1 with line 2 beside it on row 16 (no 2x2 grid fits: each line is about 140 px), lines 3 and 4 under line 1.
+
 ### Slide 14 — GC without a scan
 
 - **Layout:** diagram (hi-res, animated: the existing GarbageCollectorSlide
@@ -588,6 +598,8 @@ Full: ?OUT OF MEMORY ERROR
   ("Only GC.Collect() is supported") and
   `Compiler/ILMethodCachedFieldAccessPass.cs` ("This GC only ever moves an
   object via an explicit GC.Collect() call").
+
+- **As built** (`GcSlide.cs`): objects in a 3x2 grid on the left (each box: id, its references), `root` in cyan under 1 and 3; the four phase labels on the right, the current one white; the mark stack as six slots under them; the heap below in address order 3, 1, 6, 4, 2, 5 (2 and 6 reference each other: a dead cycle). Sort: the dead objects fade out and the slots list the live ones by address (3, 1, 4, 5); slide down: the dead blocks fade, the live ones slide left cell by cell.
 
 ### Slide 15 — Borrow, not build
 
@@ -629,6 +641,8 @@ Sin, Cos, Sqrt
   BASIC ROM routines: `asm/helper/floatBanking.asm`; Sin/Cos/Sqrt:
   `Compiler/Diagnostics.cs` ("MathF.Sin/Cos/Sqrt").
 
+- **As built** (`BorrowSlide.cs`): headings in the 16 px face, a wrapped item's second line 2 rows down, items 3 rows apart.
+
 ### Slide 16 — Hide under the ROM
 
 - **Layout:** diagram (hi-res): memory map left, text right.
@@ -662,6 +676,9 @@ Pictures packed:
   ... about 110; frees 9.4 KB"; "the tech demo's dithered 40x21 backdrop
   is 8400 -> 2118 bytes"; CLAUDE.md ("Graphics memory layout"). $0000-$07FF
   zero page and 6502 stack ($0100): C64 Programmer's Reference Guide.
+
+- **As built** (`RomSlide.cs`): the engine gallery's approved map (bitmap 3 rows, I/O, colours, program, tables, zero page 2-3 rows each, palette colours: no violet or blue), rows 5-18; each fact level with its segment; `Frees 9.4 KB` in the 16 px face, cyan.
+
 
 ## 6. Making it small and fast
 

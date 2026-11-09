@@ -26,7 +26,7 @@ static class CompilerPassesSlide
             Code("64tass macros", [
                 $"{K}#locals_push_value8 {N}1 {C}; ldarg.0",
                 $"{K}#locals_push_value8 {N}2 {C}; ldarg.1",
-                $"{K}#add8                {C}; add",
+                $"{K}#add8                 {C}; add",
                 $"{K}#method_exit {N}4, []    {C}; ret"]),
             Stage(22, "asm", Theme.Accent),
             Flow(27, "64tass"),

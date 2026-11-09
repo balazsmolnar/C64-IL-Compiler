@@ -41,8 +41,8 @@ sealed class Box : SlideElement
         uint row = captioned ? Y + 1 : Y + Height / 2;
         if (Text != null)
             Helper.Text.Center(x, width, row, Text, ink, fill);
-        if (captioned)
-            Helper.Text.Center(x, width, row + 2, Caption!, ink, fill);
+        if (captioned)      // the second line recedes: Grey3
+            Helper.Text.Center(x, width, row + 2, Caption!, Theme.Body, fill);
         if (WaitAfter)
             Deck.Step();
     }

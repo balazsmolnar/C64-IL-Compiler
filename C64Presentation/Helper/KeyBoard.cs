@@ -9,7 +9,7 @@ namespace C64Presentation.Helper;
 static class KeyBoard
 {
 #if SCENE_AUTO
-    static uint autoTicks_;
+    static uint _autoTicks;
 #endif
 
     // True while "advance" is held: SPACE or joystick fire.
@@ -19,10 +19,10 @@ static class KeyBoard
         return false;
 #elif SCENE_AUTO
         Delay.Wait(10);
-        autoTicks_++;
-        if (autoTicks_ < 64)
+        _autoTicks++;
+        if (_autoTicks < 64)
             return false;
-        autoTicks_ = 0;
+        _autoTicks = 0;
         return true;
 #else
         return C64.IsKeyPressed(Keys.Space) || (C64.Joysticks.Joystick2.Pressed & JoystickButtons.Fire) == JoystickButtons.Fire;

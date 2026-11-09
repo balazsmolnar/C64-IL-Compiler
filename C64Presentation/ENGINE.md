@@ -94,14 +94,14 @@ at once, `-Scene AUTO` presses by itself).
 | `SectionElement` | `Number`, `Title`, `Subtitle`, `Icon` (an `img_Sec*` address; 0 = none) | On black: the part number big in Grey2, the title 2x in white, the subtitle, the icon top right. No number: a plain title slide (`DemoSlide`: the LIVE badge sits in the footer). |
 | `TextElement` | `X`, `Y`, `Text`, `Face` (`Body` / `Heading` / `Big`), `Color` (Body, or white for headings), `Strike`, `Wait` | One line. `Strike` draws a 1 px rule through the text, for an old value. |
 | `BulletList` | `Items`, `Left` (2), `Top` (5), `Pitch` (2), `Level` (0 = dot, 1 = dash), `Color`, `Wait` | 5 px between the mark and the text. |
-| `CodeBlock` | `X`, `Y`, `Width` (36), `Rows`, `Lines`, `Caption`, `Replace`, `Wait` | Black panel, Grey1 1 px frame. Caption on row 1, code from row 3 in the mono face with leading (underscores and descenders clear the next line). `Replace`: the old code is swapped row by row, never an empty card. |
+| `CodeBlock` | `X`, `Y`, `Width` (36), `Rows`, `Lines`, `Caption`, `Replace`, `Wait` | Black panel, Grey1 1 px frame. Caption on row 1, code from row 3 in the code face: 6 px pitch, with leading (underscores clear the next line); each colour change starts on the next cell edge, so pad with spaces to line up a column after one. `Replace`: the old code is swapped row by row, never an empty card. |
 | `Table` | `X` (2), `Y`, `Widths`, `Header`, `Rows` (`string[][]`), `WaitAfterRow` | Header labels in white on black over a 2 px cyan rule; rows with Grey2 hairlines, two cell rows each. First column left aligned, the rest right aligned. |
 | `Box` | `X`, `Y`, `Width`, `Height`, `Text`, `Caption`, `Color` (accent bar, cyan), `Hollow`, `ConnectToLeft`, `Wait`, `WaitAfter` | A card. With a caption: text on row 1, caption two rows lower, so `Height` ≥ 4. |
 | `Arrow` | `FromCol`, `FromRow`, `ToCol`, `ToRow`, `VerticalFirst`, `Text`, `Color`, `Wait` | Any direction, straight or L-shaped; grows when drawn after a press. The label goes above a horizontal leg, or beside a vertical one, clamped to the content columns. |
-| `BarChart` | `Bars` (`Bar`: `Label`, `Value`, `Text`, `Color`), `Legend` (`LegendItem`: `Name`, `Color`), `Gap` (`BarGap`: `From`, `To`, `Text`), `Max`, `Outline`, `TickEvery`, `X`, `Y`, `Width`, `LabelWidth` (12), `ValueWidth` (7), `Pitch` (2), `Wait` | Label, bar, value. `Gap`: a dashed box level with the shorter bar, up to the longer bar's end, its text under it, and the shorter bar's value after the box. `Outline` adds a full-scale frame with ticks. The 38-column budget is `X = 1, Width = 38`. |
-| `MemoryMap` | `X`, `Y`, `Width` (8), `Segments` (`Segment`: `Name`, `Address`, `Detail`, `Height`, `Color`), `Note`, `Wait` | Stacked segments, high addresses first, addresses right aligned in Grey2 on the left. Give every segment 2 rows or more (addresses on adjacent rows touch); a `Detail` needs 3. |
+| `BarChart` | `Bars` (`Bar`: `Label`, `Value`, `Text`, `Color`), `Legend` (`LegendItem`: `Name`, `Color`), `Gap` (`BarGap`: `From`, `To`, `Text`), `Max`, `Outline`, `TickEvery`, `X`, `Y`, `Width`, `LabelWidth` (12), `ValueWidth` (7), `Pitch` (2), `Wait` | Label, bar, value. `LegendRow`: the legend right aligned on that row (the title's second row). `ValueColumn`: values right aligned at the chart's edge in their bar's colour. `GroupEvery`: a 1 px Grey1 hairline under every that many bars. `Gap`: a dashed box level with the shorter bar, up to the longer bar's end, its text under it, and the shorter bar's value after the box. `Outline` adds a full-scale frame with ticks. The 38-column budget is `X = 1, Width = 38`. |
+| `MemoryMap` | `X`, `Y`, `Width` (8), `Segments` (`Segment`: `Name`, `Address`, `Detail`, `Height`, `Color`), `Note`, `Wait` | Stacked segments, high addresses first, a 1 px black line along each segment's bottom; each start address right aligned in Grey2 on its segment's bottom row, with a tick to the boundary. Give every segment 2 rows or more; a `Detail` (Grey3, its own row) needs 3. |
 | `ImageElement` | `Column`, `Row`, `Width`, `Height`, `Image`, `Caption`, `Wait` | A hi-res image. |
-| `Callout` | `Lines`, `Attribution`, `Y`, `X` (2), `Width` (36), `Accent` | The key message in the 16 px face, 16 px between lines, with an accent bar. |
+| `Callout` | `Lines`, `Attribution`, `Y`, `X` (2), `Width` (36), `Accent` | The key message in the 16 px face, 24 px between lines, the attribution in white, an accent bar. 3 rows a line + 1 (+2 with an attribution). |
 
 Lower level, for `Present()`:
 
@@ -125,6 +125,10 @@ Live slides (`IntroSlide`, `DemoSlide`) call `Deck.Reveal()`, then loop on
 `KeyBoard.AdvancePressed()`.
 
 ## Rules of thumb (hi-res)
+
+- Content slides keep row 21 (and 22) empty: `Master.Content` sets it,
+  and a scene build turns the border red when anything draws there
+  (`Deck.CheckRows`, `[Conditional("SCENE")]`: not in the real deck).
 
 - Each cell has one foreground colour. Keep differently coloured things in
   different cells.
@@ -163,21 +167,20 @@ Live slides (`IntroSlide`, `DemoSlide`) call `Deck.Reveal()`, then loop on
     reads another type's static field runs after that type's), so
     `static readonly Func<Slide>[] Slides = EngineGallery.Slides;` works.
 
-## Memory (round 3, plain build, with the art)
+## Memory (round 4, plain build, with the art)
 
 | Item | Bytes |
 |---|---|
-| Program end | $C919; static frames to $C9EA |
-| Free | about 530 B before $CC00, before the heap |
-| Engine C# | about 16.7 KB: Deck, Text, Master, Theme, the elements and the chart/map types (BarChart 1,247, BarGap 1,087, Bar 873, BarScale 722, MemoryMap + Segment 964, Callout 631, Arrow 2,122) |
-| Fonts | 3,300 |
+| Program end | $B595; static frames to $B666 |
+| Free | about 5.5 KB before $CC00, before the heap |
+| Not in the deck build yet | `BarChart`, `MemoryMap`, `Callout` (about 5.5 KB; the csproj leaves them out until a deck slide uses one; the gallery has them) |
+| Engine C# in the deck build | about 11 KB (Arrow 2,122, Text 1,393, Deck 1,199, Table 1,130, Box, Master, CodeBlock, BulletList, ...) |
+| Fonts | 3,614 (the code face's own width/address tables and 4 narrow capitals: +314) |
 | `buf_Picture` | 3,755 (the disk shots load into it) |
 | Typical slide | Agenda (title + 5 bullets) 420 B of code; a table slide (What is it) 1,100 B; Features (two columns) 1,107 B; plus strings |
-| GC slide | 4,249 B |
+| GC slide | 4,550 B |
 
-Every class compiles even when no slide uses it, so the chart and map
-types (about 5.5 KB) are in the deck build before any deck slide uses
-them. The gallery build (`-p:Scene=ENGINE`) ends at $BC27.
+The gallery build (`-p:Scene=ENGINE`) ends at $C50E.
 
 ## Assets owned by the engine
 

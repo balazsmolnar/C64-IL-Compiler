@@ -25,14 +25,14 @@ static class ArtDisk
     const uint EmptyPicture = 0;
 
     static readonly ulong buffer = C64Address.FromLabel("buf_Picture");
-    static DiskPicture inBuffer = DiskPicture.None;
+    static DiskPicture _inBuffer = DiskPicture.None;
 
     public static ulong Load(DiskPicture picture)
     {
-        if (picture != inBuffer)
+        if (picture != _inBuffer)
         {
-            inBuffer = C64.Disk.Load(FileName(picture), buffer) ? picture : DiskPicture.None;
-            if (inBuffer == DiskPicture.None)
+            _inBuffer = C64.Disk.Load(FileName(picture), buffer) ? picture : DiskPicture.None;
+            if (_inBuffer == DiskPicture.None)
                 C64.FillMemory(buffer, EmptyPicture, 1);
         }
         return buffer;

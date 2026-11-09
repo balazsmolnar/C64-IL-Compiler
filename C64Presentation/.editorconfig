@@ -3,13 +3,13 @@ root = false
 
 [*.cs]
 charset = utf-8
-end_of_line = lf
+end_of_line = crlf
 insert_final_newline = true
 indent_style = space
 indent_size = 4
 csharp_style_namespace_declarations = file_scoped:warning
 csharp_style_expression_bodied_methods = when_on_single_line:suggestion
-csharp_style_prefer_primary_constructors = false:none   # the compiler runs no constructor bodies
+csharp_style_prefer_primary_constructors = false:none   # object initializers cost less code here (ENGINE.md)
 dotnet_style_prefer_collection_expression = true:suggestion
 dotnet_naming_rule.private_fields_underscore.symbols = private_fields
 dotnet_naming_rule.private_fields_underscore.style = underscore_camel

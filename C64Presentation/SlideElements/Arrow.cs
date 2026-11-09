@@ -43,7 +43,9 @@ class Arrow : SlideElement
 
     static ulong X(uint column) => Helper.Screen.Px(column) + 3;
 
-    static ulong Y(uint row) => Helper.Screen.Px(row) + 3;   // 4 px under a label in the row above
+    // The shaft 4 px down its row: a head (3 px each way) stays in the row,
+    // 3 px under the bottom of a label in the row above.
+    static ulong Y(uint row) => Helper.Screen.Px(row) + 4;
 
     static uint Min(uint a, uint b) => a < b ? a : b;
 

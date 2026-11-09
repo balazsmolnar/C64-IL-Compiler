@@ -4,10 +4,12 @@ using C64Presentation.Helper;
 namespace C64Presentation.SlideElements;
 
 // A vertical memory map: Segments stacked from the top (high addresses
-// first), each a Grey1 block of Height rows (1 or more) with a 3 px stripe
-// in its Color down the left edge (its divider from the next), its name (and Detail, from Height 3) in
-// white, its start address right-aligned to the left of it in Grey2, and a
-// Note under the map ("not to scale").
+// first), each a Grey1 block of Height rows (2 or more) with a 3 px stripe
+// in its Color down the left edge and a 1 px black line along its bottom
+// (the boundary with the next), its name in white (and Detail under it in
+// Grey3, from Height 3), and its start address right-aligned to the left
+// on its bottom row, where that boundary is, in Grey2 with a tick to it.
+// A Note under the map ("not to scale").
 // Wait: one segment per build step, from the top.
 //
 //     new MemoryMap
@@ -38,11 +40,14 @@ sealed class MemoryMap : SlideElement
             if (Wait)
                 Deck.Step();
             segment.Draw(X, row, width);
-            Text.Right(labelRight, row, segment.Address, Theme.Muted);
+            uint bottom = row + segment.Height - 1;
+            Text.Right(labelRight, bottom, segment.Address, Theme.Muted);
+            ulong y = Screen.Px(bottom) + 7;
+            Screen.Line(labelRight + 2, y, Screen.Px(X) - 1, y);
             row += segment.Height;
         }
         if (Note != null)
-            Text.Center(Screen.Px(X), Screen.Px(width), row + 1, Note, Theme.Muted);
+            Text.Center(Screen.Px(X), Screen.Px(width), row, Note, Theme.Muted);    // lowercase: 2 px under the map
     }
 }
 
@@ -62,6 +67,7 @@ sealed class Segment
         Deck.Paint(column, row, 1, Height, Theme.Or(Color, Theme.Accent), Theme.Card);
         ulong x = Screen.Px(column), top = Screen.Px(row), bottom = Screen.Px(row + Height) - 1;
         Screen.Fill(x, top, x + 2, bottom - 1);
+        Screen.Line(x + 8, bottom, x + Screen.Px(width) - 1, bottom);   // black: the cells' ink
         // Name and Detail centred as a pair, so the Detail never sits on
         // the segment's last row against the next segment's name.
         bool detail = Detail != null && Height > 2;

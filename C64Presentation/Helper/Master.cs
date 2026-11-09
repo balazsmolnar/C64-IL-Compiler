@@ -15,9 +15,12 @@ static class Master
     const ulong ProgressY = Theme.ProgressRow * Theme.CellPixels + 3;  // 195
     const uint RuleCells = 3;                                          // the accent stub
 
-    // Title at the top left, the accent rule under it, the footer.
+    // Title at the top left, the accent rule under it, the footer. The body
+    // ends at Theme.BodyBottom: the row above the footer stays empty (a
+    // scene build shows a red border when something draws there).
     public static void Content(string title)
     {
+        Deck.KeepEmptyFrom(Theme.BodyBottom);
         Text.Heading(ContentLeft, Theme.TitleRow, title);
         Rule(Theme.RuleRow);
         Footer();

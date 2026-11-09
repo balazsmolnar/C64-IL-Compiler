@@ -5,9 +5,10 @@ namespace C64Presentation.SlideElements;
 
 // Code on a black panel in a 1 px Grey1 frame, one cell of padding inside
 // it: an optional Caption on the first row (Grey3, like a tab label) with
-// an empty row under it, then the Lines in the code face, one character per
-// cell and at most Width - 2 columns, syntax colours inline (Theme.Kw / Ty /
-// Str / Num / Com / Pl; plain text is white). The panel is tall enough for
+// an empty row under it, then the Lines in the code face (6 px a character,
+// so (Width - 2) * 8 / 6 of them), syntax colours inline (Theme.Kw / Ty /
+// Str / Num / Com / Pl; plain text is white; each colour starts on a cell
+// edge). The panel is tall enough for
 // Rows lines (or the lines it has). Drawing a CodeBlock where one is shown
 // replaces the code row by row: each row is hidden, cleared and drawn anew
 // in one go, so the panel is never empty.

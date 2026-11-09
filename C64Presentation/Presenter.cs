@@ -12,14 +12,12 @@ class Presenter
     public static void Present(Func<Slide>[] slides)
     {
         int currentSlide = SceneConfig.StartSlide; // 0 unless a scene build says otherwise
-        Deck.Count = (uint)slides.Length;
-        Deck.Init();
+        Deck.Init((uint)slides.Length);
 
         while (true)
         {
             GC.Collect();
-            Deck.Number = (uint)currentSlide;
-            Deck.Begin();
+            Deck.Begin((uint)currentSlide);
 
             var slide = slides[currentSlide]();
             slide.Present();

@@ -6,8 +6,10 @@ namespace C64Presentation.Helper;
 //   Draw     body text: 8 px proportional sans, one cell row
 //   Heading  titles and key messages: 16 px bold, two cell rows
 //   Big      the title face doubled and smoothed: 32 px, four cell rows
-//   Code     a fixed 8 px pitch, one glyph per cell, a blank top pixel line
-//            so code lines can sit on consecutive rows
+//   Code     a fixed 6 px pitch with a blank top pixel line, so code lines
+//            sit on consecutive rows; a colour change moves on to the next
+//            cell edge (a cell has one colour), so pad with spaces to line
+//            up columns after one
 // x is in pixels, row in cells; each returns the x after the text. Strings
 // may change colour inline (Theme.Hi ... Theme.Off). Special glyphs in every
 // face: Theme.Arrow, Theme.Dot, Theme.Tick.
@@ -57,6 +59,7 @@ static class Text
 
     static ulong Put(ulong x, uint row, string text, ulong font, Colors fg, Colors bg, uint rows)
     {
+        Deck.CheckRows(row, rows);
         if (!Deck.Building)
             return C64.Screen.DrawFontText(x, row, text, font, Theme.Matrix(fg, bg));
 

@@ -12,6 +12,10 @@ static class Screen
     // The pixel coordinate of a cell column or row.
     public static ulong Px(uint cells) => (ulong)cells * Theme.CellPixels;
 
+    // The first cell edge at least gap pixels after pixel x: where something
+    // in another colour can start (a cell has one foreground colour).
+    public static ulong CellAfter(ulong x, ulong gap) => (x + gap + Theme.CellPixels - 1) / Theme.CellPixels * Theme.CellPixels;
+
     // Clears the pixels of a rectangle of cells (its colours stay).
     public static void ClearRect(uint column, uint row, uint width, uint height)
     {

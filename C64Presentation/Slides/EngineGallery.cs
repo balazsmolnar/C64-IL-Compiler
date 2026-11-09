@@ -75,15 +75,16 @@ static class EngineGallery
             new Title { Text = "No single winner" },
             new BarChart
             {
-                X = 1, Y = 4, Width = 38, LabelWidth = 14, ValueWidth = 6, Pitch = 1, Max = 3420,
+                X = 2, Y = 5, Width = 36, LabelWidth = 14, ValueWidth = 6, Pitch = 1, Max = 3420,
+                LegendRow = 2, ValueColumn = true, GroupEvery = 2,
                 Legend = [new() { Name = "Hunchback", Color = Theme.Accent }, new() { Name = "Catacombs", Color = Theme.Accent2 }],
                 Bars =
                 [
-                    Saved("Object arrays", 3357, "3,357"), Other(0, "0"),
+                    Saved("Object arrays", 3357, "3,357"), Other(0, "-"),
                     Saved("Static frames", 2304, "2,304"), Other(1818, "1,818"),
                     Saved("Exit tails", 1983, "1,983"), Other(2579, "2,579"),
                     Saved("Top of stack", 824, "824"), Other(1168, "1,168"),
-                    Saved("Static arrays", 0, "0"), Other(616, "616"),
+                    Saved("Static arrays", 0, "-"), Other(616, "616"),
                     Saved("Skip Y reload", 311, "311"), Other(495, "495"),
                     Saved("++ on statics", 28, "28"), Other(340, "340"),
                     Saved("Logic + const", 85, "85"), Other(326, "326"),
@@ -129,7 +130,7 @@ static class EngineGallery
             new Arrow { FromCol = 30, FromRow = 11, ToCol = 30, ToRow = 14, Text = "loads .prg", Wait = true },
             Step(23, 15, "SimpleEmulator", "runs 6502", Theme.Accent),
             new Arrow { FromCol = 22, FromRow = 16, ToCol = 15, ToRow = 16, Text = "result byte", Wait = true },
-            Step(2, 15, "$20 result", "0 = pass", Theme.Accent),
+            Step(2, 15, "$20 result", $"{Theme.Tick} 0 = pass", Theme.Accent),
             new Arrow { FromCol = 8, FromRow = 14, ToCol = 8, ToRow = 11, Text = "back to NUnit", Wait = true },
         ]
     };
@@ -144,7 +145,7 @@ static class EngineGallery
         [
             new Title { Text = "Four lessons" },
             new BulletList { Items = ["Structure beats peepholes", "Measure every change", "Unsupported = compile error"], Wait = true },
-            new Callout { Y = 13, Lines = ["Every slide you have seen", "was C#, on a 6502."], Attribution = "this deck, compiled by this compiler", Wait = true },
+            new Callout { Y = 11, Lines = ["Every slide you have seen", "was C#, on a 6502."], Attribution = "this deck, compiled by this compiler", Wait = true },
         ]
     };
 

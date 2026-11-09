@@ -16,8 +16,8 @@ namespace C64Presentation.Helper;
 // cells with Paint and write with Text.
 static class Deck
 {
-    public static uint Number;      // current slide, 0-based
-    public static uint Count;       // slides in the deck
+    public static uint Number { get; private set; }     // current slide, 0-based
+    public static uint Count { get; private set; }      // slides in the deck
 
     // Fade levels: fade_Levels holds Black (0) .. Full (4).
     const uint Black = 0;
@@ -36,6 +36,7 @@ static class Deck
     static bool _picture;
     static bool _building;
     static bool _onSurface;     // the step is drawn onto a visible surface
+    static uint _contentBottom; // rows from here to the footer stay empty (Master.Content)
     static uint _markCount;
     static readonly Mark[] _marks = new Mark[MaxMarks];
 
@@ -45,8 +46,9 @@ static class Deck
     public static bool Live => _revealed && !_building;
 
     // Once, at start: hi-res bitmap, everything black.
-    public static void Init()
+    public static void Init(uint count)
     {
+        Count = count;
         C64.Screen.SetBorderColor(Theme.Background);
         C64.Screen.SetBackgroundColor(Theme.Background);
         C64.Screen.SetBitmapColors(0);
@@ -54,9 +56,11 @@ static class Deck
         C64.Screen.SetScreenMode(ScreenMode.Bitmap);
     }
 
-    // Before a slide draws: the screen is black (FadeOut) and blanked.
-    public static void Begin()
+    // Before slide `number` draws: the screen is black (FadeOut) and blanked.
+    public static void Begin(uint number)
     {
+        Number = number;
+        _contentBottom = Screen.Rows;
         if (_picture)
         {
             C64.Screen.ClearSplit();
@@ -167,6 +171,19 @@ static class Deck
         _markCount = 0;
     }
 
+    // A content slide: rows from `bottom` to the footer must stay empty.
+    public static void KeepEmptyFrom(uint bottom) => _contentBottom = bottom;
+
+    // In a scene build, drawing into the rows kept empty above the footer
+    // turns the border red, so a screenshot shows it. Compiled out of the
+    // real deck ([Conditional]: the calls go too).
+    [System.Diagnostics.Conditional("SCENE")]
+    public static void CheckRows(uint row, uint height)
+    {
+        if (row + height > _contentBottom && row < Theme.FooterRow)
+            C64.Screen.SetBorderColor(Theme.Bad);
+    }
+
     // Colours a rectangle of cells: fg for set pixels, bg for the rest.
     // During a build step the cells stay hidden until Show: black, or the
     // surface's own colour when drawing onto one (Build(true)).
@@ -179,6 +196,7 @@ static class Deck
     // "" = no text: the compiler cannot pass a bare null as a string.)
     public static void PaintText(uint column, uint row, uint width, uint height, Colors fg, Colors bg, string text, ulong x, ulong font)
     {
+        CheckRows(row, height);
         if (!_building)
         {
             C64.Screen.SetCellColors(column, row, width, height, Theme.Matrix(fg, bg), Colors.Black);

@@ -3197,7 +3197,9 @@ Font_Run_Glyph:
     beq Font_Run_Prop
     sec
     sbc zp_ft_w
-    lsr
+    bcs +                         ; wider than the pitch: from the pen
+    lda #0
++   lsr
     clc
     adc zp_ft_dx
     sta zp_ft_dx

@@ -4,7 +4,7 @@ Builds the deck's fonts (C64Presentation/art/font/build/fonts.asm, embedded by
 the .csproj) from the hand-editable glyph files next to this script:
 
     body.txt   8-line proportional sans, hand drawn -> font_Body
-               and the code face, fixed 8 px pitch   -> font_BodyMono
+               and the code face, fixed 6 px pitch   -> font_BodyMono
     title.txt  16-line bold sans for titles          -> font_Title, font_TitleBig (2x)
 
 The code face draws the body glyphs with leading: pixel line 1 left out
@@ -67,6 +67,18 @@ def bootstrap_title():
     print("title.txt bootstrapped")
 
 
+# The code face: a 6 px pitch (an escape that changes colour moves to the
+# next cell edge, so syntax colours never share a cell). The body's 6-7 px
+# capitals would touch their neighbours at that pitch: 5 px ones instead.
+CODE_PITCH = 6
+CODE_GLYPHS = {
+    "M": ["#...#", "##.##", "#.#.#", "#.#.#", "#...#", "#...#", "#...#", "....."],
+    "W": ["#...#", "#...#", "#...#", "#.#.#", "#.#.#", "##.##", "#...#", "....."],
+    "O": [".###.", "#...#", "#...#", "#...#", "#...#", "#...#", ".###.", "....."],
+    "Q": [".###.", "#...#", "#...#", "#...#", "#.#.#", "#..#.", ".##.#", "....."],
+}
+
+
 def main():
     if "--bootstrap-title" in sys.argv:
         bootstrap_title()
@@ -75,9 +87,10 @@ def main():
     os.makedirs(build, exist_ok=True)
     parts, total = [], 0
     body = c64font.load(os.path.join(HERE, "body.txt"))
-    for src, label, mono, big, font in (("body.txt", "Body", 8, False, body),
+    for src, label, mono, big, font in (("body.txt", "Body", CODE_PITCH, False, body),
                                         ("title.txt", "Title", 0, True, c64font.load(os.path.join(HERE, "title.txt")))):
-        asm, size = c64font.build(font, label, mono, big, leading=bool(mono))
+        asm, size = c64font.build(font, label, mono, big, leading=bool(mono),
+                                  mono_glyphs=CODE_GLYPHS if mono else None)
         parts.append(asm)
         total += size
         print(f"{src}: {len(font.glyphs)} glyphs, {size} bytes")

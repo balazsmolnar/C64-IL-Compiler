@@ -37,6 +37,14 @@
     <EmbeddedResource Include="art\font\build\*.asm;art\engine\build\*.spr;art\build\*.img;art\build\*.spr;art\build\*.asm" LogicalName="%(Filename)%(Extension)" />
   </ItemGroup>
 
+  <!-- Every class compiles whether a slide uses it or not: the elements no
+       deck slide uses yet (charts, memory map, callout: about 5.5 KB) are
+       only in the gallery build. Drop a file from this list when a deck
+       slide starts using it. -->
+  <ItemGroup Condition="'$(Scene)' != 'ENGINE'">
+    <Compile Remove="SlideElements\BarChart.cs;SlideElements\MemoryMap.cs;SlideElements\Callout.cs" />
+  </ItemGroup>
+
   <ItemGroup Condition="'$(Scene)' == 'ENGINE'">
     <Compile Remove="Slides\AgendaSlide.cs;Slides\WhatIsItSlide.cs;Slides\CompilerPassesSlide.cs;Slides\FeaturesSlide.cs;Slides\MemoryLayoutSlide.cs;Slides\GarbageCollectorSlide.cs;Slides\DemoSlide.cs;Slides\IntroSlide.cs" />
   </ItemGroup>

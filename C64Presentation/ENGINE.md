@@ -22,10 +22,11 @@ and `art/ART.md` for the pictures.
     and is now edited as pixel art.
   - **Big**: the heading glyphs drawn at 2x (32 px), set by a scale byte in
     the font header. Used for the cover title and section numbers.
-  - **Code**: the body glyphs at a fixed 8 px pitch, with *leading* (a header
+  - **Code**: the body glyphs at a fixed 6 px pitch, with *leading* (a header
     flag): pixel line 0 is blank and the glyph's line 1 is dropped. Code lines
     sit on consecutive rows without touching, and no extra glyph data is
-    needed.
+    needed. `i` and `j` have code-face glyphs of their own (a shorter,
+    serifed stem): dropping line 1 put their dots on the stem.
   - Special glyphs in every face: `~` is an arrow, `\` a bullet dot, `^` a
     tick (`Theme.Arrow`, `Theme.Dot`, `Theme.Tick`).
 - **Inline colour**: `` `x `` sets the colour (`Theme.Hi`, `Hi2`, `White`,
@@ -122,7 +123,7 @@ The gallery: `dotnet build C64Presentation -p:Scene=ENGINE` builds
 callout, two columns, a section) instead of the deck, and holds each slide
 like `-Scene HOLD`.
 
-Live slides (`IntroSlide`, `DemoSlide`) call `Deck.Reveal()`, then loop on
+Live slides (`TitleSlide`, `DemoSlide`) call `Deck.Reveal()`, then loop on
 `KeyBoard.AdvancePressed()`.
 
 ## Rules of thumb (hi-res)
@@ -174,9 +175,9 @@ Live slides (`IntroSlide`, `DemoSlide`) call `Deck.Reveal()`, then loop on
 |---|---|
 | Program end | $B4F7; static frames to $B5C8 |
 | Free | about 5.7 KB before $CC00, before the heap |
-| Not in the deck build yet | `BarChart`, `ButterflyChart`, `MemoryMap`, `Callout` (about 6 KB; the csproj leaves them out until a deck slide uses one; the gallery has them) |
+| Elements no slide uses | cost nothing: dead-code elimination drops unused classes (byte-identical to the old csproj `Compile Remove` list, which is gone) |
 | Engine C# in the deck build | about 11 KB (Arrow 2,122, Text 1,393, Deck 1,199, Table 1,130, Box, Master, CodeBlock, BulletList, ...) |
-| Fonts | 3,614 (the code face's own width/address tables and 4 narrow capitals: +314) |
+| Fonts | 3,630 (the code face's own width/address tables, 4 narrow capitals and its i/j: +330) |
 | `buf_Picture` | 3,755 (the disk shots load into it) |
 | Typical slide | Agenda (title + 5 bullets) 420 B of code; a table slide (What is it) 1,100 B; Features (two columns) 1,107 B; plus strings |
 | GC slide | 4,550 B |

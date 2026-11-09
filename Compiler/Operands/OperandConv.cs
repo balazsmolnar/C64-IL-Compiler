@@ -138,6 +138,20 @@ class OpFusedWiden8To16 : OpBase
 
     public override string Emit(CompilerMethodContext context, ILOperation operation)
     {
-        return $"#stack_push_int8 0\n    {_inner.Operation.Emit(context, _inner)}";
+        // The producer is emitted as the real operation it is: the peephole
+        // marked its line Optimized, and an Optimized call emits a bare jsr
+        // without its static-frame result push (#sf_result), so a
+        // parameterless static-frame call widened to 16 bits (`ulong x =
+        // F();`) lost its value.
+        var optimized = _inner.Optimized;
+        _inner.Optimized = false;
+        try
+        {
+            return $"#stack_push_int8 0\n    {_inner.Operation.Emit(context, _inner)}";
+        }
+        finally
+        {
+            _inner.Optimized = optimized;
+        }
     }
 }

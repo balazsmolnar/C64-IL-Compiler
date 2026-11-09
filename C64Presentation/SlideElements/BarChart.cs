@@ -111,7 +111,7 @@ sealed class Bar
 }
 
 // A dashed box from the end of bar To to the end of bar From, on bar To's
-// row, and its text centred under it.
+// row, and its text under it (ending with it; centred under an outline).
 sealed class BarGap
 {
     public uint From { get; init; }
@@ -137,8 +137,13 @@ sealed class BarGap
             Screen.Line(start, yy, start, yy);
             Screen.Line(end, yy, end, yy);
         }
-        // Under the box; under an outline's bottom rule too.
-        Helper.Text.Center(start, end - start + 1, row + (scale.Outline ? 2u : 1u), Text, Theme.Heading);
+        // Under an outline's bottom rule, centred on the box (the value is
+        // past the frame). Without one, the value follows the box on its
+        // row, so the text ends where the box ends, under the bar, clear of it.
+        if (scale.Outline)
+            Helper.Text.Center(start, end - start + 1, row + 2, Text, Theme.Heading);
+        else
+            Helper.Text.Right(end, row + 1, Text, Theme.Heading);
     }
 }
 

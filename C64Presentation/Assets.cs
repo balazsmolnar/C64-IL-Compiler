@@ -28,6 +28,8 @@ using C64Lib;
 [assembly: RawImage(Resource = "icon_gc.img", Label = "IconGc")]           // 3x3 hires     74
 [assembly: RawImage(Resource = "icon_string.img", Label = "IconString")]   // 3x3 hires     47
 [assembly: RawImage(Resource = "icon_bitmap.img", Label = "IconBitmap")]   // 3x3 hires     71
+// The section icon of slide 9 (from the extras)
+[assembly: RawImage(Resource = "sec_chip.img", Label = "SecChip")]         //  6x6 hires   204
 
 // --- Extras, not in the storyboard: 4,427 bytes. Built and embeddable;
 // declared only in the art review build (or define ART_EXTRAS) so they cost
@@ -47,7 +49,6 @@ using C64Lib;
 [assembly: RawImage(Resource = "pipe_arrow.img", Label = "PipeArrow")]     //  2x1 hires    23
 [assembly: RawImage(Resource = "pipe_elbow.img", Label = "PipeElbow")]     // 36x2 hires    57
 [assembly: RawImage(Resource = "sec_gear.img", Label = "SecGear")]         //  6x6 hires   250
-[assembly: RawImage(Resource = "sec_chip.img", Label = "SecChip")]         //  6x6 hires   204
 [assembly: RawImage(Resource = "sec_memory.img", Label = "SecMemory")]     //  6x6 hires   171
 [assembly: RawImage(Resource = "sec_joystick.img", Label = "SecJoystick")] //  6x6 hires   140
 [assembly: RawImage(Resource = "sec_chart.img", Label = "SecChart")]       //  6x6 hires   129

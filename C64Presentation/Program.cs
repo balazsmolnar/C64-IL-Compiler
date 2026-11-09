@@ -10,19 +10,8 @@ static class Program
 #if SCENE_ENGINE
     static readonly Func<Slide>[] Slides = EngineGallery.Slides;
 #else
-    static readonly Func<Slide>[] Slides =
-    [
-        () => new IntroSlide(),
-        AgendaSlide.Create,
-        WhatIsItSlide.Create,
-        CompilerPassesSlide.Create,
-        () => new DemoSlide(),
-        FeaturesSlide.Create,
-        () => new DemoSlide(),
-        MemoryLayoutSlide.Create,
-        () => new GarbageCollectorSlide(),
-        () => new DemoSlide(),
-    ];
+    // For now only DECK.md slides 9-16 (Slides/Part2); the parts are combined later.
+    static readonly Func<Slide>[] Slides = Part2.Slides;
 #endif
 
     static void Main()

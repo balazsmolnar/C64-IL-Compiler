@@ -3,8 +3,8 @@ using C64Lib;
 // The fonts (art/font/make_fonts.py), the logo sprites (art/engine/make_logos.py)
 // and the fade tables: level k (0-4) of colour c is fade_Levels[k*16 + c];
 // level 0 is black, level 4 the colour itself (see Deck). Every colour steps
-// down by brightness through the greys (cyan through light blue: 14 -> 12
-// -> 11, so it doesn't arrive from near-white grey), and the Grey1 surface
+// down by brightness through the greys, no hue (cyan: 15 -> 12 -> 11; a
+// light-blue step flashed blue/violet on bars and box tops), and the Grey1 surface
 // is always darker than any text on it: 0 at level 1, 11 from level 2,
 // while text is 11 / 12 / 12-15.
 [assembly: RawAssembly(Order = 1, Resource = "fonts.asm")]
@@ -14,7 +14,7 @@ fade_Levels
     .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
     .byte 0,11,0,11,0,0,0,11,0,0,11,0,0,11,0,11
     .byte 0,12,0,12,11,11,0,12,11,0,11,11,11,12,11,12
-    .byte 0,15,11,14,11,12,11,15,11,11,12,11,12,15,12,12
+    .byte 0,15,11,15,11,12,11,15,11,11,12,11,12,15,12,12
     .byte 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
 """)]
 

@@ -29,10 +29,10 @@ static class EngineGallery
                 X = 8, Y = 5, Width = 8, Note = "not to scale",
                 Segments =
                 [
-                    new() { Name = "bitmap", Detail = "under ROM", Address = "$E000", Height = 3, Color = Theme.Accent2 },
-                    new() { Name = "I/O", Detail = "sprites", Address = "$D000", Height = 3, Color = Theme.Muted },
+                    new() { Name = "bitmap", Address = "$E000", Height = 3, Color = Theme.Accent2 },
+                    new() { Name = "I/O", Address = "$D000", Height = 2, Color = Theme.Muted },
                     new() { Name = "colours", Address = "$CC00", Height = 2, Color = Theme.Accent },
-                    new() { Name = "program", Detail = "+ heap", Address = "$1000", Height = 3, Color = Theme.Body },
+                    new() { Name = "program", Address = "$1000", Height = 3, Color = Theme.Body },
                     new() { Name = "tables", Address = "$0800", Height = 2, Color = Theme.Muted },
                     new() { Name = "zero page", Address = "$0000", Height = 2, Color = Theme.Muted },
                 ],
@@ -55,7 +55,7 @@ static class EngineGallery
             new Title { Text = "Hunchback: -24%" },
             new BarChart
             {
-                X = 1, Y = 7, Width = 38, LabelWidth = 7, ValueWidth = 9, Pitch = 3, Max = 36847, Wait = true,
+                X = 2, Y = 7, Width = 36, LabelWidth = 7, ValueWidth = 9, Pitch = 3, Max = 36847, Wait = true,
                 Bars =
                 [
                     new() { Label = "Oct 17", Value = 36847, Text = "36,847 B", Color = Theme.Muted },
@@ -67,35 +67,34 @@ static class EngineGallery
         ]
     };
 
-    // C3: eight optimizations, two programs, a legend.
+    // C3: eight optimizations, two programs: a butterfly chart (DECK.md's C3
+    // was 8 x 2 bars on consecutive rows: now Hunchback grows left, Catacombs
+    // right, from a centred label column, one item every 2 rows).
     static Slide NoSingleWinner() => new SimpleSlide
     {
         Elements =
         [
             new Title { Text = "No single winner" },
-            new BarChart
+            new ButterflyChart
             {
-                X = 2, Y = 5, Width = 36, LabelWidth = 14, ValueWidth = 6, Pitch = 1, Max = 3420,
-                LegendRow = 2, ValueColumn = true, GroupEvery = 2,
-                Legend = [new() { Name = "Hunchback", Color = Theme.Accent }, new() { Name = "Catacombs", Color = Theme.Accent2 }],
-                Bars =
+                Max = 3420, Left = "Hunchback", Right = "Catacombs", LegendRow = 2,
+                Rows =
                 [
-                    Saved("Object arrays", 3357, "3,357"), Other(0, "-"),
-                    Saved("Static frames", 2304, "2,304"), Other(1818, "1,818"),
-                    Saved("Exit tails", 1983, "1,983"), Other(2579, "2,579"),
-                    Saved("Top of stack", 824, "824"), Other(1168, "1,168"),
-                    Saved("Static arrays", 0, "-"), Other(616, "616"),
-                    Saved("Skip Y reload", 311, "311"), Other(495, "495"),
-                    Saved("++ on statics", 28, "28"), Other(340, "340"),
-                    Saved("Logic + const", 85, "85"), Other(326, "326"),
+                    Saved("Object arrays", 3357, "3,357", 0, ""),
+                    Saved("Static frames", 2304, "2,304", 1818, "1,818"),
+                    Saved("Exit tails", 1983, "1,983", 2579, "2,579"),
+                    Saved("Top of stack", 824, "824", 1168, "1,168"),
+                    Saved("Static arrays", 0, "", 616, "616"),
+                    Saved("Skip Y reload", 311, "311", 495, "495"),
+                    Saved("++ on statics", 28, "28", 340, "340"),
+                    Saved("Logic + const", 85, "85", 326, "326"),
                 ],
             },
         ]
     };
 
-    static Bar Saved(string label, ulong bytes, string text) => new() { Label = label, Value = bytes, Text = text };
-
-    static Bar Other(ulong bytes, string text) => new() { Label = "", Value = bytes, Text = text, Color = Theme.Accent2 };
+    static ButterflyRow Saved(string label, ulong hunchback, string hunchbackText, ulong catacombs, string catacombsText)
+        => new() { Label = label, LeftValue = hunchback, LeftText = hunchbackText, RightValue = catacombs, RightText = catacombsText };
 
     // C4: bars against a full-frame outline, ticked every 50 lines.
     static Slide WorstFrame() => new SimpleSlide
@@ -106,7 +105,7 @@ static class EngineGallery
             new TextElement { X = Theme.Left, Y = 5, Text = "Catacombs, raster lines per frame", Color = Theme.Muted },
             new BarChart
             {
-                X = 1, Y = 9, Width = 38, LabelWidth = 7, ValueWidth = 5, Pitch = 4, Max = 311, Outline = true, TickEvery = 50, Wait = true,
+                X = 2, Y = 9, Width = 36, LabelWidth = 7, ValueWidth = 5, Pitch = 4, Max = 311, Outline = true, TickEvery = 50, Wait = true,
                 Bars =
                 [
                     new() { Label = "before", Value = 257, Text = "257", Color = Theme.Muted },
@@ -114,7 +113,7 @@ static class EngineGallery
                 ],
                 Gap = new() { From = 0, To = 1, Text = "-49 lines" },
             },
-            new TextElement { X = 8, Y = 17, Text = "311 lines = one frame; the rest is free for the game", Color = Theme.Muted },
+            new TextElement { X = Theme.Left, Y = 17, Text = "311 lines = one frame; the rest is free for the game", Color = Theme.Muted },
         ]
     };
 

@@ -47,7 +47,7 @@ sealed class MemoryMap : SlideElement
             row += segment.Height;
         }
         if (Note != null)
-            Text.Center(Screen.Px(X), Screen.Px(width), row, Note, Theme.Muted);    // lowercase: 2 px under the map
+            Text.Center(Screen.Px(X), Screen.Px(width), row + 1, Note, Theme.Muted);
     }
 }
 

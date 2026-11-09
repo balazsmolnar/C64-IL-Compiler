@@ -42,7 +42,7 @@
        only in the gallery build. Drop a file from this list when a deck
        slide starts using it. -->
   <ItemGroup Condition="'$(Scene)' != 'ENGINE'">
-    <Compile Remove="SlideElements\BarChart.cs;SlideElements\MemoryMap.cs;SlideElements\Callout.cs" />
+    <Compile Remove="SlideElements\BarChart.cs;SlideElements\ButterflyChart.cs;SlideElements\MemoryMap.cs;SlideElements\Callout.cs" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(Scene)' == 'ENGINE'">

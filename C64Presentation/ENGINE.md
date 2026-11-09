@@ -98,7 +98,8 @@ at once, `-Scene AUTO` presses by itself).
 | `Table` | `X` (2), `Y`, `Widths`, `Header`, `Rows` (`string[][]`), `WaitAfterRow` | Header labels in white on black over a 2 px cyan rule; rows with Grey2 hairlines, two cell rows each. First column left aligned, the rest right aligned. |
 | `Box` | `X`, `Y`, `Width`, `Height`, `Text`, `Caption`, `Color` (accent bar, cyan), `Hollow`, `ConnectToLeft`, `Wait`, `WaitAfter` | A card. With a caption: text on row 1, caption two rows lower, so `Height` ≥ 4. |
 | `Arrow` | `FromCol`, `FromRow`, `ToCol`, `ToRow`, `VerticalFirst`, `Text`, `Color`, `Wait` | Any direction, straight or L-shaped; grows when drawn after a press. The label goes above a horizontal leg, or beside a vertical one, clamped to the content columns. |
-| `BarChart` | `Bars` (`Bar`: `Label`, `Value`, `Text`, `Color`), `Legend` (`LegendItem`: `Name`, `Color`), `Gap` (`BarGap`: `From`, `To`, `Text`), `Max`, `Outline`, `TickEvery`, `X`, `Y`, `Width`, `LabelWidth` (12), `ValueWidth` (7), `Pitch` (2), `Wait` | Label, bar, value. `LegendRow`: the legend right aligned on that row (the title's second row). `ValueColumn`: values right aligned at the chart's edge in their bar's colour. `GroupEvery`: a 1 px Grey1 hairline under every that many bars. `Gap`: a dashed box level with the shorter bar, up to the longer bar's end, its text under it, and the shorter bar's value after the box. `Outline` adds a full-scale frame with ticks. The 38-column budget is `X = 1, Width = 38`. |
+| `BarChart` | `Bars` (`Bar`: `Label`, `Value`, `Text`, `Color`), `Gap` (`BarGap`: `From`, `To`, `Text`), `Max`, `Outline`, `TickEvery`, `X`, `Y`, `Width`, `LabelWidth` (12), `ValueWidth` (7), `Pitch` (2), `Wait` | Label, bar, value. `Gap`: a dashed box level with the shorter bar, up to the longer bar's end, its text under it, and the shorter bar's value after the box. `Outline` adds a full-scale frame with ticks. C2 and C4 use `X = 2, Width = 36`. |
+| `ButterflyChart` | `Rows` (`ButterflyRow`: `Label`, `LeftValue`, `LeftText`, `RightValue`, `RightText`), `Left`, `Right` (series names), `LeftColor` (cyan), `RightColor` (yellow), `Max`, `LegendRow`, `Y`, `LabelWidth` (12), `Pitch` (2), `BarCells` (8) | Two series item by item: labels in a centred column, the left series growing left, the right one growing right, each value at its bar's outer end in the bar's colour; 0 = no bar, no number. The legend right aligned on `LegendRow`. C3 (DECK.md's C3 spec changes from 8 x 2 bars on consecutive rows to this). |
 | `MemoryMap` | `X`, `Y`, `Width` (8), `Segments` (`Segment`: `Name`, `Address`, `Detail`, `Height`, `Color`), `Note`, `Wait` | Stacked segments, high addresses first, a 1 px black line along each segment's bottom; each start address right aligned in Grey2 on its segment's bottom row, with a tick to the boundary. Give every segment 2 rows or more; a `Detail` (Grey3, its own row) needs 3. |
 | `ImageElement` | `Column`, `Row`, `Width`, `Height`, `Image`, `Caption`, `Wait` | A hi-res image. |
 | `Callout` | `Lines`, `Attribution`, `Y`, `X` (2), `Width` (36), `Accent` | The key message in the 16 px face, 24 px between lines, the attribution in white, an accent bar. 3 rows a line + 1 (+2 with an attribution). |
@@ -171,16 +172,16 @@ Live slides (`IntroSlide`, `DemoSlide`) call `Deck.Reveal()`, then loop on
 
 | Item | Bytes |
 |---|---|
-| Program end | $B595; static frames to $B666 |
-| Free | about 5.5 KB before $CC00, before the heap |
-| Not in the deck build yet | `BarChart`, `MemoryMap`, `Callout` (about 5.5 KB; the csproj leaves them out until a deck slide uses one; the gallery has them) |
+| Program end | $B4F7; static frames to $B5C8 |
+| Free | about 5.7 KB before $CC00, before the heap |
+| Not in the deck build yet | `BarChart`, `ButterflyChart`, `MemoryMap`, `Callout` (about 6 KB; the csproj leaves them out until a deck slide uses one; the gallery has them) |
 | Engine C# in the deck build | about 11 KB (Arrow 2,122, Text 1,393, Deck 1,199, Table 1,130, Box, Master, CodeBlock, BulletList, ...) |
 | Fonts | 3,614 (the code face's own width/address tables and 4 narrow capitals: +314) |
 | `buf_Picture` | 3,755 (the disk shots load into it) |
 | Typical slide | Agenda (title + 5 bullets) 420 B of code; a table slide (What is it) 1,100 B; Features (two columns) 1,107 B; plus strings |
 | GC slide | 4,550 B |
 
-The gallery build (`-p:Scene=ENGINE`) ends at $C50E.
+The gallery build (`-p:Scene=ENGINE`) ends at $C46B.
 
 ## Assets owned by the engine
 

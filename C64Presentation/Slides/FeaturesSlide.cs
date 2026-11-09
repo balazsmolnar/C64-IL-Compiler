@@ -1,4 +1,4 @@
-﻿using C64Presentation.Helper;
+using C64Presentation.Helper;
 using C64Presentation.SlideElements;
 
 namespace C64Presentation.Slides;

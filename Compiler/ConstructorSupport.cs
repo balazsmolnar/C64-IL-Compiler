@@ -269,6 +269,65 @@ static class ConstructorSupport
         return result;
     }
 
+    // --- static constructor order -----------------------------------------
+
+    // Every static constructor runs once at startup (ILEntryPointPass), not
+    // on first use as in .NET. So that `static readonly T[] A = B.Values;`
+    // sees B's values, a static constructor runs after those of the types
+    // whose static fields it reads or whose static methods it calls
+    // (directly). A cycle keeps the declaration order. Returns the labels.
+    public static List<string> OrderStaticConstructors(List<MethodBase> cctors, List<string> labels)
+    {
+        var byType = new Dictionary<Type, int>();
+        for (int i = 0; i < cctors.Count; i++)
+            if (cctors[i].DeclaringType != null)
+                byType[cctors[i].DeclaringType] = i;
+
+        var dependencies = new List<int>[cctors.Count];
+        for (int i = 0; i < cctors.Count; i++)
+        {
+            dependencies[i] = new List<int>();
+            var body = cctors[i].GetMethodBody();
+            var ops = body == null ? null : Decode(cctors[i], body.GetILAsByteArray());
+            if (ops == null)
+                continue;
+            foreach (var o in ops)
+            {
+                Type other = null;
+                try
+                {
+                    if (o.op == OpCodes.Ldsfld || o.op == OpCodes.Ldsflda)
+                        other = cctors[i].Module.ResolveField(o.token)?.DeclaringType;
+                    else if (o.op == OpCodes.Call)
+                    {
+                        var target = cctors[i].Module.ResolveMethod(o.token);
+                        if (target != null && target.IsStatic)
+                            other = target.DeclaringType;
+                    }
+                }
+                catch { }
+                if (other != null && other != cctors[i].DeclaringType && byType.TryGetValue(other, out var j) && !dependencies[i].Contains(j))
+                    dependencies[i].Add(j);
+            }
+        }
+
+        var result = new List<string>();
+        var state = new int[cctors.Count]; // 0 new, 1 visiting, 2 done
+        void Visit(int i)
+        {
+            if (state[i] != 0)
+                return;
+            state[i] = 1;
+            foreach (var j in dependencies[i])
+                Visit(j);
+            state[i] = 2;
+            result.Add(labels[i]);
+        }
+        for (int i = 0; i < cctors.Count; i++)
+            Visit(i);
+        return result;
+    }
+
     // --- which constructors are compiled ------------------------------------
 
     private static readonly Dictionary<Assembly, HashSet<MethodBase>> ChainedTo = new();

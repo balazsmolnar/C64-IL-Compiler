@@ -1,4 +1,4 @@
-﻿using C64Lib;
+using C64Lib;
 using C64Presentation.Helper;
 
 namespace C64Presentation.SlideElements;
@@ -15,7 +15,7 @@ class BulletList : SlideElement
     const ulong TextOffset = 10;   // the text's left pixel: 5 px after the dot
     const uint DefaultPitch = 2;
 
-    public string[] Items { get; init; }
+    public required string[] Items { get; init; }
     public uint Left { get; init; }
     public uint Top { get; init; }
     public uint Pitch { get; init; }
@@ -25,7 +25,7 @@ class BulletList : SlideElement
 
     public override void Draw()
     {
-        ulong x = Helper.Screen.X(Theme.OrCells(Left, Theme.Left) + Level + Level);
+        ulong x = Helper.Screen.Px(Theme.OrCells(Left, Theme.Left) + Level + Level);
         uint row = Theme.OrCells(Top, Theme.BodyTop);
         uint pitch = Theme.OrCells(Pitch, DefaultPitch);
         var color = Theme.Or(Color, Theme.Body);

@@ -1,18 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
 namespace C64Presentation.SlideElements;
 
-class ObjectElem
+// One object of the GC slide's little heap. (No property initializers: the
+// compiler runs none, so every flag starts false: Dead, not Alive.)
+sealed class HeapObject
 {
-    public uint Size;
-    public string Id;
-    public bool Alive;
-    public bool Marked;
-    public bool Root;
-    public bool Processing;
-    public ObjectElem[] References;
+    public required string Id { get; init; }
+    public uint Size { get; init; }            // heap cells
+    public bool Root { get; init; }
+    public HeapObject[]? References { get; set; }
+    public bool Marked { get; set; }
+    public bool Dead { get; set; }
 }

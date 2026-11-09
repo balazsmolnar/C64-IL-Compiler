@@ -21,6 +21,19 @@ class InitPair
     public uint Count { get; set; }
 }
 
+// Declared before the class it reads: its static constructor must still
+// run second (every static constructor runs at startup, ordered by what
+// each one reads).
+static class StaticOrderFirst
+{
+    public static readonly uint[] Copy = StaticOrderSecond.Values;
+}
+
+static class StaticOrderSecond
+{
+    public static readonly uint[] Values = [4, 5, 6];
+}
+
 [TestFixture]
 public class LanguageFeatureTests
 {
@@ -94,6 +107,12 @@ public class LanguageFeatureTests
         Assert.AreEqual(p.Count, 5u);
         InitPair[] pairs = [new() { Left = 1, Right = 2 }, new() { Left = 3, Right = 4 }];
         Assert.AreEqual(pairs[1].Left + pairs[0].Right, 5u);
+    }
+
+    [Test]
+    public void Static_Initializer_Sees_Another_Types_Static_Field()
+    {
+        Assert.AreEqual(StaticOrderFirst.Copy[2], 6u);
     }
 
     [Test]

@@ -5,6 +5,7 @@
 	<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 	<Optimize>true</Optimize>
     <OutputType>Exe</OutputType>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <!-- Scene builds for looking at the deck without pressing keys
@@ -15,6 +16,10 @@
   <PropertyGroup>
     <StartSlide Condition="'$(StartSlide)' == ''">0</StartSlide>
     <DefineConstants Condition="'$(Scene)' != ''">$(DefineConstants);SCENE;SCENE_$(Scene)</DefineConstants>
+    <!-- -Scene ENGINE: the engine gallery (Slides/EngineGallery.cs) instead of
+         the deck, with the art extras (section icons) and without the deck's
+         own slides, so that it fits. It holds each slide like -Scene HOLD. -->
+    <DefineConstants Condition="'$(Scene)' == 'ENGINE'">$(DefineConstants);ART_EXTRAS;SCENE_HOLD</DefineConstants>
   </PropertyGroup>
   <Target Name="WriteSceneConfig" BeforeTargets="CoreCompile">
     <WriteLinesToFile File="$(IntermediateOutputPath)SceneConfig.g.cs" Lines="namespace C64Presentation%3B static class SceneConfig { public const int StartSlide = $(StartSlide)%3B }" Overwrite="true" WriteOnlyWhenDifferent="true" />
@@ -30,6 +35,18 @@
          pictures (art/presentation_art.py -> art/build; declared in Assets.cs),
          and picture_buffer.asm, the RAM the pictures on the disk (disk.txt) load into -->
     <EmbeddedResource Include="art\font\build\*.asm;art\engine\build\*.spr;art\build\*.img;art\build\*.spr;art\build\*.asm" LogicalName="%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <!-- Every class compiles whether a slide uses it or not: the elements no
+       deck slide uses yet (charts, memory map, callout: about 5.5 KB) are
+       only in the gallery build. Drop a file from this list when a deck
+       slide starts using it. -->
+  <ItemGroup Condition="'$(Scene)' != 'ENGINE'">
+    <Compile Remove="SlideElements\BarChart.cs;SlideElements\ButterflyChart.cs;SlideElements\MemoryMap.cs;SlideElements\Callout.cs" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(Scene)' == 'ENGINE'">
+    <Compile Remove="Slides\AgendaSlide.cs;Slides\WhatIsItSlide.cs;Slides\CompilerPassesSlide.cs;Slides\FeaturesSlide.cs;Slides\MemoryLayoutSlide.cs;Slides\GarbageCollectorSlide.cs;Slides\DemoSlide.cs;Slides\IntroSlide.cs" />
   </ItemGroup>
 
   <ItemGroup>

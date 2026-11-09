@@ -3197,7 +3197,9 @@ Font_Run_Glyph:
     beq Font_Run_Prop
     sec
     sbc zp_ft_w
-    lsr
+    bcs +                         ; wider than the pitch: from the pen
+    lda #0
++   lsr
     clc
     adc zp_ft_dx
     sta zp_ft_dx
@@ -3314,20 +3316,71 @@ Font_DrawStrip_Line:
 +
 +   lda (zp_ft_glyph),y
     jmp Font_DrawStrip_Byte
-Font_DrawStrip_Double:            ; 2x: line/2, one nibble, each bit doubled
+; 2x: source line = line / 2, one nibble of it, each bit doubled -- and
+; smoothed: where two set pixels touch only at a corner (a staircase), the
+; inner corner of the doubled stair is filled with one drawn pixel. An odd
+; (lower) drawn line compares the source line with the one below, an even
+; (upper) one with the one above; the same two masks serve both:
+;   D1 = cur & nb>>x+1 & ~cur>>x+1 & ~nb   -> the right half of pixel x
+;   D2 = cur>>x+1 & nb & ~cur & ~nb>>x+1   -> the left half of pixel x+1
+; (bit 7 is the leftmost pixel, so "pixel x+1" is the byte shifted left).
+Font_DrawStrip_Double:
     tya
     lsr
+    sta Font_SrcY
     tay
     lda (zp_ft_glyph),y
-    ldy Font_Half
-    bne +
+    sta Font_Cur
+    lda #0
+    sta Font_Nb
+    lda Font_Line
+    and #1
+    bne Font_Double_Below
+    ldy Font_SrcY                 ; upper half: the line above
+    beq Font_Double_Masks
+    dey
+    jmp Font_Double_Read
+Font_Double_Below:
+    ldy Font_SrcY                 ; lower half: the line below
+    iny
+    cpy zp_ft_lines
+    bcs Font_Double_Masks
+Font_Double_Read:
+    lda (zp_ft_glyph),y
+    sta Font_Nb
+Font_Double_Masks:
+    lda Font_Cur
+    asl
+    sta Font_Rc
+    lda Font_Nb
+    asl
+    sta Font_Rn
+    lda Font_Rc                   ; D1
+    ora Font_Nb
+    eor #$ff
+    and Font_Cur
+    and Font_Rn
+    sta Font_D1
+    lda Font_Cur                  ; D2, moved onto pixel x+1
+    ora Font_Rn
+    eor #$ff
+    and Font_Rc
+    and Font_Nb
     lsr
-    lsr
-    lsr
-    lsr
-+   and #$0f
-    tay
+    sta Font_D2
+    lda Font_Cur
+    jsr Font_Nibble
     lda Font_Double,y
+    sta Font_Out
+    lda Font_D1
+    jsr Font_Nibble
+    lda Font_RightHalves,y
+    ora Font_Out
+    sta Font_Out
+    lda Font_D2
+    jsr Font_Nibble
+    lda Font_LeftHalves,y
+    ora Font_Out
 Font_DrawStrip_Byte:
     beq Font_DrawStrip_Skip       ; an empty line changes nothing
     ldy #0
@@ -3377,6 +3430,18 @@ Font_DrawStrip_Skip:
 Font_DrawStrip_Done:
     rts
 
+; Y = the nibble of A this half of a 2x strip draws.
+Font_Nibble:
+    ldy Font_Half
+    bne +
+    lsr
+    lsr
+    lsr
+    lsr
++   and #$0f
+    tay
+    rts
+
 Font_Line   .byte 0             ; pixel line of the strip (0 to lines-1)
 Font_DxHigh .byte 0
 Font_Scale  .byte 1
@@ -3384,6 +3449,16 @@ Font_Lead   .byte 0             ; $80: leading (see the font layout)
 Font_OutLines .byte 8
 Font_Half   .byte 0             ; 2x: 0 = the strip's left nibble, 1 = right
 Font_Double .byte $00,$03,$0c,$0f,$30,$33,$3c,$3f,$c0,$c3,$cc,$cf,$f0,$f3,$fc,$ff
+Font_RightHalves .byte $00,$01,$04,$05,$10,$11,$14,$15,$40,$41,$44,$45,$50,$51,$54,$55
+Font_LeftHalves  .byte $00,$02,$08,$0a,$20,$22,$28,$2a,$80,$82,$88,$8a,$a0,$a2,$a8,$aa
+Font_SrcY   .byte 0
+Font_Cur    .byte 0
+Font_Nb     .byte 0
+Font_Rc     .byte 0
+Font_Rn     .byte 0
+Font_D1     .byte 0
+Font_D2     .byte 0
+Font_Out    .byte 0
 Font_Row40_Low:
     .for _r = 0, _r < 25, _r += 1
     .byte <(Graphics_ColorMatrix + _r * 40)

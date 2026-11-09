@@ -1,4 +1,4 @@
-﻿using C64Lib;
+using C64Lib;
 using C64Presentation.Helper;
 
 namespace C64Presentation.SlideElements;
@@ -11,7 +11,7 @@ namespace C64Presentation.SlideElements;
 //     new TextElement { X = 2, Y = 5, Text = "-24%", Face = TextFace.Big, Color = Theme.Accent }
 class TextElement : SlideElement
 {
-    public string Text { get; init; }
+    public required string Text { get; init; }
     public uint X { get; init; }
     public uint Y { get; init; }
     public Colors Color { get; init; }
@@ -23,7 +23,7 @@ class TextElement : SlideElement
     {
         if (Wait)
             Deck.Step();
-        ulong x = Helper.Screen.X(X);
+        ulong x = Helper.Screen.Px(X);
         ulong end = Face switch
         {
             TextFace.Heading => Helper.Text.Heading(x, Y, Text, Theme.Or(Color, Theme.Heading)),
@@ -32,7 +32,7 @@ class TextElement : SlideElement
         };
         if (Strike)
         {
-            ulong y = Helper.Screen.X(Y) + 4;
+            ulong y = Helper.Screen.Px(Y) + 4;
             Helper.Screen.Line(x, y, end - 2, y);
         }
     }

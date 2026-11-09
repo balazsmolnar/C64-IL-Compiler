@@ -1,150 +1,207 @@
-using System;
 using C64Lib;
 using C64Presentation.Helper;
 using C64Presentation.SlideElements;
 
 namespace C64Presentation.Slides;
 
-// Mark and compact, one step per press: six objects (1 and 3 are roots),
-// the mark stack, the heap. Most of the animation is colour only: cards
-// are drawn once and recoloured; the heap is redrawn when it compacts.
-class GarbageCollectorSlide : Slide
+// Mark and compact, one step per press (DECK.md D6). A stepper on top (the
+// current step white, the others Grey2); six objects, 1 and 3 roots, each
+// object's references in Grey3 under it; the mark stack as a row of slots;
+// the heap strip. Grey2 bar = not yet reached, cyan = marked, yellow = the
+// object being processed.
+sealed class GarbageCollectorSlide : Slide
 {
-    private ObjectElem[] objects;
-    private Stack stack;
-    private bool drawn;
-    private bool heapClean;
+    const uint StepRow = 5, ObjectRow = 7, ObjectHeight = 4, RefsRow = 12, StackRow = 15, HeapRow = 17;
+    const uint ObjectWidth = 4, ObjectPitch = 6;
+    const uint StripColumn = 8;                       // the stack slots and the heap strip
+    const uint SlotWidth = 2, SlotPitch = 3;
+    const uint HeapCells = Theme.Right - StripColumn;
+    const ulong StepGap = 24;                         // pixels between steps
+    static readonly string[] Steps = ["1  Count roots", "2  Mark", "3  Sort", "4  Slide down"];
+
+    // Set in Present.
+#pragma warning disable CS8618
+    HeapObject[] _objects;
+    HeapObject[] _stack;
+#pragma warning restore CS8618
+    uint _stackCount;
 
     public override void Present()
     {
-        objects = new[]
+        HeapObject one = new() { Id = "1", Size = 4, Root = true }, two = new() { Id = "2", Size = 3 },
+            three = new() { Id = "3", Size = 5, Root = true }, four = new() { Id = "4", Size = 3 },
+            five = new() { Id = "5", Size = 3 }, six = new() { Id = "6", Size = 5 };
+        one.References = [three, four];
+        two.References = [one, six];
+        three.References = [one, four, five];
+        four.References = [one];
+        five.References = [three];
+        six.References = [one, two, five];
+        _objects = [one, two, three, four, five, six];
+        _stack = new HeapObject[_objects.Length];
+
+        Master.Content("GC without a scan");
+        for (uint i = 0; i < Steps.Length; i++)
+            Text.Draw(StepX(i), StepRow, Steps[i], Theme.Muted);
+        DrawObjects();
+        Label(StackRow, "stack");
+        Label(HeapRow + 1, "heap");
+        DrawStack();
+        DrawHeap(compact: false);
+
+        Step(0);
+        foreach (var root in _objects)
+            if (root.Root)
+                Push(root);
+
+        Step(1);
+        while (_stackCount != 0)
         {
-            new ObjectElem() {Id = "1", Alive = true, Size = 3, Root = true },
-            new ObjectElem() {Id = "2", Alive = true, Size = 3 },
-            new ObjectElem() {Id = "3", Alive = true, Size = 7, Root = true },
-            new ObjectElem() {Id = "4", Alive = true, Size = 3 },
-            new ObjectElem() {Id = "5", Alive = true, Size = 3 },
-            new ObjectElem() {Id = "6", Alive = true, Size = 7 },
-        };
-
-        objects[0].References = new[] { objects[2], objects[3] };
-        objects[1].References = new[] { objects[0], objects[5] };
-        objects[2].References = new[] { objects[0], objects[3], objects[4] };
-        objects[3].References = new[] { objects[0] };
-        objects[4].References = new[] { objects[2] };
-        objects[5].References = new[] { objects[0], objects[1], objects[4] };
-
-        stack = new Stack() { X = 18, Y = 14 };
-        stack.Init(objects.Length);
-
-        Master.Content("Garbage collector");
-        Text.Draw(16, 10, "Mark stack", Theme.Muted);
-        Text.Draw(16, 16, "Heap", Theme.Muted);
-        RefreshWait();
-        AddRoots();
-        MarkObjects();
-        Kill();
-    }
-
-    private void AddRoots()
-    {
-        foreach (var objectElem in objects)
-        {
-            if (objectElem.Root)
-            {
-                objectElem.Marked = true;
-                stack.Push(objectElem);
-                RefreshWait();
-            }
-        }
-    }
-
-    private void MarkObjects()
-    {
-        while (!stack.IsEmpty)
-        {
-            var obj = stack.Pull();
-            obj.Processing = true;
-            RefreshWait();
-            foreach (var reference in obj.References)
-            {
+            var current = Pop();
+            Recolor(current, Theme.Accent2);
+            foreach (var reference in current.References!)
                 if (!reference.Marked)
-                {
-                    stack.Push(reference);
-                    reference.Marked = true;
-                    RefreshWait();
-                }
-            }
-
-            obj.Processing = false;
+                    Push(reference);
+            Recolor(current, Theme.Accent);
         }
-    }
 
-    private void Kill()
-    {
-        foreach (var objectElem in objects)
-        {
-            if (!objectElem.Marked)
+        Step(2);
+        foreach (var o in _objects)
+            if (!o.Marked)
             {
-                objectElem.Alive = false;
-                heapClean = false;
-                RefreshWait();
+                o.Dead = true;
+                Recolor(o, Theme.Background);
             }
-        }
+        DrawHeap(compact: false);
+
+        Step(3);
+        DrawHeap(compact: true);
     }
 
-    private void RefreshWait()
+    // Steps sit one after another on one row, each in cells of its own.
+    static ulong StepX(uint step)
     {
-        Draw();
+        ulong x = Screen.Px(Theme.Left);
+        for (uint i = 0; i < step; i++)
+            x = Screen.CellAfter(x + Text.Width(Steps[i]), StepGap);
+        return x;
+    }
+
+    // Lights up one step in white; the one before goes back to Grey2.
+    static void Step(uint step)
+    {
         Deck.Step();
         Deck.Show();
+        if (step != 0)
+            PaintStep(step - 1, Theme.Muted);
+        PaintStep(step, Theme.Heading);
     }
 
-    private void Draw()
+    static void PaintStep(uint step, Colors color)
     {
-        uint x = Theme.Left;
-        foreach (var o in objects)
-        {
-            if (!drawn)
-            {
-                Box.DrawCard(x, 5, 5, 3, Theme.Muted, Theme.Card);
-                ulong px = Helper.Screen.X(x);
-                Text.Center(px, 40, 6, o.Id, Theme.Heading, Theme.Card);
-                Helper.Screen.Fill(px + 8, 66, px + 31, 67);     // the "processing" marker
-            }
-            if (!o.Alive)
-                Deck.Paint(x, 5, 5, 3, Theme.Background, Theme.Background);
-            else
-                Deck.Paint(x, 5, 5, 1, o.Marked ? Theme.Accent2 : (o.Root ? Theme.Accent : Theme.Muted), Theme.Card);
-            Deck.Paint(x, 8, 5, 1, o.Processing ? Theme.Accent2 : Theme.Background, Theme.Background);
-            x += 6;
-        }
-        drawn = true;
+        ulong x = StepX(step);
+        uint column = (uint)(x / Theme.CellPixels);
+        Deck.Paint(column, StepRow, (uint)((x + Text.Width(Steps[step]) + 7) / Theme.CellPixels) - column, 1, color, Theme.Background);
+    }
 
-        stack.Draw();
+    static uint ObjectColumn(uint index) => Theme.Left + index * ObjectPitch;
 
-        if (!heapClean)
+    void DrawObjects()
+    {
+        for (uint i = 0; i < _objects.Length; i++)
         {
-            heapClean = true;
-            Deck.Paint(Theme.Left, 17, Theme.Width, 4, Theme.Background, Theme.Background);
-            Helper.Screen.ClearRect(Theme.Left, 17, Theme.Width, 4);
-            uint hx = Theme.Left;
-            foreach (var o in objects)
+            var o = _objects[i];
+            uint column = ObjectColumn(i);
+            new Box
             {
-                if (!o.Alive)
-                    continue;
-                string refs = "";
-                foreach (var r in o.References)
-                    {
-                    if (refs != "")
-                        refs = refs + " ";
-                    refs = refs + r.Id;
-                }
-                new Box { X = hx, Y = 17, Width = o.Size + 1, Height = 4, Text = o.Id, Caption = refs, Color = Theme.Accent2, ConnectToLeft = hx != Theme.Left }.Draw();
-                hx += o.Size + 1;
+                X = column, Y = ObjectRow, Width = ObjectWidth, Height = ObjectHeight,
+                Text = o.Id, Caption = o.Root ? "root" : "", Color = Theme.Muted,
+            }.Draw();
+            string refs = Theme.Arrow;
+            foreach (var r in o.References!)
+            {
+                if (refs.Length > 1)
+                    refs = $"{refs},";
+                refs = $"{refs}{r.Id}";
             }
-            if (hx < Theme.Right)
-                new Box { X = hx, Y = 17, Width = Theme.Right - hx, Height = 4, Text = "free", Color = Theme.Card, Hollow = true }.Draw();
+            Text.Center(Screen.Px(column), Screen.Px(ObjectWidth), RefsRow, refs, Theme.Body);
         }
     }
+
+    // The object's accent bar: marked, processing, or gone (box and refs).
+    void Recolor(HeapObject o, Colors color)
+    {
+        Deck.Step();
+        uint column = ObjectColumn(IndexOf(o));
+        if (color == Theme.Background)
+            Deck.Paint(column, ObjectRow, ObjectWidth, RefsRow - ObjectRow + 1, Theme.Background, Theme.Background);
+        else
+            Deck.Paint(column, ObjectRow, ObjectWidth, 1, color, Theme.Card);
+    }
+
+    uint IndexOf(HeapObject o)
+    {
+        uint i = 0;
+        while (_objects[i] != o)
+            i++;
+        return i;
+    }
+
+    void Push(HeapObject o)
+    {
+        o.Marked = true;
+        _stack[_stackCount++] = o;
+        DrawStack();
+        Recolor(o, Theme.Accent);
+    }
+
+    HeapObject Pop()
+    {
+        var o = _stack[--_stackCount];
+        DrawStack();
+        return o;
+    }
+
+    // One slot per object: a Grey2 outline when empty, a chip with the
+    // object's id when it holds one; the newest on the right.
+    void DrawStack()
+    {
+        Deck.Show();
+        for (uint i = 0; i < _stack.Length; i++)
+        {
+            uint column = StripColumn + i * SlotPitch;
+            ulong x = Screen.Px(column), y = Screen.Px(StackRow);
+            Screen.ClearRect(column, StackRow, SlotWidth, 1);
+            if (i < _stackCount)
+            {
+                Deck.Paint(column, StackRow, SlotWidth, 1, Theme.Heading, Theme.Card);
+                Text.Center(x, Screen.Px(SlotWidth), StackRow, _stack[i].Id, Theme.Heading, Theme.Card);
+            }
+            else
+            {
+                Deck.Paint(column, StackRow, SlotWidth, 1, Theme.Muted, Theme.Background);
+                Screen.Frame(x, y, x + Screen.Px(SlotWidth) - 1, y + 7);
+            }
+        }
+    }
+
+    // The heap strip in object order, then the free rest to the content's
+    // right edge; compact: the live blocks slid down.
+    void DrawHeap(bool compact)
+    {
+        Deck.Show();
+        Deck.Paint(StripColumn, HeapRow, HeapCells, 3, Theme.Background, Theme.Background);
+        Screen.ClearRect(StripColumn, HeapRow, HeapCells, 3);
+        uint column = StripColumn;
+        foreach (var o in _objects)
+        {
+            if (!o.Dead)
+                new Box { X = column, Y = HeapRow, Width = o.Size, Height = 3, Text = o.Id, Color = Theme.Accent, ConnectToLeft = column != StripColumn }.Draw();
+            if (!o.Dead || !compact)
+                column += o.Size;
+        }
+        new Box { X = column, Y = HeapRow, Width = Theme.Right - column, Height = 3, Text = "free", Color = Theme.Frame, Hollow = true }.Draw();
+    }
+
+    static void Label(uint row, string text) => Text.Draw(Screen.Px(Theme.Left), row, text, Theme.Muted);
 }

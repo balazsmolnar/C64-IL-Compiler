@@ -3,34 +3,42 @@ using C64Presentation.SlideElements;
 
 namespace C64Presentation.Slides;
 
-// The object table (one row per handle) and the heap it points into.
+// DECK.md D5: a reference is an index into the object table, whose heap
+// pointer leads to the object on the heap. The table header first, then
+// its rows, then the heap strip with the pointers, then two lines.
 static class MemoryLayoutSlide
 {
-    const uint HeapRow = 18;
+    const uint TableRow = 5, HeapRow = 14, TextRow = 18;
+    const uint PointerColumn = 8;      // the heap ptr column's first cell; the heap strip starts there too
 
     public static Slide Create() => new SimpleSlide
     {
         Elements =
         [
-            new Title { Text = "Memory layout" },
-            Label(5, "Object table"),
-            Cell(2, 6, 4, "1", false), Cell(6, 6, 9, "Heap ptr"), Cell(15, 6, 6, "Size"),
-            Cell(21, 6, 6, "Refs"), Cell(27, 6, 5, "Root"), Cell(32, 6, 6, "VTable"),
-            Cell(2, 9, 4, "2", false), Cell(6, 9, 9), Cell(15, 9, 6), Cell(21, 9, 6), Cell(27, 9, 5), Cell(32, 9, 6),
-            new TextElement { X = 3, Y = 12, Text = "...", Color = Theme.Muted },
-            Cell(2, 13, 4, "255", false), Cell(6, 13, 9), Cell(15, 13, 6), Cell(21, 13, 6), Cell(27, 13, 5), Cell(32, 13, 6),
-            Label(17, "Heap", wait: true),
-            Heap(2, 5, "1", false), Heap(7, 8, "3"), Heap(15, 5, "2"), Heap(20, 3, "5"),
-            new Box { X = 23, Y = HeapRow, Width = 15, Height = 3, Text = "free", Color = Theme.Card, Hollow = true },
+            new Title { Text = "References: 1 byte" },
+            new Table
+            {
+                Y = TableRow, Widths = [6, 8, 5, 5, 5, 7], WaitAfterRow = true,
+                Header = ["handle", "heap ptr", "size", "refs", "roots", "vtable"],
+                Rows = [["1", "$4000", "5", "1", "1", "Node"], ["2", "$4008", "4", "0", "0", "Text"]],
+            },
+            // The rest of the table as a caption, right, clear of the pointers.
+            new TextElement { X = 25, Y = TableRow + 6, Text = "... up to handle 255", Color = Theme.Muted },
+            // Row 1's pointer leaves its value to the left and drops down the
+            // column's empty left cell; row 2's drops from under its value.
+            // Both land on their blocks.
+            new Arrow { FromCol = PointerColumn + 1, FromRow = TableRow + 2, ToCol = PointerColumn, ToRow = HeapRow - 1, Wait = true },
+            new Arrow { FromCol = PointerColumn + 6, FromRow = TableRow + 5, ToCol = PointerColumn + 6, ToRow = HeapRow - 1 },
+            Heap(PointerColumn, 2, "1"), Heap(PointerColumn + 2, 3, "3", true), Heap(PointerColumn + 5, 4, "2", true), Heap(PointerColumn + 9, 3, "5", true),
+            new Box { X = PointerColumn + 12, Y = HeapRow, Width = Theme.Right - PointerColumn - 12, Height = 3, Text = "free", Color = Theme.Frame, Hollow = true },
+            Line(TextRow, "A reference is a 1-byte handle: 255 objects", wait: true),
+            Line(TextRow + 2, $"Handle {Theme.Arrow} table {Theme.Arrow} heap address"),
         ]
     };
 
-    static TextElement Label(uint row, string text, bool wait = false)
-        => new() { X = Theme.Left, Y = row, Text = text, Color = Theme.Muted, Wait = wait };
+    static Box Heap(uint x, uint width, string text, bool connect = false)
+        => new() { X = x, Y = HeapRow, Width = width, Height = 3, Text = text, ConnectToLeft = connect };
 
-    static Box Cell(uint x, uint y, uint width, string text = "", bool connect = true)
-        => new() { X = x, Y = y, Width = width, Height = 3, Text = text, ConnectToLeft = connect };
-
-    static Box Heap(uint x, uint width, string text, bool connect = true)
-        => new() { X = x, Y = HeapRow, Width = width, Height = 3, Text = text, Color = Theme.Accent2, ConnectToLeft = connect };
+    static TextElement Line(uint row, string text, bool wait = false)
+        => new() { X = Theme.Left, Y = row, Text = text, Wait = wait };
 }

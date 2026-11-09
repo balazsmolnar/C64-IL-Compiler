@@ -20,7 +20,7 @@ class ImageElement : SlideElement
     public uint Width { get; init; }
     public uint Height { get; init; }
     public ulong Image { get; init; }
-    public string Caption { get; init; }
+    public string? Caption { get; init; }
     public bool Wait { get; init; }
 
     public override void Draw()
@@ -30,6 +30,6 @@ class ImageElement : SlideElement
         Deck.Show();
         C64.Screen.DrawImage(Column, Row, Image);
         if (Caption != null)
-            Text.Center(Helper.Screen.X(Column), Helper.Screen.X(Width), Row + Height + 1, Caption, Theme.Muted);
+            Text.Center(Helper.Screen.Px(Column), Helper.Screen.Px(Width), Row + Height + 1, Caption, Theme.Muted);
     }
 }

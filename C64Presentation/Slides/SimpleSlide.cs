@@ -6,7 +6,7 @@ namespace C64Presentation.Slides;
 // set are build steps.
 class SimpleSlide : Slide
 {
-    public SlideElement[] Elements { get; init; }
+    public required SlideElement[] Elements { get; init; }
 
     public override void Present()
     {

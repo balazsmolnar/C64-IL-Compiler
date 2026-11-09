@@ -1,4 +1,4 @@
-﻿namespace C64Presentation.Helper;
+namespace C64Presentation.Helper;
 
 internal static class Delay
 {

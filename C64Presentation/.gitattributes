@@ -1,0 +1,2 @@
+# The deck's C# is CRLF in the working tree (see .editorconfig), LF in the repository.
+*.cs text eol=crlf

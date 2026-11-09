@@ -150,7 +150,10 @@ class ILCodePass : ICompilerPass
                     // type initializers") -- check the name instead.
                     bool methodLive = typeLive && context.IsLive(method);
                     if (methodLive && method.IsStatic && method.Name == ".cctor")
+                    {
                         context.StaticConstructorLabels.Add(method.GetLabel());
+                        context.StaticConstructors.Add(method);
+                    }
 
                     if (!methodLive && deadTypeContext == null)
                         deadTypeContext = new CompilerTypeContext

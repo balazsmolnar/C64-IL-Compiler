@@ -3,22 +3,21 @@ using C64Presentation.Helper;
 
 namespace C64Presentation.Slides;
 
-// "Live demo": a section slide with a blinking red LIVE marker at the top
-// right, up until the presenter comes back from the demo and presses SPACE.
-class DemoSlide : Slide
+// A live demo: a section slide, and a blinking red LIVE badge in the
+// footer, up until the presenter comes back from the demo and presses SPACE.
+sealed class DemoSlide : Slide
 {
-    const uint MarkerColumn = 32;
-    const uint MarkerRow = 5;
+    const uint BadgeColumn = 27;
     const uint BlinkFrames = 25;
 
-    public string What { get; init; }
+    public string? What { get; init; }
 
     public override void Present()
     {
-        Master.Section("Live", "Demo time", What ?? "Over to VICE", 0);
-        ulong x = Screen.X(MarkerColumn);
-        Text.Draw(x + 1, MarkerRow, Theme.Dot, Theme.Bad);
-        Text.Draw(x + 10, MarkerRow, "LIVE", Theme.Heading);
+        Master.Section("", "Demo time", What ?? "Over to VICE", 0);
+        ulong x = Screen.Px(BadgeColumn);
+        Text.Draw(x + 1, Theme.FooterRow, Theme.Dot, Theme.Bad);
+        Text.Draw(x + 10, Theme.FooterRow, "LIVE", Theme.Heading);
         Deck.Reveal();
 
         uint frames = 0;
@@ -30,7 +29,7 @@ class DemoSlide : Slide
                 continue;
             frames = 0;
             lit = !lit;
-            Deck.Paint(MarkerColumn, MarkerRow, 1, 1, lit ? Theme.Bad : Theme.Background, Theme.Background);
+            Deck.Paint(BadgeColumn, Theme.FooterRow, 1, 1, lit ? Theme.Bad : Theme.Background, Theme.Background);
         }
     }
 }

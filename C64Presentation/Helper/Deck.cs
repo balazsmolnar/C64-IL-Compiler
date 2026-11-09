@@ -11,29 +11,19 @@ namespace C64Presentation.Helper;
 // does not show: nothing is redrawn, no pixel changes, no garbage.
 //
 // Builds: Step() waits for "advance"; whatever is drawn after it is a build
-// step: it is drawn invisibly (cells painted background on background) and
-// faded in at the next Step(), Show() or the end of the slide. Elements do
-// this by themselves as long as they colour cells with Paint and write
-// with Text.
+// step: it is drawn hidden and faded in at the next Step(), Show() or the
+// end of the slide. Elements do this by themselves as long as they colour
+// cells with Paint and write with Text.
 static class Deck
 {
-    public static uint Number;      // current slide, 0-based
-    public static uint Count;       // slides in the deck
+    public static uint Number { get; private set; }     // current slide, 0-based
+    public static uint Count { get; private set; }      // slides in the deck
 
-    static bool revealed_;
-    static bool picture_;
-    static bool building_;
-    static bool onSurface_;     // the step is drawn onto a visible surface
-    static uint marks_;
-    static uint[] markX_ = new uint[24];
-    static uint[] markY_ = new uint[24];
-    static uint[] markW_ = new uint[24];
-    static uint[] markH_ = new uint[24];
-    static uint[] markFg_ = new uint[24];
-    static uint[] markBg_ = new uint[24];
-    static string[] markText_ = new string[24];   // text marks: redrawn in colour at the end
-    static ulong[] markPx_ = new ulong[24];
-    static ulong[] markFont_ = new ulong[24];
+    // Fade levels: fade_Levels holds Black (0) .. Full (4).
+    const uint Black = 0;
+    const uint Full = 4;
+    const uint FramesPerBuildLevel = 2;
+    const uint MaxMarks = 24;
 
     // The colour save buffer: 1000 bytes at $0418-$07FF, in the old text
     // screen a bitmap program does not show. Not from $0400: the KERNAL
@@ -42,14 +32,23 @@ static class Deck
     const ulong Saved = 0x0418;
     const ulong ColorRam = 0xD800;
 
-    public static bool Building => building_;
+    static bool _revealed;
+    static bool _picture;
+    static bool _building;
+    static bool _onSurface;     // the step is drawn onto a visible surface
+    static uint _contentBottom; // rows from here to the footer stay empty (Master.Content)
+    static uint _markCount;
+    static readonly Mark[] _marks = new Mark[MaxMarks];
+
+    public static bool Building => _building;
 
     // True when drawing shows at once (an animation can be watched).
-    public static bool Live => revealed_ && !building_;
+    public static bool Live => _revealed && !_building;
 
     // Once, at start: hi-res bitmap, everything black.
-    public static void Init()
+    public static void Init(uint count)
     {
+        Count = count;
         C64.Screen.SetBorderColor(Theme.Background);
         C64.Screen.SetBackgroundColor(Theme.Background);
         C64.Screen.SetBitmapColors(0);
@@ -57,36 +56,38 @@ static class Deck
         C64.Screen.SetScreenMode(ScreenMode.Bitmap);
     }
 
-    // Before a slide draws: the screen is black (FadeOut) and blanked.
-    public static void Begin()
+    // Before slide `number` draws: the screen is black (FadeOut) and blanked.
+    public static void Begin(uint number)
     {
-        if (picture_)
+        Number = number;
+        _contentBottom = Screen.Rows;
+        if (_picture)
         {
             C64.Screen.ClearSplit();
             C64.Screen.SetScreenMode(ScreenMode.Bitmap);
             C64.Screen.SetBackgroundColor(Theme.Background);
-            picture_ = false;
+            _picture = false;
         }
         C64.Screen.BeginUpdate();
-        revealed_ = false;
-        building_ = false;
-        marks_ = 0;
+        _revealed = false;
+        _building = false;
+        _markCount = 0;
     }
 
     // Fades the slide drawn so far in from black. Does nothing the second
     // time; a slide with live animation calls it before its loop.
     public static void Reveal()
     {
-        if (revealed_)
+        if (_revealed)
             return;
-        revealed_ = true;
+        _revealed = true;
         Save();
-        C64.Screen.RemapCellColorsFrom(Saved, Level(0));
+        C64.Screen.RemapCellColorsFrom(Saved, Level(Black));
         C64.Screen.EndUpdate();
-        for (uint k = 1; k < 5; k++)
+        for (uint level = Black + 1; level <= Full; level++)
         {
             C64.Screen.WaitForVBlank();
-            C64.Screen.RemapCellColorsFrom(Saved, Level(k));
+            C64.Screen.RemapCellColorsFrom(Saved, Level(level));
         }
     }
 
@@ -95,12 +96,14 @@ static class Deck
     {
         Show();
         Save();
-        for (uint k = 3; k < 4; k--)
+        uint level = Full;
+        while (level > Black)
         {
+            level--;
             C64.Screen.WaitForVBlank();
-            C64.Screen.RemapCellColorsFrom(Saved, Level(k));
+            C64.Screen.RemapCellColorsFrom(Saved, Level(level));
         }
-        if (picture_)
+        if (_picture)
         {
             // A picture's third colour is in colour RAM, which the fade
             // tables do not reach: cleared once the rest is dark.
@@ -118,16 +121,16 @@ static class Deck
     public static void Picture(ulong image, uint column, uint row, uint split)
     {
         C64.Screen.SetScreenMode(ScreenMode.MultiColor);
-        if (split < 25)
+        if (split < Screen.Rows)
             C64.Screen.SetSplit(split, ScreenMode.Bitmap);
         C64.Screen.BeginUpdate();
         C64.Screen.DrawImage(column, row, image);
-        picture_ = true;
+        _picture = true;
     }
 
     // A build step: shows what is pending, waits for "advance" (not in a
     // SCENE_HOLD build, which shows every step at once), then draws what
-    // follows invisibly until the next Step/Show.
+    // follows hidden until the next Step/Show.
     public static void Step()
     {
         Show();
@@ -135,127 +138,137 @@ static class Deck
 #if !SCENE_HOLD
         KeyBoard.WaitForKeys();
 #endif
-        building_ = true;
-        onSurface_ = false;
+        _building = true;
+        _onSurface = false;
     }
 
     // Starts hidden drawing without waiting: what follows fades in at the
-    // next Show/Step. onSurface: it goes onto a surface that stays visible
-    // (new code on a code card), so its background does not fade.
+    // next Show/Step. onSurface: it goes onto a surface that stays visible,
+    // so its background does not fade.
     public static void Build(bool onSurface)
     {
         Show();
-        building_ = true;
-        onSurface_ = onSurface;
-    }
-
-    // Fades the foreground of a rectangle down to its background (text on a
-    // card going out before new text comes in).
-    public static void Dim(uint column, uint row, uint width, uint height, Colors fg, Colors bg)
-    {
-        uint paper = (uint)bg;
-        for (uint k = 3; k > 0; k--)
-        {
-            C64.Screen.SetCellColors(column, row, width, height,
-                (C64.GetMemory(Level(k), (uint)fg) << 4) | paper, Colors.Black);
-            C64.Screen.WaitForVBlank();
-            C64.Screen.WaitForVBlank();
-        }
-        C64.Screen.SetCellColors(column, row, width, height, Theme.Matrix(bg, bg), Colors.Black);
+        _building = true;
+        _onSurface = onSurface;
     }
 
     // Fades in what the current build step drew.
     public static void Show()
     {
-        if (!building_)
+        if (!_building)
             return;
-        building_ = false;
-        if (marks_ == 0)
+        _building = false;
+        if (_markCount == 0)
             return;
-        for (uint k = 1; k < 5; k++)
+        for (uint level = Black + 1; level <= Full; level++)
         {
-            ulong table = Level(k);
-            for (uint i = 0; i < marks_; i++)
-            {
-                uint bg = onSurface_ ? markBg_[i] : C64.GetMemory(table, markBg_[i]);
-                uint m = (C64.GetMemory(table, markFg_[i]) << 4) | bg;
-                // The last step redraws text in its own colours (inline
-                // colour changes included); its pixels are already there.
-                if (k == 4 && markText_[i] != null)
-                    C64.Screen.DrawFontText(markPx_[i], markY_[i], markText_[i], markFont_[i], m);
-                else
-                    C64.Screen.SetCellColors(markX_[i], markY_[i], markW_[i], markH_[i], m, Colors.Black);
-            }
-            C64.Screen.WaitForVBlank();
-            C64.Screen.WaitForVBlank();
+            ulong table = Level(level);
+            for (uint i = 0; i < _markCount; i++)
+                _marks[i].Show(table, level == Full, _onSurface);
+            for (uint frame = 0; frame < FramesPerBuildLevel; frame++)
+                C64.Screen.WaitForVBlank();
         }
-        marks_ = 0;
+        _markCount = 0;
+    }
+
+    // A content slide: rows from `bottom` to the footer must stay empty.
+    public static void KeepEmptyFrom(uint bottom) => _contentBottom = bottom;
+
+    // In a scene build, drawing into the rows kept empty above the footer
+    // turns the border red, so a screenshot shows it. Compiled out of the
+    // real deck ([Conditional]: the calls go too).
+    [System.Diagnostics.Conditional("SCENE")]
+    public static void CheckRows(uint row, uint height)
+    {
+        if (row + height > _contentBottom && row < Theme.FooterRow)
+            C64.Screen.SetBorderColor(Theme.Bad);
     }
 
     // Colours a rectangle of cells: fg for set pixels, bg for the rest.
     // During a build step the cells stay hidden until Show: black, or the
     // surface's own colour when drawing onto one (Build(true)).
     public static void Paint(uint column, uint row, uint width, uint height, Colors fg, Colors bg)
+        => PaintText(column, row, width, height, fg, bg, "", 0, 0);
+
+    // Paint for text drawn in a build step (see Text): at the last fade
+    // level the text is redrawn in its own colours, inline changes included.
+    // (A name of its own: the compiler's labels do not tell overloads apart.
+    // "" = no text: the compiler cannot pass a bare null as a string.)
+    public static void PaintText(uint column, uint row, uint width, uint height, Colors fg, Colors bg, string text, ulong x, ulong font)
     {
-        if (!building_)
+        CheckRows(row, height);
+        if (!_building)
         {
             C64.Screen.SetCellColors(column, row, width, height, Theme.Matrix(fg, bg), Colors.Black);
             return;
         }
-        C64.Screen.SetCellColors(column, row, width, height, onSurface_ ? Theme.Matrix(bg, bg) : 0, Colors.Black);
-        if (marks_ == 24)
+        C64.Screen.SetCellColors(column, row, width, height, _onSurface ? Theme.Matrix(bg, bg) : 0, Colors.Black);
+        if (_markCount == MaxMarks)
             return;
-        markX_[marks_] = column;
-        markY_[marks_] = row;
-        markW_[marks_] = width;
-        markH_[marks_] = height;
-        markFg_[marks_] = (uint)fg;
-        markBg_[marks_] = (uint)bg;
-        markText_[marks_] = null;
-        marks_++;
+        var mark = _marks[_markCount];
+        if (mark == null)              // the pool fills on first use
+        {
+            mark = new Mark();
+            _marks[_markCount] = mark;
+        }
+        mark.Column = column;
+        mark.Row = row;
+        mark.Width = width;
+        mark.Height = height;
+        mark.Fg = fg;
+        mark.Bg = bg;
+        mark.Text = text;
+        mark.X = x;
+        mark.Font = font;
+        _markCount++;
     }
 
-    // Text drawn in a build step (see Text): Paint, plus what to redraw.
-    public static void PaintText(uint column, uint row, uint width, uint height, Colors fg, Colors bg, ulong x, string text, ulong font)
-    {
-        uint before = marks_;
-        Paint(column, row, width, height, fg, bg);
-        if (marks_ == before)
-            return;
-        markText_[before] = text;
-        markPx_[before] = x;
-        markFont_[before] = font;
-    }
+    static ulong Level(uint level) => C64Address.FromLabel("fade_Levels") + (ulong)(level << 4);
 
-    static ulong Level(uint k) => C64Address.FromLabel("fade_Levels") + (ulong)(k << 4);
+    static void Save() => ScreenBytes.Copy(Saved, C64Address.FromLabel("Graphics_ColorMatrix"));
+}
 
-    static void Save()
+// A rectangle a build step painted, to fade in (and the text to redraw in it).
+// A small class rather than a record struct: the compiler has no structs.
+sealed class Mark
+{
+    public uint Column { get; set; }
+    public uint Row { get; set; }
+    public uint Width { get; set; }
+    public uint Height { get; set; }
+    public Colors Fg { get; set; }
+    public Colors Bg { get; set; }
+    public string? Text { get; set; }        // "" = a rectangle, not text
+    public ulong X { get; set; }
+    public ulong Font { get; set; }
+
+    public void Show(ulong table, bool last, bool keepBackground)
     {
-        ScreenBytes.Copy(Saved, C64Address.FromLabel("Graphics_ColorMatrix"));
+        uint ink = C64.GetMemory(table, (uint)Fg);
+        uint paper = keepBackground ? (uint)Bg : C64.GetMemory(table, (uint)Bg);
+        uint matrix = (ink << 4) | paper;
+        if (last && Text != null && Text.Length != 0)
+            C64.Screen.DrawFontText(X, Row, Text, Font, matrix);
+        else
+            C64.Screen.SetCellColors(Column, Row, Width, Height, matrix, Colors.Black);
     }
 }
 
-// 1000-byte (one per cell) copies and fills: three whole pages (size 0 =
-// 256), then the last 232 bytes. C64.CopyMemory/FillMemory write
-// address..address+size-1.
+// One byte per cell of the screen: 1000 bytes, as four 250-byte runs.
 static class ScreenBytes
 {
-    const uint Tail = 232;
-    const ulong TailStart = 768;    // bytes 768..999
+    const uint Run = 250;
+    const ulong Cells = Screen.Columns * Screen.Rows;
 
     public static void Copy(ulong dest, ulong source)
     {
-        C64.CopyMemory(dest, source, 0);
-        C64.CopyMemory(dest + 256, source + 256, 0);
-        C64.CopyMemory(dest + 512, source + 512, 0);
-        C64.CopyMemory(dest + TailStart, source + TailStart, Tail);
+        for (ulong offset = 0; offset < Cells; offset += Run)
+            C64.CopyMemory(dest + offset, source + offset, Run);
     }
 
     public static void Fill(ulong dest, uint value)
     {
-        C64.FillMemory(dest, value, 0);
-        C64.FillMemory(dest + 256, value, 0);
-        C64.FillMemory(dest + 512, value, 0);
-        C64.FillMemory(dest + TailStart, value, Tail);
+        for (ulong offset = 0; offset < Cells; offset += Run)
+            C64.FillMemory(dest + offset, value, Run);
     }
 }

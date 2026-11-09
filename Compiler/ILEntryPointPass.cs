@@ -33,7 +33,7 @@ class ILEntryPointPass : ICompilerPass
             template = reader.ReadToEnd();
         }
 
-        var staticCtorCalls = string.Join("\n", context.StaticConstructorLabels.Select(l => $"jsr {l}"));
+        var staticCtorCalls = string.Join("\n", ConstructorSupport.OrderStaticConstructors(context.StaticConstructors, context.StaticConstructorLabels).Select(l => $"jsr {l}"));
 
         File.WriteAllText(context.EntryFilePath, template
             .Replace("{{FOLDER}}", folder)

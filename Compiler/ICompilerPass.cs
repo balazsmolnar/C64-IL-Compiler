@@ -119,6 +119,10 @@ class CompilerContext
     // program startup, before Program_Main/the test method runs -- there is
     // no other mechanism that runs a .cctor at all otherwise.
     public List<string> StaticConstructorLabels { get; } = new List<string>();
+    // The same static constructors as methods, in the same order; the entry
+    // pass orders the calls by what each one reads (ConstructorSupport.
+    // OrderStaticConstructors).
+    public List<MethodBase> StaticConstructors { get; } = new List<MethodBase>();
     public int GetFieldPosition(FieldInfo field)
     {
         // The declaring type's layout: the same offset in every derived

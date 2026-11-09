@@ -95,6 +95,21 @@ stack_pop .macro
   #stack_pull_int_a
 .endm
 
+; Discards a 2-byte value (ulong, string pointer): the top byte (which may
+; be in A, see TopOfStackInA), then the one under it.
+stack_pop16 .macro
+  #stack_pull_int_a
+  pla
+.endm
+
+; Discards an n-byte value (a float: 5).
+stack_pop_n .macro bytes
+  #stack_pull_int_a
+  .rept \bytes - 1
+  pla
+  .endrept
+.endm
+
 stack_save_return_adress .macro variable
   pla
   sta \variable

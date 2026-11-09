@@ -89,9 +89,17 @@ class ILCodePass : ICompilerPass
             // remained). FullName's own separators ('.' for namespaces,
             // '+' for nesting) are already handled by ToValidName.
             var normalizedName = type.FullName.ToValidName();
-            var import = $"\"./{normalizedName}.asm\"";
-            context.GlobalOutputFile.WriteLine($".include {import}");
-            using (var outputFile = File.CreateText(Path.Combine(context.OutputDirectory, $"{normalizedName}.asm")))
+            // A dead type (ILReachabilityPass) gets no file: its methods are
+            // still compiled, for their diagnostics, into nothing.
+            bool typeLive = context.IsLive(@type);
+            if (typeLive)
+            {
+                var import = $"\"./{normalizedName}.asm\"";
+                context.GlobalOutputFile.WriteLine($".include {import}");
+            }
+            using (var outputFile = typeLive
+                ? File.CreateText(Path.Combine(context.OutputDirectory, $"{normalizedName}.asm"))
+                : new StreamWriter(Stream.Null))
             {
 
                 var typeContext = new CompilerTypeContext()
@@ -100,11 +108,15 @@ class ILCodePass : ICompilerPass
                     Type = @type,
                     OutputFile = outputFile
                 };
-                foreach (var pass in _typePasses)
+                if (typeLive)
                 {
-                    pass.Execute(typeContext);
+                    foreach (var pass in _typePasses)
+                    {
+                        pass.Execute(typeContext);
+                    }
                 }
                 CheckFields(context, @type);
+                CompilerTypeContext deadTypeContext = null;
 
                 var methods = @type.GetMethods(BindingFlags.Static | BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public).OfType<MethodBase>();
                 var staticConstructors = @type.GetConstructors(BindingFlags.Static | BindingFlags.NonPublic).OfType<MethodBase>()
@@ -127,27 +139,41 @@ class ILCodePass : ICompilerPass
                     // MulticastDelegate members, say): not ours to compile.
                     if (method.DeclaringType != null && method.DeclaringType.Assembly != context.Assembly)
                         continue;
+                    // An auto-property accessor: every call to it compiles to
+                    // the field access itself (ILMethodCodePass), so it is
+                    // never called.
+                    if (ILMethodCodePass.IsAutoPropertyAccessor(method, context.Assembly.ManifestModule, out _, out _))
+                        continue;
 
                     // MethodBase.IsConstructor is deliberately false for a
                     // static constructor (.NET's own docs: it "excludes
                     // type initializers") -- check the name instead.
-                    if (method.IsStatic && method.Name == ".cctor")
+                    bool methodLive = typeLive && context.IsLive(method);
+                    if (methodLive && method.IsStatic && method.Name == ".cctor")
                         context.StaticConstructorLabels.Add(method.GetLabel());
+
+                    if (!methodLive && deadTypeContext == null)
+                        deadTypeContext = new CompilerTypeContext
+                        {
+                            CompilerContext = DeadCodeContext(context),
+                            Type = @type,
+                            OutputFile = new StreamWriter(Stream.Null),
+                        };
 
                     var methodContext = new CompilerMethodContext()
                     {
-                        CompilerContext = context,
-                        TypeContext = typeContext,
+                        CompilerContext = methodLive ? context : deadTypeContext.CompilerContext,
+                        TypeContext = methodLive ? typeContext : deadTypeContext,
                         Lines = new List<ILOperation>(),
                         Method = method,
                         // Only the compile of the method's own body (an
                         // inherited copy compiled under a derived type is
                         // never emitted, see ILMethodEmitPass).
-                        StaticFrame = method.DeclaringType == @type
+                        StaticFrame = methodLive && method.DeclaringType == @type
                             ? context.GetStaticFrame(ILStaticFramePass.Normalize(method))
                             : null,
                     };
-                    context.Methods.Add(methodContext);
+                    methodContext.CompilerContext.Methods.Add(methodContext);
 
                     // One method failing must not stop the others from being
                     // checked: every unsupported construct in the program is
@@ -198,9 +224,31 @@ class ILCodePass : ICompilerPass
             }
         }
 
+        if (_deadCode != null)
+            foreach (var diagnostic in _deadCode.Diagnostics.Items)
+                context.Diagnostics.Add(diagnostic);
+
         // Nothing is worth assembling if anything above was rejected.
         context.Diagnostics.ThrowIfErrors();
     }
+
+    // Where dead methods (ILReachabilityPass) are compiled: the same
+    // compiler, but every string, init table, library routine and line of
+    // output it produces goes nowhere. Only its diagnostics are kept.
+    private CompilerContext _deadCode;
+
+    private CompilerContext DeadCodeContext(CompilerContext context) =>
+        _deadCode ??= new CompilerContext
+        {
+            Assembly = context.Assembly,
+            GlobalOutputFile = new StreamWriter(Stream.Null),
+            OutputDirectory = context.OutputDirectory,
+            IsUnitTest = context.IsUnitTest,
+            Optimize = context.Optimize,
+            StaticFramesLevel = 0,
+            DeadCodeElimination = false,
+            Methods = new List<CompilerMethodContext>(),
+        };
 
     private static string FirstLine(string text) => (text ?? "").Split((char)10)[0].Trim();
 

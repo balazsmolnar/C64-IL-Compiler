@@ -42,10 +42,13 @@ class Program
         // C64_STATIC_FRAMES=0/1/2 does the same without touching the .bat
         // files.
         var staticFrames = int.TryParse(Environment.GetEnvironmentVariable("C64_STATIC_FRAMES"), out var level) ? level : 2;
+        var deadCodeElimination = true;
         var positional = new List<string>();
         foreach (var arg in args)
         {
-            if (arg == "--no-static-frames")
+            if (arg == "--no-dce")
+                deadCodeElimination = false;
+            else if (arg == "--no-static-frames")
                 staticFrames = 0;
             else if (arg == "--static-frames")
                 staticFrames = 2;
@@ -82,9 +85,13 @@ class Program
                 Optimize = true,
                 EmitDebugInfo = emitDebugInfo,
                 StaticFramesLevel = staticFrames,
+                DeadCodeElimination = deadCodeElimination,
             };
             var passes = new List<ICompilerPass> {
                 new ILRawAssemblyPass(),
+                // Whole-program dead-code elimination, before every pass
+                // that looks at the call graph: they only see live code.
+                new ILReachabilityPass(),
                 // Whole-program pre-pass, must run before ILCodePass's own
                 // method loop starts: ILMethodInliningPass (inside that loop)
                 // needs a COMPLETE per-callee call-site count while still
@@ -135,6 +142,9 @@ class Program
                         new ILMethodDebugLabelPass(),
                         new ILMethodNextInstructionPass(),
                         new ILMethodBuildEvaluationStackPass(),
+                        // Spilled object-initializer temporaries back to the
+                        // dup form (needs the stack depths just built).
+                        new ILInitializerTempPass(),
                         new ILTrivialConstructorCallPass(),
                         new ILAddressFromLabelPass(),
                         new ILNumericToStringPass(),
@@ -166,6 +176,10 @@ class Program
                         // one table, before any later pass fuses the Dup/Ldc
                         // index pushes around them.
                         new ILObjectArrayInitializerOptimizer(),
+                        // Constant string/primitive elements stored right
+                        // after a Newarr: one #newArrInit table (before the
+                        // index pushes get fused, like the pass above).
+                        new ILConstantArrayInitializerOptimizer(),
                         new ILStaticArrayInitializerPass(),
                         new ILMethodSetVariableOptimizer(),
                         new ILMethodBranchIfLessOptimizer(),

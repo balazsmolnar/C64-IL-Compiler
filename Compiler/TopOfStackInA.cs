@@ -93,7 +93,7 @@ static class TopOfStackInA
     {
         var plain = new[]
         {
-            "stack_pull_int", "stack_pull_int8", "stack_pull_int16", "stack_pop", "zp_pull_value8",
+            "stack_pull_int", "stack_pull_int8", "stack_pull_int16", "stack_pop", "stack_pop16", "stack_pop_n", "zp_pull_value8",
             "locals_pull_value16", "locals_pull_value16_ky",
             "add8", "sub8", "mul8", "and8", "or8", "xor8", "and8_const", "or8_const", "xor8_const",
             "add16", "sub16", "mul16", "and16", "or16", "xor16",

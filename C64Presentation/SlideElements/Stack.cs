@@ -1,30 +1,24 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Formats.Asn1;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
-using C64Lib;
+﻿using C64Lib;
 using C64Presentation.Helper;
-using Screen = C64Presentation.Helper.Screen;
 
 namespace C64Presentation.SlideElements;
 
+// The GC slide's mark stack: a column of small cells growing up from row Y
+// (the newest on top), redrawn after each push or pull.
 class Stack : SlideElement
 {
     private ObjectElem[] elements;
     private int pointer;
-    private Box box;
+    private uint drawn;            // rows drawn last time
 
     public uint X;
     public uint Y;
+    public const uint Width = 4;
 
     public void Init(int maxSize)
     {
         elements = new ObjectElem[maxSize];
         pointer = -1;
-        box = new Box() { Color = Colors.Violet, X = X, Y = Y - (uint)pointer, Width = 5, Height = (uint)(pointer + 3), Text = "" };
     }
 
     public void Push(ObjectElem elem)
@@ -41,17 +35,24 @@ class Stack : SlideElement
     }
 
     public bool IsEmpty => pointer == -1;
+
     public override void Draw()
     {
-        this.box.Y = Y - (uint) pointer;
-        this.box.Height = (uint) (pointer + 3);
-        Screen.ClearRect(X, X+5, Y-(uint)pointer-1, Y+1);
-            
-        box.Draw();
-
-        for (int p = 0; p <= pointer; p++)
+        uint count = (uint)(pointer + 1);
+        // Hide and clear what was there, then draw the cells bottom up.
+        if (drawn != 0)
         {
-            C64.Screen.Write(X+2, Y-(uint)pointer + (uint)(p+1), elements[pointer-p].Id, Colors.Yellow);
+            Deck.Paint(X, Y + 1 - drawn, Width, drawn, Theme.Background, Theme.Background);
+            Helper.Screen.ClearRect(X, Y + 1 - drawn, Width, drawn);
         }
+        for (uint i = 0; i < count; i++)
+        {
+            uint row = Y - i;
+            bool top = i + 1 == count;
+            Colors fill = top ? Theme.Accent2 : Theme.Card;
+            Deck.Paint(X, row, Width, 1, top ? Colors.Black : Theme.Heading, fill);
+            Text.Center(Helper.Screen.X(X), Helper.Screen.X(Width), row, elements[i].Id, top ? Colors.Black : Theme.Heading, fill);
+        }
+        drawn = count;
     }
 }

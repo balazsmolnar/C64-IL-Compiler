@@ -1,15 +1,19 @@
-﻿using System;
+using System;
 using C64Lib;
 using C64Presentation.Helper;
 using C64Presentation.SlideElements;
-using Screen = C64Presentation.Helper.Screen;
 
 namespace C64Presentation.Slides;
 
+// Mark and compact, one step per press: six objects (1 and 3 are roots),
+// the mark stack, the heap. Most of the animation is colour only: cards
+// are drawn once and recoloured; the heap is redrawn when it compacts.
 class GarbageCollectorSlide : Slide
 {
     private ObjectElem[] objects;
     private Stack stack;
+    private bool drawn;
+    private bool heapClean;
 
     public override void Present()
     {
@@ -30,11 +34,12 @@ class GarbageCollectorSlide : Slide
         objects[4].References = new[] { objects[2] };
         objects[5].References = new[] { objects[0], objects[1], objects[4] };
 
-        stack = new Stack() { X = 17, Y = 12 };
+        stack = new Stack() { X = 18, Y = 14 };
         stack.Init(objects.Length);
 
-        var title = new Title() { Text = "GARBAGE COLLECTOR" };
-        title.Draw();
+        Master.Content("Garbage collector");
+        Text.Draw(16, 10, "Mark stack", Theme.Muted);
+        Text.Draw(16, 16, "Heap", Theme.Muted);
         RefreshWait();
         AddRoots();
         MarkObjects();
@@ -51,7 +56,6 @@ class GarbageCollectorSlide : Slide
                 stack.Push(objectElem);
                 RefreshWait();
             }
-
         }
     }
 
@@ -83,8 +87,7 @@ class GarbageCollectorSlide : Slide
             if (!objectElem.Marked)
             {
                 objectElem.Alive = false;
-                Screen.ClearRect(0, 39, 18, 23);
-
+                heapClean = false;
                 RefreshWait();
             }
         }
@@ -93,61 +96,55 @@ class GarbageCollectorSlide : Slide
     private void RefreshWait()
     {
         Draw();
-        KeyBoard.WaitForKeys();
+        Deck.Step();
+        Deck.Show();
     }
 
     private void Draw()
     {
-        uint x = 0;
-        uint x2 = 0;
-        const uint width = 7;
-
-        var box = new Box() { Y = 5, Width = width, Height = 3, BorderColor = Colors.Blue, ConnectToLeft = x != 0 };
-        var box2 = new Box() { Y = 18, Height = 6, BorderColor = Colors.Blue };
-
-        foreach (var objectElem in objects)
+        uint x = Theme.Left;
+        foreach (var o in objects)
         {
-
-            var color = objectElem.Root ? Colors.Cyan : Colors.Blue;
-            if (objectElem.Marked)
-                color = Colors.Orange;
-
-            if (!objectElem.Alive)
-                color = Colors.Black;
-
-            box.Text = objectElem.Id;
-            box.TextColor = color;
-            box.ConnectToLeft = x != 0;
-            box.X = x;
-            box.Draw();
-
-            C64.Screen.SetChar(x + 3, 8, objectElem.Processing ? 0u : 0x20u);
-            x += width - 1;
-
-            if (!objectElem.Alive)
-                continue;
-
-            var width2 = objectElem.Size + 3;
-            box2.X = x2;
-            box2.Width = width2;
-            box2.Text = objectElem.Id;
-            box2.TextColor = objectElem.Alive ? Colors.Yellow : Colors.Black;
-            box2.ConnectToLeft = x2 != 0;
-            box2.Draw();
-            var refx = x2 + 1;
-            if (objectElem.Alive)
+            if (!drawn)
             {
-                foreach (var reference in objectElem.References)
-                {
-                    C64.Screen.Write(refx, 22, reference.Id);
-                    refx += 2;
-                }
+                Box.DrawCard(x, 5, 5, 3, Theme.Muted, Theme.Card);
+                ulong px = Helper.Screen.X(x);
+                Text.Center(px, 40, 6, o.Id, Theme.Heading, Theme.Card);
+                Helper.Screen.Fill(px + 8, 66, px + 31, 67);     // the "processing" marker
             }
-
-            x2 += width2 - 1;
-
+            if (!o.Alive)
+                Deck.Paint(x, 5, 5, 3, Theme.Background, Theme.Background);
+            else
+                Deck.Paint(x, 5, 5, 1, o.Marked ? Theme.Accent2 : (o.Root ? Theme.Accent : Theme.Muted), Theme.Card);
+            Deck.Paint(x, 8, 5, 1, o.Processing ? Theme.Accent2 : Theme.Background, Theme.Background);
+            x += 6;
         }
+        drawn = true;
 
         stack.Draw();
+
+        if (!heapClean)
+        {
+            heapClean = true;
+            Deck.Paint(Theme.Left, 17, Theme.Width, 4, Theme.Background, Theme.Background);
+            Helper.Screen.ClearRect(Theme.Left, 17, Theme.Width, 4);
+            uint hx = Theme.Left;
+            foreach (var o in objects)
+            {
+                if (!o.Alive)
+                    continue;
+                string refs = "";
+                foreach (var r in o.References)
+                    {
+                    if (refs != "")
+                        refs = refs + " ";
+                    refs = refs + r.Id;
+                }
+                new Box { X = hx, Y = 17, Width = o.Size + 1, Height = 4, Text = o.Id, Caption = refs, Color = Theme.Accent2, ConnectToLeft = hx != Theme.Left }.Draw();
+                hx += o.Size + 1;
+            }
+            if (hx < Theme.Right)
+                new Box { X = hx, Y = 17, Width = Theme.Right - hx, Height = 4, Text = "free", Color = Theme.Card, Hollow = true }.Draw();
+        }
     }
 }

@@ -51,7 +51,7 @@ class YRegisterTracker
         "and8_const", "or8_const", "xor8_const", "and8_const_tail", "or8_const_tail", "xor8_const_tail",
         "and16_const", "or16_const", "xor16_const",
         "shift_left8", "shift_right8",
-        "stack_duplicate8", "stack_pop", "stack_pull_int", "stack_pull_int16", "stack_pull_int8", "stack_pull_int_a",
+        "stack_duplicate8", "stack_pop", "stack_pop16", "stack_pop_n", "stack_pull_int", "stack_pull_int16", "stack_pull_int8", "stack_pull_int_a",
         "stack_pull_int_ref", "stack_pull_int_x", "stack_pull_pointer",
         "stack_push_int", "stack_push_int16", "stack_push_int8", "stack_push_int_a", "stack_push_int_x",
         "stack_push_int_y", "stack_push_pointer", "stack_push_var", "stack_push_var16", "stack_push_var8",

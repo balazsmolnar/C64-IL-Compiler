@@ -107,6 +107,15 @@ class PeepholeRule
                 if (window[k].SourceMethod != null)
                     return false;
 
+        // A branch target inside the window (anywhere but its first line)
+        // would be jumped to in the middle of the fused operation: e.g.
+        // `x = c ? x + 1 : x - 1` has a label on the shared `stloc x`, and
+        // fusing `ldloc x, ldc 1, add, stloc x` into #inc_var made BOTH arms
+        // increment (the other arm's result left on the stack).
+        for (int k = 1; k < window.Length; k++)
+            if (window[k].Label != null)
+                return false;
+
         if (_guard != null && !_guard(context, window))
             return false;
 

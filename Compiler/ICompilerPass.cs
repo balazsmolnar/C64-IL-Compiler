@@ -148,6 +148,25 @@ class CompilerContext
         method != null && StaticFrames.Count > 0
         && StaticFrames.TryGetValue(ILStaticFramePass.Normalize(method), out var info) ? info : null;
 
+    // ILReachabilityPass: the methods and types that can ever be used (null:
+    // the pass is off and everything is live). See IsLive.
+    public bool DeadCodeElimination { get; set; } = true;
+    public HashSet<MethodBase> LiveMethods { get; set; }
+    public HashSet<Type> LiveTypes { get; set; }
+    // Only methods the pass looked at can be dead: anything else is kept.
+    public HashSet<MethodBase> AnalyzedMethods { get; set; }
+    public bool IsLive(MethodBase method)
+    {
+        if (LiveMethods == null)
+            return true;
+        var m = ILStaticFramePass.Normalize(method);
+        return LiveMethods.Contains(m) || !AnalyzedMethods.Contains(m);
+    }
+    public bool IsLive(Type type) => LiveTypes == null || LiveTypes.Contains(type);
+
+    // ILInitializerTempPass: can a method reach GC.Collect?
+    public Dictionary<MethodBase, bool> MayCollect { get; } = new();
+
     public List<string> InitValues { get; } = new();
 
     // (width, divisor) of every DivConst8_<d>/DivConst16_<d> routine some
@@ -234,6 +253,10 @@ class CompilerMethodContext
     // second, narrower defense this doesn't make redundant: handle 0,
     // which is never a real allocated slot, per findEmptySlot's own
     // `inx` before its first check).
+    // Locals no instruction uses any more (ILInitializerTempPass): never
+    // stored, so there is nothing to zero or release.
+    public HashSet<int> DeadLocals { get; } = new();
+
     public List<string> GetLocalRefPositions()
     {
         var refPositions = new List<string>();
@@ -241,7 +264,7 @@ class CompilerMethodContext
         var variables = body.LocalVariables;
         for (int i = 0; i < variables.Count; i++)
         {
-            if (variables[i].LocalType.IsReferenceCounted())
+            if (variables[i].LocalType.IsReferenceCounted() && !DeadLocals.Contains(i))
                 refPositions.Add(GetLocalVariableReferencePosition(i).ToString());
         }
         return refPositions;

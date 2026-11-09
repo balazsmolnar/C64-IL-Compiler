@@ -104,6 +104,22 @@ class ILMethodCodePass : ICompilerMethodPass
                 operation.OriginalParameter = parameter;
             }
 
+            if ((opCode == ILOpCode.Call || opCode == ILOpCode.Callvirt) &&
+                TryAutoPropertyField(context, parameter, out var fieldOpCode, out var fieldToken))
+            {
+                // `obj.Prop = v` / `obj.Prop` on a plain auto-property is
+                // exactly a field store/load: decode it as one, so it costs
+                // what a public field costs (and object initializers of
+                // init properties stay table-driven).
+                opCode = fieldOpCode;
+                operation.OpCode = opCode;
+                operation.Operation = CommandMap.Get(opCode);
+                op = operation.Operation;
+                parameter = fieldToken;
+                operation.RawParameter = parameter;
+                operation.OriginalParameter = parameter;
+            }
+
             if (op.ParameterSize > -1)
                 operation.RawParameter = op.ConvertParameter(context, operation);
             operation.Size = index - operation.Position;
@@ -112,6 +128,58 @@ class ILMethodCodePass : ICompilerMethodPass
         }
         context.Lines = lines;
         context.CurrentIlOffset = null;
+    }
+
+    // A call to an accessor of an auto-property declared in the program
+    // itself ({ get; set; } / { get; init; }, non-virtual): the getter's body
+    // is ldarg.0 / ldfld <backing field> / ret, the setter's ldarg.0 /
+    // ldarg.1 / stfld <backing field> / ret. Library (C64Lib) properties are
+    // never touched: their stubs map to runtime routines by name.
+    private static bool TryAutoPropertyField(CompilerMethodContext context, int token, out ILOpCode fieldOpCode, out int fieldToken)
+    {
+        fieldOpCode = default;
+        fieldToken = 0;
+        MethodBase callee;
+        try
+        {
+            callee = context.CompilerContext.Assembly.ManifestModule.ResolveMethod(token);
+        }
+        catch (System.ArgumentException)
+        {
+            return false;
+        }
+        return IsAutoPropertyAccessor(callee, context.CompilerContext.Assembly.ManifestModule, out fieldOpCode, out fieldToken);
+    }
+
+    // Every call to such an accessor is decoded as the field access itself
+    // (above), so the accessor's own body is never called: ILCodePass skips
+    // compiling it.
+    public static bool IsAutoPropertyAccessor(MethodBase method, Module module, out ILOpCode fieldOpCode, out int fieldToken)
+    {
+        fieldOpCode = default;
+        fieldToken = 0;
+        if (method == null || method.IsStatic || method.IsVirtual || !method.IsSpecialName || method.Module != module)
+            return false;
+        var il = method.GetMethodBody()?.GetILAsByteArray();
+        if (il == null)
+            return false;
+        int fieldAt;
+        if (il.Length == 7 && il[0] == (byte)ILOpCode.Ldarg_0 && il[1] == (byte)ILOpCode.Ldfld && il[6] == (byte)ILOpCode.Ret)
+        {
+            fieldOpCode = ILOpCode.Ldfld;
+            fieldAt = 2;
+        }
+        else if (il.Length == 8 && il[0] == (byte)ILOpCode.Ldarg_0 && il[1] == (byte)ILOpCode.Ldarg_1 &&
+                 il[2] == (byte)ILOpCode.Stfld && il[7] == (byte)ILOpCode.Ret)
+        {
+            fieldOpCode = ILOpCode.Stfld;
+            fieldAt = 3;
+        }
+        else
+            return false;
+        fieldToken = il[fieldAt] | il[fieldAt + 1] << 8 | il[fieldAt + 2] << 16 | il[fieldAt + 3] << 24;
+        var field = module.ResolveField(fieldToken);
+        return field != null && field.Name.Contains("k__BackingField");
     }
 
     // Generic definitions can't be compiled (each instantiation would need its

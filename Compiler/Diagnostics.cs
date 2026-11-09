@@ -363,7 +363,7 @@ static class UnsupportedCalls
         if (type != null && type.IsArray && type.GetArrayRank() > 1)
             return "Multi-dimensional arrays are not supported; use a jagged array (uint[][]) or index a one-dimensional array as y * width + x.";
         if (full == "System.Runtime.CompilerServices.RuntimeHelpers" && name == "InitializeArray")
-            return "An array given inline as an argument (params, or a collection expression) is not supported; put it in a variable first: uint[] a = { 1, 2, 3 };";
+            return "This shape of array literal is not supported; put it in a variable first: uint[] a = { 1, 2, 3 };";
 
         if (type == typeof(string))
         {

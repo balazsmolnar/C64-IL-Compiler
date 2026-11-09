@@ -415,6 +415,8 @@ class ILStaticFramePass : ICompilerPass
                     continue;
                 if (!method.IsAbstract && method.GetMethodBody() == null)
                     continue;
+                if (!context.IsLive(method))
+                    continue;
                 yield return method;
             }
         }

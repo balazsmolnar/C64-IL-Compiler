@@ -31,6 +31,8 @@ sealed class GcSlide : Slide
 #pragma warning restore CS8618
     static uint _stackCount;
 
+    public static Slide Create() => new GcSlide();
+
     public override void Present()
     {
         Setup();

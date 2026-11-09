@@ -12,7 +12,7 @@ static class Part2
         TestsLiedSlide.Create,
         FramesSlide.Create,
         ReferencesSlide.Create,
-        () => new GcSlide(),
+        GcSlide.Create,
         BorrowSlide.Create,
         RomSlide.Create,
     ];

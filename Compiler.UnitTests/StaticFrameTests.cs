@@ -78,7 +78,8 @@ class Program
     [Test]
     public void Call_Graph_Decides_Which_Methods_Are_Static()
     {
-        var gen = Generated(Compile(Source));
+        // --static-frames: the suite also runs with C64_STATIC_FRAMES=0.
+        var gen = Generated(Compile(Source, "--static-frames"));
 
         // Main's local x, then Middle (a, k) above it; Leaf and Other are
         // both called from Middle (Leaf from Main too), so they overlay
@@ -101,7 +102,7 @@ class Program
     [Test]
     public void Static_Method_Has_No_Prologue_And_Callers_Fill_Its_Slots()
     {
-        var asm = File.ReadAllText(Path.Combine(Compile(Source), "Program.asm"));
+        var asm = File.ReadAllText(Path.Combine(Compile(Source, "--static-frames"), "Program.asm"));
         var middle = asm.Substring(asm.IndexOf("METHOD: Middle"));
         middle = middle.Substring(0, middle.IndexOf("METHOD:", 10));
         Assert.That(middle, Does.Contain("; static frame: StaticFrames+1, 2 bytes"), middle);

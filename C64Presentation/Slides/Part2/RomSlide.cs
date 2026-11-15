@@ -4,10 +4,11 @@ using C64Presentation.SlideElements;
 namespace C64Presentation.Slides;
 
 // Slide 16 (DECK.md D7): the memory map, the bitmap and the sprites moving
-// in under the ROM and the I/O chips; the facts beside their segments.
+// in under the ROM and the I/O chips; each fact level with its segment.
 static class RomSlide
 {
-    const uint MapColumn = 8, MapTop = Theme.BodyTop, FactColumn = 19;
+    const uint MapColumn = 8, BitmapRow = Theme.BodyTop, IoRow = BitmapRow + 3, RestRow = IoRow + 2;
+    const uint FactColumn = 19, SavingRow = 11, PictureRow = 15;
 
     public static Slide Create() => new SimpleSlide
     {
@@ -16,7 +17,7 @@ static class RomSlide
             new Title { Text = "Hide under the ROM" },
             new MemoryMap
             {
-                X = MapColumn, Y = MapTop + 5, Note = "not to scale",
+                X = MapColumn, Y = RestRow, Note = "not to scale",
                 Segments =
                 [
                     new() { Name = "colours", Address = "$CC00", Height = 2, Color = Theme.Accent },
@@ -25,14 +26,12 @@ static class RomSlide
                     new() { Name = "zero page", Address = "$0000", Height = 2, Color = Theme.Muted },
                 ],
             },
-            Map(MapTop, new() { Name = "bitmap", Address = "$E000", Height = 3, Color = Theme.Accent2 }),
-            Fact(MapTop, "Bitmap under the"),
-            Fact(MapTop + 2, "KERNAL ROM"),
-            Map(MapTop + 3, new() { Name = "I/O", Address = "$D000", Height = 2, Color = Theme.Muted }),
-            Fact(MapTop + 4, "Sprites under I/O"),
-            new TextElement { X = FactColumn, Y = 11, Text = "Frees 9.4 KB", Face = TextFace.Heading, Color = Theme.Accent, Wait = true },
-            Fact(15, "Pictures packed:", wait: true),
-            Fact(17, $"8,400 {Theme.Arrow} 2,118 B"),
+            Map(BitmapRow, new() { Name = "bitmap", Address = "$E000", Height = 3, Color = Theme.Accent2 }),
+            Fact(BitmapRow + 1, "Bitmap under the KERNAL ROM"),
+            Map(IoRow, new() { Name = "I/O", Address = "$D000", Height = 2, Color = Theme.Muted }),
+            Fact(IoRow + 1, "Sprites under I/O"),
+            new TextElement { X = FactColumn, Y = SavingRow, Text = "Frees 9.4 KB", Face = TextFace.Heading, Color = Theme.Accent, Wait = true },
+            Fact(PictureRow, $"Pictures: 8,400 {Theme.Arrow} 2,118 B", wait: true),
         ]
     };
 

@@ -7,96 +7,61 @@ namespace C64Presentation.Slides;
 // Slide 12: the problem (a full stack), the fix (a frame per method at a
 // fixed address), and the trick: methods that never run at the same time
 // share bytes. Left: the story; right: a call tree and the StaticFrames
-// strip, where Draw lands on Update's bytes and Hud on Move's.
+// strip, where Update and Draw share one frame, and Move and Hud another.
 static class FramesSlide
 {
-    const uint TreeTop = 5, TreePitch = 4;              // the tree's three levels
-    const uint Left = 21, Right = 27, Middle = 24;      // its box columns
-    const uint StripColumn = 34, StripTop = 6;
+    // The story, left.
+    const uint ProblemRow = Theme.BodyTop, IconRow = 7, FixRow = 12, ShareRow = 14, ResultRow = 17;
+    // The call tree: three levels, the arrows in the gaps between them.
+    const uint TreeLeft = 21, TreeWidth = 11, BoxWidth = 5, LevelPitch = 5;
+    const uint Child = TreeLeft, Sibling = TreeLeft + TreeWidth - BoxWidth;
+    const uint ChildMiddle = Child + BoxWidth / 2, SiblingMiddle = Sibling + BoxWidth / 2;
+    const uint CaptionRow = 19;
+    // The strip.
+    const uint StripColumn = 33, StripWidth = Theme.Right - StripColumn, StripLabelColumn = 30, StripLabelRow = CaptionRow;
+    const uint FreeRow = Theme.BodyTop + 10;
 
     public static Slide Create() => new SimpleSlide
     {
         Elements =
         [
             new Title { Text = "Frames share bytes" },
-            Line(5, "Deep calls overflow 256 bytes"),
-            new Topic { X = Theme.Left, Y = 8, Icon = C64Address.FromLabel("img_IconStack"), Label = "", Color = Theme.Bad },
-            new Arrow { FromCol = 6, FromRow = 10, ToCol = 6, ToRow = 7, Color = Theme.Bad },
-            Line(12, "Fix: frames at fixed addresses", wait: true),
-            Method(Middle, 0, "Main", Theme.Body),
-            Method(Left, 1, "Update", Theme.Accent), Method(Right, 1, "Draw", Theme.Accent2),
-            Method(Left, 2, "Move", Theme.Accent), Method(Right, 2, "Hud", Theme.Accent2),
-            new TreeLink { From = Middle + 2, To = Left + 2, Row = TreeTop + 3 },
-            new TreeLink { From = Middle + 2, To = Right + 2, Row = TreeTop + 3 },
-            new TreeLink { From = Left + 2, To = Left + 2, Row = TreeTop + TreePitch + 3 },
-            new TreeLink { From = Right + 2, To = Right + 2, Row = TreeTop + TreePitch + 3 },
-            new TextElement { X = 24, Y = 17, Text = "illustration", Color = Theme.Muted },
-            Line(14, "Never-concurrent calls share", wait: true),
-            new TextElement { X = 30, Y = 5, Text = "StaticFrames", Color = Theme.Muted },
-            Frame(0, 2, Theme.Body), Frame(2, 3, Theme.Accent), Frame(2, 3, Theme.Accent2, shared: true),
-            Frame(5, 2, Theme.Accent), Frame(5, 2, Theme.Accent2, shared: true), Frame(7, 1, Theme.Card),
-            Line(17, $"{Theme.Hi}Catacombs: 118 of 125 methods", wait: true),
-            Line(19, $"{Theme.Hi}in 39 bytes of frames"),
+            Line(ProblemRow, "Deep calls overflow 256 bytes"),
+            new Topic { X = Theme.Left, Y = IconRow, Icon = C64Address.FromLabel("img_IconStack"), Label = "256 B: full", Color = Theme.Bad },
+
+            Line(FixRow, "Fix: frames at fixed addresses", wait: true),
+            Method(TreeLeft, 0, TreeWidth, "Main", Theme.Body),
+            Call(ChildMiddle, 0), Call(SiblingMiddle, 0),
+            Method(Child, 1, BoxWidth, "Update", Theme.Accent), Method(Sibling, 1, BoxWidth, "Draw", Theme.Accent2),
+            Call(ChildMiddle, 1), Call(SiblingMiddle, 1),
+            Method(Child, 2, BoxWidth, "Move", Theme.Accent), Method(Sibling, 2, BoxWidth, "Hud", Theme.Accent2),
+            new TextElement { X = TreeLeft, Y = CaptionRow, Text = "illustration", Color = Theme.Muted },
+
+            Line(ShareRow, "Never-concurrent calls share", wait: true),
+            new TextElement { X = StripLabelColumn, Y = StripLabelRow, Text = "StaticFrames", Color = Theme.Muted },
+            Frame(0, 2, "Main", "", Theme.Body),
+            Frame(2, 4, "Update", "= Draw", Theme.Accent),
+            Frame(6, 4, "Move", "= Hud", Theme.Accent),
+            new Box { X = StripColumn, Y = FreeRow, Width = StripWidth, Height = 2, Text = "free", Color = Theme.Frame, Hollow = true },
+
+            Line(ResultRow, $"{Theme.Hi}Catacombs: 118 of 125 methods", wait: true),
+            Line(ResultRow + 2, $"{Theme.Hi}in 39 bytes of frames"),
         ]
     };
 
     static TextElement Line(uint row, string text, bool wait = false) => new() { X = Theme.Left, Y = row, Text = text, Wait = wait };
 
-    static Box Method(uint column, uint level, string name, Colors color)
-        => new() { X = column, Y = TreeTop + level * TreePitch, Width = 5, Height = 3, Text = name, Color = color };
+    static uint LevelRow(uint level) => Theme.BodyTop + level * LevelPitch;
 
-    static FrameBlock Frame(uint offset, uint height, Colors color, bool shared = false)
-        => new() { X = StripColumn, Y = StripTop + offset, Width = 4, Height = height, Color = color, Shared = shared };
-}
+    static Box Method(uint column, uint level, uint width, string name, Colors color)
+        => new() { X = column, Y = LevelRow(level), Width = width, Height = 3, Text = name, Color = color };
 
-// A tree edge from a parent box's bottom (cell column From, ending on Row - 1)
-// down into the gap row Row - 1, across, and down to the child at column To,
-// whose box starts on Row + 1... drawn as a 1 px Grey2 line through the
-// middle of the cells.
-sealed class TreeLink : SlideElement
-{
-    public uint From { get; init; }
-    public uint To { get; init; }
-    public uint Row { get; init; }
+    // A call: down from one level to the next, through the gap between them.
+    static Arrow Call(uint column, uint level)
+        => new() { FromCol = column, FromRow = LevelRow(level) + 3, ToCol = column, ToRow = LevelRow(level) + 4, Color = Theme.Muted };
 
-    public override void Draw()
-    {
-        uint first = From < To ? From : To;
-        uint span = (From < To ? To - From : From - To) + 1;
-        Deck.Paint(first, Row, span, 1, Theme.Muted, Theme.Background);
-        ulong x0 = Screen.Px(From) + 4, x1 = Screen.Px(To) + 4, top = Screen.Px(Row), y = top + 3;
-        Screen.Line(x0, top, x0, y);
-        Screen.Line(x0, y, x1, y);
-        Screen.Line(x1, y, x1, top + 7);
-    }
-}
-
-// One method's frame in an address strip: a block of cells in its colour,
-// inset 1 px so neighbours stay apart. Shared: it lands on cells another
-// frame already has, and takes every other one (a checker of both colours).
-// Each block fades in on its own, one after another.
-sealed class FrameBlock : SlideElement
-{
-    const uint FadeFrames = 6;
-
-    public uint X { get; init; }
-    public uint Y { get; init; }
-    public uint Width { get; init; }
-    public uint Height { get; init; }
-    public Colors Color { get; init; }
-    public bool Shared { get; init; }
-
-    public override void Draw()
-    {
-        Deck.Build(onSurface: false);
-        for (uint row = Y; row < Y + Height; row++)
-            for (uint column = X; column < X + Width; column++)
-                if (!Shared || ((row + column) & 1) == 1)
-                    Deck.Paint(column, row, 1, 1, Color, Theme.Background);
-        ulong x = Screen.Px(X), y = Screen.Px(Y);
-        Screen.Fill(x + 1, y + 1, x + Screen.Px(Width) - 2, y + Screen.Px(Height) - 2);
-        Deck.Show();
-        for (uint frame = 0; frame < FadeFrames; frame++)
-            C64.Screen.WaitForVBlank();
-    }
+    // One frame in the strip, `offset` rows down; a shared frame names its
+    // second method in the caption.
+    static Box Frame(uint offset, uint height, string name, string shared, Colors color)
+        => new() { X = StripColumn, Y = Theme.BodyTop + offset, Width = StripWidth, Height = height, Text = name, Caption = shared, Color = color };
 }

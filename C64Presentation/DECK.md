@@ -410,7 +410,7 @@ GC   strings & floats   bitmaps
 - **Say:** "Six things C# takes for granted that a 6502 does not have."
 - **Sources:** agenda of slides 10-16.
 
-- **As built** (`Slides/Part2/HardPartsSlide.cs`): the engine section master (number `05`, the section's number in this file; the `sec_chip` icon top right, no subtitle). The six A6 icons in two rows of three, each with its label beside it: the two text lines above become the labels (`8-bit int`, `stack`, `objects` / `GC`, `strings & floats`, `bitmaps`), so every icon names its topic.
+- **As built** (`Slides/Part2/HardPartsSlide.cs`): the engine section master (number `05`, the section's number in this file; the `sec_chip` icon top right, no subtitle). The six A6 icons in two rows of three on even columns (13 cells apart), each with its label beside it: the two text lines above become the labels (`8-bit int`, `stack`, `objects` / `GC`, `strings & floats`, `bitmaps`).
 
 ### Slide 10 — int is 8 bits
 
@@ -455,7 +455,7 @@ would become 188.
   "The constant 700 does not fit in 8 bits: int and uint are 8-bit values
   on the C64 (0..255, or -128..127), so it would become 188."
 
-- **As built** (`IntIs8BitsSlide.cs`): the table as two side-by-side tables (`C# type` | `size`), the code line in a 26-cell code panel, `-> 188` in grey right of it, the error in the code face (IDE-like: consecutive rows) with a red bar; the red underline on `700` comes with the error (press 3).
+- **As built** (`IntIs8BitsSlide.cs`): the table as two side-by-side tables, the header (`C# type` | `size`) only on the left one; the code line in a code panel with an empty row under it, `-> 188` in grey right of it; the error in the code face (consecutive rows, IDE-like) with a red bar; with it (press 3) a red underline under `700` in the empty code row.
 
 ### Slide 11 — Our tests lied
 
@@ -484,7 +484,7 @@ This deck: Wait(500) waited 244
   "RandomTests' new uint[256] (an empty array)". Arithmetic: 256 & 255 =
   0; 500 & 255 = 244.
 
-- **As built** (`TestsLiedSlide.cs`): as specified; the struck value, the real one and the rest of the line each start on a cell edge (one colour per cell), so the gap before a struck value is 2-8 px.
+- **As built** (`TestsLiedSlide.cs`, critic round 1): line 1, then lines 2-4 as a table, one row per press: `In our code | meant | was` with `i < 256 loop | 256 | 0`, `new uint[256] | 256 | 0`, `This deck: Wait(500) | 500 | 244`; "meant" in Grey2, "was" in light red. (Inline strike-throughs could not be spaced evenly: each colour starts on a cell edge.)
 
 ### Slide 12 — Frames share bytes
 
@@ -523,7 +523,7 @@ in 39 bytes of frames
   frames: 118 of 125 methods (9 callee-pulls), 39 bytes") and
   Catacombs/TECH.md ("39 bytes of static frames").
 
-- **As built** (`FramesSlide.cs`): text left (rows 5-19), tree right (boxes 5 wide, the Update/Move branch cyan, Draw/Hud yellow), the `StaticFrames` strip at cells 34-37, rows 6-13; on press 2 the frames fade in one after another (Main, Update, Draw onto Update's rows as a cyan/yellow checker, Move, Hud the same, the free row) instead of sliding. The full-stack icon is A6 `icon_stack` in red with a red up-arrow beside it.
+- **As built** (`FramesSlide.cs`, critic round 1): text left; the stack icon in red with the label `256 B: full`; the call tree right (Main across the tree, Update/Draw, Move/Hud, Grey2 call arrows), the `StaticFrames` strip at cells 33-37 as labelled cards: `Main`, `Update` / `= Draw`, `Move` / `= Hud`, `free`; `illustration` and `StaticFrames` as captions on row 19.
 
 ### Slide 13 — References: 1 byte
 
@@ -561,7 +561,7 @@ Full: ?OUT OF MEMORY ERROR
   `asm/helper/fault.asm` (header: "?<MESSAGE> ERROR", red border;
   `Runtime_FaultMsg0 .text "OUT OF MEMORY"`).
 
-- **As built** (`ReferencesSlide.cs`): table rows 1 and 2 only (the engine critic's table), heap strip rows 12-14; the text in rows 16-20: line 1 with line 2 beside it on row 16 (no 2x2 grid fits: each line is about 140 px), lines 3 and 4 under line 1.
+- **As built** (`ReferencesSlide.cs`, critic round 1): table rows 1 and 2 only (the engine critic's table), Grey2 pointer arrows (row 1 from left of its value down the empty first cell, row 2 down from right of its value), heap strip rows 12-14; text lines 1, 3, 4 on rows 16, 18, 20, and line 2 as a stat card right of them: `255 objects` / `handle 0 is null`.
 
 ### Slide 14 — GC without a scan
 
@@ -599,7 +599,7 @@ Full: ?OUT OF MEMORY ERROR
   `Compiler/ILMethodCachedFieldAccessPass.cs` ("This GC only ever moves an
   object via an explicit GC.Collect() call").
 
-- **As built** (`GcSlide.cs`): objects in a 3x2 grid on the left (each box: id, its references), `root` in cyan under 1 and 3; the four phase labels on the right, the current one white; the mark stack as six slots under them; the heap below in address order 3, 1, 6, 4, 2, 5 (2 and 6 reference each other: a dead cycle). Sort: the dead objects fade out and the slots list the live ones by address (3, 1, 4, 5); slide down: the dead blocks fade, the live ones slide left cell by cell.
+- **As built** (`GcSlide.cs`, critic round 1): one press per phase (4), the steps inside a phase paced (0.4 s). Objects in a 3x2 grid on the left (id, references), `root` in cyan under 1 and 3; the four phase labels on the right, the current one white; the mark stack as a line of ids; the heap below, labelled `heap, by address`, in address order 3, 1, 6, 4, 2, 5. Traced = yellow, marked = cyan, box and heap block alike. Sort: the live blocks light up in address order. Slide down: 2 and 6 fade (named on screen: `2 -> 6 -> 2: a dead cycle`), the live blocks slide left cell by cell.
 
 ### Slide 15 — Borrow, not build
 
@@ -641,7 +641,7 @@ Sin, Cos, Sqrt
   BASIC ROM routines: `asm/helper/floatBanking.asm`; Sin/Cos/Sqrt:
   `Compiler/Diagnostics.cs` ("MathF.Sin/Cos/Sqrt").
 
-- **As built** (`BorrowSlide.cs`): headings in the 16 px face, a wrapped item's second line 2 rows down, items 3 rows apart.
+- **As built** (`BorrowSlide.cs`, critic round 1): headings in the 16 px face; each item on one line (two engine bullet lists, 3 rows apart): `Zero-terminated bytes`, `Not on the heap`, `a + b: one 40-byte buffer` / `C64's 5-byte format`, `Math: BASIC ROM routines`, `Sin, Cos, Sqrt`.
 
 ### Slide 16 — Hide under the ROM
 
@@ -677,7 +677,7 @@ Pictures packed:
   is 8400 -> 2118 bytes"; CLAUDE.md ("Graphics memory layout"). $0000-$07FF
   zero page and 6502 stack ($0100): C64 Programmer's Reference Guide.
 
-- **As built** (`RomSlide.cs`): the engine gallery's approved map (bitmap 3 rows, I/O, colours, program, tables, zero page 2-3 rows each, palette colours: no violet or blue), rows 5-18; each fact level with its segment; `Frees 9.4 KB` in the 16 px face, cyan.
+- **As built** (`RomSlide.cs`, critic round 1): the engine gallery's approved map (palette colours: no violet or blue), rows 5-18, address labels without ticks; each fact on one line level with its segment: `Bitmap under the KERNAL ROM`, `Sprites under I/O`, `Frees 9.4 KB` (16 px face, cyan), `Pictures: 8,400 -> 2,118 B`.
 
 
 ## 6. Making it small and fast

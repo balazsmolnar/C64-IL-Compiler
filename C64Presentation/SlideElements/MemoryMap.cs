@@ -8,7 +8,8 @@ namespace C64Presentation.SlideElements;
 // in its Color down the left edge and a 1 px black line along its bottom
 // (the boundary with the next), its name in white (and Detail under it in
 // Grey3, from Height 3), and its start address right-aligned to the left
-// on its bottom row, where that boundary is, in Grey2 with a tick to it.
+// on its bottom row, where that boundary is, in Grey2 (no tick: on the
+// glyph baseline it read as an underscore).
 // A Note under the map ("not to scale").
 // Wait: one segment per build step, from the top.
 //
@@ -42,8 +43,6 @@ sealed class MemoryMap : SlideElement
             segment.Draw(X, row, width);
             uint bottom = row + segment.Height - 1;
             Text.Right(labelRight, bottom, segment.Address, Theme.Muted);
-            ulong y = Screen.Px(bottom) + 7;
-            Screen.Line(labelRight + 2, y, Screen.Px(X) - 1, y);
             row += segment.Height;
         }
         if (Note != null)

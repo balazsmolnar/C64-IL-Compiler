@@ -403,6 +403,16 @@ Catacombs: 3,477 lines of C#
 
 - **Visual:** the whole of A1 (Catacombs room with the skeleton guardian,
   torches lit). The arrow in the left margin points up at the split line.
+- **Alive (as built):** the picture is that room without characters,
+  rendered by Catacombs' own `art/room_art.py` (room (5,3): moss theme,
+  doors north, west and south, a puddle; `art/slides/make_room.py`, on the
+  disk as `room`). Over it, until the last press: the torches flicker
+  (Catacombs' four flame frames, a random one on alternating torches every
+  fourth frame), and three of the game's characters move as hardware
+  sprites with the game's frames and colours: the adventurer walks across
+  the front, the skeleton guardian paces in the doorway, a bat flits along
+  the far wall. The facts fade in on presses 1-2 while it runs; the
+  sprites are hidden before the fade-out.
 - **Build:** on entry the picture and the title. Presses 1-2: one line
   each.
 - **Say:** "The biggest thing built with it so far: Catacombs, a dungeon

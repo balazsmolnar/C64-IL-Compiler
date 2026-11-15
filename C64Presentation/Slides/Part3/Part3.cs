@@ -2,10 +2,9 @@ using System;
 
 namespace C64Presentation.Slides.Part3;
 
-// Part 3 of the deck (DECK.md), in order: slides 17, 22, 23 and 27 (the
-// user cut 18-21 and 24-26). The hidden debugger appendix is in a scene
-// build's list only, for tools\presentation-shot.ps1, until the storyboard
-// decides whether and how it is reached.
+// Part 3 of the deck (DECK.md), in order: slides 13-16. The hidden debugger
+// appendix is reached with D on slide 15; a scene build also lists it, for
+// tools\presentation-shot.ps1.
 static class Part3
 {
     public static readonly Func<Slide>[] Slides =

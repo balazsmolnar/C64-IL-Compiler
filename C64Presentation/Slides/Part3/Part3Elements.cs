@@ -1,3 +1,4 @@
+using System;
 using C64Lib;
 using C64Presentation.Helper;
 using C64Presentation.SlideElements;
@@ -58,5 +59,47 @@ sealed class Highlight : SlideElement
         if (Wait)
             Deck.Step();
         Deck.Paint(X, Y, Width, Theme.OrCells(Height, 1), Ink, Paper);
+    }
+}
+
+// The last element of a slide that can swap in a hidden one: once the
+// slide is up, D fades to Appendix; SPACE there comes back to the slide,
+// redrawn whole by Return (without its builds, and without this element's
+// own loop). SPACE or B on the slide itself go on as usual (the Presenter
+// reads the key, which is still held).
+//
+//     new HiddenSlideKey { Appendix = DebuggerMock.Create, Return = Rebuilt }
+sealed class HiddenSlideKey : SlideElement
+{
+    public required Func<Slide> Appendix { get; init; }
+    public required Func<Slide> Return { get; init; }
+
+    static bool _returning;     // drawing Return: it holds this element too
+
+    public override void Draw()
+    {
+        if (_returning)
+            return;
+        Deck.Show();
+        Deck.Reveal();
+        while (!KeyBoard.AdvancePressed() && !C64.IsKeyPressed(Keys.B))
+        {
+            if (!C64.IsKeyPressed(Keys.D))
+                continue;
+            ShowInstead(Appendix);
+            KeyBoard.WaitForKeys();
+            _returning = true;
+            ShowInstead(Return);
+            _returning = false;
+        }
+    }
+
+    static void ShowInstead(Func<Slide> slide)
+    {
+        Deck.FadeOut();
+        Deck.Begin(Deck.Number);
+        slide().Present();
+        Deck.Show();
+        Deck.Reveal();
     }
 }

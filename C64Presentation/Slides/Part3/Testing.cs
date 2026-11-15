@@ -4,12 +4,12 @@ using C64Presentation.SlideElements;
 
 namespace C64Presentation.Slides.Part3;
 
-// Section 7, slides 22-23: tests that run on a 6502 (DECK.md).
+// Section 7, slides 14-15: tests that run on a 6502 (DECK.md).
 static class Testing
 {
     const Colors Passed = Colors.LightGreen;    // NUnit's green: this slide only
 
-    // 22: an ordinary NUnit test case whose body runs as 6502 code.
+    // 14: an ordinary NUnit test case whose body runs as 6502 code.
     public static Slide TestsRunOn6502() => new SimpleSlide
     {
         Elements =
@@ -37,22 +37,28 @@ static class Testing
 
     static TextElement Line(uint row, string text) => new() { X = Theme.Left, Y = row, Text = text, Wait = true };
 
-    // 23 (D8): what the PostSharp aspect does around every test call.
-    public static Slide PostSharpSwapsIt() => new SimpleSlide
+    // 15 (D8): what the PostSharp aspect does around every test call. D
+    // swaps in the hidden debugger mock, the fallback for a failed demo.
+    public static Slide PostSharpSwapsIt() => PostSharp(builds: true);
+
+    static Slide PostSharpBuilt() => PostSharp(builds: false);
+
+    static Slide PostSharp(bool builds) => new SimpleSlide
     {
         Elements =
         [
             new Title { Text = "PostSharp swaps it" },
             new FlowStep { Row = 5, Text = "1 Load prg/unittest.prg", Label = "RunInEmulatorAspect.OnInvoke", Color = Theme.Brand },
-            InCall(7, $"2 Method address {Theme.Arrow} $09FE"),
-            InCall(9, $"3 Arguments {Theme.Arrow} $09E0", wait: true),
-            InCall(11, "4 Run from $1000"),
-            new FlowStep { Row = 14, Text = "5 $20: 0 pass, $FF fail, $FE fault", Label = "CopyResultFromEmulator", Wait = true },
+            InCall(7, $"2 Method address {Theme.Arrow} $09FE", wait: false),
+            InCall(9, $"3 Arguments {Theme.Arrow} $09E0", builds),
+            InCall(11, "4 Run from $1000", wait: false),
+            new FlowStep { Row = 14, Text = "5 $20: 0 pass, $FF fail, $FE fault", Label = "CopyResultFromEmulator", Wait = builds },
             new FlowStep { Row = 16, Text = "6 Message at $2E/$2F, value at $2C" },
-            new TextElement { X = Theme.Left, Y = 19, Text = "Over 700 test cases, all on 6502", Color = Theme.Accent, Wait = true },
+            new TextElement { X = Theme.Left, Y = 19, Text = "Over 700 test cases, all on 6502", Color = Theme.Accent, Wait = builds },
+            new HiddenSlideKey { Appendix = DebuggerMock.Create, Return = PostSharpBuilt },
         ]
     };
 
-    static FlowStep InCall(uint row, string text, bool wait = false)
+    static FlowStep InCall(uint row, string text, bool wait)
         => new() { Row = row, Text = text, Color = Theme.Brand, Wait = wait };
 }

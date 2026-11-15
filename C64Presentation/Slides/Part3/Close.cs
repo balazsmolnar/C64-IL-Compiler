@@ -3,18 +3,18 @@ using C64Presentation.Helper;
 
 namespace C64Presentation.Slides.Part3;
 
-// Slide 27 (DECK.md): thanks, the logos settling in, and the count-up to the deck's free
+// Slide 16 (DECK.md): thanks, the logos settling in, and the count-up to the deck's free
 // memory, C64 boot-screen style.
 sealed class ThankYouSlide : Slide
 {
     public static Slide Create() => new ThankYouSlide();
 
     // Free memory before the heap of the final, combined deck (DECK.md slide
-    // 27): $CC00 - the end of the last Data: segment - 1,080 (object tables,
+    // 16): $CC00 - the end of the last Data: segment - 1,080 (object tables,
     // locals stack, string buffers) - the static frames - 64 per sprite
-    // frame beyond 64, from C64Presentation\measure.bat's output. 18,201 is
+    // frame beyond 64, from C64Presentation\measure.bat's output. 16,066 is
     // the part-3-only build: the integrator re-measures the combined deck.
-    public const ulong BytesFree = 18201;
+    public const ulong BytesFree = 16066;
 
     const uint TitleRow = 7;
     const uint LeadRow = 12;
@@ -31,7 +31,7 @@ sealed class ThankYouSlide : Slide
         Deck.Reveal();
         Logos.SettleIn();
         Deck.Step();
-        Text.Center(0, ScreenWidth, LeadRow, "27 slides of C#, and still", Theme.Body);
+        Text.Center(0, ScreenWidth, LeadRow, "16 slides of C#, and still", Theme.Body);
         Deck.Step();
         Deck.Show();
         CountUp();

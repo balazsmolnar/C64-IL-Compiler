@@ -5,9 +5,8 @@ using C64Presentation.SlideElements;
 namespace C64Presentation.Slides.Part3;
 
 // The hidden appendix (DECK.md): a mock of the VS Code debugger, stopped in
-// Demo/RotatingCube.cs. Not in the running order: slide 25, which showed it
-// on D, was cut, so it is unreachable until the storyboard decides (a scene
-// build still appends it to Part3.Slides).
+// Demo/RotatingCube.cs. Not in the running order: D on slide 15 (PostSharp)
+// shows it if the live demo fails, and SPACE goes back (HiddenSlideKey).
 static class DebuggerMock
 {
     const uint EditorTop = 5;

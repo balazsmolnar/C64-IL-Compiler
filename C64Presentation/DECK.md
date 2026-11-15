@@ -110,12 +110,12 @@ a C# program.
   character at a time like a C64 `PRINT`, with a cyan block cursor that
   keeps blinking after the full stop until the next press.
 - **As built:** the caption is in the code face (the deck's fixed-pitch
-  face, 6 px a character: it matches the code card), cells 21-34 of rows
-  20-21, line 1 Grey3, line 2 white. It is drawn once under black
+  face, 6 px a character: it matches the code card), from cell 20 (under
+  the bubble's tail) on rows 20-21, line 1 Grey3, line 2 white. It is drawn once under black
   x-expanded sprites that step right with the cursor, so nothing is
   redrawn while it types (`Slides/Part1/TitleSlide.cs`; sprites from
-  `art/slides/make_caret.py`). This slide also loads slide 8's picture
-  from the disk while the deck boots.
+  `art/slides/make_caret.py`). `Program.Main` loads slide 8's picture from
+  the disk while the deck boots.
 - **Say:** "Before anything else: what you are looking at is not
   PowerPoint. This slide is a C# program, compiled to 6502 machine code and
   running on a Commodore 64. The rest of the talk is how."
@@ -141,7 +141,15 @@ A, X, Y: 8 bits
 
 - **Visual:** asset **A5**, a hi-res (two colours per cell) pixel-art
   Commodore 64 breadbox, in the left column (cells 1-18, rows 7-14).
-- **Build:** on entry the picture. Presses 1-5: one fact each.
+- **On screen (under both, white, after the facts):**
+
+```screen
+Everything that follows is fitting C# into that.
+```
+
+- **Build:** on entry the picture. Presses 1-5: one fact each. Press 6:
+  the closing line (the Say's point, on screen so the empty bottom half
+  carries it).
 - **Say:** "This is the target: 64 kilobytes, one megahertz, three 8-bit
   registers and a 256-byte hardware stack. Everything that follows is about
   fitting C# into that."
@@ -178,8 +186,11 @@ Primary constructors, properties, [a, b]
 C64Lib: the C64 as a C# API
 ```
 
-- **Visual:** code in a panel with the theme's code background,
-  keywords cyan; a thin rule (the dashed row above) between the class
+- **Visual:** code in a panel with the theme's code background. Colour
+  can only change on an 8 px cell edge while the code face is 6 px wide,
+  so only `class`, `public uint`, `public void` and `foreach` are cyan:
+  keywords that cannot start and end on an edge stay white, and no
+  bracket or semicolon is ever in a keyword colour; a thin rule (the dashed row above) between the class
   (lines 1-5) and the three statements, with a small grey label `in Main`
   at the right end of the first statement.
 - **Build:** on entry the class. Press 1: the rule and the statements.
@@ -225,7 +236,7 @@ try, throw, LINQ
 
 - **Visual:** "WORKS" heading in light green, "COMPILE ERROR" in light
   red, each with a 1 px rule of its colour under it; thin vertical rule
-  between the columns. Interpolation is written out in words: the deck
+  between the columns, from the headings to the right column's last item. Interpolation is written out in words: the deck
   fonts have no `"` glyph. Below both columns, one
   line in the secondary colour:
 
@@ -275,7 +286,10 @@ Every error has a code and a hint
   "64tass", box ".prg", both cyan (our half). Under .prg, two short
   arrows to two small boxes side by side, "VICE" and "C64" (yellow: where
   it runs). The colours follow the deck's palette (violet = C#/.NET, cyan =
-  this project) rather than the first draft's light green for .asm.
+  this project) rather than the first draft's light green for .asm. The
+  halves are labelled: a 1 px violet rule under C# and IL with `Roslyn`
+  under it (built with press 1), and a cyan rule under the compiler
+  arrow's span with `ours` (press 2).
 - **Build:** on entry the C# box. Press 1: arrow + IL box (Roslyn's half).
   Press 2: arrow + "46 passes" + .asm box. Press 3: arrow + .prg box.
   Press 4: VICE and C64 boxes.
@@ -313,9 +327,15 @@ ret        #method_exit 4, []
   1`), so the rows that have been translated read as "becomes"; this
   replaces the first draft's moving row highlight (a highlight bar would
   put violet text on the Grey1 surface).
+- **On screen (after the last macro, accent):**
+
+```screen
+One 6502 macro per IL instruction
+```
+
 - **Build:** on entry the C# (2 lines). Press 1: the rule, the header and
   the IL column. Presses 2-5: one arrow and macro per press, next to its
-  IL line.
+  IL line. Press 6: the closing line, which also sets up slide 7.
 - **Say:** "IL is a stack machine: push a, push b, add, return. The naive
   translation is one 6502 macro per IL instruction, and that works,
   because the 6502 has a stack too."
@@ -337,16 +357,18 @@ localsStack: arguments and locals
 One line of C#: 39 bytes of 6502
 ```
 
-- **Visual (as built):** two stacks of three cards, 6 cells wide, two rows
-  a card, rows 7-12. Left (cells 2-7, grey bars), captioned "6502 stack,
-  $0100" under it: "ret addr", "b", "a", with a short down arrow
-  labelled "pha / pla" into its top. Right (cells 22-27, cyan bars),
-  captioned "localsStack, 256 B": "ret addr", "a", "b", and a pointer
-  arrow from a small yellow box "Y" (cells 30-35, "stackPointer" in grey
-  under it) to the frame's top. A straight arrow from left to right
-  labelled "pla, sta localsStack,y" (the prologue moving the return
-  address and the arguments into the frame). The three text lines on rows
-  16, 18 and 20.
+- **Visual (as built):** the stacks' names as Grey3 headers on row 5:
+  "6502 stack, $0100" (left) and "localsStack, 256 B" (right). Two
+  stacks of three cards, 6 cells wide, two rows a card, rows 9-14. Left
+  (cells 2-7, grey bars): "ret addr", "b", "a", with a short down arrow
+  into its top and "pha/pla" to the left of the arrow (row 7). Right
+  (cells 22-27, cyan bars): "ret addr", "a", "b", and a pointer arrow
+  from a small yellow box "Y" (cells 30-36, "stackPointer" in grey under
+  it) to the frame's top. A straight arrow from left to right, ending one
+  cell before the right stack, labelled "pla, sta localsStack,y" centred
+  over it (the prologue moving the return address and the arguments into
+  the frame). The three text lines on rows 16, 18 and 20 (the push arrow
+  needs rows 7-8, so they cannot move up to 15/17/19).
 - **Build:** on entry the left stack and line 1. Press 1: the right stack,
   the arrow and line 2. Press 2: line 3 in the accent colour.
 - **Say:** "Values being computed live on the hardware stack; arguments and

@@ -8,7 +8,8 @@ namespace C64Presentation.SlideElements;
 // column first with VerticalFirst). The head points along the last leg.
 // Text labels it: above a horizontal first leg, else beside the vertical
 // one, on whichever side stays inside the content columns. After a build
-// step it is drawn live and grows from its start.
+// step it is drawn live and grows from its start; the elements after it in
+// the same step fade in.
 //
 //     new Arrow { FromCol = 10, FromRow = 7, ToCol = 14, ToRow = 7, Text = "dotnet build", Wait = true }
 //     new Arrow { FromCol = 33, FromRow = 9, ToCol = 26, ToRow = 14 }   // down, then left
@@ -39,6 +40,10 @@ class Arrow : SlideElement
         Head(straight ? FromCol : cornerCol, straight ? FromRow : cornerRow, ToCol, ToRow);
         if (Text != null)
             Label(Text, FromCol, FromRow, cornerCol, cornerRow, ToRow);
+        // After a build step, what follows in the same step fades in again,
+        // once the arrow has grown.
+        if (Deck.Live)
+            Deck.Build(false);
     }
 
     static ulong X(uint column) => Helper.Screen.Px(column) + 3;

@@ -23,6 +23,9 @@ static class Program
 #if SCENE_DISK
         DiskScene.Run();  // art/DiskScene.cs: a picture loaded from the disk
 #endif
+        // The picture slides from the disk: load while the deck boots, so the
+        // talk never waits for the drive (slide 8, A1).
+        ArtDisk.Load(DiskPicture.ShotRoom);
         Presenter.Present(Slides);
     }
 }

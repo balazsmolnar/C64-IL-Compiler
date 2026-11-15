@@ -1,7 +1,8 @@
 using C64Lib;
 using C64Presentation.Helper;
+using C64Presentation.SlideElements;
 
-namespace C64Presentation.SlideElements;
+namespace C64Presentation.Slides;
 
 // A 1 px rule: across Length cells through the middle of row Y, or, when
 // Vertical, down Length cells along the left edge of column X (the middle of

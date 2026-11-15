@@ -55,7 +55,8 @@ and `art/ART.md` for the pictures.
   blanked.
 - **Builds:** `Deck.Step()` waits for the press, then the step is drawn
   hidden and faded in, and text is redrawn in its real colours at the end.
-  - Arrows and bars drawn after a step grow.
+  - Arrows and bars drawn after a step grow; what follows an arrow in
+    the same step fades in after it (`Arrow` ends with `Deck.Build(false)`).
   - A `CodeBlock` drawn over a shown one dims the old code out, then fades
     the new code in on the same card (`Deck.Build(onSurface: true)`).
 
@@ -130,7 +131,9 @@ Live slides (`TitleSlide`, `DemoSlide`) call `Deck.Reveal()`, then loop on
 
 - Content slides keep row 21 (and 22) empty: `Master.Content` sets it,
   and a scene build turns the border red when anything draws there
-  (`Deck.CheckRows`, `[Conditional("SCENE")]`: not in the real deck).
+  (`Deck.CheckRows`, `[Conditional("SCENE")]`: not in the real deck). The
+  same check turns it red when a slide draws before its fade-in while the
+  display is on (`` bit 4).
 
 - Each cell has one foreground colour. Keep differently coloured things in
   different cells.
@@ -147,6 +150,9 @@ Live slides (`TitleSlide`, `DemoSlide`) call `Deck.Reveal()`, then loop on
 |---|---|---|
 | File-scoped namespaces, expression-bodied members, raw string literals, interpolation of constants, `static` classes, named constants | yes | 0 |
 | Collection expressions `[a, b]`, target-typed `new()` | yes | byte for byte the same as `new T[] { }` (measured: 283 B both ways) |
+| Object initializers written out in the element list vs. a static helper that builds them (`Item(col, n, text)`) | yes | Write them out: a literal initializer compiles to a table (`#newObjInit`), a helper costs a call per use plus its body. Slides 4-7 shrank by 1.5 KB this way (slide 4 alone 713 B). |
+| Spread `..` in a collection expression | no (a `List<T>`, C64002/C64003) | |
+| Lambdas `() => ...` in more than one class | no: every lambda class is named `<>c` and the labels collide | Method groups (`Foo.Create`). |
 | `{ get; init; }` / `{ get; set; }` auto-properties | yes | the same as fields (compiler change: accessor calls become field accesses, and the accessors are not compiled; −2.7 KB on this deck) |
 | `switch` expressions, `is` patterns (`n is > 3 and < 9`), `?:`, `??` | yes | ordinary branches |
 | Primary constructors, field initializers, constructors with a body | yes since the constructor support merge (a1f6cdc) | Not used here: a two-field `LegendItem(string name, Colors color)` cost 189 B more than `new() { Name = .., Color = .. }` (a constructor routine and its calls instead of inline stores). |

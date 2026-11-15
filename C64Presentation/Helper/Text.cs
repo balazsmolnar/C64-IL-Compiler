@@ -55,6 +55,26 @@ static class Text
         Draw(width <= x + 1 ? x + 1 - width : 0, row, text, fg, bg);
     }
 
+    // Body text built at run time ("3 / 8", an interpolation): drawn at
+    // once, never kept by a build step for its fade-in. Such a string lives
+    // in the compiler's one scratch buffer, so a build mark holding it would
+    // later show whatever text was built last (the compiler rejects that
+    // with C64007). Call these outside a build step.
+    public static ulong DrawNow(ulong x, uint row, string text, Colors fg, Colors bg = Theme.Background)
+    {
+        Deck.CheckRows(row, 1);
+        return C64.Screen.DrawFontText(x, row, text, BodyFont, Theme.Matrix(fg, bg));
+    }
+
+    public static void CenterNow(ulong x, ulong width, uint row, string text, Colors fg, Colors bg = Theme.Background)
+        => DrawNow(x + Margin(width, Width(text)), row, text, fg, bg);
+
+    public static void RightNow(ulong x, uint row, string text, Colors fg, Colors bg = Theme.Background)
+    {
+        ulong width = Width(text);
+        DrawNow(width <= x + 1 ? x + 1 - width : 0, row, text, fg, bg);
+    }
+
     static ulong Margin(ulong space, ulong used) => used < space ? (space - used + 1) / 2 : 0;
 
     static ulong Put(ulong x, uint row, string text, ulong font, Colors fg, Colors bg, uint rows)

@@ -187,6 +187,15 @@ mc2=None, transparent=None, count=None, preview=None, quiet=False)`.
   glyphs come out as coloured blocks; put lettering there into a picture.
 - It overwrites whole cells and does not erase beyond the string: pad
   numbers with spaces when they can get shorter.
+- A string built at run time (`+`, `$"..."`, `ToString()`, `PadLeft`) is
+  not a heap object: it lives in one of two shared scratch buffers (40
+  bytes for `+`/`PadLeft`, 16 for `ToString()`), and the next one built
+  overwrites it. Draw it right away. Storing it in a field, a static, an
+  array element or a closure (or passing it to a method that does) is a
+  compile error, C64007; store the number, or pick a literal from a
+  constant array, and build the text where it is drawn. Not caught: two
+  run-time strings held in locals at once (`var a = x + "1"; var b = y +
+  "2";` leaves `a` reading as `b`).
 - Upper case, digits, punctuation (the ROM's upper-case set, screen codes
   0-127). `@` cannot be drawn. The font is in RAM at
   `C64Address.FromLabel("Graphics_Font")`, 8 bytes per character: copy your

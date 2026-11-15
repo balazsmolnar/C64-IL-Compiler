@@ -124,7 +124,7 @@ sealed class GarbageCollectorSlide : Slide
                     refs = $"{refs},";
                 refs = $"{refs}{r.Id}";
             }
-            Text.Center(Screen.Px(column), Screen.Px(ObjectWidth), RefsRow, refs, Theme.Body);
+            Text.CenterNow(Screen.Px(column), Screen.Px(ObjectWidth), RefsRow, refs, Theme.Body);
         }
     }
 

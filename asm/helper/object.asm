@@ -209,6 +209,53 @@ NewObjInsertThis
   rts
 .endif
 
+; Copies all of array `src` into array `dest`, from element `start` on --
+; one spread of a collection expression ([.. a, x, .. b] into an array,
+; Compiler/SpreadSupport.cs), via #arrayCopyInto (heap.asm). A plain byte
+; copy for every element type: a reference element is its 1-byte handle
+; (the GC traces array elements, they hold no root counts), a string its
+; 2-byte pointer. Nothing is allocated, so neither pointer can move.
+; Stack: src, dest, start (top). Y = bytes per element. Linked only when used.
+.weak
+Flag_Array_CopyInto = 0
+.endweak
+.if Flag_Array_CopyInto
+Array_CopyInto
+  sty zp_param0_low         ; bytes per element
+  #stack_save_return_adress zp_tmp1_low
+  #stack_pull_int_a         ; start (element index)
+  tay
+  lda #0
+  cpy #0
+  beq +
+- clc
+  adc zp_param0_low
+  dey
+  bne -
++ sta zp_param0_high        ; byte offset into dest
+  #stack_pull_int_x         ; dest
+  jsr resolveObjPtr
+  clc
+  lda tmpPointer
+  adc zp_param0_high
+  sta zp_param2_low
+  lda tmpPointer+1
+  adc #0
+  sta zp_param2_high
+  #stack_pull_int_x         ; src
+  lda objTableSize,x        ; its size in bytes
+  beq +
+  sta zp_param0_low
+  jsr resolveObjPtr
+  ldy #0
+- lda (tmpPointer),y
+  sta (zp_param2_low),y
+  iny
+  cpy zp_param0_low
+  bne -
++ #stack_return_to_saved_address zp_tmp1_low
+.endif
+
 findEmptySlot
   ; Find an empty entry in the object table --> X
   ldx #0

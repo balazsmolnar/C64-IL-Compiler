@@ -395,6 +395,25 @@ static class H { public static string Make(uint n) => ""n="" + n.ToString(); pub
         Assert.That(exit, Is.EqualTo(0), output);
     }
 
+    // --- collection expression spreads ---------------------------------------
+
+    [Test]
+    public void Spreading_Arrays_Into_An_Array_Compiles()
+    {
+        var types = "static class D { public static uint[] A = { 1, 2 }; public static uint[] B = { 3 }; public static string[] S = { \"a\" }; }";
+        var body = "uint x = 9; uint[] all = [.. D.A, x, .. D.B]; string[] s = [.. D.S, .. D.S]; return all[3] + (uint)s.Length;";
+        var (exit, output) = CompileProgram(Wrap(types, body));
+        Assert.That(exit, Is.EqualTo(0), output);
+    }
+
+    [Test]
+    public void Spread_Built_Through_A_List_Explains_What_To_Do()
+    {
+        var output = Errors("static class D { public static ulong[] A = { 1 }; public static ulong N = 5; }",
+            "ulong e = D.N; ulong[] all = [9, .. D.A, e, .. D.A]; return (uint)all.Length;");
+        AssertReports(output, "C64002", "built by the C# compiler through a List<T>", "move the single elements into a small array");
+    }
+
     // --- location and completeness ------------------------------------------
 
     [Test]

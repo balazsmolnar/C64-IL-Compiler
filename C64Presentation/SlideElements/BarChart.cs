@@ -9,8 +9,9 @@ namespace C64Presentation.SlideElements;
 // rows (2). Two series item by item: ButterflyChart. Outline: each bar gets a Grey2 frame at
 // full scale with ticks every TickEvery under it, and its value past the
 // frame. Gap: a dashed box between two bars' ends on the second bar's row,
-// with its text under it ("-8,690 B"). Wait: each bar is a build step; a
-// bar drawn live grows from the axis.
+// with its text under it ("-8,690 B"). Wait: each bar after the first, then
+// the gap, is a build step (the first bar, the baseline, is there on entry);
+// a bar drawn live grows from the axis.
 // Defaults: X Theme.Left, Y Theme.BodyTop, Width Theme.Width, LabelWidth 12,
 // ValueWidth 7.
 //
@@ -57,7 +58,7 @@ sealed class BarChart : SlideElement
         uint firstRow = row;
         for (uint i = 0; i < Bars.Length; i++)
         {
-            if (Wait)
+            if (Wait && i != 0)     // the first bar is the baseline: on entry
                 Deck.Step();
             var bar = Bars[i];
             Text.Draw(Screen.Px(left), row, bar.Label, Theme.Body);

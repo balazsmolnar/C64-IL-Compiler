@@ -29,6 +29,9 @@ using C64Lib;
 [assembly: RawImage(Resource = "icon_string.img", Label = "IconString")]   // 3x3 hires     47
 [assembly: RawImage(Resource = "icon_bitmap.img", Label = "IconBitmap")]   // 3x3 hires     71
 
+// The section icon of slide 17, Small and fast (an extra, see below).
+[assembly: RawImage(Resource = "sec_chart.img", Label = "SecChart")]       //  6x6 hires   129
+
 // --- Extras, not in the storyboard: 4,427 bytes. Built and embeddable;
 // declared only in the art review build (or define ART_EXTRAS) so they cost
 // no program memory until a slide uses them. ------------------------------
@@ -50,5 +53,4 @@ using C64Lib;
 [assembly: RawImage(Resource = "sec_chip.img", Label = "SecChip")]         //  6x6 hires   204
 [assembly: RawImage(Resource = "sec_memory.img", Label = "SecMemory")]     //  6x6 hires   171
 [assembly: RawImage(Resource = "sec_joystick.img", Label = "SecJoystick")] //  6x6 hires   140
-[assembly: RawImage(Resource = "sec_chart.img", Label = "SecChart")]       //  6x6 hires   129
 #endif

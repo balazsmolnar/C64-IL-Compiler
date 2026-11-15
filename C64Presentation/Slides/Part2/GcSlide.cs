@@ -58,7 +58,10 @@ sealed class GcSlide : Slide
         Text.Draw(Screen.Px(Theme.Left), HeapRow, "heap,", Theme.Muted);
         Text.Draw(Screen.Px(Theme.Left), HeapRow + 2, "by address", Theme.Muted);
         for (uint i = 0; i < Objects.Length; i++)
-            Objects[i].Reset(i);
+        {
+            bool second = i >= PerRow;      // the grid's second row
+            Objects[i].Reset(Theme.Left + (second ? i - PerRow : i) * BoxPitch, second ? Theme.BodyTop + RowPitch : Theme.BodyTop);
+        }
         uint column = HeapColumn;
         foreach (var o in Heap)
         {
@@ -109,45 +112,50 @@ sealed class GcSlide : Slide
             }
     }
 
-    // 4: the dead go (2 and 6 reference each other: still garbage), and
-    // the live blocks slide down over the gaps.
+    // 4: the dead fade out together (2 and 6 reference each other: still
+    // garbage), and the live blocks slide down over the gaps.
     static void SlideDown()
     {
         Phase(3);
-        foreach (var o in Heap)
-            if (!o.Marked)
-            {
-                FadeOut(ObjectColumn(o), ObjectRow(o), BoxWidth, BoxHeight);
-                FadeOut(o.HeapColumn, HeapRow, o.Size, HeapHeight);
-            }
+        foreach (var level in FadeLevels)
+        {
+            Wait(FadeFrames);
+            ulong table = C64Address.FromLabel("fade_Levels") + level * FadeLevelBytes;
+            foreach (var o in Heap)
+                if (!o.Marked)
+                {
+                    C64.Screen.RemapCellColors(o.Column, o.Row, BoxWidth, BoxHeight, table);
+                    C64.Screen.RemapCellColors(o.HeapColumn, HeapRow, o.Size, HeapHeight, table);
+                }
+        }
         Text.Draw(Screen.Px(PhaseColumn), NoteRow, $"2 {Theme.Arrow} 6 {Theme.Arrow} 2: a dead cycle", Theme.Body);
         uint column = HeapColumn;
         foreach (var o in Heap)
-        {
-            if (!o.Marked)
-                continue;
-            while (o.HeapColumn > column)
+            if (o.Marked)
             {
-                o.HeapColumn--;
-                C64.Screen.WaitForVBlank();
-                Screen.ClearRect(o.HeapColumn, HeapRow, o.Size + 1, HeapHeight);
-                Deck.Paint(o.HeapColumn + o.Size, HeapRow, 1, HeapHeight, Theme.Background, Theme.Background);
-                DrawBlock(o, Theme.Accent);
-                Wait(SlideFrames);
+                while (o.HeapColumn > column)
+                    MoveLeft(o);
+                column += o.Size;
             }
-            column += o.Size;
-        }
         Screen.ClearRect(column, HeapRow, Theme.Right - column, HeapHeight);
         DrawFree(column);
     }
 
+    // One cell to the left: the block is redrawn there, the cell it leaves
+    // cleared. (The dead blocks' pixels under it go too: they were black on black.)
+    static void MoveLeft(HeapObject o)
+    {
+        uint column = --o.HeapColumn;
+        C64.Screen.WaitForVBlank();
+        Screen.ClearRect(column, HeapRow, o.Size + 1, HeapHeight);
+        Deck.Paint(column + o.Size, HeapRow, 1, HeapHeight, Theme.Background, Theme.Background);
+        DrawBlock(o, Theme.Accent);
+        Wait(SlideFrames);
+    }
     static HeapObject Object(uint id) => Objects[id - 1];
 
     static uint PhaseRow(uint phase) => Theme.BodyTop + phase * 2;
 
-    static uint ObjectColumn(HeapObject o) => Theme.Left + o.Index % PerRow * BoxPitch;
-
-    static uint ObjectRow(HeapObject o) => Theme.BodyTop + o.Index / PerRow * RowPitch;
 
     static void Wait(uint frames)
     {
@@ -168,7 +176,7 @@ sealed class GcSlide : Slide
     // The card: its id and its references; "root" in cyan under it.
     static void DrawObject(HeapObject o)
     {
-        uint column = ObjectColumn(o), row = ObjectRow(o);
+        uint column = o.Column, row = o.Row;
         ulong x = Screen.Px(column), width = Screen.Px(BoxWidth);
         Box.Card(column, row, BoxWidth, BoxHeight, Theme.Muted, Theme.Card);
         Text.Center(x, width, row + 1, o.Id, Theme.Heading, Theme.Card);
@@ -198,7 +206,7 @@ sealed class GcSlide : Slide
     // The object, box and heap block, in a new colour; then a pause.
     static void Recolor(HeapObject o, Colors color)
     {
-        Deck.Paint(ObjectColumn(o), ObjectRow(o), BoxWidth, BoxHeight, color, Theme.Card);
+        Deck.Paint(o.Column, o.Row, BoxWidth, BoxHeight, color, Theme.Card);
         Deck.Paint(o.HeapColumn, HeapRow, o.Size, HeapHeight, color, Theme.Card);
         Wait(StepFrames);
     }
@@ -220,18 +228,6 @@ sealed class GcSlide : Slide
         for (uint i = 0; i < _depth; i++)
             Text.Draw(x + i * IdPitch, StackRow, Stack[i].Id, Theme.Heading);
     }
-
-    // Fades a rectangle of cells to black through the deck's fade levels,
-    // then clears its pixels.
-    static void FadeOut(uint column, uint row, uint width, uint height)
-    {
-        foreach (var level in FadeLevels)
-        {
-            Wait(FadeFrames);
-            C64.Screen.RemapCellColors(column, row, width, height, C64Address.FromLabel("fade_Levels") + level * FadeLevelBytes);
-        }
-        Screen.ClearRect(column, row, width, height);
-    }
 }
 
 // One object of the GC slide's little heap. References are ids, so the
@@ -243,13 +239,15 @@ sealed class HeapObject
     public required uint[] References { get; init; }
     public uint Size { get; init; }                          // heap cells
     public bool Root { get; init; }
-    public uint Index { get; private set; }                  // place in the object grid
+    public uint Column { get; private set; }                 // the card's place in the object grid
+    public uint Row { get; private set; }
     public bool Marked { get; set; }
     public uint HeapColumn { get; set; }
 
-    public void Reset(uint index)
+    public void Reset(uint column, uint row)
     {
-        Index = index;
+        Column = column;
+        Row = row;
         Marked = false;
     }
 }

@@ -21,13 +21,11 @@ using C64Lib;
 [assembly: RawAssembly(Resource = "picture_buffer.asm")]                   // buf_Picture  3755
 // A5 the C64 breadbox, hi-res (slide 3)
 [assembly: RawImage(Resource = "breadbox.img", Label = "Breadbox")]        // 18x8 hires   377
-// A6 six icons, PIXELS ONLY: set the cells' colours first (slide 9, markers 10-15)
-[assembly: RawImage(Resource = "icon_int8.img", Label = "IconInt8")]       // 3x3 hires     76
-[assembly: RawImage(Resource = "icon_stack.img", Label = "IconStack")]     // 3x3 hires     72
+// A6 icons, PIXELS ONLY: set the cells' colours first (slide 9: object, GC, string;
+// icon_int8/stack/bitmap are built but undeclared since the cut)
 [assembly: RawImage(Resource = "icon_object.img", Label = "IconObject")]   // 3x3 hires     67
 [assembly: RawImage(Resource = "icon_gc.img", Label = "IconGc")]           // 3x3 hires     74
 [assembly: RawImage(Resource = "icon_string.img", Label = "IconString")]   // 3x3 hires     47
-[assembly: RawImage(Resource = "icon_bitmap.img", Label = "IconBitmap")]   // 3x3 hires     71
 // The section icon of slide 9 (from the extras)
 [assembly: RawImage(Resource = "sec_chip.img", Label = "SecChip")]         //  6x6 hires   204
 

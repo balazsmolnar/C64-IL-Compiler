@@ -5,9 +5,8 @@ to say, and where every fact comes from. The Slides phase builds from this
 file; the Art phase builds the asset list at the end. Owner: Story (see
 `DECK-BRIEF.md`).
 
-**Talk:** "C# on the C64", 27 slides, about 19:30 including a 3.5-minute
-live demo, leaving over 4 minutes of slack in a 25-minute slot. Audience:
-.NET developers and retro fans. One idea per slide; titles say
+**Talk:** "C# on the C64", 16 slides, about 9:40, plus questions.
+Audience: .NET developers and retro fans. One idea per slide; titles say
 something, they don't just label.
 
 ## Conventions
@@ -52,37 +51,32 @@ something, they don't just label.
 | 7 | How it works | Add costs 39 bytes | diagram | 0:35 |
 | 8 | Built with this | Built with this | full-bleed + split | 0:35 |
 | 9 | Hard parts | The hard parts | section | 0:10 |
-| 10 | Hard parts | int is 8 bits | two-column | 0:45 |
-| 11 | Hard parts | Our tests lied | bullets | 0:45 |
-| 12 | Hard parts | Frames share bytes | diagram | 0:45 |
-| 13 | Hard parts | References: 1 byte | diagram | 0:40 |
-| 14 | Hard parts | GC without a scan | diagram (animated) | 0:45 |
-| 15 | Hard parts | Borrow, not build | two-column | 0:30 |
-| 16 | Hard parts | Hide under the ROM | diagram | 0:40 |
-| 17 | Small and fast | Small and fast | section | 0:10 |
-| 18 | Small and fast | 39 bytes to 12 | code | 0:45 |
-| 19 | Small and fast | Hunchback: -24% | chart | 0:35 |
-| 20 | Small and fast | No single winner | chart | 0:35 |
-| 21 | Small and fast | Worst frame: -19% | chart | 0:30 |
-| 22 | Testing and debugging | Tests run on 6502 | code | 0:40 |
-| 23 | Testing and debugging | PostSharp swaps it | diagram | 0:50 |
-| 24 | Testing and debugging | Line to address | diagram | 0:45 |
-| 25 | Live | Change it live | bullets | 3:30 |
-| 26 | Close | Four lessons | bullets | 0:40 |
-| 27 | Close | Thank you | title | 0:25 |
-| | | | **Total** | **19:30** |
+| 10 | Hard parts | References: 1 byte | diagram | 0:40 |
+| 11 | Hard parts | GC without a scan | diagram (animated) | 0:45 |
+| 12 | Hard parts | Borrow, not build | two-column | 0:30 |
+| 13 | Small and fast | Small and fast | section + 2 numbers | 0:35 |
+| 14 | Testing | Tests run on 6502 | code | 0:40 |
+| 15 | Testing | PostSharp swaps it | diagram | 0:50 |
+| 16 | Close | Thank you | title | 0:25 |
+| | | | **Total** | **9:40** |
 
-One more slide exists outside the running order: the hidden fallback
-mock of the debugger (appendix), shown only if the live demo fails.
+Outside the running order: the hidden debugger mock (appendix), reached
+with D from slide 15, about 0:45 when used. Eleven slides were cut by the
+user to fit memory and length; they are kept at the end under "Cut
+slides", with their sources, so any of them can be restored.
+
+There is **no live demo** in the 16-slide talk: its slide is cut, and
+switching to VICE without a slide would bring back the time the cut
+saved. If the slot allows it, the presenter can still run Demo in VICE
+after slide 16, during questions; the cut slide's steps and rehearsal
+checks are kept for that.
 
 The story: a hook (this slide is a C# program), what you can and cannot
-write, how it works (ending on "39 bytes" for a one-line method), then
-what was built with it (Catacombs, introduced once, before its numbers are
-used), the hard parts with a setback in the middle (our own tests were
-wrong), the payoff (39 bytes become 12, a game gets a quarter smaller),
-the toolchain (tests on an emulated 6502, how a C# breakpoint reaches
-VICE), a live edit-build-run-debug loop, the lessons, and a callback to
-slide one that ends on the deck's BYTES FREE.
+write, how it works (ending on "39 bytes" for a one-line method), what was
+built with it (Catacombs), three hard parts (objects, the GC, strings and
+floats), the optimization payoff in one slide (39 bytes become 12, a game
+gets a quarter smaller), proof (tests that run on an emulated 6502), and a
+callback to slide one that ends on the deck's BYTES FREE.
 
 ---
 
@@ -378,8 +372,7 @@ Catacombs: 3,477 lines of C#
 - **Say:** "The biggest thing built with it so far: Catacombs, a dungeon
   crawler. Every line of game logic is C#, and this very screen shows one
   of its tricks: the room is multicolour, the text below it hi-res,
-  switched by a raster interrupt, which is one C# call. Keep it in mind:
-  its numbers come back in the next sections."
+  switched by a raster interrupt, which is one C# call."
 - **Sources:** 3,477: `wc -l Catacombs/*.cs` at `5216d06`. 61 rooms: floor
   cells in `Catacombs/Maze.cs` `Grid` (12x12, nonzero = floor), counted.
   10,478: Catacombs/TECH.md ("10,478 bytes ($A312-$CBFF) are left for more
@@ -399,20 +392,382 @@ Catacombs: 3,477 lines of C#
 - **On screen:**
 
 ```screen
-8-bit int   stack   objects
-GC   strings & floats   bitmaps
+objects   GC   strings & floats
 ```
 
 - **Visual:** section background (the theme's section colour, full
-  bleed). A row of six hi-res icons (asset **A6**) above the two text
-  lines.
+  bleed). A row of three hi-res icons (asset **A6**: object, GC arrows,
+  `"A"`) above the text line, each over its word.
 - **Build:** on entry everything.
-- **Say:** "Six things C# takes for granted that a 6502 does not have."
-- **Sources:** agenda of slides 10-16.
+- **Say:** "Three things C# takes for granted that a 6502 does not have."
+- **Sources:** agenda of slides 10-12.
 
-- **As built** (`Slides/Part2/HardPartsSlide.cs`): the engine section master (number `05`, the section's number in this file; the `sec_chip` icon top right, no subtitle). The six A6 icons in two rows of three on even columns (13 cells apart), each with its label beside it: the two text lines above become the labels (`8-bit int`, `stack`, `objects` / `GC`, `strings & floats`, `bitmaps`).
+- **As built** (`Slides/Part2/HardPartsSlide.cs`): the engine section master (number `05`, the `sec_chip` icon top right, no subtitle); the three icons in cyan on row 15, 12 cells apart from the left margin, each word under its icon on row 19.
 
-### Slide 10 — int is 8 bits
+### Slide 10 — References: 1 byte
+
+- **Layout:** diagram (hi-res).
+- **Title:** `References: 1 byte` (18)
+- **On screen:**
+
+```screen
+A reference is a 1-byte handle
+255 objects; handle 0 is null
+Handle -> table -> heap address
+Full: ?OUT OF MEMORY ERROR
+```
+
+- **Visual:** the old MemoryLayoutSlide, redrawn on the theme: an object
+  table (rows "1", "2", "...", "255"; columns HEAP PTR, SIZE, REFS, ROOTS,
+  VTABLE) in cyan across rows 4-11, and a heap strip in yellow across rows
+  13-15 with blocks "1", "3", "2", "5" and "FREE". Arrows from row 1's
+  and row 2's HEAP PTR down to their blocks. The four text lines in rows
+  17-20. Nothing overlaps the footer row (today the slide counter
+  overwrites the heap).
+- **Build:** on entry the table header. Press 1: rows 1, 2, 255. Press 2:
+  the heap strip and the two arrows. Press 3: the four text lines
+  together.
+- **Say:** "A reference is one byte: an index into seven 256-byte tables
+  holding each object's address, size, reference fields, root count and
+  vtable. So a program can have 255 live objects, and moving an object
+  only changes one table entry."
+- **Sources:** 1-byte reference: `Compiler/TypeExtensions.cs`
+  (`GetStorageBytes()` returns 1 for classes); tables:
+  `asm/helper/objectTables.asm` ("The 7x256-byte object/GC tables";
+  `objTableSize`, `objTableReferences`, `objTableRootCount`, ...); handle
+  0 = null: `asm/GC.asm` (`trackObjects`: "mark NULL"); faults "out of
+  memory" and "too many objects": commit `3f3d760` and
+  `asm/helper/fault.asm` (header: "?<MESSAGE> ERROR", red border;
+  `Runtime_FaultMsg0 .text "OUT OF MEMORY"`).
+
+- **As built** (`ReferencesSlide.cs`, critic round 1): table rows 1 and 2 only (the engine critic's table), Grey2 pointer arrows (row 1 from left of its value down the empty first cell, row 2 down from right of its value), heap strip rows 12-14; text lines 1, 3, 4 on rows 16, 18, 20, and line 2 as a stat card right of them: `255 objects` / `handle 0 is null`.
+
+### Slide 11 — GC without a scan
+
+- **Layout:** diagram (hi-res, animated: the existing GarbageCollectorSlide
+  logic on the new theme).
+- **Title:** `GC without a scan` (17)
+- **On screen (right side, labels that light up per phase):**
+
+```screen
+1 Roots: counted
+2 Mark: follow references
+3 Sort by address
+4 Slide down: compact
+```
+
+- **Visual:** the existing animation: six object boxes in a row (1 and 3
+  are roots, cyan), a heap strip below, a small mark stack. Marked objects
+  turn orange, dead ones fade to black, then the heap blocks slide left to
+  close the gaps (new: the compaction step, which today's slide skips).
+- **Build:** on entry the objects. Each press advances the animation one
+  step (as today); the phase label lights up as its phase starts.
+- **Say:** "Every store of a reference into a local, a parameter or a
+  static field updates a count, so the roots are known without scanning
+  the stack. References between objects are traced; then the live objects
+  are sorted by address and slid down. It runs only when you call
+  GC.Collect()."
+- **Sources:** `asm/GC.asm` (`GC_Collect`: `trackObjects`,
+  `fillSortTable`, `quicksort`, `sweepAndCompact`); root counting:
+  `asm/helper/heap.asm` (`stsfld`: `dec`/`inc objTableRootCount`),
+  `asm/helper/localsStack.asm` (`locals_pull_param_8`),
+  `asm/helper/stack.asm` (`stack_pull_int_ref`, `deref`); heap-to-heap
+  references traced, not counted: `asm/helper/object.asm` (comment above
+  `NewObjArrayInitL`); only on an explicit call: `Compiler/Diagnostics.cs`
+  ("Only GC.Collect() is supported") and
+  `Compiler/ILMethodCachedFieldAccessPass.cs` ("This GC only ever moves an
+  object via an explicit GC.Collect() call").
+
+- **As built** (`GcSlide.cs`, critic round 1): one press per phase (4), the steps inside a phase paced (0.4 s). Objects in a 3x2 grid on the left (id, references), `root` in cyan under 1 and 3; the four phase labels on the right, the current one white; the mark stack as a line of ids; the heap below, labelled `heap, by address`, in address order 3, 1, 6, 4, 2, 5. Traced = yellow, marked = cyan, box and heap block alike. Sort: the live blocks light up in address order. Slide down: 2 and 6 fade (named on screen: `2 -> 6 -> 2: a dead cycle`), the live blocks slide left cell by cell.
+
+### Slide 12 — Borrow, not build
+
+- **Layout:** two-column (hi-res).
+- **Title:** `Borrow, not build` (17)
+- **On screen (left, cells 1-18):**
+
+```screen
+STRINGS
+Pointer to bytes,
+zero-terminated
+Not on the heap
+a + b: a 40-byte
+buffer
+```
+
+- **On screen (right, cells 21-38):**
+
+```screen
+FLOATS
+5-byte C64 format
+Math: the BASIC
+ROM's own routines
+Sin, Cos, Sqrt
+```
+
+- **Visual:** column headings in the accent colour; a thin vertical rule
+  between the columns.
+- **Build:** on entry the headings. Press 1: left column. Press 2: right
+  column.
+- **Say:** "A string is a pointer to zero-terminated bytes, and
+  concatenation writes into one small buffer. A float is the C64's own
+  5-byte format, so the BASIC ROM that is in every C64 does the maths."
+- **Sources:** strings: `asm/helper/stringops.asm` header ("raw
+  null-terminated character bytes", "stringops_buffer's fixed 40-byte
+  size"); not reference counted: `Compiler/TypeExtensions.cs`
+  (`IsReferenceCounted`: string -> false). Floats:
+  `Compiler/TypeExtensions.cs` ("Native C64 MFLPT format", 5 bytes);
+  BASIC ROM routines: `asm/helper/floatBanking.asm`; Sin/Cos/Sqrt:
+  `Compiler/Diagnostics.cs` ("MathF.Sin/Cos/Sqrt").
+
+- **As built** (`BorrowSlide.cs`, critic round 1): headings in the 16 px face; each item on one line (two engine bullet lists, 3 rows apart): `Zero-terminated bytes`, `Not on the heap`, `a + b: one 40-byte buffer` / `C64's 5-byte format`, `Math: BASIC ROM routines`, `Sin, Cos, Sqrt`.
+
+## 6. Small and fast
+
+### Slide 13 — Small and fast
+
+- **Layout:** section (hi-res).
+- **Title:** `Small and fast` (14)
+- **On screen:**
+
+```screen
+Pay only for what you use
+Add: 39 bytes -> 12
+Hunchback: -24%, same C#
+```
+
+- **Visual:** section background. Under the line, small and grey:
+  `.weak Flag_X` (the asm mechanism that links a routine only when used).
+- **Build:** on entry line 1. Press 1: line 2. Press 2: line 3 (the
+  numbers "12" and "-24%" in the accent colour).
+- **Say:** "One rule for every optimization and feature: a program that does
+  not use it pays nothing. Within that rule the compiler got much tighter:
+  the one-line Add from slide 7 went from 39 bytes to 12, and Hunchback,
+  another full game, got 24% smaller with its C# unchanged. Every one of
+  those changes had to be proven correct, which brings us to the tests."
+- **Sources:** CLAUDE.md ("Pay only for what you use", "`.weak Flag_X`",
+  "an unrelated change must leave its segment sizes identical"). 39 -> 12:
+  snippet S1 (`Program_Add`, 39 bytes with `--no-static-frames`, 12 bytes
+  by default; the evidence of the cut slide "39 bytes to 12"). -24%:
+  measured Hunchback program bytes 36,847 at `1e1a44e` -> 28,157 at
+  `5216d06` (-23.6%), source unchanged in between (the evidence of the cut
+  slide "Hunchback: -24%"). Both under "Measurements".
+- **Why this fix:** with the optimization slides cut, this section slide
+  would introduce nothing. Two headline lines keep the optimization story,
+  pay off slide 7's "remember that number" without touching slide 7, and
+  the Say bridges to the testing slides. Cutting it instead would leave
+  slide 7's setup hanging; retitling it alone would lose the numbers.
+
+## 7. Testing
+
+### Slide 14 — Tests run on 6502
+
+- **Layout:** code (hi-res), three text lines below.
+- **Title:** `Tests run on 6502` (17)
+- **On screen (code, 6 lines):**
+
+```code
+[TestCase(5, ExpectedResult = 6)]
+int TestIncrement(int value)
+{
+    var a = value;
+    return ++a;
+}
+```
+
+- **On screen (text):**
+
+```screen
+NUnit finds it, runs it, reports it
+5 goes in via $09E0, 6 back at $2C
+The body never runs as .NET
+```
+
+- **Visual:** code panel; `5` and `6` in the `[TestCase]` line and in text
+  line 2 in the accent colour (the same two numbers travel through the
+  next slide). A small NUnit-style green tick beside `[TestCase]` on the
+  last press.
+- **Build:** on entry the code. Presses 1-3: one text line each; the tick
+  with the third.
+- **Say:** "An ordinary NUnit test case: 5 in, 6 expected. But the method
+  body is compiled to 6502 with the rest of the test project. When NUnit
+  calls it, the call is intercepted: the 5 is written into emulated
+  memory, and the 6 is read back from address $2C."
+- **Sources:** `Test/ArithmeticTests.cs` `TestIncrement` (lines 10-18 at
+  `5216d06`): its first `[TestCase]` only, and the `public` modifier left
+  out for width. `$09E0`: `CopyMethodArgumentsToEmulator`
+  (`ARGUMENTS_ADDRESS = 0x9e0`, the argument count there, the arguments
+  after it); `$2C`: `RETURN_VALUE_ADDRESS = 0x2c` read by
+  `EmulatorArgumentMarshaling.ReadReturnValue` into `args.ReturnValue`
+  (`C64TestFramework/RunInEmulatorAspect.cs`). CLAUDE.md (`C64TestFramework`,
+  `Test/`: "the test method body is actually compiled to 6502 and executed
+  on the emulator, not run as normal C#").
+
+### Slide 15 — PostSharp swaps it
+
+- **Layout:** diagram (hi-res): a numbered flow down the left, a strip of
+  memory addresses on the right.
+- **Title:** `PostSharp swaps it` (18)
+- **On screen:**
+
+```screen
+1 Load prg/unittest.prg
+2 Method address -> $09FE
+3 Arguments -> $09E0
+4 Run from $1000
+5 $20: 0 pass, $FF fail, $FE fault
+6 Message at $2E/$2F, value at $2C
+~730 test cases, all on 6502
+```
+
+- **Visual:** left (cells 1-25): the six steps as a vertical flow with
+  small down-arrows; a violet box around steps 1-4 labelled
+  `RunInEmulatorAspect.OnInvoke` and a green box around steps 5-6
+  labelled `CopyResultFromEmulator`. Right (cells 28-38): a narrow memory
+  strip, top to bottom `$0020`, `$002C`, `$002E`, `$09E0`, `$09FE`,
+  `$1000`, each joined by a thin line to its step. Line 7 at the bottom in
+  the accent colour.
+- **Build:** on entry steps 1-2. Press 1: steps 3-4. Press 2: steps 5-6.
+  Press 3: line 7.
+- **Say:** "PostSharp weaves an aspect into every test method at build
+  time. It loads the compiled test program into SimpleEmulator, our
+  own 6502 emulator, writes the method's address and arguments into
+  memory, runs it, and reads back one result byte: zero passes, otherwise
+  the message pointer becomes the NUnit failure. The return value, our 6,
+  comes back from $2C. Every green test passed on an emulated 6502."
+- **Sources:** `C64TestFramework/RunInEmulatorAspect.cs` at `5216d06`:
+  `OnInvoke` (InitEmulator, CopyMethodArgumentsToEmulator,
+  `emulator.Start(0x1000)`, CopyResultFromEmulator); `InitEmulator`
+  (`SetMemory(0x09fe, GetMethodAddress(...))`, `LoadPrg(... ".prg")`);
+  `CopyMethodArgumentsToEmulator` (`ARGUMENTS_ADDRESS = 0x9e0`, count byte
+  first); `CopyResultFromEmulator` (`GetMemory(0x20)`, `FAULT_RESULT =
+  0xFE` with the code in `$2E`, a nonzero result fails with
+  `GetMessage`, `RETURN_VALUE_ADDRESS = 0x2c`). `$FF` and the message
+  pointer at `$2E/$2F`: the comment in the same method ("Distinct from
+  Assert_Fail's $FF, whose $2E/$2F is a message pointer") and CLAUDE.md.
+  Assembly-wide weaving: `Test/assembly.cs` (`[assembly:
+  RunInEmulatorAspect(AttributeTargetTypes = "Compiler.Test.*", ...)]`);
+  PostSharp at build time: CLAUDE.md ("Running the full test suite").
+  ~730: `[Test]`/`[TestCase]` attributes counted at `5216d06`: 595 in
+  `Test/`, 134 in `Test.Runtime/`. Two compiled test programs exist
+  (`prg/unittest.prg` for `Test/`, `prg/unittest_runtime.prg` for
+  `Test.Runtime/`, named by `[assembly: UnitTestProgram(...)]`, CLAUDE.md);
+  the slide shows the first.
+
+## 8. Close
+
+### Slide 16 — Thank you
+
+- **Layout:** title (hi-res, plus sprites).
+- **Title:** `Thank you` (9)
+- **On screen:** the number line in the large title font (at most 18
+  characters, e.g. `N,NNN BYTES FREE`, in capitals like the C64's own
+  boot screen), the rest in the 8x8 font:
+
+```screen
+16 slides of C#, and still
+N,NNN BYTES FREE
+github.com/balazsmolnar/
+C64-IL-Compiler
+```
+
+- **Visual:** the C# and Commodore logo sprites (`sprites.asm`) settle
+  side by side above the title. "16 slides of C#, and still" on row 10;
+  "N,NNN BYTES FREE" centred in the large font in the accent colour, rows
+  12-13; the URL small on rows 18-19.
+- **Build:** on entry the title and the URL. Press 1: line 1. Press 2:
+  the number, counting up from 0 to its value in about a second; the talk
+  ends on it.
+- **Say:** "Remember slide one, 'this slide is a C# program'? So were the
+  other fifteen. A C64 boots with 38911 BASIC BYTES FREE; after all of
+  them, this deck still has this many. Thank you."
+- **Required output of the Slides phase:** the real number, measured on
+  the final build and put on this slide; the deck is not done while the
+  slide says N,NNN. It is the free memory **before the heap**: the
+  Catacombs/TECH.md "Free memory" formula with no heap reserve, so it is
+  not a judgement call. Run `C64Presentation\measure.bat`, take the end
+  of the last `Data:` line, then free = $CC00 - that end - 1,080 (object
+  tables, locals stack and string buffers with `DrawText`; 56 without) -
+  the static frames (the compiler's "Static frames: ..., N bytes") - 64
+  per sprite frame beyond 64. Write it with a thousands comma. Report it
+  with the commit it was measured on. Slide 8's Catacombs figure (10,478)
+  is the same quantity ("left for more code, assets and the heap").
+- **Sources:** this project (`C64Presentation/`); `git remote -v`;
+  Catacombs/TECH.md (free-memory formula). "38911 BASIC BYTES FREE": the
+  C64's power-on screen (Commodore 64 Programmer's Reference Guide).
+
+## Appendix: hidden fallback slide
+
+Not in the running order and not counted in "16 slides". With the live
+demo cut, this mock is now the only place the talk can show debugging, so
+keep it, reachable with **D from slide 15** ("PostSharp swaps it", the end
+of the testing section) instead of from the cut live-demo slide. The
+presenter uses it when there is time or when someone asks "can you debug
+it?"; SPACE returns to slide 15's last build, then continues to slide 16.
+
+### Appendix (hidden) — Debug C# on a C64
+
+- **Layout:** diagram (hi-res): a mock of the VS Code debugger, drawn by
+  the engine, feature list on the right.
+- **Title:** `Debug C# on a C64` (17)
+- **On screen (right column, cells 20-38):**
+
+```screen
+Breakpoints on
+C# lines
+F10, F11, Shift+F11
+Locals, fields,
+arrays, hover
+Edit a value
+Registers and
+6502 disassembly
+```
+
+- **Visual:** left (cells 1-18, rows 4-21): a VS Code mock in the theme's
+  greys. An editor panel (rows 4-13) with four real lines of
+  `Demo/RotatingCube.cs` in the 8x8 font (each at most 18 columns):
+  `public void Step()`, `{`, `  BuildBasis();`, `  float bcx = cx_;`.
+  A red dot in the gutter and a yellow line highlight on
+  `float bcx = cx_;`. Below it a Variables panel (rows 15-21) listing, all at the top
+  level (the extension flattens `this`'s fields in, no `this` node):
+  `bcx`, `cx_`, `velX_`, `cosAy_`, values shown as grey dots (no invented
+  numbers). A small breadbox-blue square in the corner labelled `VICE`
+  with a thin line to the highlighted row (the stop).
+- **Build:** on entry the editor. Press 1: the red dot. Press 2: the
+  yellow stop line and the `VICE` link. Press 3: the Variables panel.
+  Presses 4-7: the feature lines in pairs.
+- **Say:** "And when it goes wrong, you debug it as C#. Set a breakpoint in
+  VS Code, press F5: the program is built, started in VICE, and stops on
+  your line. Step over, into and out, look at locals and object fields,
+  even change a value and continue. Only the innermost method's locals are
+  shown; that's the current limit."
+- **Sources:** `vscode-extension/README.md` at `5216d06`: "What works"
+  (gutter breakpoints, "Step over (F10), step into (F11), step out
+  (Shift+F11)", Variables with locals, parameters and `this`'s fields,
+  expandable objects/arrays, "Editing a value ... in either test mode or a
+  live VICE session", "Registers and disassembly", "Watch panel, Debug
+  Console, and hover tooltips"), "Debugging a whole program on VICE"
+  ("build a C64 program (`Demo`, `Hunchback` or `C64Presentation`), run it
+  on a real VICE and stop at breakpoints in its C# source"; "Limits:
+  locals are only resolved for the innermost method"). Launch configs:
+  `.vscode/launch.json` ("Debug Demo on VICE", "Debug Hunchback on VICE",
+  type `c64vice`). The code lines: `Demo/RotatingCube.cs` lines 126, 127, 128 and 136
+  (the comment lines between them left out).
+  Commits: `57d05fe` (step-debugger for unit tests, CLI + VS Code DAP),
+  `950600a` (object/array inspection, registers, disassembly), `a3ade3f`
+  (watch, hover), `98c2604` (run a program on VICE from VS Code and stop
+  at breakpoints), `ac88e7f` (step-over/step-out, editable locals).
+
+---
+
+## Cut slides (kept for reference)
+
+Cut by the user to fit memory and length. Their text, visuals and sources
+are kept so a slide can be restored; nothing here is built.
+
+### Cut — int is 8 bits (was slide 10)
+
+**Cut.** Not in the 16-slide talk.
 
 - **Layout:** two-column (hi-res): type table on top, code and error below.
 - **Title:** `int is 8 bits` (13)
@@ -455,9 +810,9 @@ would become 188.
   "The constant 700 does not fit in 8 bits: int and uint are 8-bit values
   on the C64 (0..255, or -128..127), so it would become 188."
 
-- **As built** (`IntIs8BitsSlide.cs`): the table as two side-by-side tables, the header (`C# type` | `size`) only on the left one; the code line in a code panel with an empty row under it, `-> 188` in grey right of it; the error in the code face (consecutive rows, IDE-like) with a red bar; with it (press 3) a red underline under `700` in the empty code row.
+### Cut — Our tests lied (was slide 11)
 
-### Slide 11 — Our tests lied
+**Cut.** Not in the 16-slide talk.
 
 - **Layout:** bullets (hi-res).
 - **Title:** `Our tests lied` (14)
@@ -484,9 +839,9 @@ This deck: Wait(500) waited 244
   "RandomTests' new uint[256] (an empty array)". Arithmetic: 256 & 255 =
   0; 500 & 255 = 244.
 
-- **As built** (`TestsLiedSlide.cs`, critic round 1): line 1, then lines 2-4 as a table, one row per press: `In our code | meant | was` with `i < 256 loop | 256 | 0`, `new uint[256] | 256 | 0`, `This deck: Wait(500) | 500 | 244`; "meant" in Grey2, "was" in light red. (Inline strike-throughs could not be spaced evenly: each colour starts on a cell edge.)
+### Cut — Frames share bytes (was slide 12)
 
-### Slide 12 — Frames share bytes
+**Cut.** Not in the 16-slide talk.
 
 - **Layout:** diagram (hi-res).
 - **Title:** `Frames share bytes` (18)
@@ -523,127 +878,9 @@ in 39 bytes of frames
   frames: 118 of 125 methods (9 callee-pulls), 39 bytes") and
   Catacombs/TECH.md ("39 bytes of static frames").
 
-- **As built** (`FramesSlide.cs`, critic round 1): text left; the stack icon in red with the label `256 B: full`; the call tree right (Main across the tree, Update/Draw, Move/Hud, Grey2 call arrows), the `StaticFrames` strip at cells 33-37 as labelled cards: `Main`, `Update` / `= Draw`, `Move` / `= Hud`, `free`; `illustration` and `StaticFrames` as captions on row 19.
+### Cut — Hide under the ROM (was slide 16)
 
-### Slide 13 — References: 1 byte
-
-- **Layout:** diagram (hi-res).
-- **Title:** `References: 1 byte` (18)
-- **On screen:**
-
-```screen
-A reference is a 1-byte handle
-255 objects; handle 0 is null
-Handle -> table -> heap address
-Full: ?OUT OF MEMORY ERROR
-```
-
-- **Visual:** the old MemoryLayoutSlide, redrawn on the theme: an object
-  table (rows "1", "2", "...", "255"; columns HEAP PTR, SIZE, REFS, ROOTS,
-  VTABLE) in cyan across rows 4-11, and a heap strip in yellow across rows
-  13-15 with blocks "1", "3", "2", "5" and "FREE". Arrows from row 1's
-  and row 2's HEAP PTR down to their blocks. The four text lines in rows
-  17-20. Nothing overlaps the footer row (today the slide counter
-  overwrites the heap).
-- **Build:** on entry the table header. Press 1: rows 1, 2, 255. Press 2:
-  the heap strip and the two arrows. Press 3: the four text lines
-  together.
-- **Say:** "A reference is one byte: an index into seven 256-byte tables
-  holding each object's address, size, reference fields, root count and
-  vtable. So a program can have 255 live objects, and moving an object
-  only changes one table entry."
-- **Sources:** 1-byte reference: `Compiler/TypeExtensions.cs`
-  (`GetStorageBytes()` returns 1 for classes); tables:
-  `asm/helper/objectTables.asm` ("The 7x256-byte object/GC tables";
-  `objTableSize`, `objTableReferences`, `objTableRootCount`, ...); handle
-  0 = null: `asm/GC.asm` (`trackObjects`: "mark NULL"); faults "out of
-  memory" and "too many objects": commit `3f3d760` and
-  `asm/helper/fault.asm` (header: "?<MESSAGE> ERROR", red border;
-  `Runtime_FaultMsg0 .text "OUT OF MEMORY"`).
-
-- **As built** (`ReferencesSlide.cs`, critic round 1): table rows 1 and 2 only (the engine critic's table), Grey2 pointer arrows (row 1 from left of its value down the empty first cell, row 2 down from right of its value), heap strip rows 12-14; text lines 1, 3, 4 on rows 16, 18, 20, and line 2 as a stat card right of them: `255 objects` / `handle 0 is null`.
-
-### Slide 14 — GC without a scan
-
-- **Layout:** diagram (hi-res, animated: the existing GarbageCollectorSlide
-  logic on the new theme).
-- **Title:** `GC without a scan` (17)
-- **On screen (right side, labels that light up per phase):**
-
-```screen
-1 Roots: counted
-2 Mark: follow references
-3 Sort by address
-4 Slide down: compact
-```
-
-- **Visual:** the existing animation: six object boxes in a row (1 and 3
-  are roots, cyan), a heap strip below, a small mark stack. Marked objects
-  turn orange, dead ones fade to black, then the heap blocks slide left to
-  close the gaps (new: the compaction step, which today's slide skips).
-- **Build:** on entry the objects. Each press advances the animation one
-  step (as today); the phase label lights up as its phase starts.
-- **Say:** "Every store of a reference into a local, a parameter or a
-  static field updates a count, so the roots are known without scanning
-  the stack. References between objects are traced; then the live objects
-  are sorted by address and slid down. It runs only when you call
-  GC.Collect()."
-- **Sources:** `asm/GC.asm` (`GC_Collect`: `trackObjects`,
-  `fillSortTable`, `quicksort`, `sweepAndCompact`); root counting:
-  `asm/helper/heap.asm` (`stsfld`: `dec`/`inc objTableRootCount`),
-  `asm/helper/localsStack.asm` (`locals_pull_param_8`),
-  `asm/helper/stack.asm` (`stack_pull_int_ref`, `deref`); heap-to-heap
-  references traced, not counted: `asm/helper/object.asm` (comment above
-  `NewObjArrayInitL`); only on an explicit call: `Compiler/Diagnostics.cs`
-  ("Only GC.Collect() is supported") and
-  `Compiler/ILMethodCachedFieldAccessPass.cs` ("This GC only ever moves an
-  object via an explicit GC.Collect() call").
-
-- **As built** (`GcSlide.cs`, critic round 1): one press per phase (4), the steps inside a phase paced (0.4 s). Objects in a 3x2 grid on the left (id, references), `root` in cyan under 1 and 3; the four phase labels on the right, the current one white; the mark stack as a line of ids; the heap below, labelled `heap, by address`, in address order 3, 1, 6, 4, 2, 5. Traced = yellow, marked = cyan, box and heap block alike. Sort: the live blocks light up in address order. Slide down: 2 and 6 fade (named on screen: `2 -> 6 -> 2: a dead cycle`), the live blocks slide left cell by cell.
-
-### Slide 15 — Borrow, not build
-
-- **Layout:** two-column (hi-res).
-- **Title:** `Borrow, not build` (17)
-- **On screen (left, cells 1-18):**
-
-```screen
-STRINGS
-Pointer to bytes,
-zero-terminated
-Not on the heap
-a + b: a 40-byte
-buffer
-```
-
-- **On screen (right, cells 21-38):**
-
-```screen
-FLOATS
-5-byte C64 format
-Math: the BASIC
-ROM's own routines
-Sin, Cos, Sqrt
-```
-
-- **Visual:** column headings in the accent colour; a thin vertical rule
-  between the columns.
-- **Build:** on entry the headings. Press 1: left column. Press 2: right
-  column.
-- **Say:** "A string is a pointer to zero-terminated bytes, and
-  concatenation writes into one small buffer. A float is the C64's own
-  5-byte format, so the BASIC ROM that is in every C64 does the maths."
-- **Sources:** strings: `asm/helper/stringops.asm` header ("raw
-  null-terminated character bytes", "stringops_buffer's fixed 40-byte
-  size"); not reference counted: `Compiler/TypeExtensions.cs`
-  (`IsReferenceCounted`: string -> false). Floats:
-  `Compiler/TypeExtensions.cs` ("Native C64 MFLPT format", 5 bytes);
-  BASIC ROM routines: `asm/helper/floatBanking.asm`; Sin/Cos/Sqrt:
-  `Compiler/Diagnostics.cs` ("MathF.Sin/Cos/Sqrt").
-
-- **As built** (`BorrowSlide.cs`, critic round 1): headings in the 16 px face; each item on one line (two engine bullet lists, 3 rows apart): `Zero-terminated bytes`, `Not on the heap`, `a + b: one 40-byte buffer` / `C64's 5-byte format`, `Math: BASIC ROM routines`, `Sin, Cos, Sqrt`.
-
-### Slide 16 — Hide under the ROM
+**Cut.** Not in the 16-slide talk.
 
 - **Layout:** diagram (hi-res): memory map left, text right.
 - **Title:** `Hide under the ROM` (18)
@@ -677,31 +914,9 @@ Pictures packed:
   is 8400 -> 2118 bytes"; CLAUDE.md ("Graphics memory layout"). $0000-$07FF
   zero page and 6502 stack ($0100): C64 Programmer's Reference Guide.
 
-- **As built** (`RomSlide.cs`, critic round 1): the engine gallery's approved map (palette colours: no violet or blue), rows 5-18, address labels without ticks; each fact on one line level with its segment: `Bitmap under the KERNAL ROM`, `Sprites under I/O`, `Frees 9.4 KB` (16 px face, cyan), `Pictures: 8,400 -> 2,118 B`.
+### Cut — 39 bytes to 12 (was slide 18)
 
-
-## 6. Making it small and fast
-
-### Slide 17 — Small and fast
-
-- **Layout:** section (hi-res).
-- **Title:** `Small and fast` (14)
-- **On screen:**
-
-```screen
-Pay only for what you use
-```
-
-- **Visual:** section background. Under the line, small and grey:
-  `.weak Flag_X` (the asm mechanism that links a routine only when used).
-- **Build:** on entry everything.
-- **Say:** "One rule for every optimization and feature: a program that does
-  not use it pays nothing. We check that on every change by measuring
-  Hunchback, another full game."
-- **Sources:** CLAUDE.md ("Pay only for what you use", "`.weak Flag_X`",
-  "an unrelated change must leave its segment sizes identical").
-
-### Slide 18 — 39 bytes to 12
+**Cut.** Not in the 16-slide talk.
 
 - **Layout:** code (hi-res): a mini bar chart, the code, three lines.
 - **Title:** `39 bytes to 12` (14)
@@ -747,7 +962,9 @@ Result comes back in A
   call-site copies), `21e84ec` (top of stack in A). Hand-written size:
   6502 opcode sizes (lda/adc absolute 3 bytes, clc and rts 1 byte each).
 
-### Slide 19 — Hunchback: -24%
+### Cut — Hunchback: -24% (was slide 19)
+
+**Cut.** Not in the 16-slide talk.
 
 - **Layout:** chart (hi-res): two horizontal bars and a caption line.
 - **Title:** `Hunchback: -24%` (15)
@@ -777,7 +994,9 @@ Same game, same C#: -8,690 B
   --since=2026-10-10 -- Hunchback/` shows only `0726949` (a .csproj
   build-order line).
 
-### Slide 20 — No single winner
+### Cut — No single winner (was slide 20)
+
+**Cut.** Not in the 16-slide talk.
 
 - **Layout:** chart (hi-res): horizontal bars, two rows per optimization.
 - **Title:** `No single winner` (16)
@@ -837,7 +1056,9 @@ Logic + const
   `34a08e9` ("4 bytes instead of 10"), `7235df6` ("one #newObjArrayInit
   call").
 
-### Slide 21 — Worst frame: -19%
+### Cut — Worst frame: -19% (was slide 21)
+
+**Cut.** Not in the 16-slide talk.
 
 - **Layout:** chart (hi-res): bars against a full-frame outline.
 - **Title:** `Worst frame: -19%` (17)
@@ -866,103 +1087,9 @@ Catacombs, raster lines per frame
   A "9404 -> 8491 cycles/frame (-9.7%)"; `4aae54e` division by a constant
   "About 40% fewer cycles than Divide16Core".
 
-## 7. Testing and debugging
+### Cut — Line to address (was slide 24)
 
-### Slide 22 — Tests run on 6502
-
-- **Layout:** code (hi-res), three text lines below.
-- **Title:** `Tests run on 6502` (17)
-- **On screen (code, 6 lines):**
-
-```code
-[TestCase(5, ExpectedResult = 6)]
-int TestIncrement(int value)
-{
-    var a = value;
-    return ++a;
-}
-```
-
-- **On screen (text):**
-
-```screen
-NUnit finds it, runs it, reports it
-5 goes in via $09E0, 6 back at $2C
-The body never runs as .NET
-```
-
-- **Visual:** code panel; `5` and `6` in the `[TestCase]` line and in text
-  line 2 in the accent colour (the same two numbers travel through the
-  next slide). A small NUnit-style green tick beside `[TestCase]` on the
-  last press.
-- **Build:** on entry the code. Presses 1-3: one text line each; the tick
-  with the third.
-- **Say:** "An ordinary NUnit test case: 5 in, 6 expected. But the method
-  body is compiled to 6502 with the rest of the test project. When NUnit
-  calls it, the call is intercepted: the 5 is written into emulated
-  memory, and the 6 is read back from address $2C."
-- **Sources:** `Test/ArithmeticTests.cs` `TestIncrement` (lines 10-18 at
-  `5216d06`): its first `[TestCase]` only, and the `public` modifier left
-  out for width. `$09E0`: `CopyMethodArgumentsToEmulator`
-  (`ARGUMENTS_ADDRESS = 0x9e0`, the argument count there, the arguments
-  after it); `$2C`: `RETURN_VALUE_ADDRESS = 0x2c` read by
-  `EmulatorArgumentMarshaling.ReadReturnValue` into `args.ReturnValue`
-  (`C64TestFramework/RunInEmulatorAspect.cs`). CLAUDE.md (`C64TestFramework`,
-  `Test/`: "the test method body is actually compiled to 6502 and executed
-  on the emulator, not run as normal C#").
-
-### Slide 23 — PostSharp swaps it
-
-- **Layout:** diagram (hi-res): a numbered flow down the left, a strip of
-  memory addresses on the right.
-- **Title:** `PostSharp swaps it` (18)
-- **On screen:**
-
-```screen
-1 Load prg/unittest.prg
-2 Method address -> $09FE
-3 Arguments -> $09E0
-4 Run from $1000
-5 $20: 0 pass, $FF fail, $FE fault
-6 Message at $2E/$2F, value at $2C
-~730 test cases, all on 6502
-```
-
-- **Visual:** left (cells 1-25): the six steps as a vertical flow with
-  small down-arrows; a violet box around steps 1-4 labelled
-  `RunInEmulatorAspect.OnInvoke` and a green box around steps 5-6
-  labelled `CopyResultFromEmulator`. Right (cells 28-38): a narrow memory
-  strip, top to bottom `$0020`, `$002C`, `$002E`, `$09E0`, `$09FE`,
-  `$1000`, each joined by a thin line to its step. Line 7 at the bottom in
-  the accent colour.
-- **Build:** on entry steps 1-2. Press 1: steps 3-4. Press 2: steps 5-6.
-  Press 3: line 7.
-- **Say:** "PostSharp weaves an aspect into every test method at build
-  time. It loads the compiled test program into SimpleEmulator, our
-  own 6502 emulator, writes the method's address and arguments into
-  memory, runs it, and reads back one result byte: zero passes, otherwise
-  the message pointer becomes the NUnit failure. The return value, our 6,
-  comes back from $2C. Every green test passed on an emulated 6502."
-- **Sources:** `C64TestFramework/RunInEmulatorAspect.cs` at `5216d06`:
-  `OnInvoke` (InitEmulator, CopyMethodArgumentsToEmulator,
-  `emulator.Start(0x1000)`, CopyResultFromEmulator); `InitEmulator`
-  (`SetMemory(0x09fe, GetMethodAddress(...))`, `LoadPrg(... ".prg")`);
-  `CopyMethodArgumentsToEmulator` (`ARGUMENTS_ADDRESS = 0x9e0`, count byte
-  first); `CopyResultFromEmulator` (`GetMemory(0x20)`, `FAULT_RESULT =
-  0xFE` with the code in `$2E`, a nonzero result fails with
-  `GetMessage`, `RETURN_VALUE_ADDRESS = 0x2c`). `$FF` and the message
-  pointer at `$2E/$2F`: the comment in the same method ("Distinct from
-  Assert_Fail's $FF, whose $2E/$2F is a message pointer") and CLAUDE.md.
-  Assembly-wide weaving: `Test/assembly.cs` (`[assembly:
-  RunInEmulatorAspect(AttributeTargetTypes = "Compiler.Test.*", ...)]`);
-  PostSharp at build time: CLAUDE.md ("Running the full test suite").
-  ~730: `[Test]`/`[TestCase]` attributes counted at `5216d06`: 595 in
-  `Test/`, 134 in `Test.Runtime/`. Two compiled test programs exist
-  (`prg/unittest.prg` for `Test/`, `prg/unittest_runtime.prg` for
-  `Test.Runtime/`, named by `[assembly: UnitTestProgram(...)]`, CLAUDE.md);
-  the slide shows the first.
-
-### Slide 24 — Line to address
+**Cut.** Not in the 16-slide talk.
 
 - **Layout:** diagram (hi-res): a five-step pipeline, top to bottom.
 - **Title:** `Line to address` (15)
@@ -1003,9 +1130,9 @@ Debug build: bigger, less optimized
   the stack"); measured: Catacombs' debug build ends at `$B6FA` against
   `$AEB2` for the normal build (2,120 bytes more).
 
-## 8. Live
+### Cut — Change it live (was slide 25)
 
-### Slide 25 — Change it live
+**Cut.** Not in the 16-slide talk.
 
 - **Layout:** bullets (hi-res checklist), shown while the presenter works
   on the PC.
@@ -1081,9 +1208,9 @@ Debug build: bigger, less optimized
   'this.' prefix needed"; "closing the session (kills VICE)"). Step() runs
   every frame: `Demo/Program.cs` (`for (;;) { cube.Step(); }`).
 
-## 9. Close
+### Cut — Four lessons (was slide 26)
 
-### Slide 26 — Four lessons
+**Cut.** Not in the 16-slide talk.
 
 - **Layout:** bullets (hi-res).
 - **Title:** `Four lessons` (12)
@@ -1115,106 +1242,6 @@ Play the game, too
   blow"; "Test.Runtime/GreaterBranchEqualityTests ... (7 failed before the
   fix)").
 
-### Slide 27 — Thank you
-
-- **Layout:** title (hi-res, plus sprites).
-- **Title:** `Thank you` (9)
-- **On screen:** the number line in the large title font (at most 18
-  characters, e.g. `N,NNN BYTES FREE`, in capitals like the C64's own
-  boot screen), the rest in the 8x8 font:
-
-```screen
-27 slides of C#, and still
-N,NNN BYTES FREE
-github.com/balazsmolnar/
-C64-IL-Compiler
-```
-
-- **Visual:** the C# and Commodore logo sprites (`sprites.asm`) settle
-  side by side above the title. "27 slides of C#, and still" on row 10;
-  "N,NNN BYTES FREE" centred in the large font in the accent colour, rows
-  12-13; the URL small on rows 18-19.
-- **Build:** on entry the title and the URL. Press 1: line 1. Press 2:
-  the number, counting up from 0 to its value in about a second; the talk
-  ends on it.
-- **Say:** "Remember slide one, 'this slide is a C# program'? So were the
-  other twenty-six. A C64 boots with 38911 BASIC BYTES FREE; after all of
-  them, this deck still has this many. Thank you."
-- **Required output of the Slides phase:** the real number, measured on
-  the final build and put on this slide; the deck is not done while the
-  slide says N,NNN. It is the free memory **before the heap**: the
-  Catacombs/TECH.md "Free memory" formula with no heap reserve, so it is
-  not a judgement call. Run `C64Presentation\measure.bat`, take the end
-  of the last `Data:` line, then free = $CC00 - that end - 1,080 (object
-  tables, locals stack and string buffers with `DrawText`; 56 without) -
-  the static frames (the compiler's "Static frames: ..., N bytes") - 64
-  per sprite frame beyond 64. Write it with a thousands comma. Report it
-  with the commit it was measured on. Slide 8's Catacombs figure (10,478)
-  is the same quantity ("left for more code, assets and the heap").
-- **Sources:** this project (`C64Presentation/`); `git remote -v`;
-  Catacombs/TECH.md (free-memory formula). "38911 BASIC BYTES FREE": the
-  C64's power-on screen (Commodore 64 Programmer's Reference Guide).
-
-## Appendix: hidden fallback slide
-
-Not in the running order and not shown in the talk: the live demo shows
-the real debugger, and a mock beforehand would spoil it. Build it only as
-a fallback to show if the live demo fails (it does not count in "27
-slides").
-
-### Appendix (hidden) — Debug C# on a C64
-
-- **Layout:** diagram (hi-res): a mock of the VS Code debugger, drawn by
-  the engine, feature list on the right.
-- **Title:** `Debug C# on a C64` (17)
-- **On screen (right column, cells 20-38):**
-
-```screen
-Breakpoints on
-C# lines
-F10, F11, Shift+F11
-Locals, fields,
-arrays, hover
-Edit a value
-Registers and
-6502 disassembly
-```
-
-- **Visual:** left (cells 1-18, rows 4-21): a VS Code mock in the theme's
-  greys. An editor panel (rows 4-13) with four real lines of
-  `Demo/RotatingCube.cs` in the 8x8 font (each at most 18 columns):
-  `public void Step()`, `{`, `  BuildBasis();`, `  float bcx = cx_;`.
-  A red dot in the gutter and a yellow line highlight on
-  `float bcx = cx_;`. Below it a Variables panel (rows 15-21) listing, all at the top
-  level (the extension flattens `this`'s fields in, no `this` node):
-  `bcx`, `cx_`, `velX_`, `cosAy_`, values shown as grey dots (no invented
-  numbers). A small breadbox-blue square in the corner labelled `VICE`
-  with a thin line to the highlighted row (the stop).
-- **Build:** on entry the editor. Press 1: the red dot. Press 2: the
-  yellow stop line and the `VICE` link. Press 3: the Variables panel.
-  Presses 4-7: the feature lines in pairs.
-- **Say:** "And when it goes wrong, you debug it as C#. Set a breakpoint in
-  VS Code, press F5: the program is built, started in VICE, and stops on
-  your line. Step over, into and out, look at locals and object fields,
-  even change a value and continue. Only the innermost method's locals are
-  shown; that's the current limit."
-- **Sources:** `vscode-extension/README.md` at `5216d06`: "What works"
-  (gutter breakpoints, "Step over (F10), step into (F11), step out
-  (Shift+F11)", Variables with locals, parameters and `this`'s fields,
-  expandable objects/arrays, "Editing a value ... in either test mode or a
-  live VICE session", "Registers and disassembly", "Watch panel, Debug
-  Console, and hover tooltips"), "Debugging a whole program on VICE"
-  ("build a C64 program (`Demo`, `Hunchback` or `C64Presentation`), run it
-  on a real VICE and stop at breakpoints in its C# source"; "Limits:
-  locals are only resolved for the innermost method"). Launch configs:
-  `.vscode/launch.json` ("Debug Demo on VICE", "Debug Hunchback on VICE",
-  type `c64vice`). The code lines: `Demo/RotatingCube.cs` lines 126, 127, 128 and 136
-  (the comment lines between them left out).
-  Commits: `57d05fe` (step-debugger for unit tests, CLI + VS Code DAP),
-  `950600a` (object/array inspection, registers, disassembly), `a3ade3f`
-  (watch, hover), `98c2604` (run a program on VICE from VS Code and stop
-  at breakpoints), `ac88e7f` (step-over/step-out, editable locals).
-
 ---
 
 ## Measurements
@@ -1222,16 +1249,16 @@ Registers and
 Figures marked "measured" were taken for this storyboard; reproduce them
 like this (all paths literal, scratch under `.debug-tmp\`).
 
-- **Hunchback before/after (slide 19).** HEAD `5216d06`: build
+- **Hunchback before/after (slide 13; was the cut slide 19).** HEAD `5216d06`: build
   `Hunchback\Hunchback.csproj`, run `Hunchback\measure.bat`, add the
   `Data:` lengths: 13 + 3,479 + 5,760 + 18,905 = 28,157. Before: `git
   archive 1e1a44e` into `.debug-tmp\old`, build its `Compiler` and
   `Hunchback`, run its `Hunchback\measure.bat`: 13 + 3,247 + 5,760 +
   27,827 = 36,847. Loaded program end `$A35A` -> `$8080`.
-- **Static frames on/off (slide 20).** At `5216d06`, `C64_STATIC_FRAMES=0`
+- **Static frames on/off (cut slide "No single winner").** At `5216d06`, `C64_STATIC_FRAMES=0`
   then default: Hunchback main segment 21,209 -> 18,905 (-2,304);
   Catacombs main segment 39,383 -> 37,565 (-1,818).
-- **Snippet S1 (slides 6, 7, 18).** A C64Lib program:
+- **Snippet S1 (slides 6, 7, 13).** A C64Lib program:
 
   ```
   static uint score, bonus;
@@ -1284,15 +1311,15 @@ like this (all paths literal, scratch under `.debug-tmp\`).
   speed)`, `[new(1), new(2)]`) fails with C64004 (text on slide 3); the
   same statements as top-level statements fail to link ("not defined
   symbol 'Program_Main'").
-- **C64006 text (slide 10).** The same compiler on `for (uint i = 0; i <
+- **C64006 text (slide 4's "Every error has a code and a hint"; was the cut slide 10).** The same compiler on `for (uint i = 0; i <
   700; i++) n++;` prints `error C64006: The constant 700 does not fit in 8
   bits: int and uint are 8-bit values on the C64 (0..255, or -128..127), so
   it would become 188.`
-- **Debug build size (slide 24).** `Compiler.exe
+- **Debug build size (cut slide "Line to address").** `Compiler.exe
   Catacombs\bin\Debug\catacombs.dll asm\catacombs_debug
   asm\catacombs_debug.asm program debug`, then 64tass: last segment
   `$1BF6-$B6FA`, against `$1BF6-$AEB2` for the normal build.
-- **Live demo rebuild (slide 25).** With the background edit in
+- **Live demo rebuild (cut slide "Change it live").** With the background edit in
   `Demo/Program.cs`: `dotnet build Demo\Demo.csproj` 2.5 s,
   `Demo\measure.bat` 0.5 s (compiler already built); the generated code
   then has `#stack_push_int8 0` before `jsr Screen_SetBackgroundColor`.
@@ -1315,10 +1342,10 @@ or full-screen; everything that shares rows with text is hi-res.
 | title | Full-screen title: "C# on the Commodore 64", rule, subtitle, breadbox, C# code card | 40x25 | hi-res | 1,715 | 1 | built (extra): move its line out of the `#if` in `Assets.cs` |
 | A1 | Catacombs room with the skeleton guardian, lit torches, no HUD | 40x21 | multicolour, split at 21 | 3,755 | 8 | built |
 | A5 | Commodore 64 breadbox | 18x8 | hi-res | 377 | 2 | built |
-| A6 | Six icons: chip "8", stack, object, GC arrows, `"A"`, picture frame | 6 x 3x3 | hi-res, pixels only | 407 | 9 | built |
-| -- | C# and Commodore logos | sprites | -- | 0 (reuse) | 27 | existing `sprites.asm` |
+| A6 | Six icons: chip "8", stack, object, GC arrows, `"A"`, picture frame | 3 x 3x3 | hi-res, pixels only | 188 | 9 | built; only `icon_object`, `icon_gc`, `icon_string` (67 + 74 + 47) |
+| -- | C# and Commodore logos | sprites | -- | 0 (reuse) | 16 | existing `sprites.asm` |
 
-Total: **6,254 bytes** of the 18 KB budget.
+Total: **6,035 bytes** of the 18 KB budget.
 
 ### No longer needed (can be undeclared)
 
@@ -1326,6 +1353,7 @@ Total: **6,254 bytes** of the 18 KB budget.
 |---|---|---|---|
 | A2 | Catacombs title screen | 2,748 | the full-screen Catacombs slide is gone |
 | A3 | "Bone Warden" encounter | 2,570 | the Catacombs numbers are folded into slide 8 |
+| A6 (3 of 6) | `icon_int8`, `icon_stack`, `icon_bitmap` | 219 | their hard-part slides are cut |
 
 The other built extras stay optional. The pipeline cards would suit slide
 5 if the engine's own boxes look plainer (`ArtScene.Pipeline(top)`, 40x14
@@ -1341,15 +1369,15 @@ image of the same size (line art compresses well: about 0.3-0.8 KB each).
 |---|---|---|---|
 | D1 | 5 Roslyn does half | 38x12 | 5 boxes in a snake + 2 small target boxes, labelled arrows, "46 passes" |
 | D2 | 7 Add costs 39 bytes | 30x11 | two vertical stacks, the Y pointer, the "pla, sta" arrow |
-| D3 | 11 Our tests lied | 36x4 | strike-through on three numbers, replacement values |
-| D4 | 12 Frames share bytes | 38x10 | call tree + "StaticFrames" address strip with shared rows |
-| D5 | 13 References: 1 byte | 38x12 | object table (4 rows x 6 columns) + heap strip + 2 arrows |
-| D6 | 14 GC without a scan | 38x18 | the existing animated GC scene, plus the compaction step |
-| D7 | 16 Hide under the ROM | 16x18 | vertical memory map, 6 segments, "not to scale" |
-| D8 | 23 PostSharp swaps it | 38x16 | six-step flow, two group boxes, address strip |
-| D9 | appendix (hidden) Debug C# on a C64 | 18x18 | VS Code mock: editor with breakpoint dot and stop line, Variables panel (top-level `bcx`, `cx_`, `velX_`, `cosAy_`), `VICE` tag; only if the hidden fallback is ever used |
-| D10 | 24 Line to address | 30x12 | five stacked boxes with down-arrows |
-| C1 | 18 39 bytes to 12 | 38x2 | 2 bars: 26 and 8 cells |
-| C2 | 19 Hunchback: -24% | 38x6 | 2 bars: 22 and 17 cells, dashed gap |
-| C3 | 20 No single winner | 38x19 | 8 items x 2 bars (cells in the slide's table), legend, footnote |
-| C4 | 21 Worst frame: -19% | 38x6 | 26-cell outline (311 lines), bars of 21 and 17 cells |
+| D3 | cut: Our tests lied | 36x4 | strike-through on three numbers, replacement values |
+| D4 | cut: Frames share bytes | 38x10 | call tree + "StaticFrames" address strip with shared rows |
+| D5 | 10 References: 1 byte | 38x12 | object table (4 rows x 6 columns) + heap strip + 2 arrows |
+| D6 | 11 GC without a scan | 38x18 | the existing animated GC scene, plus the compaction step |
+| D7 | cut: Hide under the ROM | 16x18 | vertical memory map, 6 segments, "not to scale" |
+| D8 | 15 PostSharp swaps it | 38x16 | six-step flow, two group boxes, address strip |
+| D9 | appendix (hidden, D from slide 15) Debug C# on a C64 | 18x18 | VS Code mock: editor with breakpoint dot and stop line, Variables panel (top-level `bcx`, `cx_`, `velX_`, `cosAy_`), `VICE` tag; only if the hidden fallback is ever used |
+| D10 | cut: Line to address | 30x12 | five stacked boxes with down-arrows |
+| C1 | cut: 39 bytes to 12 | 38x2 | 2 bars: 26 and 8 cells |
+| C2 | cut: Hunchback: -24% | 38x6 | 2 bars: 22 and 17 cells, dashed gap |
+| C3 | cut: No single winner | 38x19 | 8 items x 2 bars (cells in the slide's table), legend, footnote |
+| C4 | cut: Worst frame: -19% | 38x6 | 26-cell outline (311 lines), bars of 21 and 17 cells |

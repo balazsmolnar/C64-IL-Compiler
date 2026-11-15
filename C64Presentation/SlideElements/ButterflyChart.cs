@@ -8,9 +8,7 @@ namespace C64Presentation.SlideElements;
 // the right series' bars growing right, one item every Pitch rows. Each
 // value sits at its own bar's outer end in the bar's colour; a 0 gets no
 // bar and no number. The legend (the two series names) is right aligned on
-// LegendRow. Max fills the space left for a bar after its value. Wait: the
-// labels and legend on entry, then each series is a build step (its bars
-// fade in together).
+// LegendRow. Max fills the space left for a bar after its value.
 // Defaults: Y Theme.BodyTop, LabelWidth 12, Pitch 2, BarCells 8.
 //
 //     new ButterflyChart
@@ -31,7 +29,6 @@ sealed class ButterflyChart : SlideElement
     public Colors RightColor { get; init; }     // Auto = Theme.Accent2
     public uint LegendRow { get; init; }
     public required ButterflyRow[] Rows { get; init; }
-    public bool Wait { get; init; }
 
     const ulong ValueGap = 4;       // pixels between a bar's end and its value
     const ulong LegendGap = 16;
@@ -46,31 +43,18 @@ sealed class ButterflyChart : SlideElement
         var rightColor = Theme.Or(RightColor, Theme.Accent2);
         if (LegendRow != 0)
             DrawLegend(leftColor, rightColor);
-        // Three passes: the labels, the left series, the right series (with
-        // Wait, each series is a build step: its bars fade in together).
-        for (uint pass = 0; pass < 3; pass++)
-        {
-            if (Wait && pass != 0)
-                Deck.Step();
-            DrawPass(pass, axisLeft, axisRight, area, leftColor, rightColor);
-        }
-    }
-
-    void DrawPass(uint pass, ulong axisLeft, ulong axisRight, ulong area, Colors leftColor, Colors rightColor)
-    {
         uint row = Theme.OrCells(Y, Theme.BodyTop);
         foreach (var item in Rows)
         {
+            Text.Center(axisLeft, axisRight - axisLeft, row, item.Label, Theme.Body);
             ulong y = Screen.Px(row);
-            if (pass == 0)
-                Text.Center(axisLeft, axisRight - axisLeft, row, item.Label, Theme.Body);
-            else if (pass == 1 && item.LeftValue != 0)
+            if (item.LeftValue != 0)
             {
                 ulong start = axisLeft - Length(item.LeftValue, area);
                 Bar(start, axisLeft - 1, row, y, leftColor);
                 Text.Right(start - ValueGap, row, item.LeftText ?? "", leftColor);
             }
-            else if (pass == 2 && item.RightValue != 0)
+            if (item.RightValue != 0)
             {
                 ulong end = axisRight + Length(item.RightValue, area);
                 Bar(axisRight, end - 1, row, y, rightColor);

@@ -4,8 +4,7 @@ using C64Presentation.SlideElements;
 
 namespace C64Presentation.Slides.Part3;
 
-// Section 7, slides 22-24: tests that run on a 6502, and how a C# line
-// becomes a VICE breakpoint (DECK.md).
+// Section 7, slides 22-23: tests that run on a 6502 (DECK.md).
 static class Testing
 {
     const Colors Passed = Colors.LightGreen;    // NUnit's green: this slide only
@@ -56,28 +55,4 @@ static class Testing
 
     static FlowStep InCall(uint row, string text, bool wait = false)
         => new() { Row = row, Text = text, Color = Theme.Brand, Wait = wait };
-
-    // 24 (D10): from a C# line to a breakpoint address, one stage a press,
-    // each in the colour its tool has on slide 5's pipeline.
-    public static Slide LineToAddress() => new SimpleSlide
-    {
-        Elements =
-        [
-            new Title { Text = "Line to address" },
-            new Statements { Top = 5, Items = [$"PDB: C# line {Theme.Arrow} IL offset"], Tints = [Theme.Brand] },
-            new Statements
-            {
-                Top = 8, Arrows = true, Wait = true,
-                Items =
-                [
-                    "Compiler: a label per line",
-                    $"debugmap.txt: line {Theme.Arrow} label",
-                    $"64tass .labels: label {Theme.Arrow} address",
-                    "VICE monitor: break there",
-                ],
-                Tints = [Theme.Accent, Theme.Accent, Colors.LightGreen, Theme.Accent2],
-            },
-            new TextElement { X = Theme.Left, Y = 20, Text = "Debug build: bigger, less optimized", Color = Theme.Muted, Wait = true },
-        ]
-    };
 }

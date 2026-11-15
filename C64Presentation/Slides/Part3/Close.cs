@@ -1,28 +1,9 @@
 using C64Lib;
 using C64Presentation.Helper;
-using C64Presentation.SlideElements;
 
 namespace C64Presentation.Slides.Part3;
 
-// Section 9, slides 26-27: the lessons, and the deck's own BYTES FREE.
-static class Close
-{
-    // 26: one statement per press.
-    public static Slide FourLessons() => new SimpleSlide
-    {
-        Elements =
-        [
-            new Title { Text = "Four lessons" },
-            new Statements
-            {
-                Top = 6, Wait = true,
-                Items = ["Structure beats peepholes", "Measure on real programs", "Make silent bugs loud", "Play the game, too"],
-            },
-        ]
-    };
-}
-
-// 27: thanks, the logos settling in, and the count-up to the deck's free
+// Slide 27 (DECK.md): thanks, the logos settling in, and the count-up to the deck's free
 // memory, C64 boot-screen style.
 sealed class ThankYouSlide : Slide
 {
@@ -31,9 +12,9 @@ sealed class ThankYouSlide : Slide
     // Free memory before the heap of the final, combined deck (DECK.md slide
     // 27): $CC00 - the end of the last Data: segment - 1,080 (object tables,
     // locals stack, string buffers) - the static frames - 64 per sprite
-    // frame beyond 64, from C64Presentation\measure.bat's output. 3,819 is
+    // frame beyond 64, from C64Presentation\measure.bat's output. 18,201 is
     // the part-3-only build: the integrator re-measures the combined deck.
-    public const ulong BytesFree = 3819;
+    public const ulong BytesFree = 18201;
 
     const uint TitleRow = 7;
     const uint LeadRow = 12;
@@ -63,7 +44,7 @@ sealed class ThankYouSlide : Slide
     // the final number (all digits are taken as wide as a zero).
     static void CountUp()
     {
-        ulong width = Text.BigWidth(BytesFree < 1000 ? "000" : "0,000") + Text.BigWidth(Words);
+        ulong width = Text.BigWidth(BytesFree < 1000 ? "000" : BytesFree < 10000 ? "0,000" : "00,000") + Text.BigWidth(Words);
         ulong left = (ScreenWidth - width) / 2;
         ulong words = left + width - Text.BigWidth(Words);
         Deck.Paint(0, NumberRow, Screen.Columns, 4, Theme.Accent, Theme.Background);

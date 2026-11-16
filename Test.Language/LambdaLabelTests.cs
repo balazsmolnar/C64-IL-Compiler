@@ -2,7 +2,7 @@ using System;
 using NUnit.Framework;
 using Assert = C64TestFramework.Assert;
 
-namespace Compiler.RuntimeTest;
+namespace Compiler.LanguageTest;
 
 // Every class with a lambda gets its own compiler-generated nested class
 // "<>c" (and one "<>c__DisplayClassN_M" per closure scope). Their asm labels

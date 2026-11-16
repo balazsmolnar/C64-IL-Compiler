@@ -12,6 +12,9 @@ namespace C64Presentation.Slides;
 // handles, then reorders them by address; the dead (2 and 6, a cycle) fade
 // out, and the live blocks slide down over the gaps.
 //
+// Every pause goes through Deck.Wait (and every press through Deck.Step), so
+// N / B leave the slide at once, mid-animation.
+//
 // Each phase is a static method: static methods get fixed-address frames
 // (a virtual like Present does not), which keeps the animation small.
 sealed class GcSlide : Slide
@@ -110,7 +113,7 @@ sealed class GcSlide : Slide
             if (o.Marked)
                 _table[_count++] = o;
         DrawTable();
-        Wait(StepFrames);
+        Deck.Wait(StepFrames);
         uint slot = 0;
         foreach (var o in _heap)
             if (o.Marked)
@@ -128,7 +131,7 @@ sealed class GcSlide : Slide
         FadeDead(2);
         Screen.ClearRect(PhaseColumn, TableRow, Theme.Right - PhaseColumn, 1);
         Text.Draw(Screen.Px(PhaseColumn), TableRow, $"2 {Theme.Arrow} 6 {Theme.Arrow} 2: a dead cycle", Theme.Body);
-        Wait(StepFrames);
+        Deck.Wait(StepFrames);
         FadeDead(1);
         FadeDead(0);
         uint column = HeapColumn;
@@ -146,7 +149,7 @@ sealed class GcSlide : Slide
     // The dead objects, card and heap block, at fade level `level` (0 = black).
     static void FadeDead(uint level)
     {
-        Wait(FadeFrames);
+        Deck.Wait(FadeFrames);
         ulong table = C64Address.FromLabel("fade_Levels") + level * FadeLevelBytes;
         foreach (var o in _heap)
             if (!o.Marked)
@@ -161,23 +164,18 @@ sealed class GcSlide : Slide
     static void MoveLeft(HeapObject o)
     {
         uint column = --o.HeapColumn;
-        C64.Screen.WaitForVBlank();
+        Deck.Wait(1);
         Screen.ClearRect(column, HeapRow, o.Size + 1, HeapHeight);
         Deck.Paint(column + o.Size, HeapRow, 1, HeapHeight, Theme.Background, Theme.Background);
         DrawBlock(o);
         PaintBlock(o, Theme.Accent);
-        Wait(SlideFrames);
+        Deck.Wait(SlideFrames);
     }
 
     static HeapObject Object(uint id) => _objects[id - 1];
 
     static uint PhaseRow(uint phase) => Theme.BodyTop + phase * 2;
 
-    static void Wait(uint frames)
-    {
-        for (uint frame = 0; frame < frames; frame++)
-            C64.Screen.WaitForVBlank();
-    }
 
     // A press; the phase lights up in white, the one before goes back to Grey2.
     static void Phase(uint phase)
@@ -233,7 +231,7 @@ sealed class GcSlide : Slide
     {
         Deck.Paint(o.Column, o.Row, BoxWidth, 1, color, Theme.Card);
         PaintBlock(o, color);
-        Wait(StepFrames);
+        Deck.Wait(StepFrames);
     }
 
     static void Push(HeapObject o)

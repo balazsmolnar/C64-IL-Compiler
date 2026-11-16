@@ -109,7 +109,7 @@ class ILMethodCachedFieldAccessPass : ICompilerMethodPass
             foreach (var line in effectiveLines)
             {
                 string stateIn = Meet(predecessors[line].Select(p => stateOut[p]));
-                string newStateOut = Transfer(stateIn, line);
+                string newStateOut = Transfer(context, stateIn, line);
                 if (newStateOut != stateOut[line])
                 {
                     stateOut[line] = newStateOut;
@@ -160,8 +160,13 @@ class ILMethodCachedFieldAccessPass : ICompilerMethodPass
     // were deliberately left OFF this allowlist anyway, in favor of a
     // short, easy-to-re-verify list over a longer one that needs re-
     // auditing every time asm/helper's internals change.
-    private static string Transfer(string stateIn, ILOperation line)
+    private static string Transfer(CompilerMethodContext context, string stateIn, ILOperation line)
     {
+        // Storing a reference into a local or parameter may replace the
+        // very object whose pointer is cached (`item = Rows[i]` after a
+        // read of item.F): the cache is gone.
+        if (StoresReference(context, line))
+            return null;
         if (line.Operation is IObjectRootOperation root)
             return root.RelPos;
         if (IsKnownSafeTransparent(line))
@@ -190,6 +195,38 @@ class ILMethodCachedFieldAccessPass : ICompilerMethodPass
     // inc/dec/init/copy family -- confirmed pure zero-page reads/writes,
     // no jsr at all) are allowed through; anything else fused defaults
     // to the same conservative kill as an unrecognized real opcode would.
+    private static bool StoresReference(CompilerMethodContext context, ILOperation line)
+    {
+        System.Type type = null;
+        int? local = line.OpCode switch
+        {
+            ILOpCode.Stloc_0 => 0, ILOpCode.Stloc_1 => 1, ILOpCode.Stloc_2 => 2, ILOpCode.Stloc_3 => 3,
+            ILOpCode.Stloc or ILOpCode.Stloc_s when line.OriginalParameter is int i => i,
+            _ => null,
+        };
+        if (local is int l)
+        {
+            var locals = (line.SourceMethod ?? context.Method).GetMethodBody()?.LocalVariables;
+            if (locals == null || l >= locals.Count)
+                return true;
+            type = locals[l].LocalType;
+        }
+        else if (line.OpCode is ILOpCode.Starg or ILOpCode.Starg_s)
+        {
+            if (line.OriginalParameter is not int a)
+                return true;
+            var method = line.SourceMethod ?? context.Method;
+            int index = method.IsStatic ? a : a - 1;
+            var parameters = method.GetParameters();
+            if (index < 0 || index >= parameters.Length)
+                return true;
+            type = parameters[index].ParameterType;
+        }
+        else
+            return false;
+        return type.IsReferenceCounted() || type.IsByRef;
+    }
+
     private static bool IsKnownSafeTransparent(ILOperation line)
     {
         if (line.Operation is OpInlineContinue || line.Operation is OpInlineJumpOnly)
@@ -207,6 +244,14 @@ class ILMethodCachedFieldAccessPass : ICompilerMethodPass
             || line.Operation is OpCopyVar)
             return true;
 
+        // branch_*_const, branch_true/false8/16 and #switch (branch.asm):
+        // A, X, zp_tmp3 and the stack only. Not the other compare-branches:
+        // a float compare goes through the BASIC ROM, whose temporaries
+        // include tmpPointer's $28.
+        if (line.Operation is OpBranchConst)
+            return true;
+        if (line.OpCode is ILOpCode.Brtrue or ILOpCode.Brtrue_s or ILOpCode.Brfalse or ILOpCode.Brfalse_s or ILOpCode.Switch)
+            return CommandMap.Supported(line.OpCode) && line.Operation == CommandMap.Get(line.OpCode); // not a fused line
         switch (line.OpCode)
         {
             case ILOpCode.Br:
@@ -325,27 +370,42 @@ class ILMethodCachedFieldAccessPass : ICompilerMethodPass
     private static Dictionary<ILOperation, List<ILOperation>> BuildPredecessors(
         List<ILOperation> effectiveLines, Dictionary<ILOperation, ILOperation> effectiveOf)
     {
+        // The original lines each effective line stands for: itself and the
+        // Optimized lines just before it (a fused line an optimizer put after
+        // the lines it replaced has no PreviousInstructions of its own).
+        var represented = new Dictionary<ILOperation, List<ILOperation>>();
+        foreach (var (original, effective) in effectiveOf)
+        {
+            if (effective == null)
+                continue;
+            if (!represented.TryGetValue(effective, out var list))
+                represented[effective] = list = new List<ILOperation>();
+            list.Add(original);
+        }
+
         var predecessors = new Dictionary<ILOperation, List<ILOperation>>();
         for (int i = 0; i < effectiveLines.Count; i++)
         {
             var line = effectiveLines[i];
             List<ILOperation> preds;
-            if (line.PreviousInstructions.Count > 0)
-            {
-                preds = line.PreviousInstructions
+            // Every way into the group: a branch to the first replaced line
+            // (a label) is a predecessor too, not just the line before it.
+            // Taking only the linear predecessor let the pointer cached on
+            // one arm of `c ? a.F : b.G` be used on the other
+            // (#pushfld16_cached on the branch target).
+            var groupPreds = represented.TryGetValue(line, out var group)
+                ? group.SelectMany(g => g.PreviousInstructions)
                     .Select(p => effectiveOf.TryGetValue(p, out var eff) ? eff : null)
-                    .Where(p => p != null)
+                    .Where(p => p != null && p != line)
                     .Distinct()
-                    .ToList();
-            }
-            else if (i > 0)
-            {
+                    .ToList()
+                : new List<ILOperation>();
+            var ownPreds = line.PreviousInstructions
+                .Select(p => effectiveOf.TryGetValue(p, out var eff) ? eff : null)
+                .Where(p => p != null && p != line);
+            preds = ownPreds.Concat(groupPreds).Distinct().ToList();
+            if (preds.Count == 0 && line.PreviousInstructions.Count == 0 && group?.All(g => g.PreviousInstructions.Count == 0) != false && i > 0)
                 preds = new List<ILOperation> { effectiveLines[i - 1] };
-            }
-            else
-            {
-                preds = new List<ILOperation>();
-            }
             predecessors[line] = preds;
         }
         return predecessors;

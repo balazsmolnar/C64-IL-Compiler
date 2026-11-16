@@ -14,6 +14,7 @@ class ILMethodCodePass : ICompilerMethodPass
 
         CheckDeclaration(context);
         Decode(context);
+        SpreadSupport.CheckSpanLocals(context);
         CheckEntryPointArguments(context);
     }
 
@@ -120,11 +121,20 @@ class ILMethodCodePass : ICompilerMethodPass
                 operation.OriginalParameter = parameter;
             }
 
-            if (op.ParameterSize > -1)
-                operation.RawParameter = op.ConvertParameter(context, operation);
             operation.Size = index - operation.Position;
 
             lines.Add(operation);
+        }
+
+        // Spans of a collection expression's `..` (SpreadSupport) go before
+        // any parameter is converted: their constructors are not resolvable.
+        SpreadSupport.Rewrite(context, lines);
+
+        foreach (var operation in lines)
+        {
+            context.CurrentIlOffset = operation.Position;
+            if (operation.Operation.ParameterSize > -1 && operation.OriginalParameter is int)
+                operation.RawParameter = operation.Operation.ConvertParameter(context, operation);
         }
         context.Lines = lines;
         context.CurrentIlOffset = null;
@@ -216,6 +226,10 @@ class ILMethodCodePass : ICompilerMethodPass
         {
             foreach (var local in body.LocalVariables)
             {
+                // A collection expression's spans: rewritten away by
+                // Decode, or reported after it (SpreadSupport).
+                if (SpreadSupport.IsSpanType(local.LocalType))
+                    continue;
                 var problem = UnsupportedTypes.Check(local.LocalType, assembly, "A local variable");
                 if (problem != null)
                     throw problem;

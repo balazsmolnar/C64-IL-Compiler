@@ -44,7 +44,7 @@ static class Master
         Text.Draw(ContentLeft, Theme.FooterRow, DeckTitle, Theme.Muted);
         if (Deck.Hidden)
             return;
-        Text.Right(ContentRight, Theme.FooterRow, $"{Deck.Number + 1} / {Deck.Count}", Theme.Muted);
+        Text.RightNow(ContentRight, Theme.FooterRow, $"{Deck.Number + 1} / {Deck.Count}", Theme.Muted);
 
         uint done = Theme.Left + (uint)((ulong)Theme.Width * (Deck.Number + 1) / Deck.Count);
         Deck.Paint(Theme.Left, Theme.ProgressRow, Theme.Width, 1, Theme.Frame, Theme.Background);

@@ -330,7 +330,16 @@ ldelem16 .macro
   #stack_push_tos
 .endm
 
-ldlen .macro  
+; One spread of a collection expression: copies the array `src` into
+; `dest` from element `start` on (stack: src, dest, start). See
+; Array_CopyInto (object.asm) and Compiler/SpreadSupport.cs.
+arrayCopyInto .macro elementBytes
+  .cerror tos_in, "arrayCopyInto: start is in A, not on the stack"
+  ldy #\elementBytes
+  jsr Array_CopyInto
+.endm
+
+ldlen .macro
   #stack_pull_int_x
   lda objTableSize,x
   #stack_push_tos

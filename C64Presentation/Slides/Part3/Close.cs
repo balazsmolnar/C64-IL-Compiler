@@ -39,71 +39,90 @@ sealed class ThankYouSlide : Slide
 
     public override void CleanUp() => Sprites.SetVisible(false);
 
-    // The number counts up from 0, fast and then slowing (about a second),
-    // right aligned against the fixed " BYTES FREE"; the line is centred for
-    // the final number (all digits are taken as wide as a zero).
+    // Count-up layout: one fixed slot per digit, as wide as a zero, and a
+    // comma after the thousands; the line is centred for the final number.
+    const uint Blank = 10;              // a leading slot not reached yet
+    const uint FramesPerStep = 2;
+    static readonly string[] Digits = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
+
+    // From 0 to BytesFree in about 25 steps of two frames (about a second),
+    // fast and then slowing. Each step redraws only the digits that changed,
+    // one glyph each, so the number is never seen half drawn.
     static void CountUp()
     {
-        ulong width = Text.BigWidth(BytesFree < 1000 ? "000" : BytesFree < 10000 ? "0,000" : "00,000") + Text.BigWidth(Words);
+        uint count = DigitCount(BytesFree);
+        ulong slot = Text.BigWidth("0"), comma = Text.BigWidth(",");
+        ulong width = count * slot + (count > 3 ? comma : 0) + Text.BigWidth(Words);
         ulong left = (ScreenWidth - width) / 2;
-        ulong words = left + width - Text.BigWidth(Words);
+        ulong commaX = left + (count - 3) * slot;
         Deck.Paint(0, NumberRow, Screen.Columns, 4, Theme.Accent, Theme.Background);
-        Text.Big(words, NumberRow, Words, Theme.Accent);
-        ulong top = Screen.Px(NumberRow);
-        for (ulong remaining = BytesFree; ; remaining -= remaining / 6 + 1)
+        Text.Big(left + width - Text.BigWidth(Words), NumberRow, Words, Theme.Accent);
+        uint[] shown = [Blank, Blank, Blank, Blank, Blank];   // ulong is 16 bits: 5 digits at most
+        for (ulong remaining = BytesFree; ; remaining -= remaining / 3 + 1)
         {
-            C64.Screen.WaitForVBlank();
-            C64.Screen.DrawRectangle(left, top, words - 1, top + Screen.Px(4) - 1, true, false);
-            DrawNumber(words, BytesFree - remaining);
+            ulong value = BytesFree - remaining;
+            if (count > 3 && value >= 1000 && shown[count - 4] == Blank)
+                Text.Big(commaX, NumberRow, ",", Theme.Accent);
+            for (uint i = 0; i < count; i++)     // from the right
+            {
+                uint slotIndex = count - 1 - i;
+                uint digit = i != 0 && value == 0 ? Blank : (uint)(value % 10);
+                value /= 10;
+                if (digit != shown[slotIndex])
+                {
+                    ulong x = left + slotIndex * slot + (count > 3 && slotIndex >= count - 3 ? comma : 0);
+                    DrawDigit(x, slot, digit);
+                    shown[slotIndex] = digit;
+                }
+            }
             if (remaining == 0)
                 break;
+            for (uint frame = 0; frame < FramesPerStep; frame++)
+                KeyBoard.Frame();
         }
     }
 
-    // n with a thousands comma (9,876), ending at pixel `right`. Each piece
-    // is drawn as soon as it is made: a number's string lives in a shared
-    // buffer until the next one.
-    static void DrawNumber(ulong right, ulong n)
+    static uint DigitCount(ulong n)
     {
-        if (n < 1000)
-        {
-            DrawLeftOf(right, n.ToString());
+        uint count = 1;
+        for (; n >= 10; n /= 10)
+            count++;
+        return count;
+    }
+
+    // One slot: cleared, then its digit centred in it (Blank: left empty).
+    static void DrawDigit(ulong x, ulong slot, uint digit)
+    {
+        ulong top = Screen.Px(NumberRow);
+        C64.Screen.DrawRectangle(x, top, x + slot - 1, top + Screen.Px(4) - 1, true, false);
+        if (digit == Blank)
             return;
-        }
-        ulong x = DrawLeftOf(right, (n % 1000).ToString().PadLeft(3, '0'));
-        x = DrawLeftOf(x, ",");
-        DrawLeftOf(x, (n / 1000).ToString());
-    }
-
-    static ulong DrawLeftOf(ulong right, string text)
-    {
-        ulong x = right - Text.BigWidth(text);
-        Text.Big(x, NumberRow, text, Theme.Accent);
-        return x;
+        string glyph = Digits[digit];
+        Text.Big(x + (slot - Text.BigWidth(glyph)) / 2, NumberRow, glyph, Theme.Accent);
     }
 }
-// The Commodore and C# logo sprites (Helper/Sprites), sliding in from the
-// sides and settling side by side above the title.
+// The C# and Commodore logo sprites (Helper/Sprites), sliding in from the
+// sides and settling side by side above the title, C# on the left.
 static class Logos
 {
     const ulong SpriteLeft = 24;        // screen pixel 0 in sprite coordinates
     const uint SpriteTop = 50;
     const ulong Half = 24;              // a sprite's width
     const uint HalfHeight = 21;
-    const ulong CommodoreX = 104;       // where they settle, in screen pixels
-    const ulong CSharpX = 172;
+    const ulong CSharpX = 104;          // where they settle, in screen pixels:
+    const ulong CommodoreX = 172;       // C# left, as on the cover
     const uint Top = 10;
-    const ulong Travel = 96;            // how far each one slides in (at most CommodoreX)
+    const ulong Travel = 96;            // how far each one slides in (at most CSharpX)
 
     public static void SettleIn()
     {
         Sprites.SetupLogo(false);
         for (ulong offset = Travel; ; offset -= offset / 5 + 1)
         {
-            Place(CommodoreX - offset, CSharpX + offset);
+            Place(CommodoreX + offset, CSharpX - offset);
             if (offset == 0)
                 break;
-            C64.Screen.WaitForVBlank();
+            KeyBoard.Frame();
             if (offset == Travel)
                 Sprites.SetVisible(true);
         }

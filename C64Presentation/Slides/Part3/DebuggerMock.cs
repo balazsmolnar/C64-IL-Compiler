@@ -6,14 +6,16 @@ namespace C64Presentation.Slides.Part3;
 
 // The hidden appendix (DECK.md): a mock of the VS Code debugger, stopped in
 // Demo/RotatingCube.cs. Not in the running order: D on slide 15 (PostSharp)
-// shows it if the live demo fails, and SPACE goes back (HiddenSlideKey).
+// shows it as a hidden slide if the live demo fails, and advance goes back
+// (HiddenSlideKey). The breakpoint dot sits on the panel's frame, the
+// editor's gutter.
 static class DebuggerMock
 {
-    const uint EditorTop = 5;
     const uint EditorWidth = 18;
-    const uint TabRow = EditorTop + 1;
-    const uint StopRow = EditorTop + 6;     // the fourth code line
-    const uint ChipColumn = Theme.Left + EditorWidth - 5;
+    const uint TabRow = 6;                  // the editor's caption row
+    const uint StopRow = 11;                // the fourth code line
+    const uint ChipColumn = 15;
+    const uint Features = Theme.RightColumn;
 
     public static Slide Create() => new SimpleSlide
     {
@@ -22,19 +24,20 @@ static class DebuggerMock
             new Title { Text = "Debug C# on a C64" },
             new CodeBlock
             {
-                X = Theme.Left, Y = EditorTop, Width = EditorWidth, Caption = "RotatingCube.cs",
+                X = Theme.Left, Y = 5, Width = EditorWidth, Caption = "RotatingCube.cs",
                 Lines =
                 [
-                    $"{Theme.Kw}  public void{Theme.Pl} Step()",
-                    "  {",
-                    "    BuildBasis();",
-                    $"{Theme.Kw}    float{Theme.Pl} bcx = cx_;",
+                    $"{Theme.Kw}public void{Theme.Pl}Step()",
+                    "{",
+                    "  BuildBasis();",
+                    $"{Theme.Kw}  float{Theme.Pl}bcx = cx_;",
                 ],
             },
-            new TextElement { X = Theme.Left + 1, Y = StopRow, Text = Theme.Dot, Color = Theme.Bad, Wait = true },
-            new Highlight { X = Theme.Left + 2, Y = StopRow, Width = EditorWidth - 3, Ink = Colors.Black, Paper = Theme.Accent2, Wait = true },
             new TextElement { X = ChipColumn, Y = TabRow, Text = " VICE", Color = Theme.Heading },
             new Highlight { X = ChipColumn, Y = TabRow, Width = 4, Ink = Theme.Heading, Paper = Colors.LightBlue },
+            new TextElement { X = Theme.Left, Y = StopRow, Text = Theme.Dot, Color = Theme.Bad, Wait = true },
+            new Highlight { X = Theme.Left + 1, Y = StopRow, Width = 14, Ink = Colors.Black, Paper = Theme.Accent2, Wait = true },
+            new Elbow { Column = ChipColumn + 3, FromRow = TabRow + 1, ToRow = StopRow, Color = Colors.LightBlue },
             new CodeBlock
             {
                 X = Theme.Left, Y = 14, Width = EditorWidth, Wait = true,
@@ -47,11 +50,14 @@ static class DebuggerMock
                     $"cosAy_  {Theme.Com}...",
                 ],
             },
-            new BulletList
-            {
-                Left = Theme.RightColumn, Top = 5, Pitch = 3, Wait = true,
-                Items = ["Breakpoints on C# lines", "F10, F11, Shift+F11", "Locals, fields, arrays", "Edit a value", "Registers, disassembly"],
-            },
+            new TextElement { X = Features, Y = 5, Text = $"{Theme.Hi}{Theme.Dot}{Theme.Off}Breakpoints on", Wait = true },
+            new TextElement { X = Features, Y = 7, Text = "  C# lines" },
+            new TextElement { X = Features, Y = 9, Text = $"{Theme.Hi}{Theme.Dot}{Theme.Off}F10, F11, Shift+F11", Wait = true },
+            new TextElement { X = Features, Y = 11, Text = $"{Theme.Hi}{Theme.Dot}{Theme.Off}Locals, fields," },
+            new TextElement { X = Features, Y = 13, Text = "  arrays, hover", Wait = true },
+            new TextElement { X = Features, Y = 15, Text = $"{Theme.Hi}{Theme.Dot}{Theme.Off}Edit a value" },
+            new TextElement { X = Features, Y = 17, Text = $"{Theme.Hi}{Theme.Dot}{Theme.Off}Registers and", Wait = true },
+            new TextElement { X = Features, Y = 19, Text = "  6502 disassembly" },
         ]
     };
 }

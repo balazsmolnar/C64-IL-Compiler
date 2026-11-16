@@ -28,6 +28,7 @@ class TextElement : SlideElement
         {
             TextFace.Heading => Helper.Text.Heading(x, Y, Text, Theme.Or(Color, Theme.Heading)),
             TextFace.Big => Helper.Text.Big(x, Y, Text, Theme.Or(Color, Theme.Heading)),
+            TextFace.Code => Helper.Text.Code(X, Y, Text, Theme.Or(Color, Theme.Heading), Theme.Background),
             _ => Helper.Text.Draw(x, Y, Text, Theme.Or(Color, Theme.Body)),
         };
         if (Strike)
@@ -38,4 +39,4 @@ class TextElement : SlideElement
     }
 }
 
-enum TextFace { Body, Heading, Big }
+enum TextFace { Body, Heading, Big, Code }

@@ -29,6 +29,21 @@ static class KeyBoard
 #endif
     }
 
+    // True while `key` is held: for a slide's own keys (D: the hidden
+    // appendix). Never in a scene build, which presses nothing but advance.
+    public static bool Pressed(Keys key)
+    {
+#if SCENE
+        return false;
+#else
+        return C64.IsKeyPressed(key);
+#endif
+    }
+
+    // One video frame. Animations and polling loops wait here, so that
+    // deck-wide keys can be handled in one place.
+    public static void Frame() => C64.Screen.WaitForVBlank();
+
     // Waits for SPACE/fire (returns Keys.Space) or B (back), then for its release.
     public static Keys WaitForKeys()
     {

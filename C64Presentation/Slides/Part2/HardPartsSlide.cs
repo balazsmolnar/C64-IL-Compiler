@@ -4,12 +4,12 @@ using C64Presentation.SlideElements;
 
 namespace C64Presentation.Slides;
 
-// Slide 9: the section divider, with the three topics of slides 10-12 as
-// A6 icons, each over its word.
+// Slide 9: the section divider, with the topics of the three slides that
+// follow as A6 icons, each over its word, the group centred on the content.
 static class HardPartsSlide
 {
     const uint IconRow = 15, Pitch = 12;
-    const uint First = Theme.Left, Second = First + Pitch, Third = Second + Pitch;
+    const uint First = 6, Second = First + Pitch, Third = Second + Pitch;     // icon columns: 6, 18, 30
 
     public static Slide Create() => new SimpleSlide
     {
@@ -23,11 +23,10 @@ static class HardPartsSlide
     };
 }
 
-// A 3x3 pixels-only icon (A6) in cyan, its label under it in Grey3, both
-// starting at the same column.
+// A 3x3 pixels-only icon (A6) in cyan, its label centred under it in Grey3.
 sealed class Topic : SlideElement
 {
-    const uint IconCells = 3, LabelGap = 1;
+    const uint IconCells = 3, LabelGap = 1, LabelCells = 11;    // the label is centred over 11 cells around the icon
 
     public uint X { get; init; }
     public uint Y { get; init; }
@@ -38,6 +37,6 @@ sealed class Topic : SlideElement
     {
         Deck.Paint(X, Y, IconCells, IconCells, Theme.Accent, Theme.Background);
         C64.Screen.DrawImage(X, Y, Icon);
-        Text.Draw(Screen.Px(X), Y + IconCells + LabelGap, Label, Theme.Body);
+        Text.Center(Screen.Px(X - (LabelCells - IconCells) / 2), Screen.Px(LabelCells), Y + IconCells + LabelGap, Label, Theme.Body);
     }
 }

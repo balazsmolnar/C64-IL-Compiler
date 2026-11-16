@@ -60,6 +60,8 @@ static class Text
     static ulong Put(ulong x, uint row, string text, ulong font, Colors fg, Colors bg, uint rows)
     {
         Deck.CheckRows(row, rows);
+        if (Deck.Leaving())
+            return x;
         if (!Deck.Building)
             return C64.Screen.DrawFontText(x, row, text, font, Theme.Matrix(fg, bg));
 

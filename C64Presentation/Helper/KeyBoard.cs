@@ -2,19 +2,85 @@ using C64Lib;
 
 namespace C64Presentation.Helper;
 
-// All "next slide" input goes through here, so scene builds can fake it
+// Where the presenter wants to go: SPACE / fire advance a build step and
+// then the slide; N and B jump to the next / previous slide at once, from
+// any point of a slide (Presenter).
+enum Navigation
+{
+    None,
+    Next,
+    Back,
+}
+
+// All presenter input goes through here, so scene builds can fake it
 // (C64Presentation.csproj, tools/presentation-shot.ps1):
-//   SCENE_HOLD  never pressed: a slide stays up for screenshots
-//   SCENE_AUTO  presses itself after a short while: the deck runs by itself
+//   SCENE_HOLD     never pressed: a slide stays up for screenshots
+//   SCENE_AUTO     presses itself after a short while: the deck runs by itself
+//   SCENE_NAVTEST  AUTO, plus an N press during the first slide's builds and
+//                  a B press on the slide that brings
+//
+// N and B are edge-triggered: a press sets Pending once, and holding the
+// key does nothing more until it is released. While a jump is pending the
+// engine draws nothing more (Deck) and every wait returns at once, so a
+// slide's own loop must wait through AdvancePressed or Deck.Wait.
 static class KeyBoard
 {
+    // The jump the presenter asked for; the Presenter takes it (Take).
+    public static Navigation Pending { get; private set; }
+
+    public static bool Jumping => Pending != Navigation.None;
+
+    static bool _navHeld;           // N or B was down at the last poll
 #if SCENE_AUTO
     static uint _autoTicks;
 #endif
+#if SCENE_NAVTEST
+    static uint _fakeTicks;
+    static uint _fakeStage;
+#endif
 
-    // True while "advance" is held: SPACE or joystick fire.
+    // Reads N and B: a new press sets Pending (unless a jump is pending).
+    public static void Poll()
+    {
+#if SCENE_NAVTEST
+        _fakeTicks++;
+        if (_fakeStage == 0 && _fakeTicks == 100)          // during the first slide's second build step
+            Request(Navigation.Next);
+        else if (_fakeStage == 1 && _fakeTicks == 40)      // soon after the next slide is up
+            Request(Navigation.Back);
+#elif !(SCENE_HOLD || SCENE_AUTO)
+        bool next = C64.IsKeyPressed(Keys.N), back = C64.IsKeyPressed(Keys.B);
+        if (!_navHeld && !Jumping && (next || back))
+            Pending = next ? Navigation.Next : Navigation.Back;
+        _navHeld = next || back;
+#endif
+    }
+
+#if SCENE_NAVTEST
+    static void Request(Navigation navigation)
+    {
+        Pending = navigation;
+        _fakeStage++;
+        _fakeTicks = 0;
+    }
+#endif
+
+    // The pending jump, cleared; Next when none is pending (the slide ended
+    // with SPACE / fire).
+    public static Navigation Take()
+    {
+        var navigation = Jumping ? Pending : Navigation.Next;
+        Pending = Navigation.None;
+        return navigation;
+    }
+
+    // True while "advance" is held (SPACE or joystick fire), or once a jump
+    // is pending: a slide's own animation loop runs while this is false.
     public static bool AdvancePressed()
     {
+        Poll();
+        if (Jumping)
+            return true;
 #if SCENE_HOLD
         return false;
 #elif SCENE_AUTO
@@ -29,45 +95,15 @@ static class KeyBoard
 #endif
     }
 
-    // Waits for SPACE/fire (returns Keys.Space) or B (back), then for its release.
-    public static Keys WaitForKeys()
+    // Waits for SPACE / fire and its release, or until a jump is pending.
+    public static void WaitForAdvance()
     {
-#if SCENE_HOLD || SCENE_AUTO
         while (!AdvancePressed())
         {
         }
-        return Keys.Space;
-#else
-        // to prevent a compiler bug
-        int a = 0;
-        Keys key;
-        while (true)
-        {
-
-            if (AdvancePressed())
-            {
-                key = Keys.Space;
-                break;
-            }
-
-            if (C64.IsKeyPressed(Keys.B))
-            {
-                key = Keys.B;
-                break;
-            }
-        }
-
-        // wait for key up
-        while (true)
-        {
-            if (!C64.IsKeyPressed(key))
-                break;
-            // Was Wait(500): uint is 8-bit here, so it always waited 244
-            // (500 & 255) -- now a C64006 error; the value it really had.
-            Delay.Wait(244);
-
-        }
-        return key;
+#if !(SCENE_HOLD || SCENE_AUTO)
+        while (!Jumping && C64.IsKeyPressed(Keys.Space))
+            Poll();
 #endif
     }
 }

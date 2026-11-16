@@ -196,6 +196,15 @@ class ILMethodInliningPass : ICompilerMethodPass
         // other fully-trivial callee.
         if (callLineIndex < paramCount)
             return null;
+        // The argument pushes and the call must be one basic block: a
+        // branch landing on a later push or on the call itself (the join of
+        // `x = c ? A : B` passed straight to a setter: `br` from the first
+        // arm targets the call, the second arm's push sits right before it)
+        // would lose its target when those lines are replaced (ILMethodLabelPass:
+        // "Missing label"). The materializing splice keeps them.
+        for (int k = callLineIndex - paramCount + 1; k <= callLineIndex; k++)
+            if (IsBranchTarget(context, context.Lines[k].Position))
+                return null;
 
         var callerRelPos = new int?[paramCount];
         var callerConstant = new ILOperation[paramCount];
@@ -508,6 +517,21 @@ class ILMethodInliningPass : ICompilerMethodPass
         && IsTrivialArgumentProducer(lines[0].OpCode)
         && lines[1].OpCode == ILOpCode.Ldfld
         && lines[2].OpCode == ILOpCode.Ret;
+
+    // Whether any branch or switch of the (pre-label) method lands on IL offset `position`.
+    private static bool IsBranchTarget(CompilerMethodContext context, int position)
+    {
+        foreach (var line in context.Lines)
+        {
+            if (line.OpCode.IsBranch() && line.RawParameter is int offset && offset + line.Position == position)
+                return true;
+            if (line.OpCode == ILOpCode.Switch && line.RawParameter is List<int> targets)
+                foreach (var target in targets)
+                    if (target + line.Position + targets.Count * 4 + 5 == position)
+                        return true;
+        }
+        return false;
+    }
 
     // The caller-side rel_pos a trivial argument-producing instruction
     // reads from, or null if it isn't one of the recognized trivial shapes.

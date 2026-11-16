@@ -140,6 +140,7 @@ static class Deck
 
     static void FadeToBlack()
     {
+        C64.Sprites.VisibleMask = 0;     // sprites have no fade levels: they go first
         if (_revealed)
         {
             Save();

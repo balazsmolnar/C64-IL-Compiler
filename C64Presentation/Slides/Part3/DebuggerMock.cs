@@ -7,15 +7,15 @@ namespace C64Presentation.Slides.Part3;
 // The hidden appendix (DECK.md): a mock of the VS Code debugger, stopped in
 // Demo/RotatingCube.cs. Not in the running order: D on slide 15 (PostSharp)
 // shows it as a hidden slide if the live demo fails, and advance goes back
-// (HiddenSlideKey). The breakpoint dot sits on the panel's frame, the
-// editor's gutter.
+// (HiddenSlideKey). The breakpoint dot sits in the editor's gutter, a cell
+// left free before the code.
 static class DebuggerMock
 {
-    const uint EditorWidth = 18;
+    const uint EditorWidth = 19;
     const uint TabRow = 6;                  // the editor's caption row
     const uint StopRow = 11;                // the fourth code line
-    const uint ChipColumn = 15;
-    const uint Features = Theme.RightColumn;
+    const uint ChipColumn = Theme.Left + EditorWidth - 5;
+    const uint Features = Theme.RightColumn + 1;
 
     public static Slide Create() => new SimpleSlide
     {
@@ -24,7 +24,7 @@ static class DebuggerMock
             new Title { Text = "Debug C# on a C64" },
             new CodeBlock
             {
-                X = Theme.Left, Y = 5, Width = EditorWidth, Caption = "RotatingCube.cs",
+                X = Theme.Left, Y = 5, Width = EditorWidth, Caption = "RotatingCube.cs", Indent = 1,
                 Lines =
                 [
                     $"{Theme.Kw}public void{Theme.Pl}Step()",
@@ -35,8 +35,8 @@ static class DebuggerMock
             },
             new TextElement { X = ChipColumn, Y = TabRow, Text = " VICE", Color = Theme.Heading },
             new Highlight { X = ChipColumn, Y = TabRow, Width = 4, Ink = Theme.Heading, Paper = Colors.LightBlue },
-            new TextElement { X = Theme.Left, Y = StopRow, Text = Theme.Dot, Color = Theme.Bad, Wait = true },
-            new Highlight { X = Theme.Left + 1, Y = StopRow, Width = 14, Ink = Colors.Black, Paper = Theme.Accent2, Wait = true },
+            new TextElement { X = Theme.Left + 1, Y = StopRow, Text = Theme.Dot, Color = Theme.Bad, Wait = true },
+            new Highlight { X = Theme.Left + 2, Y = StopRow, Width = 15, Ink = Colors.Black, Paper = Theme.Accent2, Wait = true },
             new Elbow { Column = ChipColumn + 3, FromRow = TabRow + 1, ToRow = StopRow, Color = Colors.LightBlue },
             new CodeBlock
             {

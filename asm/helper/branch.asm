@@ -488,6 +488,7 @@ branch_greater_unsignedflt .macro label
 ; e.g. Roslyn's `value - 1` for a switch whose first case is 1) is not a
 ; case and falls through to the instruction after the macro: the default.
 switch .macro jump_table, count
+    .cerror \count > 128, "switch: more than 128 cases (asl/tax indexes 256 bytes)"
     #stack_pull_int_a
     cmp #\count
     bcs +

@@ -23,6 +23,7 @@ sealed class CodeBlock : SlideElement
     public uint Rows { get; init; }
     public required string[] Lines { get; init; }
     public string? Caption { get; init; }
+    public uint Indent { get; init; }       // cells left free before the code: a gutter
     public bool Wait { get; init; }
 
     public override void Draw()
@@ -48,7 +49,7 @@ sealed class CodeBlock : SlideElement
             if (replacing)
                 ClearRow(row, width);
             if (i < Lines.Length)
-                Text.Code(X + 1, row, Lines[i]);
+                Text.Code(X + 1 + Indent, row, Lines[i]);
         }
     }
 

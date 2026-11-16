@@ -117,6 +117,7 @@ static class KeyBoard
     {
         while (!AdvancePressed())
         {
+            C64.Screen.WaitForVBlank();
         }
 #if !(SCENE_HOLD || SCENE_AUTO)
         while (!Jumping && C64.IsKeyPressed(Keys.Space))

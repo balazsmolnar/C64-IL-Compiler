@@ -578,18 +578,21 @@ int TestIncrement(int value)
 
 ```screen
 NUnit finds it, runs it, reports it
-5 goes in via $09E0, 6 back at $2C
+5 goes in via $09E0
+6 comes back at $2C
 The body never runs as .NET
 ```
 
-- **Visual:** code panel; `5` and `6` in the `[TestCase]` line and in text
-  line 2 in the accent colour (the same two numbers travel through the
-  next slide). A small NUnit-style green tick beside `[TestCase]` on the
-  last press. As built: the code face changes colour only on a cell edge
-  (every 4 characters), so the colour cut itself is the space before `5`
-  and `6`, and the second `int`, which can't start on an edge, stays white.
-- **Build:** on entry the code. Presses 1-3: one text line each; the tick
-  with the third.
+- **Visual (as built):** the code panel shows the C# exactly as written.
+  The code face changes colour only on a cell edge (every 4 characters) and
+  a cell has one colour, so `5` and `6` keep the code's colour and get a
+  1 px underline instead; `var` and `return` are cyan, and `int` stays
+  white in both places (as a parameter type it can't start on a cell edge).
+  The two numbers lead text lines 2 and 3 in the accent colour (the same
+  two numbers travel through the next slide). A small NUnit-style green
+  tick beside `[TestCase]` on the last press.
+- **Build:** on entry the code. Presses 1-4: one text line each; the tick
+  with the fourth.
 - **Say:** "An ordinary NUnit test case: 5 in, 6 expected. But the method
   body is compiled to 6502 with the rest of the test project. When NUnit
   calls it, the call is intercepted: the 5 is written into emulated
@@ -624,17 +627,17 @@ Over 700 test cases, all on 6502
   (Not "~730": `~` is the arrow glyph in the deck's fonts, and the count
   keeps growing, 742 at `ee8ec86`.)
 
-- **Visual (as built):** left (cells 2-24): the six steps as a vertical
-  flow with small Grey2 down-arrows between them. Each group has a header
-  row above it in Grey3 with a small coloured chip: a violet chip and
-  `RunInEmulatorAspect.OnInvoke` (row 5) over steps 1-4, a green chip and
-  `CopyResultFromEmulator` (row 14) over steps 5-6. Right (cells 28-37): a
-  memory strip of six 2-row cards, top to bottom `$0020`, `$002C`,
-  `$002E` (green bars), `$09E0`, `$09FE`, `$1000` (violet bars), each
-  joined by a 1 px Grey2 leader from the end of its step's text (steps 2,
-  3, 4, 5 and 6; step 6 to two cards). The leaders cross, which is the
-  point: the test reaches into specific bytes. Line 7 on row 19 in the
-  accent colour. D on this slide shows the hidden appendix.
+- **Visual (as built):** the steps as a timeline: each step's number in
+  cyan on a thin Grey2 rail down the left margin, its text after it, one
+  step every 2 rows. Each group has a Grey3 header row above it with a
+  coloured dot: violet `RunInEmulatorAspect.OnInvoke` (row 5, a blank row
+  under it) over steps 1-4 (rows 7-13), green `CopyResultFromEmulator`
+  (row 14) over steps 5-6 (rows 16, 18). The addresses a step touches sit
+  on its own row, right aligned, as Grey1 chips with a bar in the group's
+  colour (`$09FE`, `$09E0`, `$1000`; `$0020`; `$002E` and `$002C`), joined
+  to the text by a dotted Grey2 leader: no crossings, like a table of
+  contents. Line 7 on row 20 in the accent colour. D on this slide shows
+  the hidden appendix.
 - **Build:** on entry steps 1-2. Press 1: steps 3-4. Press 2: steps 5-6.
   Press 3: line 7.
 - **Say:** "PostSharp weaves an aspect into every test method at build
@@ -669,25 +672,27 @@ Over 700 test cases, all on 6502
 - **Layout:** title (hi-res, plus sprites).
 - **Title:** `Thank you` (9)
 - **On screen:** the number line in the large title font (at most 18
-  characters, e.g. `N,NNN BYTES FREE`, in capitals like the C64's own
-  boot screen), the rest in the 8x8 font:
+  characters, e.g. `NNNN BYTES FREE`, in capitals and without a thousands
+  comma like the C64's own boot screen, "38911 BASIC BYTES FREE"), the
+  rest in the 8x8 font:
 
 ```screen
 16 slides of C#, and still
-N,NNN BYTES FREE
-github.com/balazsmolnar/
-C64-IL-Compiler
+NNNN BYTES FREE
+github.com/balazsmolnar/C64-IL-Compiler
 ```
 
 - **Visual (as built):** the C# and Commodore logo sprites settle side by
   side above the title, C# on the left as on the cover. "Thank you" in the
-  32 px face on rows 7-10; "16 slides of C#, and still" on row 12; "N,NNN
+  32 px face on rows 7-10; "16 slides of C#, and still" on row 12; "NNNN
   BYTES FREE" centred in the 32 px face in the accent colour, rows 14-17;
   the URL on one line, small and grey, on row 20. The count-up has a fixed
-  3-cell slot per digit and a 1-cell comma, and redraws only the digits
-  that change, each with its cells hidden while it is drawn (about 15
-  steps, one frame apart). The line fits up to 4 digits with a 2-cell gap
-  before "BYTES FREE"; a 5-digit number fills the width with no gap.
+  3-cell slot per digit; a changed digit is a block of ready tiles
+  (`art/digits/make_digits.py`, 960 bytes) copied with `DrawTiles`, so it
+  replaces the old one in place and no frame shows a digit half drawn or
+  missing (about 15 steps, 3 frames apart). The gap before "BYTES FREE"
+  is 2 cells for up to 4 digits, 1 for 5; the sprites hide as the slide
+  fades out.
 - **Build:** on entry the title and the URL. Press 1: line 1. Press 2:
   the number, counting up from 0 to its value in about a second; the talk
   ends on it.
@@ -702,7 +707,7 @@ C64-IL-Compiler
   of the last `Data:` line, then free = $CC00 - that end - 1,080 (object
   tables, locals stack and string buffers with `DrawText`; 56 without) -
   the static frames (the compiler's "Static frames: ..., N bytes") - 64
-  per sprite frame beyond 64. Write it with a thousands comma. Report it
+  per sprite frame beyond 64. Write it without a comma, as the boot screen does. Report it
   with the commit it was measured on. Slide 8's Catacombs figure (10,478)
   is the same quantity ("left for more code, assets and the heap").
 - **Sources:** this project (`C64Presentation/`); `git remote -v`;
@@ -716,7 +721,7 @@ demo cut, this mock is now the only place the talk can show debugging, so
 keep it, reachable with **D from slide 15** ("PostSharp swaps it", the end
 of the testing section) instead of from the cut live-demo slide. The
 presenter uses it when there is time or when someone asks "can you debug
-it?"; SPACE returns to slide 15's last build, then continues to slide 16.
+it?"; SPACE (or B) returns to slide 15's last build, then continues to slide 16.
 
 ### Appendix (hidden) — Debug C# on a C64
 
@@ -748,8 +753,9 @@ Registers and
   with a thin line to the highlighted row (the stop). As built: the
   editor's caption is the file name, the `VICE` tag sits in that tab row,
   a light-blue elbow runs down the panel's right side to the stop line,
-  and the breakpoint dot sits on the panel's frame (the gutter). Shown as
-  a hidden slide: the footer has no slide number or progress bar.
+  and the breakpoint dot sits in a one-cell gutter left of the code. Shown
+  as a hidden slide: the footer has no slide number or progress bar (scene
+  builds enter it the same way).
 - **Build:** on entry the editor. Press 1: the red dot. Press 2: the
   yellow stop line and the `VICE` link. Press 3: the Variables panel.
   Presses 4-7: the feature lines in pairs.

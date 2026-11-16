@@ -11,8 +11,9 @@ static class Testing
     const uint TickColumn = 31;                 // right of the [TestCase] line, in the panel
 
     // 14: an ordinary NUnit test case whose body runs as 6502 code. The code
-    // face changes colour on a cell edge only (every 4 characters): a keyword
-    // that can't start on one stays white, and the cut itself is the space.
+    // is shown exactly as written; the code face can change colour only on a
+    // cell edge (every 4 characters), so 5 and 6 are marked by underlines,
+    // and `int`, which can't start on one as a parameter type, stays white.
     public static Slide TestsRunOn6502() => new SimpleSlide
     {
         Elements =
@@ -20,58 +21,56 @@ static class Testing
             new Title { Text = "Tests run on 6502" },
             new CodeBlock
             {
-                X = Theme.Left, Y = 5,
+                X = Theme.Left, Y = CodeTop,
                 Lines =
                 [
-                    $"[TestCase({Theme.Kw}5{Theme.Pl}, ExpectedResult ={Theme.Kw}6{Theme.Pl})]",
-                    $"{Theme.Kw}int{Theme.Pl}TestIncrement(int value)",
+                    "[TestCase(5, ExpectedResult = 6)]",
+                    "int TestIncrement(int value)",
                     "{",
                     $"    {Theme.Kw}var{Theme.Pl}a = value;",
                     $"    {Theme.Kw}return{Theme.Pl}++a;",
                     "}",
                 ],
             },
+            new CodeUnderline { Column = Theme.Left + 1, Row = CodeTop + 1, From = 10, Length = 1 },
+            new CodeUnderline { Column = Theme.Left + 1, Row = CodeTop + 1, From = 30, Length = 1 },
             new TextElement { X = Theme.Left, Y = 14, Text = "NUnit finds it, runs it, reports it", Wait = true },
-            new TextElement { X = Theme.Left, Y = 16, Text = $"{Theme.Hi}5{Theme.Off} goes in via $09E0, {Theme.Hi}6{Theme.Off} back at $2C", Wait = true },
-            new TextElement { X = Theme.Left, Y = 18, Text = "The body never runs as .NET", Wait = true },
-            new TextElement { X = TickColumn, Y = 6, Text = Theme.Tick, Face = TextFace.Heading, Color = Passed },
+            new TextElement { X = Theme.Left, Y = 16, Text = $"{Theme.Hi}5{Theme.Off}goes in via $09E0", Wait = true },
+            new TextElement { X = Theme.Left, Y = 18, Text = $"{Theme.Hi}6{Theme.Off}comes back at $2C", Wait = true },
+            new TextElement { X = Theme.Left, Y = 20, Text = "The body never runs as .NET", Wait = true },
+            new TextElement { X = TickColumn, Y = CodeTop + 1, Text = Theme.Tick, Face = TextFace.Heading, Color = Passed },
         ]
     };
 
+    const uint CodeTop = 5;
+
     // 15 (D8): what the PostSharp aspect does around every test call: the
-    // steps on the left, the bytes they touch on the right. D swaps in the
-    // hidden debugger mock, the fallback for a failed live demo.
+    // steps on a rail, each with the bytes it touches as chips on its row.
+    // D swaps in the hidden debugger mock, the fallback for a failed live demo.
     public static Slide PostSharpSwapsIt() => PostSharp(builds: true);
 
     static Slide PostSharpBuilt() => PostSharp(builds: false);
 
     const Colors Result = Colors.LightGreen;    // CopyResultFromEmulator's group
-    const uint Strip = FlowStep.StripColumn;
-    const uint StripWidth = Theme.Right - FlowStep.StripColumn;
 
     static Slide PostSharp(bool builds) => new SimpleSlide
     {
         Elements =
         [
             new Title { Text = "PostSharp swaps it" },
-            new Box { X = Strip, Y = 6, Width = StripWidth, Height = 2, Text = "$0020", Color = Result },
-            new Box { X = Strip, Y = 8, Width = StripWidth, Height = 2, Text = "$002C", Color = Result },
-            new Box { X = Strip, Y = 10, Width = StripWidth, Height = 2, Text = "$002E", Color = Result },
-            new Box { X = Strip, Y = 12, Width = StripWidth, Height = 2, Text = "$09E0", Color = Theme.Brand },
-            new Box { X = Strip, Y = 14, Width = StripWidth, Height = 2, Text = "$09FE", Color = Theme.Brand },
-            new Box { X = Strip, Y = 16, Width = StripWidth, Height = 2, Text = "$1000", Color = Theme.Brand },
-            new Highlight { X = Theme.Left, Y = 5, Width = 1, Ink = Theme.Brand, Paper = Theme.Brand },
-            new TextElement { X = Theme.Left + 1, Y = 5, Text = " RunInEmulatorAspect.OnInvoke" },
-            new FlowStep { Row = 6, Text = "1 Load prg/unittest.prg" },
-            new FlowStep { Row = 8, Text = $"2 Method address {Theme.Arrow} $09FE", Arrow = true, Leaders = [15] },
-            new FlowStep { Row = 10, Text = $"3 Arguments {Theme.Arrow} $09E0", Arrow = true, Leaders = [13], Wait = builds },
-            new FlowStep { Row = 12, Text = "4 Run from $1000", Arrow = true, Leaders = [17] },
-            new Highlight { X = Theme.Left, Y = 14, Width = 1, Ink = Result, Paper = Result, Wait = builds },
-            new TextElement { X = Theme.Left + 1, Y = 14, Text = " CopyResultFromEmulator" },
-            new FlowStep { Row = 15, Text = "5 $20: 0 pass, $FF fail, $FE fault", Leaders = [7] },
-            new FlowStep { Row = 17, Text = "6 Message at $2E/$2F, value at $2C", Arrow = true, Leaders = [9, 11] },
-            new TextElement { X = Theme.Left, Y = 19, Text = "Over 700 test cases, all on 6502", Color = Theme.Accent, Wait = builds },
+            new TextElement { X = Theme.Left, Y = 5, Text = Theme.Dot, Color = Theme.Brand },
+            new TextElement { X = Theme.Left + 1, Y = 5, Text = "RunInEmulatorAspect.OnInvoke" },
+            new FlowStep { Row = 7, Number = "1", Text = "Load prg/unittest.prg", First = true },
+            new FlowStep { Row = 9, Number = "2", Text = $"Method address {Theme.Arrow} $09FE", Addresses = ["$09FE"], Color = Theme.Brand },
+            new FlowStep { Row = 11, Number = "3", Text = $"Arguments {Theme.Arrow} $09E0", Addresses = ["$09E0"], Color = Theme.Brand, Wait = builds },
+            new FlowStep { Row = 13, Number = "4", Text = "Run from $1000", Addresses = ["$1000"], Color = Theme.Brand },
+            new TextElement { X = Theme.Left, Y = 14, Text = Theme.Dot, Color = Result, Wait = builds },
+            new TextElement { X = Theme.Left + 1, Y = 14, Text = "CopyResultFromEmulator" },
+            new FlowStep { Row = 16, Number = "5", Text = "$20: 0 pass, $FF fail, $FE fault", Addresses = ["$0020"], Color = Result, First = true },
+            new FlowStep { Row = 18, Number = "6", Text = "Message at $2E/$2F, value at $2C", Addresses = ["$002E", "$002C"], Color = Result },
+            new TextElement { X = Theme.Left, Y = 20, Text = "Over 700 test cases, all on 6502", Color = Theme.Accent, Wait = builds },
             new HiddenSlideKey { Enabled = builds, Appendix = DebuggerMock.Create, Return = PostSharpBuilt },
         ]
     };
+
 }

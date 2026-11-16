@@ -6,7 +6,9 @@ using C64Presentation.Slides;
 namespace C64Presentation;
 
 // Runs the deck: each slide is drawn blanked, faded in, shown until
-// SPACE/fire (B = back), then faded out (Helper/Deck).
+// SPACE / fire, then faded out (Helper/Deck). N and B jump to the next /
+// previous slide from any point: the slide's rest is skipped (Deck), what
+// is on screen fades out, and the jump is taken here.
 class Presenter
 {
     public static void Present(Func<Slide>[] slides)
@@ -24,25 +26,19 @@ class Presenter
             Deck.Show();
             Deck.Reveal();
 
-            var key = KeyBoard.WaitForKeys();
+            KeyBoard.WaitForAdvance();         // at once when a jump is pending
+            var navigation = KeyBoard.Take();
             slide.CleanUp();
             slide = null;
             Deck.FadeOut();
 
-            if (key == Keys.B)
+            if (navigation == Navigation.Back)
             {
-                currentSlide--;
+                if (currentSlide > 0)
+                    currentSlide--;
             }
-            else
-            {
-                currentSlide++;
-            }
-
-            if (currentSlide == slides.Length)
+            else if (++currentSlide == slides.Length)
                 break;
-
-            if (currentSlide < 0)
-                currentSlide = 0;
         }
     }
 }

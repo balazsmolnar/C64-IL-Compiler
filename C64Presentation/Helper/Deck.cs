@@ -14,6 +14,11 @@ namespace C64Presentation.Helper;
 // step: it is drawn hidden and faded in at the next Step(), Show() or the
 // end of the slide. Elements do this by themselves as long as they colour
 // cells with Paint and write with Text.
+//
+// Jumps (N / B, KeyBoard.Pending): the first Step, Wait, Show, Reveal or
+// Paint after the press fades the slide out at once and blanks the screen;
+// from then on they return at once, so the rest of the slide runs through
+// unseen, and FadeOut (Presenter) only clears up.
 static class Deck
 {
     public static uint Number { get; private set; }     // current slide, 0-based
@@ -36,6 +41,7 @@ static class Deck
     static bool _picture;
     static bool _building;
     static bool _onSurface;     // the step is drawn onto a visible surface
+    static bool _leaving;       // a jump faded the slide out; the rest draws unseen
     static uint _contentBottom; // rows from here to the footer stay empty (Master.Content)
     static uint _markCount;
     static readonly Mark[] _marks = new Mark[MaxMarks];
@@ -43,7 +49,7 @@ static class Deck
     public static bool Building => _building;
 
     // True when drawing shows at once (an animation can be watched).
-    public static bool Live => _revealed && !_building;
+    public static bool Live => _revealed && !_building && !KeyBoard.Jumping;
 
     // Once, at start: hi-res bitmap, everything black.
     public static void Init(uint count)
@@ -71,14 +77,29 @@ static class Deck
         C64.Screen.BeginUpdate();
         _revealed = false;
         _building = false;
+        _leaving = false;
         _markCount = 0;
+    }
+
+    // True once a jump is pending; the first time, fades what is on screen
+    // out (what a build step had hidden stays hidden) and blanks the screen.
+    public static bool Leaving()
+    {
+        if (!KeyBoard.Jumping)
+            return false;
+        if (!_leaving)
+        {
+            _leaving = true;
+            FadeToBlack();
+        }
+        return true;
     }
 
     // Fades the slide drawn so far in from black. Does nothing the second
     // time; a slide with live animation calls it before its loop.
     public static void Reveal()
     {
-        if (_revealed)
+        if (_revealed || Leaving())
             return;
         _revealed = true;
         Save();
@@ -91,17 +112,33 @@ static class Deck
         }
     }
 
-    // Fades the screen out to black and clears it for the next slide.
+    // Fades the screen out to black and clears it for the next slide. After
+    // a jump the fade is done: what the slide drew since, colours included,
+    // is cleared unseen.
     public static void FadeOut()
     {
-        Show();
-        Save();
-        uint level = Full;
-        while (level > Black)
+        if (_leaving)
+            ScreenBytes.Fill(C64Address.FromLabel("Graphics_ColorMatrix"), 0);
+        else
         {
-            level--;
-            C64.Screen.WaitForVBlank();
-            C64.Screen.RemapCellColorsFrom(Saved, Level(level));
+            Show();
+            FadeToBlack();
+        }
+        C64.Screen.ClearBitmap();
+    }
+
+    static void FadeToBlack()
+    {
+        if (_revealed)
+        {
+            Save();
+            uint level = Full;
+            while (level > Black)
+            {
+                level--;
+                C64.Screen.WaitForVBlank();
+                C64.Screen.RemapCellColorsFrom(Saved, Level(level));
+            }
         }
         if (_picture)
         {
@@ -110,7 +147,6 @@ static class Deck
             ScreenBytes.Fill(ColorRam, 0);
         }
         C64.Screen.BeginUpdate();
-        C64.Screen.ClearBitmap();
     }
 
     // A multicolour picture (tools/c64img.py, --bg 0) at (column, row),
@@ -133,13 +169,30 @@ static class Deck
     // follows hidden until the next Step/Show.
     public static void Step()
     {
+        if (Leaving())
+            return;
         Show();
         Reveal();
 #if !SCENE_HOLD
-        KeyBoard.WaitForKeys();
+        KeyBoard.WaitForAdvance();
+        if (Leaving())
+            return;
 #endif
         _building = true;
         _onSurface = false;
+    }
+
+    // Waits `frames` frames, or less once a jump is pending (then whatever
+    // follows is drawn hidden). For a slide's own timed animation.
+    public static void Wait(uint frames)
+    {
+        for (uint frame = 0; frame < frames; frame++)
+        {
+            KeyBoard.Poll();
+            if (Leaving())
+                return;
+            C64.Screen.WaitForVBlank();
+        }
     }
 
     // Starts hidden drawing without waiting: what follows fades in at the
@@ -155,7 +208,7 @@ static class Deck
     // Fades in what the current build step drew.
     public static void Show()
     {
-        if (!_building)
+        if (!_building || Leaving())
             return;
         _building = false;
         if (_markCount == 0)
@@ -199,6 +252,8 @@ static class Deck
     // "" = no text: the compiler cannot pass a bare null as a string.)
     public static void PaintText(uint column, uint row, uint width, uint height, Colors fg, Colors bg, string text, ulong x, ulong font)
     {
+        if (Leaving())
+            return;
         CheckRows(row, height);
         if (!_building)
         {

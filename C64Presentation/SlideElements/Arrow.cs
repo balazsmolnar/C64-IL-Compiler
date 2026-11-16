@@ -63,14 +63,14 @@ class Arrow : SlideElement
             return;
         Deck.Paint(Min(c0, c1), Min(r0, r1), Span(c0, c1), Span(r0, r1), color, Theme.Background);
         ulong x = X(c0), y = Y(r0), x1 = X(c1), y1 = Y(r1);
-        while (x != x1 || y != y1)
+        while ((x != x1 || y != y1) && !KeyBoard.Jumping)
         {
             ulong nx = Toward(x, x1, 8), ny = Toward(y, y1, 8);
             Helper.Screen.Line(x, y, nx, ny);
             x = nx;
             y = ny;
             if (Deck.Live)
-                C64.Screen.WaitForVBlank();
+                Deck.Wait(1);
         }
     }
 

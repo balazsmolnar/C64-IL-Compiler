@@ -127,6 +127,35 @@ like `-Scene HOLD`.
 Live slides (`TitleSlide`, `DemoSlide`) call `Deck.Reveal()`, then loop on
 `KeyBoard.AdvancePressed()`.
 
+## Navigation (keys)
+
+| Key | Does |
+|---|---|
+| SPACE / fire | the next build step, then the next slide |
+| N | the next slide at once, from any point of a slide |
+| B | the previous slide at once, from any point of a slide |
+
+N and B are edge-triggered (one press, one slide). A press sets
+`KeyBoard.Pending` (`Navigation.Next` / `Back`). The next engine call that
+notices it (`Deck.Step`, `Deck.Wait`, `Deck.Show`, `Deck.Reveal`, any
+`Deck.Paint` / `Text` drawing; `Deck.Leaving()`) fades what is on screen
+out at once (what a build step had hidden stays hidden) and blanks the
+screen; from then on those calls return at once and `Deck.Live` is false,
+so the rest of `Present()` runs through unseen and fast. The Presenter then
+clears up and goes to slide +1 / -1 (B on the first slide redraws it).
+
+**The one rule for slides: a slide waits only through `KeyBoard` / `Deck`.**
+A build step is `Deck.Step()`; a timed pause is `Deck.Wait(frames)`; an
+animation loop runs `while (!KeyBoard.AdvancePressed()) { ...; Deck.Wait(1); }`
+(or `C64.Screen.WaitForVBlank()` inside it). `AdvancePressed` is also true
+once a jump is pending, so the loop ends by itself. Never wait on
+`C64.IsKeyPressed`, a bare `WaitForVBlank` loop or a `Delay` loop of your
+own: N and B would not be seen until it ends.
+
+Scene builds: HOLD and AUTO as before (AUTO is SPACE); `-Scene NAVTEST` is
+AUTO plus a faked N during the first slide's second build step and a faked
+B soon after the next slide comes up.
+
 ## Rules of thumb (hi-res)
 
 - Content slides keep row 21 (and 22) empty: `Master.Content` sets it,

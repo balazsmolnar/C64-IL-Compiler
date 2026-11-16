@@ -9,7 +9,7 @@ static class MethodBaseExtension
 {
     static public string GetLabel(this MethodBase method)
     {
-        var label = $"{method.ReflectedType.Name.ToValidName()}_{method.Name.ToValidName()}";
+        var label = $"{TypeLabelName(method.ReflectedType).ToValidName()}_{method.Name.ToValidName()}";
         if (IsOverloadedProgramMethod(method))
         {
             // Overloads (Fade() and Fade(uint), or two constructors) would
@@ -21,6 +21,20 @@ static class MethodBaseExtension
                 : "__" + string.Join("_", parameters.Select(p => p.ParameterType.Name.ToValidName()));
         }
         return label;
+    }
+
+    // The type part of a method label. A compiler-generated nested type
+    // ("<>c" holding a class's lambdas, "<>c__DisplayClass0_0" for a
+    // closure, ...) has the same name in every class that has one, so it is
+    // prefixed with its declaring type's: LambdaHolder_<>c, not <>c (which
+    // made two classes with lambdas a 64tass "duplicate definition").
+    // Ordinary types keep their plain Name: hand-written asm (C64Lib's
+    // routines, [RawAssembly] code) refers to those labels.
+    static public string TypeLabelName(Type type)
+    {
+        if (type.IsNested && type.Name.StartsWith('<'))
+            return $"{TypeLabelName(type.DeclaringType)}_{type.Name}";
+        return type.Name;
     }
 
     // The assembly being compiled (set by Program.Compile): only its own

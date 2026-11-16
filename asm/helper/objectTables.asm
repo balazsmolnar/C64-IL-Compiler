@@ -149,6 +149,9 @@ SF_TOP = StaticFrames + 512
 ; single-shared-buffer/no-interrupt-protection tradeoffs as tostring_buffer
 ; above -- see that comment for the full reasoning (applies identically
 ; here: consume the result immediately, don't hold two live at once).
+; Storing either buffer's result in a field, static, array element or
+; closure is rejected at compile time (C64007, Compiler/
+; ILStringLifetimePass.cs); two held in locals at once is not caught.
 stringops_buffer    .fill 40
 
 heap

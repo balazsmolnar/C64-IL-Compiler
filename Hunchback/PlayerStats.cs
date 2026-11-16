@@ -42,46 +42,40 @@ public class PlayerStats
     // project ever exercised a `= { literal, literal, ... }` array field).
     private const uint LevelMarkerChar = 99;
 
-    // GameData.asm's txt_PlayerStats already bakes in a "SCORE" label and a
-    // single placeholder '0' digit at this exact column (row 0) -- decoded
-    // from the static header text/color tables (' SUPER  SCORE        0   '
-    // + tbl_PlayerStatsColours' byte 32 = $03/Cyan) the same way every other
-    // header element here already is. DrawScore below overwrites that
-    // placeholder with the real, growing score text.
-    private const uint ScoreX = 32;
+    // The score's last digit is in column 32 of row 0 (the header text has
+    // a 0 there).
+    private const uint ScoreX = 26;
 
     public uint Lives;
     public uint Bonus;
+    // In hundreds: nothing in the game scores less, and a ulong is 16 bits
+    // here (6,553,500 points).
     public ulong Score;
+    // The bonus man at 10,000 points has been given.
+    public bool BonusLife;
+
+    // The two status rows as they are with nothing to show.
+    public static void DrawHeader()
+    {
+        C64.CopyMemory(C64Address.FromLabel("screenMemory"), C64Address.FromLabel("txt_PlayerStats"), 80);
+        C64.CopyMemory(C64Address.FromLabel("colorMemory"), C64Address.FromLabel("tbl_PlayerStatsColours"), 80);
+    }
 
     public void Draw(uint levelNumber)
     {
-        uint d = 0;
-        for (uint y = 0; y < 2; y++)
-        {
-            for (uint x = 0; x < 40; x++)
-            {
-                var b = C64.GetMemory(C64Address.FromLabel("txt_PlayerStats"), d);
-                var c = C64.GetMemory(C64Address.FromLabel("tbl_PlayerStatsColours"), d);
-
-                C64.Screen.SetChar(x, y, b, (Colors)c);
-                d++;
-            }
-        }
+        DrawHeader();
         DrawLives();
         DrawBonus();
         DrawScore();
         DrawLevelMarker(levelNumber);
     }
 
-    // Score only ever grows within one game (PlayerStats is recreated fresh,
-    // Score defaulting back to 0, at the start of each new game -- see
-    // Game.RunGame), so each new value has at least as many digits as the
-    // last and this never needs to clear leftover digits from a longer
-    // previous value first.
     public void DrawScore()
     {
-        C64.Screen.Write(ScoreX, 0, Score.ToString(), Colors.Cyan);
+        if (Score == 0)
+            return;                 // the header's own 0
+        C64.Screen.Write(ScoreX, 0, Score.ToString().PadLeft(5, ' '), Colors.Cyan);
+        C64.Screen.Write(ScoreX + 5, 0, "00", Colors.Cyan);
     }
 
     private void DrawLevelMarker(uint levelNumber)

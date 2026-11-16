@@ -236,6 +236,264 @@ C64_CopyMemory
     #stack_return_to_saved_address zp_tmp1_low
 .endif
 
+; ---------------------------------------------------------------------------
+; Screen.WaitForRasterLine(line): returns when the raster beam starts line
+; `line` (0-255) of a frame.
+; ---------------------------------------------------------------------------
+.weak
+Flag_Screen_WaitForRasterLine = 0
+.endweak
+.if Flag_Screen_WaitForRasterLine
+
+Screen_WaitForRasterLine
+    #stack_save_return_adress zp_tmp1_low
+    #stack_pull_int zp_param0_low
+-   lda $d011
+    bmi -                       ; lines 256 and up
+    lda $d012
+    cmp zp_param0_low
+    bne -
+    lda $d011
+    bmi -
+    #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+; ---------------------------------------------------------------------------
+; Screen.ScrollTextLeft / ScrollTextRight(column, row, width, height,
+; newChars, newColours): moves a rectangle of the text screen -- characters
+; and colour RAM -- one column to the left / right, and fills the column
+; that comes free from newChars / newColours: the cell for the rectangle's
+; first row, the next rows' cells 40 bytes further on each (a column of an
+; off-screen copy of the screen).
+;
+; 23 cycles a cell, about 1130 a row of 40: slower than the beam, which
+; takes 504 a row. Started just after the beam has passed the rectangle's
+; first row (Screen.WaitForRasterLine(51 + 8 * row + 9)), the copy therefore
+; stays behind the beam all the way down and is finished with every row
+; before the beam comes back to it: the frame on screen shows the picture
+; before the step, the next one after it, and nothing in between.
+;
+; The cell loops are self-modifying (absolute,x on addresses set per row).
+; ---------------------------------------------------------------------------
+.weak
+Flag_Screen_ScrollTextLeft = 0
+Flag_Screen_ScrollTextRight = 0
+.endweak
+.if Flag_Screen_ScrollTextLeft | Flag_Screen_ScrollTextRight
+
+; Pulls the six arguments. Out: zp_param0 / zp_param1 = the rectangle's
+; first cell in screen and colour RAM, zp_param3 / zp_param4 = newChars /
+; newColours, zp_param2_low = height, zp_param2_high = width - 1; Z set when
+; there is nothing to do (width < 2 or no rows).
+Text_ScrollArguments
+    ; (the arguments are under this routine's own return address)
+    pla
+    clc
+    adc #1
+    sta Text_ScrollArguments_ret+1
+    pla
+    adc #0
+    sta Text_ScrollArguments_ret+2
+    #stack_pull_pointer zp_param4_low
+    #stack_pull_pointer zp_param3_low
+    #stack_pull_int zp_param2_low
+    pla
+    sec
+    sbc #1
+    sta zp_param2_high
+    pla
+    tay                         ; row
+    pla                         ; column
+    sta zp_param0_low
+    lda #$04
+    sta zp_param0_high
+    cpy #0
+    beq Text_ScrollArguments_top
+-   ldx #zp_param0_low
+    jsr Text_NextRow
+    dey
+    bne -
+Text_ScrollArguments_top
+    lda zp_param0_low
+    sta zp_param1_low
+    lda zp_param0_high
+    clc
+    adc #$d4
+    sta zp_param1_high
+    ldx zp_param2_low
+    beq Text_ScrollArguments_ret
+    ldx zp_param2_high
+Text_ScrollArguments_ret
+    jmp $ffff                   ; (back to the caller; flags from the ldx)
+
+; Adds 40 to the pointer at zero page address X.
+Text_NextRow
+    clc
+    lda 0,x
+    adc #40
+    sta 0,x
+    bcc +
+    inc 1,x
++   rts
+
+; All four pointers a row further.
+Text_ScrollNextRow
+    ldx #zp_param0_low
+    jsr Text_NextRow
+    ldx #zp_param1_low
+    jsr Text_NextRow
+    ldx #zp_param3_low
+    jsr Text_NextRow
+    ldx #zp_param4_low
+    jmp Text_NextRow
+.endif
+
+.if Flag_Screen_ScrollTextLeft
+
+Screen_ScrollTextLeft
+    #stack_save_return_adress zp_tmp1_low
+    jsr Text_ScrollArguments
+    beq Screen_ScrollTextLeft_done
+    ; X runs from 256 - (width - 1) up to 0, so the loop needs no compare:
+    ; the addresses are that much lower.
+    lda zp_param2_high
+    sta Screen_ScrollTextLeft_last+1
+    sta Screen_ScrollTextLeft_last2+1
+    eor #$ff
+    clc
+    adc #1
+    sta Screen_ScrollTextLeft_start+1
+    sta Screen_ScrollTextLeft_bias+1
+Screen_ScrollTextLeft_row
+    ; destination = pointer - bias, source = destination + 1
+    sec
+    lda zp_param0_low
+Screen_ScrollTextLeft_bias
+    sbc #$ff
+    sta Screen_ScrollTextLeft_sd+1
+    lda zp_param0_high
+    sbc #0
+    sta Screen_ScrollTextLeft_sd+2
+    clc
+    lda Screen_ScrollTextLeft_sd+1
+    adc #1
+    sta Screen_ScrollTextLeft_ss+1
+    lda Screen_ScrollTextLeft_sd+2
+    adc #0
+    sta Screen_ScrollTextLeft_ss+2
+    clc
+    lda Screen_ScrollTextLeft_sd+2
+    adc #$d4
+    sta Screen_ScrollTextLeft_cd+2
+    lda Screen_ScrollTextLeft_sd+1
+    sta Screen_ScrollTextLeft_cd+1
+    clc
+    lda Screen_ScrollTextLeft_ss+2
+    adc #$d4
+    sta Screen_ScrollTextLeft_cs+2
+    lda Screen_ScrollTextLeft_ss+1
+    sta Screen_ScrollTextLeft_cs+1
+Screen_ScrollTextLeft_start
+    ldx #$ff
+Screen_ScrollTextLeft_ss
+-   lda $ffff,x
+Screen_ScrollTextLeft_sd
+    sta $ffff,x
+Screen_ScrollTextLeft_cs
+    lda $ffff,x
+Screen_ScrollTextLeft_cd
+    sta $ffff,x
+    inx
+    bne -
+    ; the new last column
+    ldy #0
+    lda (zp_param3_low),y
+Screen_ScrollTextLeft_last
+    ldy #$ff
+    sta (zp_param0_low),y
+    ldy #0
+    lda (zp_param4_low),y
+Screen_ScrollTextLeft_last2
+    ldy #$ff
+    sta (zp_param1_low),y
+    jsr Text_ScrollNextRow
+    dec zp_param2_low
+    bne Screen_ScrollTextLeft_row
+Screen_ScrollTextLeft_done
+    #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+.if Flag_Screen_ScrollTextRight
+
+Screen_ScrollTextRight
+    #stack_save_return_adress zp_tmp1_low
+    jsr Text_ScrollArguments
+    beq Screen_ScrollTextRight_done
+Screen_ScrollTextRight_row
+    ; destination = pointer, source = pointer - 1; X runs width - 1 .. 1
+    lda zp_param0_low
+    sta Screen_ScrollTextRight_sd+1
+    sta Screen_ScrollTextRight_cd+1
+    sec
+    sbc #1
+    sta Screen_ScrollTextRight_ss+1
+    sta Screen_ScrollTextRight_cs+1
+    lda zp_param0_high
+    sta Screen_ScrollTextRight_sd+2
+    sbc #0
+    sta Screen_ScrollTextRight_ss+2
+    clc
+    adc #$d4
+    sta Screen_ScrollTextRight_cs+2
+    lda zp_param1_high
+    sta Screen_ScrollTextRight_cd+2
+    ldx zp_param2_high
+Screen_ScrollTextRight_ss
+-   lda $ffff,x
+Screen_ScrollTextRight_sd
+    sta $ffff,x
+Screen_ScrollTextRight_cs
+    lda $ffff,x
+Screen_ScrollTextRight_cd
+    sta $ffff,x
+    dex
+    bne -
+    ; the new first column
+    ldy #0
+    lda (zp_param3_low),y
+    sta (zp_param0_low),y
+    lda (zp_param4_low),y
+    sta (zp_param1_low),y
+    jsr Text_ScrollNextRow
+    dec zp_param2_low
+    bne Screen_ScrollTextRight_row
+Screen_ScrollTextRight_done
+    #stack_return_to_saved_address zp_tmp1_low
+.endif
+
+.weak
+Flag_C64_CopyMemoryForward = 0
+.endweak
+.if Flag_C64_CopyMemoryForward
+
+; C64.CopyMemoryForward(dest, source, size): as C64.CopyMemory, but from the
+; first byte up, so an overlapping copy to a LOWER address (dest < source)
+; is correct. size 1-255, 0 = 256.
+C64_CopyMemoryForward
+    #stack_save_return_adress zp_tmp1_low
+    #stack_pull_int_x
+    #stack_pull_pointer zp_param3_low
+    #stack_pull_pointer zp_param4_low
+    ldy #0
+-   lda (zp_param3_low),y
+    sta (zp_param4_low),y
+    iny
+    dex
+    bne -
+
+    #stack_return_to_saved_address zp_tmp1_low
+.endif
+
 .weak
 Flag_C64_FillMemory = 0
 .endweak

@@ -8,42 +8,61 @@ class Game
     public void Start()
     {
         Init();
+        HiScores.Init();
         for (; ; )
         {
+#if !SCENE
             TitleScreen.Display();
+            Intro.Play(false);
+#endif
             RunGame();
         }
     }
 
+    // One game: five lives, from the first wall on. The 48 walls come round
+    // again after the last, for as long as the lives last.
     private void RunGame()
     {
         var levelPlay = new LevelPlay();
-        var currentLevel = 0; 
-        var levels = LevelDescription.Levels;
+        uint currentLevel = 0;
+#if SCENE_BELLS
+        currentLevel = 9;
+#elif SCENE_ROPE
+        currentLevel = 1;
+#elif SCENE_PITS
+        currentLevel = 3;
+#elif SCENE_TOWER
+        currentLevel = 15;
+#elif SCENE_PAIR
+        currentLevel = 14;
+#endif
         var playerStats = new PlayerStats { Lives = 5 };
-        while (currentLevel < levels.Length)
+        bool scrollIn = false;
+        for (; ; )
         {
-            Screen.Clear(Colors.Grey2);
-
-            if (levelPlay.Play(levels[currentLevel], playerStats, (uint)currentLevel))
+            if (levelPlay.Play(LevelDescription.Get(currentLevel), playerStats, currentLevel, scrollIn))
             {
+                // Every sixteenth wall ends at Esmerelda's tower: she is
+                // rescued, and the next wall is simply there.
+                scrollIn = (currentLevel & 15) != 15;
+                if (!scrollIn)
+                    LevelPlay.Rescue(playerStats);
                 currentLevel++;
-                C64.Delay(3);
+                if (currentLevel == LevelDescription.Count)
+                    currentLevel = 0;
             }
-            else if (playerStats.Lives == 0)
+            else
             {
-                GameOver();
-                return;
+                scrollIn = false;
+                if (playerStats.Lives == 0)
+                {
+                    Screen.Text(16, 6, C64Address.FromLabel("txt_GameOver"), 9, Colors.White);
+                    HiScores.GameOver(playerStats.Score);
+                    return;
+                }
             }
             GC.Collect();
         }
-    }
-
-    private static void GameOver()
-    {
-        C64.Screen.Write(15, 12, "GAME OVER", Colors.Red);
-        for (int i = 0; i < 60; i++)
-            C64.Delay(3);
     }
 
     private void Init()

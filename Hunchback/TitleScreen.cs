@@ -1,183 +1,121 @@
 using C64Lib;
-using System;
 
 namespace Hunchback;
 
+// Everything before a game: the title, the hi-score league and the demo,
+// round and round until SPACE (or fire) starts a game; F1 shows the
+// instructions (Restructure/Menu.asm). The original watches those two keys
+// from an interrupt and jumps out of whatever is on; here every wait is a
+// Pause, which watches them, and every screen gives up as soon as one is
+// down.
 class TitleScreen
 {
-    public class Tone
-    {
-        public ulong Frequency;
-        public uint Sustain;
-    }
+    private static uint key_;       // 1 = F1, 2 = SPACE or fire
+
+    // Returns when a game is to start.
     public static void Display()
     {
-        // Fetched once, here, and reused by this method's own tune loop
-        // below. GetTones() allocates a fresh ~64-object array (1 array +
-        // one Tone instance per note) every time it's called.
-        var tones = GetTones();
-
-        // The intro scroll (IntroScroll.Play/IntroPlayer) is parked --
-        // too many unresolved issues (level ordering, music pacing, a
-        // live-VICE crash after the title screen whose root cause was
-        // never pinned down) to justify keeping it in the loop while
-        // iterating on other things. Code is left in place, just unused.
-        // IntroScroll.Play(tones);
-
-        Screen.Clear(Colors.White);
-        C64.CopyMemory(C64Address.FromLabel("(screenMemory+$CD)"), C64Address.FromLabel("titleScreen"), 0);
-        C64.CopyMemory(C64Address.FromLabel("(screenMemory+$1CD)"), C64Address.FromLabel("titleScreen+$100"), 0);
-        C64.CopyMemory(C64Address.FromLabel("(screenMemory+$21B)"), C64Address.FromLabel("titleScreen+$14E"), 0);
-
-        C64.Screen.Write(13, 1, "OCEAN SOFTWARE", Colors.Green);
-        C64.Screen.Write(13, 3, "   PRESENTS   ", Colors.White);
-        C64.Screen.Write(25, 21, "   BY J.STEELE", Colors.Green);
-        C64.Screen.Write(7, 23, "PRESS F1 FOR INSTRUCTIONS", Colors.White);
-        C64.Screen.Write(7, 24, "    OR SPACE TO START    ", Colors.White);
-
-        // Indexed for, not foreach -- foreach over an array of reference-
-        // typed elements (Tone here) is untested territory in this
-        // compiler (grep confirms nothing in Test/ uses foreach at all);
-        // this specific loop runs forever (for(;;), never a normal method
-        // exit) and its per-iteration loop variable is exactly the shape
-        // that turned out to leak in a live VICE test (heap slots climbing
-        // rapidly, ~1 per iteration, crashing back to BASIC's READY.
-        // prompt) once this loop actually started running -- switching to
-        // direct tones[i] indexing avoids needing a per-iteration
-        // reference-typed loop variable at all.
-        // "(uint)tones.Length" cast inline in the loop condition, not
-        // cached into a separate variable first -- a previous version of
-        // this comment claimed that crashed Compiler.exe outright (a
-        // signed-16-bit-branch gap), but re-verified empirically this
-        // session: Array.Length (Ldlen) is 1 byte in this compiler
-        // (Compiler/Operands/OperandBase.cs's OpLdLen types it as `int`,
-        // and TypeExtensions.GetStorageBytes makes every `int` 1 byte
-        // here), so the cast is a same-width uint/int reinterpretation and
-        // the comparison is an 8-bit unsigned branch -- a macro family that
-        // always existed, unrelated to this session's new 16-bit signed
-        // branch support. The claim was simply wrong; left this comment in
-        // place (rather than deleting it silently) as a record of that.
-        // GC.Collect() once per full pass through the tune, not because a
-        // specific leak in this loop was ever pinned down -- SimpleEmulator
-        // can't usefully test this loop at all (its IsKeyPressed reads
-        // uninitialized memory as "pressed", so the loop exits into real
-        // gameplay within its first pass every time), so unlike everything
-        // else fixed this session, this one couldn't be verified against a
-        // known root cause. It's a real, reproducible crash in live VICE
-        // though (resets to BASIC's READY. prompt after sitting at the
-        // title screen for a while, confirmed with zero player input), and
-        // this loop runs forever, so a periodic collect here is cheap
-        // insurance regardless of what turns out to be causing it.
         for (; ; )
         {
-            GC.Collect();
-            var color = (uint)1;
-            for (uint i = 0; i < (uint)tones.Length; i++)
+            key_ = 0;
+            Title();
+            if (key_ == 0)
             {
-                var t = tones[i];
-                color++;
-                if (color == 7)
-                    color = 1;
-                C64.Sound.PlayEffectReg1(WaveForm.Saw, t.Frequency, 0, 9, 0, false);
-                C64.FillMemory(C64Address.FromLabel("(colorMemory+$CD)"), color, 0);
-                C64.FillMemory(C64Address.FromLabel("(colorMemory+$1CD)"), color, 0);
-                C64.FillMemory(C64Address.FromLabel("(colorMemory+$21B)"), color, 0);
-
-                for (uint k = 0; k < 50u; k++)
-                {
-                    for (uint kk = 0; kk < t.Sustain; kk++)
-                    {
-                        if (C64.IsKeyPressed(Keys.Space) || (C64.Joysticks.Joystick2.Pressed & JoystickButtons.Fire) == JoystickButtons.Fire)
-                            return;
-                    }
-                }
+                HiScores.Show(false);
+                StartText();
+                Pause(15);
+            }
+            if (key_ == 0)
+                key_ = Intro.Play(true);
+            if (key_ == 1)
+                Instructions();
+            if (key_ == 2)
+            {
+                C64.Sprites.VisibleMask = 0;
+                while (C64.IsKeyPressed(Keys.Space) || Input.Fire)
+                    Screen.Wait(1);
+                return;
             }
         }
     }
-    private static Tone[] GetTones()
-    {
-        const ulong TONE_0 = 0x0000UL;
-        const ulong TONE_1 = 0x0CD8UL;
-        const ulong TONE_2 = 0x0D9CUL;
-        const ulong TONE_3 = 0x0F46UL;
-        const ulong TONE_4 = 0x1125UL;
-        const ulong TONE_5 = 0x133FUL;
-        const ulong TONE_6 = 0x1464UL;
-        const ulong TONE_7 = 0x16E3UL;
-        const ulong TONE_8 = 0x19B1UL;
-        const ulong TONE_9 = 0x1E8DUL;
-        const ulong TONE_10 = 0x224BUL;
-        const uint DELAY_0 = 10;
-        const uint DELAY_1 = 20;
-        const uint DELAY_2 = 30;
-        const uint DELAY_3 = 40;
-        const uint DELAY_4 = 50;
 
-        return new Tone[] {
-            new Tone { Frequency = TONE_1, Sustain = DELAY_0  },
-            new Tone { Frequency = TONE_4, Sustain = DELAY_1  },
-            new Tone { Frequency = TONE_6, Sustain = DELAY_0  },
-            new Tone { Frequency = TONE_5, Sustain = DELAY_0  },
-            new Tone { Frequency = TONE_6, Sustain = DELAY_0  },
-            new Tone { Frequency = TONE_5, Sustain = DELAY_0  },
-            new Tone { Frequency = TONE_4, Sustain = DELAY_1  },
-            new Tone { Frequency = TONE_6, Sustain = DELAY_0  },
-            new Tone { Frequency = TONE_5, Sustain = DELAY_1  },
-            new Tone { Frequency = TONE_6, Sustain = DELAY_0  },
-            new Tone { Frequency = TONE_4, Sustain = DELAY_0  },
-            new Tone { Frequency = TONE_5, Sustain = DELAY_0  },
-            new Tone { Frequency = TONE_6, Sustain = DELAY_0  },
-            new Tone { Frequency = TONE_5, Sustain = DELAY_1  },
-            new Tone { Frequency = TONE_6, Sustain = DELAY_0  },
-            new Tone { Frequency = TONE_4, Sustain = DELAY_2  },
-            new Tone { Frequency = TONE_0, Sustain = DELAY_0  },
-            new Tone { Frequency = TONE_3, Sustain = DELAY_0  },
-            new Tone { Frequency = TONE_6, Sustain = DELAY_1  },
-            new Tone { Frequency = TONE_8, Sustain = DELAY_0  },
-            new Tone { Frequency = TONE_7, Sustain = DELAY_0  },
-            new Tone { Frequency = TONE_8, Sustain = DELAY_0  },
-            new Tone { Frequency = TONE_7, Sustain = DELAY_0  },
-            new Tone { Frequency = TONE_6, Sustain = DELAY_1  },
-            new Tone { Frequency = TONE_8, Sustain = DELAY_0  },
-            new Tone { Frequency = TONE_7, Sustain = DELAY_1  },
-            new Tone { Frequency = TONE_8, Sustain = DELAY_0  },
-            new Tone { Frequency = TONE_6, Sustain = DELAY_0  },
-            new Tone { Frequency = TONE_7, Sustain = DELAY_0  },
-            new Tone { Frequency = TONE_8, Sustain = DELAY_0  },
-            new Tone { Frequency = TONE_7, Sustain = DELAY_1  },
-            new Tone { Frequency = TONE_8, Sustain = DELAY_0  },
-            new Tone { Frequency = TONE_6, Sustain = DELAY_2  },
-            new Tone { Frequency = TONE_0, Sustain = DELAY_0  },
-            new Tone { Frequency = TONE_9, Sustain = DELAY_0  },
-            new Tone { Frequency = TONE_10, Sustain = DELAY_1  },
-            new Tone { Frequency = TONE_9, Sustain = DELAY_0  },
-            new Tone { Frequency = TONE_10, Sustain = DELAY_1  },
-            new Tone { Frequency = TONE_9, Sustain = DELAY_0  },
-            new Tone { Frequency = TONE_7, Sustain = DELAY_0  },
-            new Tone { Frequency = TONE_8, Sustain = DELAY_0  },
-            new Tone { Frequency = TONE_9, Sustain = DELAY_0  },
-            new Tone { Frequency = TONE_8, Sustain = DELAY_1  },
-            new Tone { Frequency = TONE_7, Sustain = DELAY_0  },
-            new Tone { Frequency = TONE_7, Sustain = DELAY_1  },
-            new Tone { Frequency = TONE_6, Sustain = DELAY_0  },
-            new Tone { Frequency = TONE_7, Sustain = DELAY_1  },
-            new Tone { Frequency = TONE_6, Sustain = DELAY_0  },
-            new Tone { Frequency = TONE_3, Sustain = DELAY_0  },
-            new Tone { Frequency = TONE_4, Sustain = DELAY_0  },
-            new Tone { Frequency = TONE_6, Sustain = DELAY_0  },
-            new Tone { Frequency = TONE_4, Sustain = DELAY_1  },
-            new Tone { Frequency = TONE_3, Sustain = DELAY_0  },
-            new Tone { Frequency = TONE_4, Sustain = DELAY_1  },
-            new Tone { Frequency = TONE_6, Sustain = DELAY_0  },
-            new Tone { Frequency = TONE_3, Sustain = DELAY_1  },
-            new Tone { Frequency = TONE_6, Sustain = DELAY_0  },
-            new Tone { Frequency = TONE_2, Sustain = DELAY_0  },
-            new Tone { Frequency = TONE_3, Sustain = DELAY_0  },
-            new Tone { Frequency = TONE_4, Sustain = DELAY_0  },
-            new Tone { Frequency = TONE_3, Sustain = DELAY_1  },
-            new Tone { Frequency = TONE_8, Sustain = DELAY_0  },
-            new Tone { Frequency = TONE_7, Sustain = DELAY_3  },
-            new Tone { Frequency = TONE_6, Sustain = DELAY_4  },
-        };
+    private static void Title()
+    {
+        C64.Sprites.VisibleMask = 0;
+        Screen.Clear(Colors.White);
+        StartText();
+        C64.CopyMemory(C64Address.FromLabel("(screenMemory+$CD)"), C64Address.FromLabel("titleScreen"), 0);
+        C64.CopyMemory(C64Address.FromLabel("(screenMemory+$1CD)"), C64Address.FromLabel("titleScreen+$100"), 0);
+        C64.CopyMemory(C64Address.FromLabel("(screenMemory+$21B)"), C64Address.FromLabel("titleScreen+$14E"), 0);
+        Screen.Text(13, 1, C64Address.FromLabel("txt_OceanSoftware"), 14, Colors.Green);
+        Screen.Text(13, 3, C64Address.FromLabel("txt_Presents"), 14, Colors.White);
+        Screen.Text(25, 21, C64Address.FromLabel("txt_ByJSteele"), 14, Colors.Green);
+
+        // the title runs through the colours, then stands
+        uint color = (uint)Colors.White;
+        for (uint i = 0; i < 17; i++)
+        {
+            color = (color + 1) & 7;
+            C64.FillMemory(C64Address.FromLabel("(colorMemory+$CD)"), color, 0);
+            C64.FillMemory(C64Address.FromLabel("(colorMemory+$1CD)"), color, 0);
+            C64.FillMemory(C64Address.FromLabel("(colorMemory+$21B)"), color, 0);
+            if (Pause(1))
+                return;
+        }
+        Pause(16);
+    }
+
+    private static void StartText()
+    {
+        Screen.Text(7, 23, C64Address.FromLabel("txt_F1Instructions"), 25, Colors.White);
+        Screen.Text(7, 24, C64Address.FromLabel("txt_SpaceToStart"), 25, Colors.White);
+    }
+
+    private static void Instructions()
+    {
+        C64.Sprites.VisibleMask = 0;
+        Screen.Clear(Colors.White);
+        while (C64.IsKeyPressed(Keys.F1))
+            Screen.Wait(1);
+        key_ = 0;
+        ulong text = C64Address.FromLabel("txt_Instructions");
+        Screen.Text(7, 1, text, 26, Colors.White);
+        Screen.Text(3, 4, C64Address.FromLabel("txt_InstructionsJoyKeys"), 34, Colors.White);
+        Screen.Text(7, 5, text + 26, 26, Colors.White);
+        Screen.Text(7, 8, text + 52, 26, Colors.White);
+        Screen.Text(7, 11, text + 78, 26, Colors.White);
+        Screen.Text(7, 14, text + 104, 26, Colors.White);
+        Screen.Text(7, 17, text + 130, 26, Colors.White);
+        Bell(20, 10);       // "hero wins a (bell) each time"
+        Bell(12, 16);       // "five (bells) gives super bonus"
+        Pause(31);
+    }
+
+    private static void Bell(uint x, uint y)
+    {
+        C64.Screen.SetChar(x, y, 63, Colors.Grey2);
+        C64.Screen.SetChar(x + 1, y, 64, Colors.Grey2);
+        C64.Screen.SetChar(x, y + 1, 65, Colors.Grey2);
+        C64.Screen.SetChar(x + 1, y + 1, 66, Colors.Grey2);
+    }
+
+    // Waits `thirds` thirds of a second, or until F1 or SPACE (or fire) is
+    // down: then it returns true, and key_ says which.
+    private static bool Pause(uint thirds)
+    {
+        for (uint i = 0; i < thirds; i++)
+        {
+            for (uint tick = 0; tick < 20; tick++)
+            {
+                if (C64.IsKeyPressed(Keys.F1))
+                    key_ = 1;
+                if (C64.IsKeyPressed(Keys.Space) || Input.Fire)
+                    key_ = 2;
+                if (key_ != 0)
+                    return true;
+                C64.Delay(1);
+            }
+        }
+        return false;
     }
 }

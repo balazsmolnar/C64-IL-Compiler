@@ -1,12 +1,16 @@
 using C64Lib;
 namespace Hunchback;
 
+// A missile: a fireball or an arrow crossing the screen high or low, two
+// pixels every tick, fired again from the edge when it has crossed
+// (Restructure/Enemy.asm's Enemy_FireballHiFront and its seven siblings).
 class Enemy : GameObject
 {
+    const uint LowY = 117, HighY = 88;      // feet level; head level, to be ducked... or jumped into
+    const ulong RightEdge = 344;
 
     private ulong x_;
     private uint y_;
-    private int frameCounter_;
 
     public ulong X
     {
@@ -36,40 +40,40 @@ class Enemy : GameObject
     }
 
     public EnemyType EnemyType;
-    // For a level's second enemy (see LevelPlay.Play's dual-enemy handling):
-    // both enemies otherwise spawn at the exact same edge X and move in
-    // lockstep, looking like a single mirrored pair rather than two
-    // independent hazards. Counted down each Move() before it starts moving,
-    // so it visibly lags behind the first.
+    // Ticks before it first moves: a level's second missile waits at the
+    // edge, so the two do not cross together (the original's missile2Delay).
     public uint MoveDelay;
+
+    // Fires it: at first, and again every time it has crossed.
     public override void Init()
     {
+        if (EnemyType == EnemyType.None)
+        {
+            sprite_.Visible = false;
+            return;
+        }
         sprite_.MultiColor = true;
         sprite_.Color = Colors.Violet;
 
-        Y = 117u;
-        if ((EnemyType & EnemyType.Top) > 0)
-            Y = 87u;
-        leftToRight_ = (EnemyType & EnemyType.LeftRight) > 0;
         arrow_ = (EnemyType & EnemyType.Arrow) > 0;
-        X = leftToRight_ ? 0UL : 316UL;
+        bool top = (EnemyType & EnemyType.Top) > 0;
+        leftToRight_ = (EnemyType & EnemyType.LeftRight) > 0;
+        bool coin = (C64.Random() & 1) != 0;
+        if ((EnemyType & EnemyType.RandomHeight) > 0)
+        {
+            top = coin;
+            if ((EnemyType & EnemyType.RandomDirection) > 0)
+                leftToRight_ = coin;        // high from the left, low from the right
+        }
+        else if ((EnemyType & EnemyType.RandomDirection) > 0)
+        {
+            leftToRight_ = coin;
+        }
 
-        // Screen.Clear() at the top of every level wipes the whole screen
-        // matrix, including the sprite data pointers living in its last 8
-        // bytes -- so every sprite points at a stale/blank block until its
-        // owner's Init() writes a real one. Do that here, before Visible is
-        // set, the same way Player/Knight/Rope already do -- otherwise this
-        // sprite is visible for a frame pointing at whatever the blank fill
-        // value resolves to, rendering garbage.
-        if (arrow_ && leftToRight_)
-        {
-            sprite_.DataBlock = C64Address.FromLabel("spt_arrow_right");
-        }
-        else if (!arrow_)
-        {
-            SetFrame();
-        }
-        sprite_.Visible = EnemyType != EnemyType.None;
+        Y = top ? HighY : LowY;
+        X = leftToRight_ ? 0UL : RightEdge;
+        SetFrame();
+        sprite_.Visible = true;
         C64.Sound.PlayEffectReg2(WaveForm.Noise, 0x2C64UL, 0UL, 128, 0, false);
     }
 
@@ -82,36 +86,35 @@ class Enemy : GameObject
             MoveDelay--;
             return;
         }
-        frameCounter_++;
-        if (frameCounter_ == 4)
-            frameCounter_ = 0;
 
         if (leftToRight_)
         {
-            X += 4UL;
-
-            if (X == 316UL)
-            {
+            X += 2UL;
+            if (x_ >= RightEdge)
                 Init();
-            }
         }
         else
         {
-            X -= 4UL;
-
-            if (X == 20UL)
-            {
+            X -= 2UL;
+            if (x_ == 0UL)
                 Init();
-            }
         }
-        SetFrame();
+        if (!arrow_)
+            SetFrame();
     }
 
     private void SetFrame()
     {
         if (arrow_)
+        {
+            if (leftToRight_)
+                sprite_.DataBlock = C64Address.FromLabel("spt_arrow_right");
+            else
+                sprite_.DataBlock = C64Address.FromLabel("spt_arrow_left");
             return;
-        switch (frameCounter_)
+        }
+        // the fireball turns as it flies
+        switch (((uint)x_ >> 2) & 3)
         {
             case 0:
                 sprite_.DataBlock = C64Address.FromLabel("spt_fireball_0");

@@ -48,7 +48,10 @@
         X,
         Y,
         Z,
-        Space
+        Space,
+        F1,
+        Comma,
+        Period
     };
 
     // No parameters -- deliberately not System.EventHandler. There's only ever
@@ -79,6 +82,13 @@
         /// dest is above source (moving bytes up).
         /// </summary>
         public static void CopyMemory(ulong dest, ulong source, uint size) { }
+        /// <summary>
+        /// CopyMemory running from the first byte up: the one to use for
+        /// overlapping ranges when dest is below source (moving bytes down,
+        /// e.g. scrolling a screen row one column to the left).
+        /// <paramref name="size"/> is 1-255, and 0 means 256.
+        /// </summary>
+        public static void CopyMemoryForward(ulong dest, ulong source, uint size) { }
         /// <summary>
         /// Writes <paramref name="value"/> to the <paramref name="size"/>
         /// bytes <paramref name="dest"/> .. dest+size-1. <paramref name="size"/>

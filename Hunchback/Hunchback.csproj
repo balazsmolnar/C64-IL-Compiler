@@ -25,6 +25,11 @@
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <Optimize>true</Optimize>
     <OutputType>Exe</OutputType>
+    <!-- "dotnet build -p:Scene=BELLS" defines SCENE and SCENE_BELLS: a build
+         that skips the title, starts on one level and plays it by itself,
+         for looking at it in VICE without sending keys (see
+         tools/hunchback-shot.ps1 and Game.cs). -->
+    <DefineConstants Condition="'$(Scene)' != ''">$(DefineConstants);SCENE;SCENE_$(Scene)</DefineConstants>
   </PropertyGroup>
 
 </Project>

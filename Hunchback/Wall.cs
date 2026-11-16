@@ -21,10 +21,18 @@ class Wall : GameObject
 
     private uint knightCounter_;
     private uint speedCounter_;
-    public void Draw(Colors color, WallType wallType)
+    // Draws the level on whatever Screen is drawing on (see Screen.cs: out
+    // of sight, as a rule), over a cleared screen.
+    public void Draw(Colors color, WallType wallType, bool tower)
     {
+        Screen.Clear(Colors.Black);
         BuildBasicWall(color);
+        if (tower)
+            BuildTower();
         wallType_ = wallType;
+        frameCounter_ = 0;
+        knightCounter_ = 0;
+        speedCounter_ = 0;
         if (wallType == WallType.KnightPits)
         {
             BuildKnightPit(9);
@@ -65,15 +73,15 @@ class Wall : GameObject
 
     private static void BuildBasicWall(Colors color)
     {
-        C64.FillMemory(C64Address.FromLabel("screenMemory+$01B8"), WallChar, 0);
-        C64.FillMemory(C64Address.FromLabel("screenMemory+$02B8"), WallChar, 0);
-        C64.FillMemory(C64Address.FromLabel("screenMemory+$0300"), WallChar, 0);
+        C64.FillMemory(Screen.CharsAt(0x01B8), WallChar, 0);
+        C64.FillMemory(Screen.CharsAt(0x02B8), WallChar, 0);
+        C64.FillMemory(Screen.CharsAt(0x0300), WallChar, 0xE8);
 
-        C64.FillMemory(C64Address.FromLabel("colorMemory+$01B8"), (uint)color, 0);
-        C64.FillMemory(C64Address.FromLabel("colorMemory+$02B8"), (uint)color, 0);
-        C64.FillMemory(C64Address.FromLabel("colorMemory+$0300"), (uint)color, 0);
+        C64.FillMemory(Screen.ColoursAt(0x01B8), (uint)color, 0);
+        C64.FillMemory(Screen.ColoursAt(0x02B8), (uint)color, 0);
+        C64.FillMemory(Screen.ColoursAt(0x0300), (uint)color, 0xE8);
 
-        C64.CopyMemory(C64Address.FromLabel("screenMemory+$0320"), C64Address.FromLabel("tbl_WallBaseChars"), 200);
+        C64.CopyMemory(Screen.CharsAt(0x0320), C64Address.FromLabel("tbl_WallBaseChars"), 200);
 
         uint d = 0;
         for (uint y = 3; y < 11; y++)
@@ -82,11 +90,29 @@ class Wall : GameObject
             {
                 var b = C64.GetMemory(C64Address.FromLabel("tbl_LevelEndBellChars"), d);
 
-                C64.Screen.SetChar(x, y, b, Colors.Grey3);
+                Screen.Put(x, y, b, Colors.Grey3);
                 d++;
             }
         }
     }
+    // Esmerelda's tower at the end of every sixteenth wall (the original's
+    // tbl_EsmereldaTowerChars and tbl_EsmeTowerCharColour: 8 columns, 9
+    // rows, from row 2 of column 32).
+    private static void BuildTower()
+    {
+        uint d = 0;
+        for (uint y = 2; y < 11; y++)
+        {
+            for (uint x = 32; x < 40; x++)
+            {
+                var b = C64.GetMemory(C64Address.FromLabel("tbl_EsmereldaTowerChars"), d);
+                var c = C64.GetMemory(C64Address.FromLabel("tbl_EsmeTowerCharColour"), d);
+                Screen.Put(x, y, b, (Colors)c);
+                d++;
+            }
+        }
+    }
+
     private static void BuildKnightPit(uint startX)
     {
         uint d = 0;
@@ -97,7 +123,7 @@ class Wall : GameObject
                 var b = C64.GetMemory(C64Address.FromLabel("tbl_KnightChars"), d);
                 var c = C64.GetMemory(C64Address.FromLabel("tbl_KnightCharsColours"), d);
 
-                C64.Screen.SetChar(x, y, b, (Colors)c);
+                Screen.Put(x, y, b, (Colors)c);
                 d++;
             }
         }
@@ -113,52 +139,67 @@ class Wall : GameObject
                 var b = C64.GetMemory(C64Address.FromLabel("tbl_EmptyPitChars"), d);
                 var c = C64.GetMemory(C64Address.FromLabel("tbl_EmptyPitCharColours"), d);
 
-                C64.Screen.SetChar(x, y, b, (Colors)c);
+                Screen.Put(x, y, b, (Colors)c);
                 d++;
             }
         }
     }
 
-    // The row-of-bells decoration isn't just background art: in the original
-    // (Restructure/Quasi.asm's Quasi_RowOfBellsCollisionCheck /
-    // Quasi_CheckCollision's .CheckBellPitFall, Restructure/Sound.asm's
-    // Sound_RowOfBells) touching it grabs the player onto the nearest bell,
-    // snaps them into a fixed hang position, and rings that bell's own pitch
-    // -- they stay hung there (walking left/right has no further effect
-    // while grabbed) until they jump, which releases them. If they instead
-    // walk into the bell zone without being close enough to any bell's rope
-    // to grab it, they fall through. All 4 X ranges/positions below are
-    // decoded directly from the original's tbl_RowOfBellsXPosition/
-    // tbl_QuasiBellXPosition/tbl_BellRopeXOffset/tbl_RowOfBellsFreqHi (each
-    // 4 entries, one per bell).
+    // The row of bells is not just decoration: its four ropes are what
+    // carries the player over the pit (see Player.Move). The numbers are
+    // the original's (Memory.asm's tbl_RowOfBellsXPosition,
+    // tbl_QuasiBellXPosition, tbl_BellRopeXOffset, tbl_RowOfBellsFreqHi and
+    // the limits in Quasi.asm), plus 24: the original keeps the player's
+    // position 24 less than his sprite's X, this port keeps the sprite's X
+    // itself.
     public bool IsRowOfBells => wallType_ == WallType.RowOfBells;
 
-    public bool IsRowOfBellsGrabZone(ulong x) => x >= 88 && x < 224;
+    // Where a rope can be grabbed at all.
+    public bool IsBellZone(ulong x) => x >= 112 && x < 248;
 
-    public bool IsRowOfBellsFallZone(ulong x) => x >= 80 && x < 219;
-
+    // Which rope that is (they are 32 pixels apart), as the X he hangs at.
     public ulong GetBellSnapX(ulong x)
     {
-        if (x <= 120) return 98;
-        if (x <= 152) return 130;
-        if (x <= 184) return 162;
-        return 194;
+        if (x <= 144) return 122;
+        if (x <= 176) return 154;
+        if (x <= 208) return 186;
+        return 218;
     }
 
-    public bool IsNearBellRope(ulong x) =>
-        (x >= 94 && x < 105) || (x >= 126 && x < 137) || (x >= 158 && x < 169) || (x >= 190 && x < 201);
+    // Over the pit with no rope in reach: each rope can be reached from the
+    // 11 pixels starting 4 to the left of where he would hang from it.
+    public bool IsBellPit(ulong x)
+    {
+        if (x < 104 || x >= 243)
+            return false;
+        return !((x >= 118 && x < 129) || (x >= 150 && x < 161) || (x >= 182 && x < 193) || (x >= 214 && x < 225));
+    }
 
     public void PlayBellSound(ulong x)
     {
-        if (x <= 120)
+        if (x <= 144)
             C64.Sound.PlayEffectReg2(WaveForm.Triangle, 0x1400UL, 0UL, 10, 0, false);
-        else if (x <= 152)
+        else if (x <= 176)
             C64.Sound.PlayEffectReg2(WaveForm.Triangle, 0x1E00UL, 0UL, 10, 0, false);
-        else if (x <= 184)
+        else if (x <= 208)
             C64.Sound.PlayEffectReg2(WaveForm.Triangle, 0x2800UL, 0UL, 10, 0, false);
         else
             C64.Sound.PlayEffectReg2(WaveForm.Triangle, 0x3200UL, 0UL, 10, 0, false);
     }
+
+#if SCENE
+    // Where a scene build's own player jumps: a jump covers 32 pixels, so
+    // far enough before each gap to come down on the other side (the first
+    // bell rope, the far edge of a pit).
+    public bool IsJumpPoint(ulong x)
+    {
+        if (wallType_ == WallType.RowOfBells)
+            return x == 90;
+        if (wallType_ == WallType.EmptyPits || wallType_ == WallType.KnightPits)
+            return x == 88 || x == 160 || x == 232;
+        return x == 100;
+    }
+#endif
 
     public bool IsHole(ulong x)
     {
@@ -180,7 +221,7 @@ class Wall : GameObject
         if (wallType_ != WallType.KnightPits)
             return;
         speedCounter_++;
-        if (speedCounter_ < 2)
+        if (speedCounter_ < 6)
             return;
         speedCounter_ = 0;
         frameCounter_++;
@@ -243,35 +284,25 @@ class Wall : GameObject
         BuildBellColumn(21);
         BuildBellColumn(25);
 
-        C64.Screen.SetChar(15, 3, BellLedge, Colors.Grey2);
-        C64.Screen.SetChar(16, 3, BellLedge, Colors.Grey2);
-        C64.Screen.SetChar(19, 3, BellLedge, Colors.Grey2);
-        C64.Screen.SetChar(20, 3, BellLedge, Colors.Grey2);
-        C64.Screen.SetChar(23, 3, BellLedge, Colors.Grey2);
-        C64.Screen.SetChar(24, 3, BellLedge, Colors.Grey2);
+        Screen.Put(15, 3, BellLedge, Colors.Grey2);
+        Screen.Put(16, 3, BellLedge, Colors.Grey2);
+        Screen.Put(19, 3, BellLedge, Colors.Grey2);
+        Screen.Put(20, 3, BellLedge, Colors.Grey2);
+        Screen.Put(23, 3, BellLedge, Colors.Grey2);
+        Screen.Put(24, 3, BellLedge, Colors.Grey2);
     }
 
     private static void BuildBellColumn(uint x)
     {
-        C64.Screen.SetChar(x, 3, BellUL, Colors.Grey2);
-        C64.Screen.SetChar(x + 1, 3, BellUR, Colors.Grey2);
-        C64.Screen.SetChar(x, 4, BellLL, Colors.Grey2);
-        C64.Screen.SetChar(x + 1, 4, BellLR, Colors.Grey2);
-        // BellRope's only lit pixel uses multicolor bit-pair "10"
-        // (background color 2) -- real VIC-II sprite-background collision
-        // only fires for the "11" (individual/foreground) plane in
-        // multicolor character mode, so under Grey2 (a multicolor color,
-        // bit 3 set) this glyph is visible but never collision-opaque,
-        // which is why the player could walk straight through it with no
-        // grab at all. White is a hires (non-multicolor) color -- in hires
-        // mode any lit bit uses the individual/foreground color directly,
-        // so the same glyph becomes genuinely touchable. This is what
-        // Player.Move()'s grab logic actually depends on (background
-        // collision while in the row-of-bells zone), so it has to be a
-        // hires color here regardless of the bell icons above, which are
-        // fine as Grey2 since their bitmaps are mostly "11" pixels already.
+        Screen.Put(x, 3, BellUL, Colors.Grey2);
+        Screen.Put(x + 1, 3, BellUR, Colors.Grey2);
+        Screen.Put(x, 4, BellLL, Colors.Grey2);
+        Screen.Put(x + 1, 4, BellLR, Colors.Grey2);
+        // The rope, in the original's own colour. (Its pixels are the bit
+        // pair 10, which the VIC does count as foreground for sprite
+        // collisions: only 00 and 01 are background.)
         for (uint y = 5; y < 11; y++)
-            C64.Screen.SetChar(x, y, BellRope, Colors.White);
+            Screen.Put(x, y, BellRope, Colors.Grey2);
     }
 
     private static void BuildRopePit()
@@ -280,48 +311,48 @@ class Wall : GameObject
         {
             for (uint y = 11; y < 21; y++)
             {
-                C64.Screen.SetChar(x, y, Space, Colors.Black);
+                Screen.Put(x, y, Space, Colors.Black);
             }
-            C64.Screen.SetChar(x, 21, FireChar, Colors.Red);
+            Screen.Put(x, 21, FireChar, Colors.Red);
         }
 
         for (uint y = 12; y < 22; y++)
         {
-            C64.Screen.SetChar(11, y, Wall3DChar, Colors.Red);
+            Screen.Put(11, y, Wall3DChar, Colors.Red);
         }
-        C64.Screen.SetChar(11, 11, Wall3DTopChar, Colors.Red);
+        Screen.Put(11, 11, Wall3DTopChar, Colors.Red);
     }
 
     private static void KnightPitFrame1(uint x)
     {
-        C64.Screen.SetChar(x, 8, 0x20, Colors.LightRed);
-        C64.Screen.SetChar(x, 9, 0x20, Colors.LightRed);
-        C64.Screen.SetChar(x, 10, 0x45, Colors.LightRed);
-        C64.Screen.SetChar(x, 11, 0x47, Colors.LightRed);
-        C64.Screen.SetChar(x, 12, 0x4f, Colors.LightRed);
-        C64.Screen.SetChar(x, 13, 0x50, Colors.LightRed);
-        C64.Screen.SetChar(x, 14, 0x51, Colors.LightRed);
+        Screen.Put(x, 8, 0x20, Colors.LightRed);
+        Screen.Put(x, 9, 0x20, Colors.LightRed);
+        Screen.Put(x, 10, 0x45, Colors.LightRed);
+        Screen.Put(x, 11, 0x47, Colors.LightRed);
+        Screen.Put(x, 12, 0x4f, Colors.LightRed);
+        Screen.Put(x, 13, 0x50, Colors.LightRed);
+        Screen.Put(x, 14, 0x51, Colors.LightRed);
     }
 
     private static void KnightPitFrame2(uint x)
     {
-        C64.Screen.SetChar(x, 8, 0x20, Colors.LightRed);
-        C64.Screen.SetChar(x, 9, 0x45, Colors.LightRed);
-        C64.Screen.SetChar(x, 10, 0x46, Colors.LightRed);
-        C64.Screen.SetChar(x, 11, 0x47, Colors.LightRed);
-        C64.Screen.SetChar(x, 12, 0x52, Colors.LightRed);
-        C64.Screen.SetChar(x, 13, 0x53, Colors.LightRed);
-        C64.Screen.SetChar(x, 14, 0x54, Colors.LightRed);
+        Screen.Put(x, 8, 0x20, Colors.LightRed);
+        Screen.Put(x, 9, 0x45, Colors.LightRed);
+        Screen.Put(x, 10, 0x46, Colors.LightRed);
+        Screen.Put(x, 11, 0x47, Colors.LightRed);
+        Screen.Put(x, 12, 0x52, Colors.LightRed);
+        Screen.Put(x, 13, 0x53, Colors.LightRed);
+        Screen.Put(x, 14, 0x54, Colors.LightRed);
     }
 
     private static void KnightPitFrame3(uint x)
     {
-        C64.Screen.SetChar(x, 8, 0x45, Colors.LightRed);
-        C64.Screen.SetChar(x, 9, 0x46, Colors.LightRed);
-        C64.Screen.SetChar(x, 10, 0x46, Colors.LightRed);
-        C64.Screen.SetChar(x, 11, 0x56, Colors.LightRed);
-        C64.Screen.SetChar(x, 12, 0x55, Colors.LightRed);
-        C64.Screen.SetChar(x, 13, 0x57, Colors.LightRed);
-        C64.Screen.SetChar(x, 14, 0x58, Colors.LightRed);
+        Screen.Put(x, 8, 0x45, Colors.LightRed);
+        Screen.Put(x, 9, 0x46, Colors.LightRed);
+        Screen.Put(x, 10, 0x46, Colors.LightRed);
+        Screen.Put(x, 11, 0x56, Colors.LightRed);
+        Screen.Put(x, 12, 0x55, Colors.LightRed);
+        Screen.Put(x, 13, 0x57, Colors.LightRed);
+        Screen.Put(x, 14, 0x58, Colors.LightRed);
     }
 }

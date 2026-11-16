@@ -64,6 +64,31 @@ namespace C64Lib
             // frame. Consecutive calls are one video frame (1/50 s PAL)
             // apart.
             public static void WaitForVBlank() { }
+
+            // Waits for the raster beam to start line `line` (0-255) of a
+            // frame. The first text row is lines 51-58, row r starts at line
+            // 51 + 8 * r; line 251 is the bottom border.
+            public static void WaitForRasterLine(uint line) { }
+
+            // Text screen: moves a rectangle of cells -- characters and
+            // colours -- one column to the left / right, and fills the
+            // column that comes free from newChars / newColours: the
+            // addresses of that column's cell for the rectangle's first row,
+            // the next rows' cells 40 bytes further on each (a column of an
+            // off-screen copy of the screen, laid out like the screen).
+            //
+            // About 1130 cycles per row of 40 cells: a whole screen takes a
+            // little more than a video frame. For a step that does not tear,
+            // start it just after the beam has passed the rectangle's first
+            // row:
+            //
+            //     C64.Screen.WaitForRasterLine(51 + 8 * row + 9);
+            //     C64.Screen.ScrollTextLeft(0, row, 40, height, chars, colours);
+            //
+            // The copy then follows the beam down the screen and is done
+            // with every row before the beam is back at it.
+            public static void ScrollTextLeft(uint column, uint row, uint width, uint height, ulong newChars, ulong newColours) { }
+            public static void ScrollTextRight(uint column, uint row, uint width, uint height, ulong newChars, ulong newColours) { }
             public static void SetChar(uint x, uint y, uint ch, Colors colors = Colors.LightBlue) { }
             public static int GetChar(uint x, uint y) => 0;
             public static void Write(uint x, uint y, string s, Colors colors = Colors.LightBlue) { }

@@ -85,11 +85,15 @@ class ILRawAssemblyPass : ICompilerPass
                         spriteDocumentCache[spriteAttr.Resource] = sprites;
                     }
 
-                    if (spriteAttr.Index < 0 || spriteAttr.Index >= sprites.Count)
+                    if (spriteAttr.Index < 0 || spriteAttr.Count < 1 || spriteAttr.Index + spriteAttr.Count > sprites.Count)
                         throw new InvalidOperationException(
-                            $"Sprite index {spriteAttr.Index} out of range for '{spriteAttr.Resource}' ({sprites.Count} sprites).");
+                            $"Sprites {spriteAttr.Index}..{spriteAttr.Index + spriteAttr.Count - 1} out of range for '{spriteAttr.Resource}' ({sprites.Count} sprites).");
 
+                    // The first carries the label; the rest follow it, each
+                    // a full 64-byte block.
                     WriteSprite(outputFile, sprites[spriteAttr.Index], spriteAttr.Label);
+                    for (int n = 1; n < spriteAttr.Count; n++)
+                        WriteSprite(outputFile, sprites[spriteAttr.Index + n], $"{spriteAttr.Label}_{n}");
                     // In the high graphics layout the VIC looks at bank 3,
                     // where in-line data is invisible.
                     outputFile.WriteLine($".cerror GRAPHICS_HIGH, \"[RawSprite] '{spriteAttr.Label}' is stored in line, where the VIC cannot see it in a program that uses bitmap graphics. Use [RawSprites] (tools/c64spr.py) instead.\"");

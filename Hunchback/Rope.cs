@@ -47,7 +47,7 @@ class Rope : GameObject
     public override void Move()
     {
         counter_++;
-        if (counter_ < 2)
+        if (counter_ < 6)
             return;
         counter_ = 0;
 

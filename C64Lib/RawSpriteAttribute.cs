@@ -34,6 +34,11 @@ namespace C64Lib
         }
         public string Resource { get; set; }
         public int Index { get; set; }
+        // How many sprites to import, starting at Index: they follow each
+        // other in memory, 64 bytes apiece, under the one label -- so sprite
+        // Index + n is at spt_<Label> + 64 * n, and its sprite pointer
+        // (Sprite.Frame) is spt_<Label> / 64 + n.
+        public int Count { get; set; } = 1;
         public string Label { get; set; }
         public int Order { get; set; } = 255;
     }

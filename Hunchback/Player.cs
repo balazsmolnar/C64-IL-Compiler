@@ -12,7 +12,6 @@ class Player
     private bool jump_;
     private bool jumpFromRope_;
     private bool onBell_;
-    private uint bellGrabCooldown_;
     public bool Dead;
     public bool OnRope;
     public Rope Rope;
@@ -20,26 +19,9 @@ class Player
     private Wall wall_;
     private int[] jumpOffsets_;
 
-    // Set once by LevelPlay.Play() when levelNumber == 47 -- Esmeralda's
-    // Tower's decorative tile block (LevelPlay.cs's DrawEsmereldaTower)
-    // sits at columns 32-39 (screen chars), rows 2-10 -- squarely inside
-    // the player's own jump-arc height (Y ranges ~97 at a jump's peak to
-    // 117 standing, both within that span) near the level's right side.
-    // Without this exception, brushing the tower's own (very real,
-    // hardware-collidable) character graphics triggered the same "touched
-    // a wall" death as any other background collision.
-    //
-    // X range recheck: the first cut of this fix used X>=276 as the
-    // tower's left edge, guessed from the column count rather than derived
-    // -- still died walking into the tower from the left, confirmed live.
-    // The correct column-to-X conversion is already established elsewhere
-    // in this file's own sibling (Wall.cs's "quasiX = bellColumn*8 - 10",
-    // verified there against all 4 tbl_BellRopeXOffset entries with zero
-    // rounding error). Applying it to the tower's own leftmost column (32):
-    // 32*8-10 = 246, not 280 -- the earlier guess was 30px too far right,
-    // leaving a real gap (X 246-276) where touching the tower still killed
-    // the player. 240 below gives a few pixels of margin for the sprite's
-    // own hitbox extending slightly left of its X coordinate.
+    // On a level that ends at Esmerelda's tower: its stones are background
+    // like any other, but touching them is not death (the original stops
+    // testing the background 24 pixels before the tower's first column).
     public bool IsEsmereldaLevel;
 
     public ulong X
@@ -136,17 +118,6 @@ class Player
                 jumpFromRope_ = true;
                 OnRope = false;
             }
-            if (onBell_)
-            {
-                // A jump that doesn't carry far enough horizontally can
-                // still be overlapping the same bell's rope once it lands
-                // (background collision is still true there), which would
-                // otherwise re-grab it immediately -- looks like "bouncing
-                // back" from the bar you just tried to leave. Block
-                // re-grabbing anything for a short window after release so
-                // there's always a real, visible gap in the grab.
-                bellGrabCooldown_ = 10;
-            }
             onBell_ = false;
             jump_ = true;
             jumpFrameCounter_ = 0;
@@ -163,70 +134,63 @@ class Player
             }
         }
 
-        // Grabbing a bell overrides normal left/right walking -- the player
-        // hangs at a fixed X until they jump (handled above, via
-        // onBell_ = false). Matches Quasi_RowOfBellsCollisionCheck exactly:
-        // staying grabbed only needs continued background collision (the
-        // snap below keeps the sprite touching the bell, which keeps
-        // collision true, which keeps it grabbed -- self-sustaining); the
-        // grab *zone* is only checked to start a new grab, not to remain in
-        // one, so grazing slightly outside it mid-hang doesn't drop you.
-        if (bellGrabCooldown_ > 0)
-            bellGrabCooldown_--;
-
-        if (onBellWall && !jump_ && backgroundCollision)
+        if (IsLeft)
         {
-            if (!onBell_ && bellGrabCooldown_ == 0 && wall_.IsRowOfBellsGrabZone(x_))
+            left_ = true;
+            if (!OnRope)
             {
-                onBell_ = true;
-                wall_.PlayBellSound(x_);
+                X -= 2;
+                frameCounter_++;
             }
-            if (onBell_)
-                X = wall_.GetBellSnapX(x_);
         }
-        else
+        if (IsRight)
         {
-            onBell_ = false;
-
-            if (IsLeft)
+            left_ = false;
+            if (!OnRope)
             {
-                left_ = true;
-                if (!OnRope)
-                {
-                    X -= 2;
-                    frameCounter_++;
-                }
-
-            }
-            if (IsRight)
-            {
-                left_ = false;
-                if (!OnRope)
-                {
-                    X += 2;
-                    frameCounter_++;
-                }
+                X += 2;
+                frameCounter_++;
             }
         }
         if (frameCounter_ == 4)
             frameCounter_ = 0;
 
+        // The row of bells, as the original plays it (Quasi.asm's
+        // Quasi_RowOfBellsCollisionCheck and Quasi_CheckCollision's
+        // .CheckBellPitFall). Touching a bell rope while not jumping grabs
+        // it: he hangs at that rope's own position, whatever the stick
+        // says, and its bell rings. A jump lets go, and carries him 32
+        // pixels -- exactly one rope on -- if the stick is held all the
+        // way. Between the ropes there is nothing to stand on: not
+        // jumping, not hanging and not within reach of a rope (the 11
+        // pixels to its right, where a jump from the last rope comes
+        // down), he falls.
+        if (onBellWall)
+        {
+            if (backgroundCollision && !jump_ && wall_.IsBellZone(x_))
+            {
+                if (!onBell_)
+                {
+                    onBell_ = true;
+                    wall_.PlayBellSound(x_);
+                }
+                X = wall_.GetBellSnapX(x_);
+            }
+            else
+            {
+                onBell_ = false;
+            }
+            if (!jump_ && !onBell_ && wall_.IsBellPit(x_))
+            {
+                Die();
+                return;
+            }
+        }
+
         if (Y == 117 && !jumpFromRope_ && wall_.IsHole(x_))
         {
             Die();
         }
-        // The original also kills the player for walking (not jumping)
-        // through the gaps between bell ropes without being grabbed onto
-        // one (Quasi_CheckCollision's .CheckBellPitFall) -- disabled again
-        // for now. The architecture matches what I can verify from the
-        // disassembly (position + onBell_ state, independent of live
-        // background collision), but the exact 11px "near enough to a rope"
-        // windows leave only a razor-thin, hard-to-verify-blind timing
-        // window to jump the ~14px approach gap, and it's made the level
-        // unplayable twice in a row now. Not worth guessing a third time --
-        // needs to be tuned against actual play. The gap is real (visible,
-        // via BuildRopePit) and the grab mechanic works; only this
-        // additional harsh fall-through-the-gap hazard is off.
         SetFrame();
 
     }
@@ -240,10 +204,12 @@ class Player
     }
     public void Die()
     {
-        while (Y < 250)
+        // He cries out, then falls (Quasi_Dying).
+        Sfx.Dying();
+        while (Y < 244)
         {
-            Y++;
-            C64.Delay(0);
+            Y += 6;
+            C64.Delay(1);
         }
         Dead = true;
         sprite_.Visible = false;
@@ -329,14 +295,30 @@ class Player
     private void LevelComplete()
     {
         Complete = true;
-        C64.Sound.PlayEffectReg2(WaveForm.Triangle, 0x4864UL, 0x1000UL, 0x0a, 0x00, false);
-        for (int x = 0; x < 127; x++)
-        {
-            for (int y = 0; y < 50; y++)
-            { }
-        }
-        C64.Sound.PlayEffectReg2(WaveForm.Triangle, 0x1264UL, 0x1000UL, 0x0a, 0x00, false);
     }
+
+    // Forgets what the sprite has touched so far. The VIC remembers every
+    // collision until it is asked: the wall that scrolled in through him,
+    // the "GET READY" text over a bell rope.
+    public void ClearCollisions()
+    {
+        var touched = sprite_.IsInCollision;
+        touched = sprite_.IsInBackgroundCollision;
+    }
+
+    // A step to the left with nothing else going on: back to the start of
+    // the next wall while it scrolls in. He keeps facing the way he is
+    // going to go, as in the original.
+    public void WalkLeft()
+    {
+        left_ = false;
+        X -= 2;
+        frameCounter_++;
+        if (frameCounter_ == 4)
+            frameCounter_ = 0;
+        SetFrame();
+    }
+
     private void InitJumpOffsets()
     {
         if (jumpOffsets_ != null)
@@ -347,12 +329,19 @@ class Player
         jumpOffsets_ = new int[] { 0, 6, 11, 14, 16, 18, 19, 20, 20, 19, 18, 16, 14, 11, 6, 0 };
     }
 
-    private bool IsLeft =>
-        C64.IsKeyPressed(Keys.A) || (C64.Joysticks.Joystick2.Pressed & JoystickButtons.Left) == JoystickButtons.Left;
+#if SCENE
+    // Scene builds play by themselves (see Game.cs): always to the right,
+    // jumping where the level needs it.
+    private bool IsLeft => false;
 
-    private bool IsRight =>
-        C64.IsKeyPressed(Keys.D) || (C64.Joysticks.Joystick2.Pressed & JoystickButtons.Right) == JoystickButtons.Right;
+    private bool IsRight => true;
 
-    private bool IsJump =>
-        C64.IsKeyPressed(Keys.W) || (C64.Joysticks.Joystick2.Pressed & JoystickButtons.Fire) == JoystickButtons.Fire;
+    private bool IsJump => OnRope || onBell_ || wall_.IsJumpPoint(x_);
+#else
+    private bool IsLeft => Input.Left;
+
+    private bool IsRight => Input.Right;
+
+    private bool IsJump => Input.Fire;
+#endif
 }

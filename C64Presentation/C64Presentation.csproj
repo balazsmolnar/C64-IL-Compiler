@@ -19,6 +19,8 @@
     <!-- -Scene ENGINE: the engine gallery (Slides/EngineGallery.cs) instead of
          the deck, with the art extras (section icons) and without the deck's
          own slides, so that it fits. It holds each slide like -Scene HOLD. -->
+    <!-- -Scene NAVTEST: AUTO plus a faked N and B press (Helper/KeyBoard.cs). -->
+    <DefineConstants Condition="'$(Scene)' == 'NAVTEST'">$(DefineConstants);SCENE_AUTO</DefineConstants>
     <DefineConstants Condition="'$(Scene)' == 'ENGINE'">$(DefineConstants);ART_EXTRAS;SCENE_HOLD</DefineConstants>
   </PropertyGroup>
   <Target Name="WriteSceneConfig" BeforeTargets="CoreCompile">

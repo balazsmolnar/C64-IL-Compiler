@@ -96,13 +96,13 @@ sealed class Bar
         if (length >= BarScale.Shortest)
         {
             Deck.Paint(scale.Column, row, (uint)((length + 7) / 8), 1, Theme.Or(Color, Theme.Accent), Theme.Background);
-            for (ulong done = 0; done < length;)     // grows two cells a frame when live
+            for (ulong done = 0; done < length && !KeyBoard.Jumping;)     // grows two cells a frame when live
             {
                 ulong next = live && done + 16 < length ? done + 16 : length;
                 Screen.Fill(x0 + done, y + 1, x0 + next - 1, y + 6);
                 done = next;
                 if (live)
-                    C64.Screen.WaitForVBlank();
+                    Deck.Wait(1);
             }
         }
         ulong end = scale.Outline ? Screen.Px(scale.Cells) + 8 : scale.Length(valueAfter);

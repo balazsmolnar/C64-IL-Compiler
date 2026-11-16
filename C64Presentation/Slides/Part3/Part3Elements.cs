@@ -88,11 +88,13 @@ sealed class HiddenSlideKey : SlideElement
         Deck.Reveal();
         while (!KeyBoard.AdvancePressed())
         {
-            KeyBoard.Frame();
+            Deck.Wait(1);
             if (!KeyBoard.Pressed(Keys.D))
                 continue;
             Show(Appendix, hidden: true);
-            KeyBoard.WaitForKeys();
+            KeyBoard.WaitForAdvance();
+            if (KeyBoard.Jumping)
+                return;
             Show(Return, hidden: false);
         }
     }

@@ -75,10 +75,9 @@ sealed class ThankYouSlide : Slide
                     shown[slotIndex] = digit;
                 }
             }
-            if (remaining == 0)
+            if (remaining == 0 || KeyBoard.Jumping)
                 break;
-            for (uint frame = 0; frame < FramesPerStep; frame++)
-                KeyBoard.Frame();
+            Deck.Wait(FramesPerStep);
         }
     }
 
@@ -120,9 +119,9 @@ static class Logos
         for (ulong offset = Travel; ; offset -= offset / 5 + 1)
         {
             Place(CommodoreX + offset, CSharpX - offset);
-            if (offset == 0)
+            if (offset == 0 || KeyBoard.Jumping)
                 break;
-            KeyBoard.Frame();
+            Deck.Wait(1);
             if (offset == Travel)
                 Sprites.SetVisible(true);
         }

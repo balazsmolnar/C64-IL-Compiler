@@ -528,10 +528,17 @@ Add: 39 bytes -> 12
 Hunchback: -24%, same C#
 ```
 
-- **Visual:** section background. Under the line, small and grey:
-  `.weak Flag_X` (the asm mechanism that links a routine only when used).
-- **Build:** on entry line 1. Press 1: line 2. Press 2: line 3 (the
-  numbers "12" and "-24%" in the accent colour).
+- **Visual (as built):** the section master with the number `06` (DECK's
+  section 6; slide 9's section keeps `05`) and the chart icon, its base
+  line level with the number's. Line 1 is the subtitle (row 15);
+  `.weak Flag_X` (the asm mechanism that links a routine only when used)
+  directly under it in the code face, Grey2 (row 16). Lines 2 and 3 are
+  two stat tiles side by side (cells 2-18 and 21-37): a figure in the 16 px
+  face on rows 18-19, `39 -> 12` (the "12" in the accent colour) and
+  `-24%` (accent), over a Grey3 caption on row 20, `bytes for Add` and
+  `Hunchback, same C#`. So the tiles split each line into figure and
+  caption.
+- **Build:** on entry line 1. Press 1: tile 1. Press 2: tile 2.
 - **Say:** "One rule for every optimization and feature: a program that does
   not use it pays nothing. Within that rule the compiler got much tighter:
   the one-line Add from slide 7 went from 39 bytes to 12, and Hunchback,
@@ -578,7 +585,9 @@ The body never runs as .NET
 - **Visual:** code panel; `5` and `6` in the `[TestCase]` line and in text
   line 2 in the accent colour (the same two numbers travel through the
   next slide). A small NUnit-style green tick beside `[TestCase]` on the
-  last press.
+  last press. As built: the code face changes colour only on a cell edge
+  (every 4 characters), so the colour cut itself is the space before `5`
+  and `6`, and the second `int`, which can't start on an edge, stays white.
 - **Build:** on entry the code. Presses 1-3: one text line each; the tick
   with the third.
 - **Say:** "An ordinary NUnit test case: 5 in, 6 expected. But the method
@@ -609,16 +618,23 @@ The body never runs as .NET
 4 Run from $1000
 5 $20: 0 pass, $FF fail, $FE fault
 6 Message at $2E/$2F, value at $2C
-~730 test cases, all on 6502
+Over 700 test cases, all on 6502
 ```
 
-- **Visual:** left (cells 1-25): the six steps as a vertical flow with
-  small down-arrows; a violet box around steps 1-4 labelled
-  `RunInEmulatorAspect.OnInvoke` and a green box around steps 5-6
-  labelled `CopyResultFromEmulator`. Right (cells 28-38): a narrow memory
-  strip, top to bottom `$0020`, `$002C`, `$002E`, `$09E0`, `$09FE`,
-  `$1000`, each joined by a thin line to its step. Line 7 at the bottom in
-  the accent colour.
+  (Not "~730": `~` is the arrow glyph in the deck's fonts, and the count
+  keeps growing, 742 at `ee8ec86`.)
+
+- **Visual (as built):** left (cells 2-24): the six steps as a vertical
+  flow with small Grey2 down-arrows between them. Each group has a header
+  row above it in Grey3 with a small coloured chip: a violet chip and
+  `RunInEmulatorAspect.OnInvoke` (row 5) over steps 1-4, a green chip and
+  `CopyResultFromEmulator` (row 14) over steps 5-6. Right (cells 28-37): a
+  memory strip of six 2-row cards, top to bottom `$0020`, `$002C`,
+  `$002E` (green bars), `$09E0`, `$09FE`, `$1000` (violet bars), each
+  joined by a 1 px Grey2 leader from the end of its step's text (steps 2,
+  3, 4, 5 and 6; step 6 to two cards). The leaders cross, which is the
+  point: the test reaches into specific bytes. Line 7 on row 19 in the
+  accent colour. D on this slide shows the hidden appendix.
 - **Build:** on entry steps 1-2. Press 1: steps 3-4. Press 2: steps 5-6.
   Press 3: line 7.
 - **Say:** "PostSharp weaves an aspect into every test method at build
@@ -640,8 +656,8 @@ The body never runs as .NET
   Assembly-wide weaving: `Test/assembly.cs` (`[assembly:
   RunInEmulatorAspect(AttributeTargetTypes = "Compiler.Test.*", ...)]`);
   PostSharp at build time: CLAUDE.md ("Running the full test suite").
-  ~730: `[Test]`/`[TestCase]` attributes counted at `5216d06`: 595 in
-  `Test/`, 134 in `Test.Runtime/`. Two compiled test programs exist
+  Over 700: `[Test]`/`[TestCase]` attributes counted at `5216d06`: 595 in
+  `Test/`, 134 in `Test.Runtime/` (742 at `ee8ec86`). Two compiled test programs exist
   (`prg/unittest.prg` for `Test/`, `prg/unittest_runtime.prg` for
   `Test.Runtime/`, named by `[assembly: UnitTestProgram(...)]`, CLAUDE.md);
   the slide shows the first.
@@ -663,10 +679,15 @@ github.com/balazsmolnar/
 C64-IL-Compiler
 ```
 
-- **Visual:** the C# and Commodore logo sprites (`sprites.asm`) settle
-  side by side above the title. "16 slides of C#, and still" on row 10;
-  "N,NNN BYTES FREE" centred in the large font in the accent colour, rows
-  12-13; the URL small on rows 18-19.
+- **Visual (as built):** the C# and Commodore logo sprites settle side by
+  side above the title, C# on the left as on the cover. "Thank you" in the
+  32 px face on rows 7-10; "16 slides of C#, and still" on row 12; "N,NNN
+  BYTES FREE" centred in the 32 px face in the accent colour, rows 14-17;
+  the URL on one line, small and grey, on row 20. The count-up has a fixed
+  3-cell slot per digit and a 1-cell comma, and redraws only the digits
+  that change, each with its cells hidden while it is drawn (about 15
+  steps, one frame apart). The line fits up to 4 digits with a 2-cell gap
+  before "BYTES FREE"; a 5-digit number fills the width with no gap.
 - **Build:** on entry the title and the URL. Press 1: line 1. Press 2:
   the number, counting up from 0 to its value in about a second; the talk
   ends on it.
@@ -724,7 +745,11 @@ Registers and
   level (the extension flattens `this`'s fields in, no `this` node):
   `bcx`, `cx_`, `velX_`, `cosAy_`, values shown as grey dots (no invented
   numbers). A small breadbox-blue square in the corner labelled `VICE`
-  with a thin line to the highlighted row (the stop).
+  with a thin line to the highlighted row (the stop). As built: the
+  editor's caption is the file name, the `VICE` tag sits in that tab row,
+  a light-blue elbow runs down the panel's right side to the stop line,
+  and the breakpoint dot sits on the panel's frame (the gutter). Shown as
+  a hidden slide: the footer has no slide number or progress bar.
 - **Build:** on entry the editor. Press 1: the red dot. Press 2: the
   yellow stop line and the `VICE` link. Press 3: the Variables panel.
   Presses 4-7: the feature lines in pairs.

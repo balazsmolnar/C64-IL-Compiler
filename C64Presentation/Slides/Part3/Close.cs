@@ -12,16 +12,16 @@ sealed class ThankYouSlide : Slide
     // Free memory before the heap of the final, combined deck (DECK.md slide
     // 16): $CC00 - the end of the last Data: segment - 1,080 (object tables,
     // locals stack, string buffers) - the static frames - 64 per sprite
-    // frame beyond 64, from C64Presentation\measure.bat's output. 16,066 is
+    // frame beyond 64, from C64Presentation\measure.bat's output. 13,371 is
     // the part-3-only build: the integrator re-measures the combined deck.
-    public const ulong BytesFree = 16066;
+    public const ulong BytesFree = 13371;
 
     const uint TitleRow = 7;
     const uint LeadRow = 12;
     const uint NumberRow = 14;
     const uint LinkRow = 20;
     const string Title = "Thank you";
-    const string Words = " BYTES FREE";
+    const string Words = "BYTES FREE";
     const ulong ScreenWidth = Screen.Columns * Theme.CellPixels;
 
     public override void Present()
@@ -39,45 +39,53 @@ sealed class ThankYouSlide : Slide
 
     public override void CleanUp() => Sprites.SetVisible(false);
 
-    // Count-up layout: one fixed slot per digit, as wide as a zero, and a
-    // comma after the thousands; the line is centred for the final number.
+    // Count-up layout, in whole cells so that each piece owns its cells: a
+    // 3-cell slot per digit (a 32 px digit is 20 px wide), a 1-cell comma
+    // after the thousands, a 2-cell gap and "BYTES FREE"; centred for the final number.
+    const uint SlotCells = 3;
+    const uint NumberRows = 4;
+    const uint WordGap = 2;             // cells between the number and the words
     const uint Blank = 10;              // a leading slot not reached yet
-    const uint FramesPerStep = 2;
     static readonly string[] Digits = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
 
-    // From 0 to BytesFree in about 25 steps of two frames (about a second),
-    // fast and then slowing. Each step redraws only the digits that changed,
-    // one glyph each, so the number is never seen half drawn.
+    // From 0 to BytesFree in about 15 steps, one frame apart (about a
+    // second), fast and then slowing. A step redraws only the digits that
+    // changed, each with its cells hidden while it is cleared and drawn, so
+    // no digit is ever seen half drawn.
     static void CountUp()
     {
         uint count = DigitCount(BytesFree);
-        ulong slot = Text.BigWidth("0"), comma = Text.BigWidth(",");
-        ulong width = count * slot + (count > 3 ? comma : 0) + Text.BigWidth(Words);
-        ulong left = (ScreenWidth - width) / 2;
-        ulong commaX = left + (count - 3) * slot;
-        Deck.Paint(0, NumberRow, Screen.Columns, 4, Theme.Accent, Theme.Background);
-        Text.Big(left + width - Text.BigWidth(Words), NumberRow, Words, Theme.Accent);
+        uint comma = count > 3 ? 1u : 0u;
+        uint digitCells = count * SlotCells + comma;
+        uint wordCells = (uint)((Text.BigWidth(Words) + Theme.CellPixels - 1) / Theme.CellPixels);
+        uint spare = Screen.Columns - digitCells - wordCells;
+        uint gap = spare < WordGap ? spare : WordGap;           // narrower only for 5 digits
+        uint cells = digitCells + gap + wordCells;
+        uint left = (Screen.Columns - cells) / 2;
+        uint wordsColumn = left + digitCells + gap;
+        Hide(left, cells);
+        Text.Big(Screen.Px(wordsColumn), NumberRow, Words, Theme.Background, Theme.Background);
+        Show(wordsColumn, cells - (wordsColumn - left));
         uint[] shown = [Blank, Blank, Blank, Blank, Blank];   // ulong is 16 bits: 5 digits at most
-        for (ulong remaining = BytesFree; ; remaining -= remaining / 3 + 1)
+        for (ulong remaining = BytesFree; ; remaining -= remaining / 2 + 1)
         {
             ulong value = BytesFree - remaining;
-            if (count > 3 && value >= 1000 && shown[count - 4] == Blank)
-                Text.Big(commaX, NumberRow, ",", Theme.Accent);
+            if (comma != 0 && value >= 1000 && shown[count - 4] == Blank)
+                DrawSlot(left + (count - 3) * SlotCells, 1, ",");
             for (uint i = 0; i < count; i++)     // from the right
             {
-                uint slotIndex = count - 1 - i;
+                uint slot = count - 1 - i;
                 uint digit = i != 0 && value == 0 ? Blank : (uint)(value % 10);
                 value /= 10;
-                if (digit != shown[slotIndex])
-                {
-                    ulong x = left + slotIndex * slot + (count > 3 && slotIndex >= count - 3 ? comma : 0);
-                    DrawDigit(x, slot, digit);
-                    shown[slotIndex] = digit;
-                }
+                if (digit == shown[slot])
+                    continue;
+                shown[slot] = digit;
+                uint column = left + slot * SlotCells + (slot >= count - 3 ? comma : 0);
+                DrawSlot(column, SlotCells, digit == Blank ? "" : Digits[digit]);
             }
             if (remaining == 0 || KeyBoard.Jumping)
                 break;
-            Deck.Wait(FramesPerStep);
+            Deck.Wait(1);
         }
     }
 
@@ -89,16 +97,19 @@ sealed class ThankYouSlide : Slide
         return count;
     }
 
-    // One slot: cleared, then its digit centred in it (Blank: left empty).
-    static void DrawDigit(ulong x, ulong slot, uint digit)
+    // One slot: hidden, cleared, its glyph centred in it, shown again.
+    static void DrawSlot(uint column, uint width, string glyph)
     {
-        ulong top = Screen.Px(NumberRow);
-        C64.Screen.DrawRectangle(x, top, x + slot - 1, top + Screen.Px(4) - 1, true, false);
-        if (digit == Blank)
-            return;
-        string glyph = Digits[digit];
-        Text.Big(x + (slot - Text.BigWidth(glyph)) / 2, NumberRow, glyph, Theme.Accent);
+        Hide(column, width);
+        Screen.ClearRect(column, NumberRow, width, NumberRows);
+        ulong x = Screen.Px(column), space = Screen.Px(width), glyphWidth = Text.BigWidth(glyph);
+        Text.Big(glyphWidth < space ? x + (space - glyphWidth) / 2 : x, NumberRow, glyph, Theme.Background, Theme.Background);
+        Show(column, width);
     }
+
+    static void Hide(uint column, uint width) => Deck.Paint(column, NumberRow, width, NumberRows, Theme.Background, Theme.Background);
+
+    static void Show(uint column, uint width) => Deck.Paint(column, NumberRow, width, NumberRows, Theme.Accent, Theme.Background);
 }
 // The C# and Commodore logo sprites (Helper/Sprites), sliding in from the
 // sides and settling side by side above the title, C# on the left.

@@ -63,7 +63,7 @@ static class Master
     {
         Text.Big(ContentLeft, 4, number, Theme.Muted);
         if (icon != 0)
-            C64.Screen.DrawImage(Theme.Right - 6, 3, icon);
+            C64.Screen.DrawImage(Theme.Right - 6, 1, icon);     // its base line level with the number's
         Text.Big(ContentLeft, 10, title);
         Text.Draw(ContentLeft, 15, subtitle, Theme.Body);
         Footer();

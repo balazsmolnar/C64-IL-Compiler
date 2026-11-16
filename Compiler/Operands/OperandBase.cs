@@ -1838,7 +1838,7 @@ class OpSwitch : OpBase
 
     public override string Emit(CompilerMethodContext context, ILOperation operation)
     {
-        return $"#switch {context.Method.GetLabel()}_Jump_{operation.Position}";
+        return $"#switch {context.Method.GetLabel()}_Jump_{operation.Position}, {((List<int>)operation.RawParameter).Count}";
     }
 
     public override void SetStackContent(CompilerMethodContext context, ILOperation operation)

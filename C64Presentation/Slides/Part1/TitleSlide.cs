@@ -57,22 +57,25 @@ sealed class TitleSlide : Slide
         Text.Code(Column, Row + 1, Line2, Theme.Heading);
 
         Type(0, Line1);
-        WaitFrames(FramesPerLineBreak);
+        Deck.Wait(FramesPerLineBreak);
         Type(1, Line2);
         C64.Sprites.VisibleMask = CursorOnly;
 
-        // The cursor blinks until the presenter moves on.
+        // The cursor blinks until the presenter moves on (SPACE, or N / B:
+        // every wait goes through Deck and KeyBoard). It goes before the
+        // slide fades out.
         uint frames = 0;
         bool lit = true;
         while (!KeyBoard.AdvancePressed())
         {
-            C64.Screen.WaitForVBlank();
+            Deck.Wait(1);
             if (++frames < BlinkFrames)
                 continue;
             frames = 0;
             lit = !lit;
             C64.Sprites.VisibleMask = lit ? CursorOnly : 0u;
         }
+        C64.Sprites.VisibleMask = 0;
     }
 
     public override void CleanUp()
@@ -91,7 +94,7 @@ sealed class TitleSlide : Slide
         {
             Mask(line, x);
             C64.Sprites[CursorSprite].Place(SpriteLeft + x, SpriteTop + (uint)Screen.Px(Row + line), CursorFrame, Theme.Accent);
-            WaitFrames(FramesPerKey);
+            Deck.Wait(FramesPerKey);
             x += Pitch;
         }
     }
@@ -103,11 +106,5 @@ sealed class TitleSlide : Slide
         uint sprite = FirstMask + 2 * line;
         C64.Sprites[sprite].Place(SpriteLeft + x, y, MaskFrame, Theme.Background);
         C64.Sprites[sprite + 1].Place(SpriteLeft + x + MaskWidth, y, MaskFrame, Theme.Background);
-    }
-
-    static void WaitFrames(uint frames)
-    {
-        for (uint i = 0; i < frames; i++)
-            C64.Screen.WaitForVBlank();
     }
 }

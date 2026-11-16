@@ -5,14 +5,16 @@ namespace C64Presentation.Slides;
 // A Catacombs character as hardware sprites: a multicolour top and, for
 // those that walk, legs one sprite (21 px) under it, placed by the point
 // between its feet in bitmap pixels as in the game (Catacombs/SpriteStage).
-// It goes back and forth along its beat (or, if it Wraps, round again from
-// the start), a pixel every Pace + 1 frames, cycling its frames (numbers in
-// the "Cast" sheet, art/slides/make_room.py) as it goes.
+// It goes back and forth along its beat, From to To on x (or on y if
+// Vertical; or, if it Wraps, round again from From), a pixel every Pace + 1
+// frames, cycling its frames (numbers in the "Cast" sheet,
+// art/slides/make_room.py) as it goes. X or Y is where it stands across
+// the beat.
 sealed class Actor
 {
     const ulong SpriteLeft = 12;      // register x = feet x + 12: 24 px wide, centred
     const uint LegsBelow = 21;
-    const int FramesPerPose = 3;      // the cycle moves on every 8 video frames
+    const int PoseShift = 3;          // the cycle moves on every 8 video frames
 
     public required uint Sprite { get; init; }      // the top's hardware sprite; the legs' is the next
     public required Colors Color { get; init; }
@@ -26,35 +28,33 @@ sealed class Actor
     public bool Wraps { get; init; }
     public required ulong From { get; init; }
     public required ulong To { get; init; }
-    public ulong X { get; set; }
-    public uint Y { get; set; }
+    public ulong X { get; init; }
+    public uint Y { get; init; }
 
-    ulong at;
-    bool back;
+    ulong _at;
+    bool _back;
+
+    public void Start() => _at = From;
 
     public void Step(uint tick)
     {
         if ((tick & Pace) == 0)
         {
-            at = at < From ? From : back ? at - 1 : at + 1;     // (starts at 0: below any beat but the first)
-            if (at == To)
+            _at = _back ? _at - 1 : _at + 1;
+            if (_at == To)
             {
-                back = !Wraps;
+                _back = !Wraps;
                 if (Wraps)
-                    at = From;
+                    _at = From;
             }
-            else if (at == From)
-                back = false;
-            if (Vertical)
-                Y = (uint)at;
-            else
-                X = at;
+            else if (_at == From)
+                _back = false;
         }
 
-        uint pose = (tick >> FramesPerPose) & (Poses - 1);
+        uint pose = (tick >> PoseShift) & (Poses - 1);
         uint cast = (uint)C64Address.FromLabel("frm_Cast");
-        ulong x = X + SpriteLeft;
-        uint y = Y + Lift;
+        ulong x = (Vertical ? X : _at) + SpriteLeft;
+        uint y = (Vertical ? (uint)_at : Y) + Lift;
         if (LegsColor == Colors.Black)
         {
             C64.Sprites[Sprite].Place(x, y, cast + Top + pose, Color);

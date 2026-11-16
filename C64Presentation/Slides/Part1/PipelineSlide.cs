@@ -5,8 +5,8 @@ namespace C64Presentation.Slides;
 
 // Slide 5: the toolchain as a snake on a three-slot grid. Top row, left to
 // right: C#, IL, under a violet "Roslyn" bracket (.NET's half); the
-// compiler's arrow runs over the empty third slot and turns down, under a
-// cyan "ours" bracket. Bottom row, right to left: .asm, .prg (cyan); under
+// compiler's arrow runs over the empty third slot and turns down, over a
+// cyan "ours: 46 passes" bracket. Bottom row, right to left: .asm, .prg (cyan); under
 // .prg, two short arrows from its edges to where it runs (yellow).
 static class PipelineSlide
 {
@@ -18,7 +18,7 @@ static class PipelineSlide
     const uint Turn = Slot3 + 3;                     // the compiler arrow's way down
     const uint Brackets = Top + BoxHeight, BracketNames = Brackets + 1;
     const uint OursFrom = Slot2End + 1;
-    const uint RoslynName = 11, OursName = Turn - 6, Passes = Turn - 7;   // centred under their spans
+    const uint RoslynName = 11, OursName = OursFrom;                     // centred under their rules
     const uint Vice = Slot2 - 2, C64 = Slot2End - 3, TargetWidth = 5;     // centred on the two arrows
 
     public static Slide Create() => new SimpleSlide
@@ -34,9 +34,8 @@ static class PipelineSlide
             new TextElement { X = RoslynName, Y = BracketNames, Text = "Roslyn", Color = Theme.Brand },
 
             new Arrow { FromCol = Slot2End, FromRow = TopArrow, ToCol = Turn, ToRow = Bottom - 1, Text = "Compiler.exe", Wait = true },
-            new TextElement { X = Passes, Y = Top + 2, Text = "46 passes", Color = Theme.Accent },
             new Rule { X = OursFrom, Y = Brackets, Length = Turn - OursFrom, Color = Theme.Accent },
-            new TextElement { X = OursName, Y = BracketNames, Text = "ours", Color = Theme.Accent },
+            new TextElement { X = OursName, Y = BracketNames, Text = "ours: 46 passes", Color = Theme.Accent },
             new Box { X = Slot3, Y = Bottom, Width = SlotWidth, Height = BoxHeight, Text = ".asm" },
 
             new Arrow { FromCol = Slot3 - 1, FromRow = BottomArrow, ToCol = Slot2End, ToRow = BottomArrow, Text = "64tass", Wait = true },

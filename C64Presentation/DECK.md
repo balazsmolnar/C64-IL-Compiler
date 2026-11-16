@@ -283,7 +283,8 @@ Every error has a code and a hint
   this project) rather than the first draft's light green for .asm. The
   halves are labelled: a 1 px violet rule under C# and IL with `Roslyn`
   under it (built with press 1), and a cyan rule under the compiler
-  arrow's span with `ours` (press 2).
+  arrow's span with `ours: 46 passes` under it (press 2), in place of a
+  separate `46 passes` caption.
 - **Build:** on entry the C# box. Press 1: arrow + IL box (Roslyn's half).
   Press 2: arrow + "46 passes" + .asm box. Press 3: arrow + .prg box.
   Press 4: VICE and C64 boxes.
@@ -353,16 +354,16 @@ One line of C#: 39 bytes of 6502
 
 - **Visual (as built):** the stacks' names as Grey3 headers on row 5:
   "6502 stack, $0100" (left) and "localsStack, 256 B" (right). Two
-  stacks of three cards, 6 cells wide, two rows a card, rows 9-14. Left
+  stacks of three cards, 6 cells wide, two rows a card, rows 8-13. Left
   (cells 2-7, grey bars): "ret addr", "b", "a", with a short down arrow
-  into its top and "pha/pla" to the left of the arrow (row 7). Right
+  into its top and "pha/pla" to the left of the arrow (row 6). Right
   (cells 22-27, cyan bars): "ret addr", "a", "b", and a pointer arrow
   from a small yellow box "Y" (cells 30-36, "stackPointer" in grey under
   it) to the frame's top. A straight arrow from left to right, ending one
   cell before the right stack, labelled "pla, sta localsStack,y" centred
   over it (the prologue moving the return address and the arguments into
-  the frame). The three text lines on rows 16, 18 and 20 (the push arrow
-  needs rows 7-8, so they cannot move up to 15/17/19).
+  the frame). The three text lines on rows 16, 18 and 20, with a blank
+  row under the stacks.
 - **Build:** on entry the left stack and line 1. Press 1: the right stack,
   the arrow and line 2. Press 2: line 3 in the accent colour.
 - **Say:** "Values being computed live on the hardware stack; arguments and
@@ -404,8 +405,9 @@ Catacombs: 3,477 lines of C#
   (Catacombs' four flame frames, a random one on alternating torches every
   fourth frame), and three of the game's characters move as hardware
   sprites with the game's frames and colours: the adventurer walks across
-  the front, the skeleton guardian paces in the doorway, a bat flits along
-  the far wall. The facts fade in on presses 1-2 while it runs; the
+  the front, the skeleton guardian paces in the doorway (only as near as
+  y 140, so the adventurer always passes in front), a bat flits along
+  the torch-lit band between the torches (black on orange, x 96-224). The facts fade in on presses 1-2 while it runs; the
   sprites are hidden before the fade-out.
 - **Build:** on entry the picture and the title. Presses 1-2: one line
   each.

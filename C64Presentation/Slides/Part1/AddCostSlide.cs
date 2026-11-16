@@ -10,8 +10,8 @@ namespace C64Presentation.Slides;
 static class AddCostSlide
 {
     const uint Header = 5;                // the stacks' names
-    const uint Push = 7;                  // "pha/pla" and its arrow into the stack
-    const uint Cell1 = 9, Cell2 = 11, Cell3 = 13;   // the stacks' cells, two rows each
+    const uint Push = 6;                  // "pha/pla" and its arrow into the stack
+    const uint Cell1 = 8, Cell2 = 10, Cell3 = 12;   // the stacks' cells, two rows each (a blank row before the lines)
     const uint Hardware = Theme.Left;     // the 6502 stack's column
     const uint Locals = 22;               // localsStack's column
     const uint Pointer = 30;              // the Y register box

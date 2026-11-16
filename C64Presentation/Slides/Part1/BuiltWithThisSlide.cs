@@ -26,9 +26,21 @@ sealed class BuiltWithThisSlide : Slide
     // The Cast sheet (make_room.py): the adventurer's top and four leg
     // frames, the guardian's top and two, the bat's four wing beats.
     const uint Hero = 0, HeroLegs = 1, Guard = 5, GuardLegs = 6, Bat = 8;
+    const uint HeroPoses = 4, GuardPoses = 2, BatPoses = 4;
+    // Hardware sprites, nearest first (a lower number is drawn in front).
+    const uint HeroSprite = 0, GuardSprite = 2, BatSprite = 4;
+    // Register y of each top above the feet, as in the game (SpriteStage parts).
+    const uint HeroLift = 15, GuardLift = 12, BatLift = 42;
+    const uint Walk = 1, Patrol = 3;                // paces: a pixel every 2 / 4 frames
+    const uint HeroFloor = 156;                     // the front of the floor
     const ulong Offstage = 344;                     // past the right border: walk in again from the left
-    const uint PatrolFar = 128, PatrolNear = 152;   // the guardian's beat, floor y (as in the game)
-    const ulong BatLeft = 64, BatRight = 256;
+    // The guardian paces the doorway, x 160, nearer only to y 140, so the
+    // adventurer (y 156) always passes in front of him.
+    const ulong Doorway = 160, PatrolFar = 128, PatrolNear = 140;
+    // The bat stays on the torch-lit band between the torches: black on
+    // orange, never black on the dark blue stones.
+    const ulong BatLeft = 96, BatRight = 224;
+    const uint BatHeight = 64;
     const uint FlameRow = 7, LeftTorch = 13, RightTorch = 25;   // Catacombs' FLAME_CELLS
     const ulong FlameBytes = 54;    // the four flames are declared in a row, all this size (make_room.py checks)
     const uint Sprites = 0x1F;
@@ -67,21 +79,23 @@ sealed class BuiltWithThisSlide : Slide
         Actor[] cast =
         [
             // The adventurer walks across the front, in from the left again.
-            new() { Sprite = 0, Color = Colors.Red, LegsColor = Colors.Grey2, Top = Hero, Legs = HeroLegs, Poses = 4, Lift = 15, Pace = 1, Wraps = true, From = 0, To = Offstage, Y = 156 },
+            new() { Sprite = HeroSprite, Color = Colors.Red, LegsColor = Colors.Grey2, Top = Hero, Legs = HeroLegs, Poses = HeroPoses, Lift = HeroLift, Pace = Walk, Wraps = true, From = 0, To = Offstage, Y = HeroFloor },
             // The guardian paces towards us and back, slowly.
-            new() { Sprite = 2, Color = Colors.Grey3, LegsColor = Colors.Grey3, Top = Guard, Legs = GuardLegs, Poses = 2, Lift = 12, Pace = 3, Vertical = true, From = PatrolFar, To = PatrolNear, X = 160 },
+            new() { Sprite = GuardSprite, Color = Colors.Grey3, LegsColor = Colors.Grey3, Top = Guard, Legs = GuardLegs, Poses = GuardPoses, Lift = GuardLift, Pace = Patrol, Vertical = true, From = PatrolFar, To = PatrolNear, X = Doorway },
             // The bat flits along the far wall.
-            new() { Sprite = 4, Color = Colors.LightRed, Top = Bat, Poses = 4, Lift = 42, From = BatLeft, To = BatRight, Y = 64 },
+            new() { Sprite = BatSprite, Color = Colors.LightRed, Top = Bat, Poses = BatPoses, Lift = BatLift, From = BatLeft, To = BatRight, Y = BatHeight },
         ];
+        foreach (var actor in cast)
+            actor.Start();
         C64.Sprites.CommonColor1 = Colors.Black;
         C64.Sprites.CommonColor2 = Colors.Brown;
         C64.Sprites.MultiColorMask = Sprites;
         ulong flames = C64Address.FromLabel("img_RoomFlame0");
 
         bool held = false;
-        for (uint tick = 0; ; tick++)
+        for (uint tick = 0; !KeyBoard.Jumping; tick++)
         {
-            C64.Screen.WaitForVBlank();
+            Deck.Wait(1);
             foreach (var actor in cast)
                 actor.Step(tick);
             C64.Sprites.VisibleMask = Sprites;
@@ -90,19 +104,23 @@ sealed class BuiltWithThisSlide : Slide
             if ((tick & 3) == 0)
                 C64.Screen.DrawImage((tick & 4) == 0 ? LeftTorch : RightTorch, FlameRow, flames + FlameBytes * (C64.Random() & 3));
 
-            // SPACE / fire: the next fact fades in; after the last, the next slide.
+            // SPACE / fire (only through KeyBoard, so scene builds and N / B
+            // work here too): the next fact fades in; after the last, the
+            // next slide. N / B end the loop through KeyBoard.Jumping.
             bool pressed = KeyBoard.AdvancePressed();
-            if (pressed && !held)
+            if (pressed && !held && !KeyBoard.Jumping)
             {
                 if (shown == facts.Length)
-                    return;
+                    break;
                 Deck.Build(false);
                 facts[shown++].Draw();
                 Deck.Show();
             }
             held = pressed;
         }
+        C64.Sprites.VisibleMask = 0;        // gone before the slide fades out
     }
+
     public override void CleanUp()
     {
         C64.Sprites.VisibleMask = 0;

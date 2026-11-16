@@ -165,7 +165,8 @@ mc2=None, transparent=None, count=None, preview=None, quiet=False)`.
   in `Order`. Over the limit is a compile error.
 - `C64.Sprites.MultiColorMask` (bit n = sprite n is multicolour) and
   `C64.Sprites.BehindBackgroundMask` (bit n = sprite n goes behind the
-  picture's 10 and 11 pixels) set all eight sprites at once.
+  picture's 10 and 11 pixels) set all eight sprites at once; so do
+  `ExpandXMask` / `ExpandYMask` (double width / height) and `VisibleMask`.
 - **Gotcha:** `Sprite.MultiColor = false` does nothing (it can only switch
   multicolour on). Use `MultiColorMask`. The prototype's spiders are drawn
   multicolour by accident because of this.
@@ -296,7 +297,7 @@ mc2=None, transparent=None, count=None, preview=None, quiet=False)`.
 | `DrawText` (and the font copy) | 173 + 34 shared with the above |
 | `DrawTiles` | 129 + 34 shared with the above |
 | `SetSplit` + `ClearSplit` | about 260 |
-| `Sprite.Frame`, `MultiColorMask`, `BehindBackgroundMask` | about 15 each |
+| `Sprite.Frame`, `MultiColorMask`, `BehindBackgroundMask`, `ExpandXMask`, `ExpandYMask` | about 15 each |
 
 ## Limits and gotchas
 

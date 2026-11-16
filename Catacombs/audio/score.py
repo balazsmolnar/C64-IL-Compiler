@@ -133,6 +133,33 @@ def build(test=False):
                  wave=[(NOISE, 'c-7'), (PULSE, 'e-6'), (0, 'b-6'), ('jump', 1)])
     s.effect('weapon', 'fx_weapon', 'e-6', 38)
 
+    # The duel (Encounter.cs). In priority order, lowest first: the
+    # guardian's growl as it winds up for a blow is only a warning, and
+    # anything the player does may cut it short.
+    #
+    # Growl: a low sawtooth with a slow, uneven pitch wobble and breaths of
+    # noise in it, sinking; swells in and dies away.
+    s.instrument('fx_growl', ad=0x4A, sr=0xD7, wspd=3, slide=-2, gate=14,
+                 wave=[(SAW, 'a-1'), (0, 'a#1'), (NOISE, 'e-3'), (SAW, 'g#1'), (0, 'a-1'), (0, 'b-1'),
+                       (NOISE, 'd-3'), (SAW, 'a-1'), ('jump', 0)])
+    s.effect('growl', 'fx_growl', 'a-1', 60, duck=True)
+
+    # Ready: the raised blade catches the light -- one high, short ping.
+    # This is the moment to let go.
+    s.instrument('fx_ready', ad=0x05, sr=0x04, gate=3, wave=[(TRI, 'e-7'), (0, 'b-7')])
+    s.effect('ready', 'fx_ready', 'e-7', 7)
+
+    # Dodge: a rush of air, falling.
+    s.instrument('fx_dodge', ad=0x27, sr=0x06, wspd=2, gate=4,
+                 wave=[(NOISE, 'c-6'), (0, 'g-5'), (0, 'd-5'), (0, 'a-4'), (0, 'e-4')])
+    s.effect('dodge', 'fx_dodge', 'c-5', 12)
+
+    # Clang: the blow is turned aside -- a dull, short ring-modulated knock,
+    # lower than the sword's own ring and gone at once.
+    s.instrument('fx_clang', ad=0x07, sr=0x85, gate=6,
+                 wave=[(NOISE, 'c-7'), (0x14, 'd#6'), (0x15, 'd#6'), (0, 'a-6'), (0, 'd#6'), ('jump', 3)])
+    s.effect('clang', 'fx_clang', 'd#6', 14, duck=True)
+
     # Sword: two ticks of swish, then the clang -- re-gated at full level,
     # a ring-modulated triangle (voice 3 multiplied by voice 2's
     # oscillator: inharmonic, metallic) moving between B6 and F7, ringing
@@ -143,12 +170,12 @@ def build(test=False):
                        (0, 'f#7'), ('jump', 3)])
     s.effect('sword', 'fx_sword', 'b-6', 26, duck=True)
 
-    # Growl: a low sawtooth with a slow, uneven pitch wobble and breaths of
-    # noise in it, sinking; swells in and dies away.
-    s.instrument('fx_growl', ad=0x4A, sr=0xD7, wspd=3, slide=-2, gate=14,
-                 wave=[(SAW, 'a-1'), (0, 'a#1'), (NOISE, 'e-3'), (SAW, 'g#1'), (0, 'a-1'), (0, 'b-1'),
-                       (NOISE, 'd-3'), (SAW, 'a-1'), ('jump', 0)])
-    s.effect('growl', 'fx_growl', 'a-1', 60, duck=True)
+    # Crit: the sword's blow with a crack of noise in front, ringing a
+    # fifth higher and for longer.
+    s.instrument('fx_crit', ad=0x09, sr=0xF8, gate=14,
+                 wave=[(NOISE, 'c-7'), (0, 'c-6'), (0, 'c-5'), (0x14, 'f#7'), (0x15, 'f#7'), (0, 'b-7'), (0, 'f#7'),
+                       (0, 'b-6'), ('jump', 4)])
+    s.effect('crit', 'fx_crit', 'f#7', 40, duck=True)
 
     # Hurt: a crack of noise, then a pulse falling more than an octave
     # from F4.

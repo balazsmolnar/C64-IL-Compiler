@@ -942,13 +942,17 @@ def name_plate(text, cells=12, hi=YELLOW, lo=ORANGE):
 
 
 # ---------------------------------------------------------------------------
-# Sprites 6-7: eight hi-res frames, 24x21, one colour each
+# The sprites: thirteen hi-res frames, 24x21, one colour each, in two sheets
+# (enc_sprites: frames 0-7, enc_arm: 8-15)
 # ---------------------------------------------------------------------------
 # 0 eye: a hot core with sparks around it  1 eye, narrowed to a blazing slit
 # 2 3 the player's blade stroke, left and right half (shown double size)
 # 4 5 the guardian's claws, left and right half (shown double size)
-# 6 "MISS" (sprite 7 shows it again in black, as its shadow)
+# 6 "CRIT!" (sprite 7 shows it again in black, as its shadow)
 # 7 a spark burst
+# 8 the player's gauntlet and forearm  9 10 the sword and the axe it holds
+# 11 12 the claws mirrored (a blow from the right)
+# 13 14 15 the key that steps out of a blow's way, with an arrow: D right, A left, S back
 
 EYE = [
     "........................",
@@ -996,19 +1000,19 @@ EYE_NARROW = [
     "........................",
     "........................",
 ]
-MISS = [
+CRIT = [
     "........................",
     "........................",
     "........................",
     "........................",
     "........................",
-    "##...##.##..####...####.",
-    "###.###.##.##.....##....",
-    "#######.##.##.....##....",
-    "##.#.##.##..###....###..",
-    "##...##.##....##.....##.",
-    "##...##.##....##.....##.",
-    "##...##.##.####...####..",
+    ".###..####..##.######.##",
+    "##....##.##.##...##...##",
+    "##....##.##.##...##...##",
+    "##....####..##...##...##",
+    "##....##.#..##...##...##",
+    "##....##.##.##...##.....",
+    ".###..##.##.##...##...##",
     "........................",
     "........................",
     "........................",
@@ -1019,10 +1023,125 @@ MISS = [
     "........................",
     "........................",
 ]
+# The player's weapon arm (sprites 0-1, shown double size): the weapon, and
+# under it the gauntlet that holds it, on a forearm that comes in from the
+# screen's right edge. Bare-handed there is only the gauntlet.
+HAND = [
+    "..#########.............",
+    ".###########..#.........",
+    ".###########.###........",
+    "............####........",
+    ".###########.####.######",
+    ".###########.####.######",
+    ".............####.######",
+    ".###########.####.######",
+    ".###########.####.######",
+    ".............####.######",
+    ".###########.####.######",
+    "..#########..###..######",
+    "....####......#.........",
+    "....####................",
+    ".....##.................",
+    "........................",
+    "........................",
+    "........................",
+    "........................",
+    "........................",
+    "........................",
+]
+SWORD = [
+    "...........##...........",
+    "..........####..........",
+    ".........######.........",
+    ".........##.###.........",
+    ".........##.###.........",
+    ".........##.###.........",
+    ".........##.###.........",
+    ".........##.###.........",
+    ".........##.###.........",
+    ".........##.###.........",
+    ".........##.###.........",
+    ".........##.###.........",
+    ".........##.###.........",
+    ".........##.###.........",
+    ".........######.........",
+    "..#.....########.....#..",
+    "..####################..",
+    "...##################...",
+    "..........####..........",
+    "..........####..........",
+    "..........####..........",
+]
+AXE = [
+    "...........###..........",
+    "....###....###..........",
+    "..######...###..........",
+    ".########..###..........",
+    ".#########.###..........",
+    ".#############.###......",
+    ".##.###############.....",
+    ".##.###############.....",
+    ".#############.###......",
+    ".#########.###..........",
+    ".########..###..........",
+    "..######...###..........",
+    "....###....###..........",
+    "...........###..........",
+    "...........###..........",
+    "...........###..........",
+    "...........###..........",
+    "...........###..........",
+    "...........###..........",
+    "...........###..........",
+    "...........###..........",
+]
+FRAMES = 16
+
+# The keys that step out of a blow's way, as 6x9 letters.
+KEY_GLYPHS = {
+    "D": ["#####.", "##..##", "##..##", "##..##", "##..##", "##..##", "##..##", "##..##", "#####."],
+    "A": [".####.", "##..##", "##..##", "##..##", "######", "##..##", "##..##", "##..##", "##..##"],
+    "S": [".#####", "##....", "##....", "##....", ".####.", "....##", "....##", "....##", "#####."],
+}
+
+
+def key_prompt(letter):
+    """24x21 rows: the letter and an arrow the way it steps."""
+    g = [[False] * 24 for _ in range(21)]
+
+    def glyph(x0, y0):
+        for j, row in enumerate(KEY_GLYPHS[letter]):
+            for i, ch in enumerate(row):
+                if ch == "#":
+                    g[y0 + j][x0 + i] = True
+    if letter == "S":
+        glyph(9, 0)
+        for y in range(10, 14):
+            for x in range(10, 14):
+                g[y][x] = True
+        for k in range(7):
+            for x in range(5 + k, 19 - k):
+                g[14 + k][x] = True
+    else:
+        glyph(1, 6)
+        for y in range(9, 12):
+            for x in range(9, 16):
+                g[y][x] = True
+        for k in range(7):
+            for y in range(4 + k, 17 - k):
+                g[y][16 + k] = True
+        if letter == "A":       # the arrow on the left, pointing left; the letter on the right
+            g = [row[::-1] for row in g]
+            for row in g:
+                for x in range(16, 24):
+                    row[x] = False
+            glyph(17, 6)
+    return ["".join("#" if c else "." for c in row) for row in g]
+
 
 
 def sprite_sheet():
-    sheet = Image.new("RGBA", (24 * 8, 21), (0, 0, 0, 0))
+    sheet = Image.new("RGBA", (24 * FRAMES, 21), (0, 0, 0, 0))
     on = P[1] + (255,)
 
     def put(frame, rows):
@@ -1032,7 +1151,10 @@ def sprite_sheet():
                     sheet.putpixel((frame * 24 + x, y), on)
     put(0, EYE)
     put(1, EYE_NARROW)
-    put(6, MISS)
+    put(6, CRIT)
+    put(8, HAND)
+    put(9, SWORD)
+    put(10, AXE)
 
     # blade stroke: a crescent across both frames (48x21), thick in the middle
     for x in range(48):
@@ -1063,6 +1185,13 @@ def sprite_sheet():
             y = int(round(10 + math.sin(ang) * r))
             if 0 <= x < 24 and 0 <= y < 21:
                 sheet.putpixel((7 * 24 + x, y), on)
+    # the claws again, mirrored: a blow from the right
+    for x in range(48):
+        for y in range(21):
+            if sheet.getpixel((4 * 24 + 47 - x, y))[3]:
+                sheet.putpixel((11 * 24 + x, y), on)
+    for i, letter in enumerate("DAS"):
+        put(13 + i, key_prompt(letter))
     return sheet
 
 
@@ -1252,10 +1381,13 @@ def main():
         for kind, t in enumerate(tables):
             fh.write("kind %d: %s  eyes %s\n" % (kind, ",".join(map(str, t)), ",".join(map(str, EYE_RAMPS[kind]))))
 
+    # Two sheets: the game's first 64 sprite frames cost no memory, and the
+    # first eight of these are the last of them (a sheet is never split).
     sheet_img = sprite_sheet()
-    png = os.path.join(SRC, "enc_sprites.png")
-    sheet_img.save(png)
-    c64spr.convert(png, os.path.join(OUT, "enc_sprites.spr"), preview=os.path.join(preview, "enc_sprites.png"))
+    for name, first, count in (("enc_sprites", 0, 8), ("enc_arm", 8, FRAMES - 8)):
+        png = os.path.join(SRC, name + ".png")
+        sheet_img.crop((first * 24, 0, (first + count) * 24, 21)).save(png)
+        c64spr.convert(png, os.path.join(OUT, name + ".spr"), preview=os.path.join(preview, name + ".png"))
 
 
 

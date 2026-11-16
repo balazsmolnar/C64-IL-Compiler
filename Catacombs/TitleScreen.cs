@@ -210,13 +210,17 @@ static class TitleScreen
         if (kind_ == Title && tick_ == 128)
         {
             info_++;
-            if (info_ == 3)
+            if (info_ == 5)
                 info_ = 0;
             if (info_ == 0)
                 C64.Screen.DrawText(2, InfoRow, " FIND 3 RELICS, BRING THEM BACK OUT ", 0xF0);
             if (info_ == 1)
                 C64.Screen.DrawText(2, InfoRow, "  WALK: W A S D     ACT: SPACE      ", 0xF0);
             if (info_ == 2)
+                C64.Screen.DrawText(2, InfoRow, " DUEL: HOLD SPACE, STRIKE ON WHITE  ", 0xF0);
+            if (info_ == 3)
+                C64.Screen.DrawText(2, InfoRow, " DODGE: PRESS THE KEY THAT FLASHES  ", 0xF0);
+            if (info_ == 4)
                 C64.Screen.DrawText(2, InfoRow, "  WRITTEN IN C# - B. MOLNAR 2026    ", 0xB0);
         }
 

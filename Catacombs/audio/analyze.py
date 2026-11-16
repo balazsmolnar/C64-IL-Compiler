@@ -40,8 +40,8 @@ TICK_CYCLES = sidmusic.TICK_CYCLES       # one PAL frame
 TICK_S = TICK_CYCLES / sidmusic.PAL_CLOCK
 
 # scene -> what the scene build does, in order (see Audio.Init)
-ALL_FX = [('fx', n) for n in ('door', 'pickup', 'weapon', 'sword', 'growl', 'hurt',
-                              'monster death', 'player death')]
+ALL_FX = [('fx', n) for n in ('door', 'pickup', 'weapon', 'growl', 'ready', 'dodge', 'clang',
+                              'sword', 'crit', 'hurt', 'monster death', 'player death')]
 SCENES = {
     'EXPLORE': [('play', 'explore')],
     'COMBAT': [('play', 'combat')],

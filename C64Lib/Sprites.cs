@@ -31,6 +31,11 @@ namespace C64Lib
         // back lets a program change some sprites' bits and keep the rest.
         public uint VisibleMask { get => 0; set { } }
 
+        // Which sprites are shown at double width ($D01D) / double height
+        // ($D017), all eight at once (bit 0 = sprite 0).
+        public uint ExpandXMask { set { } }
+        public uint ExpandYMask { set { } }
+
         // Sprite number index (0-7): C64.Sprites[n] is C64.Sprites.SpriteN,
         // for code that picks the sprite at run time.
         public Sprite this[uint index] => null;

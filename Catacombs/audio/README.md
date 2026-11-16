@@ -20,7 +20,7 @@
   on from the very note it was at (`Music.Resume`).
 - Death: death effect and death jingle (6.7 s), then the exploration tune from the start.
 - Last treasure collected: victory fanfare (6.4 s) breaks in, then the exploration tune resumes.
-- Effects: door, treasure pickup, weapon pickup, sword hit, monster growl, player hurt, monster death, player death.
+- Effects: door, treasure pickup, weapon pickup; in the duel the guardian's growl (it winds up for a blow), the blade's ready ping, the dodge, a blow turned aside, the sword hit, the critical hit, player hurt; monster death, player death.
 
 Voice 1 is bass and percussion (each drum is the attack of a bass note),
 voice 2 the lead, voice 3 chords, pads and bell. While the combat effects (sword, growl, hurt) sound, voices 1 and 2 are
@@ -69,7 +69,7 @@ straight into that sound and stays there; see `Audio.Init`):
 | `DEATH` | Death jingle, then exploration |
 | `VICTORY` | 5 s of exploration, the victory fanfare breaking in, exploration resuming |
 | `RESUME` | 10 s of exploration, 5 s of combat, exploration resumed where it was |
-| `SFX` | Every effect in turn, 2 s apart, no music. Order: door, pickup, weapon, sword, growl, hurt, monster death, player death |
+| `SFX` | Every effect in turn, 2 s apart, no music. Order: door, pickup, weapon, growl, ready, dodge, clang, sword, crit, hurt, monster death, player death |
 | `SFXMIX` | The same effects over the exploration tune |
 | `SFXCOMBAT` | The same effects over the combat tune |
 | `SFXGATED` | The same effects while voice 3 holds a chord: each must sound as it does alone |

@@ -23,6 +23,7 @@ class Program
     static uint playerDamage_; // set in Main()/PlayerDied(), raised by Weapon.DamageAt on pickup
     const uint PlayerMaxHp = 100;
     const uint UnarmedDamage = 6;
+    const uint KillHeal = 20;
     const uint Speed = 1;   // room units per video frame: 2-3 pixels across, a smooth walk
 
     // Cached once per room entry (EnterRoom) instead of recomputed every
@@ -441,8 +442,8 @@ class Program
         EnterRoom();
     }
 
-    // Turn-based exchange with the monster guarding this room: SPACE
-    // attacks, the monster hits back if it survives. Returns true once the
+    // The duel with the monster guarding this room (Encounter.cs: timed
+    // blows with SPACE, steps aside with A/D/S). Returns true once the
     // monster dies (and has already redrawn the room without it), false if
     // the player dies first (PlayerDied has already reset the run by the
     // time this returns).
@@ -454,6 +455,12 @@ class Program
         Audio.CombatStart();
         Monster.HideSprite(); // the patrolling guardian: the encounter has its own sprites
         playerHp_ = Encounter.Fight(px_, py_, playerHp_, playerDamage_);
+        // A guardian slain is a breath caught: one heart back.
+        if (playerHp_ != 0)
+        {
+            playerHp_ = playerHp_ < PlayerMaxHp - KillHeal ? playerHp_ + KillHeal : PlayerMaxHp;
+            Hud.SetHealth(playerHp_);
+        }
         // No blank: the HUD stays on screen (combat; DungeonView blanks the
         // viewport redraw itself). The room is redrawn first so a dead player
         // falls where he stood, in the room.

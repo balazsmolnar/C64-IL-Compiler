@@ -160,6 +160,29 @@ SpriteCollection_set_VisibleMask:
     #stack_return_to_saved_address zp_tmp1_low
 .endif
 
+; SpriteCollection.ExpandXMask / ExpandYMask: one bit per sprite, $D01D /
+; $D017 whole.
+.weak
+Flag_SpriteCollection_set_ExpandXMask = 0
+Flag_SpriteCollection_set_ExpandYMask = 0
+.endweak
+.if Flag_SpriteCollection_set_ExpandXMask
+
+SpriteCollection_set_ExpandXMask:
+    #stack_save_return_adress zp_tmp1_low
+    #stack_pull_int_a
+    sta spriteExpandX
+    #stack_return_to_saved_address zp_tmp1_low
+.endif
+.if Flag_SpriteCollection_set_ExpandYMask
+
+SpriteCollection_set_ExpandYMask:
+    #stack_save_return_adress zp_tmp1_low
+    #stack_pull_int_a
+    sta spriteExpandY
+    #stack_return_to_saved_address zp_tmp1_low
+.endif
+
 .weak
 Flag_SpriteCollection_get_VisibleMask = 0
 .endweak

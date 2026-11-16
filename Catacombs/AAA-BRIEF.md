@@ -35,8 +35,10 @@ flicker, consistent light and palette.
 ## Gameplay (keep)
 
 One room on screen at a time, fixed north-up perspective view; the player
-is a hardware sprite walking freely with W/A/S/D, SPACE crosses a door or
-attacks. Monsters guard rooms; treasure and weapons are picked up. These
+is a hardware sprite walking freely with W/A/S/D, SPACE crosses a door.
+Monsters guard rooms, and are fought in a real-time duel of timing
+(`Encounter.cs`: hold SPACE and let go on the blade's flash, step away from
+the claws with A/D/S); treasure and weapons are picked up. These
 may be extended (joystick, more content, win/lose flow) but not replaced.
 
 ## Technical rules

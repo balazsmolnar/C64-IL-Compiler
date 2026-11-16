@@ -24,6 +24,7 @@ sealed class GcSlide : Slide
     const uint BoxWidth = 5, BoxHeight = 5;
     const uint HeapColumn = 9, HeapRow = 18, HeapHeight = 3;
     const uint IdCells = 2;                          // one id in the stack / sort table
+    const uint TableSlots = (Theme.Right - TableColumn) / IdCells;     // 4: the stack peaks at 3, the sort table holds the 4 live
     const uint StepFrames = 20, SlideFrames = 3, FadeFrames = 2, FadeLevelBytes = 16;
 
     static readonly string[] Phases = ["1 Roots: counted", "2 Mark: follow references", "3 Sort by address", "4 Slide down: compact"];
@@ -58,7 +59,7 @@ sealed class GcSlide : Slide
             new() { Id = "6", Refs = $"{Theme.Arrow}2,5", References = [2, 5], Size = 5, Column = Right, Row = Bottom },
         ];
         _heap = [Object(3), Object(1), Object(6), Object(4), Object(2), Object(5)];
-        _table = new HeapObject[_objects.Length];
+        _table = new HeapObject[TableSlots];
         _count = 0;
 
         Master.Content("GC without a scan");
@@ -251,15 +252,13 @@ sealed class GcSlide : Slide
     // The ids in the table, first on the left; the slots after them empty.
     static void DrawTable()
     {
-        for (uint slot = 0; slot < _table.Length; slot++)
+        for (uint slot = 0; slot < TableSlots; slot++)
             DrawId(slot, slot < _count ? _table[slot].Id : "", Theme.Heading);
     }
 
     static void DrawId(uint slot, string id, Colors color)
     {
         uint column = TableColumn + slot * IdCells;
-        if (column >= Theme.Right)
-            return;
         Screen.ClearRect(column, TableRow, IdCells, 1);
         Text.Draw(Screen.Px(column), TableRow, id, color);
     }

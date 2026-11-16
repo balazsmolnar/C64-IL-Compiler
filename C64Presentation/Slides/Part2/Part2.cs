@@ -2,7 +2,7 @@ using System;
 
 namespace C64Presentation.Slides;
 
-// DECK.md section 5, "The hard parts": slides 9, 13, 14 and 15 (10-12 and 16 were cut).
+// DECK.md section 5, "The hard parts": slides 9-12 of the 16-slide talk.
 static class Part2
 {
     public static readonly Func<Slide>[] Slides =

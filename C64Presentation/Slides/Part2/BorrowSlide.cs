@@ -26,7 +26,7 @@ static class BorrowSlide
             new Box { X = L, Y = BytesRow, Width = Cell, Height = ByteHeight, Text = "C" },
             new Box { X = L + Cell, Y = BytesRow, Width = Cell, Height = ByteHeight, Text = "6", ConnectToLeft = true },
             new Box { X = L + 2 * Cell, Y = BytesRow, Width = Cell, Height = ByteHeight, Text = "4", ConnectToLeft = true },
-            new Box { X = L + 3 * Cell, Y = BytesRow, Width = Cell, Height = ByteHeight, Text = "0", Color = Theme.Frame, Hollow = true },
+            new Box { X = L + 3 * Cell, Y = BytesRow, Width = Cell, Height = ByteHeight, Text = "0", Color = Theme.Accent2, ConnectToLeft = true },    // the terminator
             new TextElement { X = L, Y = CaptionRow, Text = "'C64' in memory", Color = Theme.Muted },
 
             new BuildStep { Press = true },

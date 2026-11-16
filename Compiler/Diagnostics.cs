@@ -17,7 +17,8 @@ static class DiagnosticCodes
     public const string UnsupportedDeclaration = "C64004"; // e.g. generics, interface dispatch
     public const string InvalidAsset = "C64005";            // a RawBitmap/RawSprite/RawAssembly resource is missing or malformed
     public const string ConstantOutOfRange = "C64006";      // an integer constant that doesn't fit the 8-bit int/uint it is used as
-    public const string InternalError = "C64900";          // the compiler itself failed on this method
+    public const string RunTimeStringEscapes = "C64007";    // a concatenated/ToString() string (one shared scratch buffer) stored where it outlives the next one
+    public const string InternalError = "C64900";         // the compiler itself failed on this method
 }
 
 // Thrown wherever the compiler meets a C# construct it cannot compile. Caught

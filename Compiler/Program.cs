@@ -92,6 +92,10 @@ class Program
                 // Whole-program dead-code elimination, before every pass
                 // that looks at the call graph: they only see live code.
                 new ILReachabilityPass(),
+                // Compile-time only: rejects storing a run-time string
+                // (shared scratch buffer) where it would outlive the next
+                // one; ILCodePass throws its diagnostics with its own.
+                new ILStringLifetimePass(),
                 // Whole-program pre-pass, must run before ILCodePass's own
                 // method loop starts: ILMethodInliningPass (inside that loop)
                 // needs a COMPLETE per-callee call-site count while still

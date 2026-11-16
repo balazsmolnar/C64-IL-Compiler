@@ -351,6 +351,69 @@ class Program
         AssertReports(output, "C64002", "delegate type 'D'", "Func<TResult>");
     }
 
+    // --- run-time strings (one shared scratch buffer) -----------------------
+
+    const string Hint7 = "Store only string literals";
+
+    [Test]
+    public void Concat_Stored_In_A_Field_Is_Rejected()
+    {
+        var output = Errors(Input + " class Label { public string Text; }",
+            "var l = new Label(); l.Text = \"n=\" + In.N.ToString(); return (uint)l.Text.Length;");
+        AssertReports(output, "C64007", "stored in the field 'Label.Text'", Hint7);
+    }
+
+    [Test]
+    public void Interpolation_Stored_In_A_Static_Or_An_Array_Is_Rejected()
+    {
+        var output = Errors(Input + " static class S { public static string Last; public static string[] All = new string[2]; }",
+            "S.Last = $\"{In.N} items\"; S.All[1] = In.N.ToString(); return 1;");
+        AssertReports(output, "C64007", "stored in the field 'S.Last'", Hint7);
+        AssertReports(output, "C64007", "stored in an array element", Hint7);
+    }
+
+    [Test]
+    public void Concat_Passed_To_A_Constructor_That_Keeps_It_Is_Rejected()
+    {
+        // Through a helper that returns its argument, an auto-property, and a local.
+        var output = Errors(Input + " class Item { public string Name { get; set; } public Item(string name) { Name = name; } } static class H { public static string Same(string s) => s; }",
+            "string s = H.Same(\"#\" + In.N.ToString()); var i = new Item(s); return (uint)i.Name.Length;");
+        AssertReports(output, "C64007", "passed to the constructor of 'Item', which keeps it (stores its parameter 'name'", Hint7);
+    }
+
+    [Test]
+    public void Run_Time_Strings_Used_Right_Away_Compile()
+    {
+        // Drawn, measured, compared, returned, stored as a literal: all fine.
+        var types = Input + @" class Label { public string Text = ""x""; }
+static class H { public static string Make(uint n) => ""n="" + n.ToString(); public static uint Len(string s) => (uint)s.Length; }";
+        var body = @"var l = new Label(); l.Text = ""fixed"";
+        string s = H.Make(In.N);
+        System.Console.WriteLine(s);
+        return H.Len(s) + (s == ""n=5"" ? 1u : 0u) + H.Len(l.Text);";
+        var (exit, output) = CompileProgram(Wrap(types, body));
+        Assert.That(exit, Is.EqualTo(0), output);
+    }
+
+    // --- collection expression spreads ---------------------------------------
+
+    [Test]
+    public void Spreading_Arrays_Into_An_Array_Compiles()
+    {
+        var types = "static class D { public static uint[] A = { 1, 2 }; public static uint[] B = { 3 }; public static string[] S = { \"a\" }; }";
+        var body = "uint x = 9; uint[] all = [.. D.A, x, .. D.B]; string[] s = [.. D.S, .. D.S]; return all[3] + (uint)s.Length;";
+        var (exit, output) = CompileProgram(Wrap(types, body));
+        Assert.That(exit, Is.EqualTo(0), output);
+    }
+
+    [Test]
+    public void Spread_Built_Through_A_List_Explains_What_To_Do()
+    {
+        var output = Errors("static class D { public static ulong[] A = { 1 }; public static ulong N = 5; }",
+            "ulong e = D.N; ulong[] all = [9, .. D.A, e, .. D.A]; return (uint)all.Length;");
+        AssertReports(output, "C64002", "built by the C# compiler through a List<T>", "move the single elements into a small array");
+    }
+
     // --- location and completeness ------------------------------------------
 
     [Test]

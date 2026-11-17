@@ -1,4 +1,3 @@
-using System;
 using C64Lib;
 using C64Presentation.Helper;
 using C64Presentation.SlideElements;
@@ -103,7 +102,7 @@ sealed class CodeUnderline : SlideElement
 }
 
 // A thin elbow from a tag to a line: down the middle of Column from FromRow
-// to ToRow, then left across the cell before it (the appendix's VICE tag
+// to ToRow, then left across the cell before it (slide 16's VICE tag
 // to the line it stopped on).
 sealed class Elbow : SlideElement
 {
@@ -121,63 +120,3 @@ sealed class Elbow : SlideElement
         Screen.Line(Screen.Px(Column - 1), y, x, y);
     }
 }
-
-// The last element of a slide that can swap in a hidden one: once the
-// slide is up, D (KeyBoard.Pressed) fades to Appendix, drawn as a hidden
-// slide; advance or B there comes back to the slide, redrawn whole by
-// Return (which builds this element with Enabled = false). Advance on the
-// slide itself goes on as usual (the Presenter reads the key, still held).
-//
-//     new HiddenSlideKey { Enabled = builds, Appendix = DebuggerMock.Create, Return = PostSharpBuilt }
-sealed class HiddenSlideKey : SlideElement
-{
-    public bool Enabled { get; init; }
-    public required Func<Slide> Appendix { get; init; }
-    public required Func<Slide> Return { get; init; }
-
-    public override void Draw()
-    {
-        if (!Enabled)
-            return;
-        Deck.Show();
-        Deck.Reveal();
-        while (!KeyBoard.AdvancePressed())
-        {
-            Deck.Wait(1);
-            if (!KeyBoard.Pressed(Keys.D))
-                continue;
-            Deck.BeginHidden();
-            Present(Appendix);
-            KeyBoard.WaitForAdvance();
-            if (KeyBoard.Pending == Navigation.Back)
-                KeyBoard.Take();                // B on the appendix: back to this slide
-            if (KeyBoard.Jumping)
-                return;
-            Deck.FadeOut();
-            Deck.Begin(Deck.Number);
-            Present(Return);
-        }
-    }
-
-    static void Present(Func<Slide> slide)
-    {
-        slide().Present();
-        Deck.Show();
-        Deck.Reveal();
-    }
-}
-
-#if SCENE
-// A scene build lists the appendix as a slide of its own: entered the way
-// D enters it, as a hidden slide, so screenshots show what the audience sees.
-sealed class HiddenScene : Slide
-{
-    public static Slide Create() => new HiddenScene();
-
-    public override void Present()
-    {
-        Deck.BeginHidden();
-        DebuggerMock.Create().Present();
-    }
-}
-#endif

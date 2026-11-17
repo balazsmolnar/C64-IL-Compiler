@@ -4,11 +4,9 @@ using C64Presentation.SlideElements;
 
 namespace C64Presentation.Slides.Part3;
 
-// The hidden appendix (DECK.md): a mock of the VS Code debugger, stopped in
-// Demo/RotatingCube.cs. Not in the running order: D on slide 15 (PostSharp)
-// shows it as a hidden slide if the live demo fails, and advance goes back
-// (HiddenSlideKey). The breakpoint dot sits in the editor's gutter, a cell
-// left free before the code.
+// Slide 16 (DECK.md): a mock of the VS Code debugger, stopped in
+// Demo/RotatingCube.cs. The breakpoint dot sits in the editor's gutter, a
+// cell left free before the code.
 static class DebuggerMock
 {
     const uint EditorWidth = 19;

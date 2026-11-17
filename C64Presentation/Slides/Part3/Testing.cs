@@ -52,17 +52,12 @@ static class Testing
 
     // 15 (D8): what the PostSharp aspect does around every test call: two
     // groups of steps on a rail, spread over the body rows.
-    // D swaps in the hidden debugger mock, the fallback for a failed live demo.
-    public static Slide PostSharpSwapsIt() => PostSharp(builds: true);
-
-    static Slide PostSharpBuilt() => PostSharp(builds: false);
-
     const Colors Result = Colors.LightGreen;    // CopyResultFromEmulator's group
     const uint InvokeRow = 5;                   // OnInvoke: steps 1-4
     const uint ResultRow = 15;                  // CopyResultFromEmulator: steps 5-6
     const uint CountRow = 20;
 
-    static Slide PostSharp(bool builds) => new SimpleSlide
+    public static Slide PostSharpSwapsIt() => new SimpleSlide
     {
         Elements =
         [
@@ -70,13 +65,12 @@ static class Testing
             new GroupHeader { Row = InvokeRow, Text = "RunInEmulatorAspect.OnInvoke", Color = Theme.Brand },
             new FlowStep { Row = InvokeRow + 1, Number = "1", Text = "Load prg/unittest.prg", First = true },
             new FlowStep { Row = InvokeRow + 3, Number = "2", Text = $"Method address {Theme.Arrow} $09FE" },
-            new FlowStep { Row = InvokeRow + 5, Number = "3", Text = $"Arguments {Theme.Arrow} $09E0", Wait = builds },
+            new FlowStep { Row = InvokeRow + 5, Number = "3", Text = $"Arguments {Theme.Arrow} $09E0", Wait = true },
             new FlowStep { Row = InvokeRow + 7, Number = "4", Text = "Run from $1000" },
-            new GroupHeader { Row = ResultRow, Text = "CopyResultFromEmulator", Color = Result, Wait = builds },
+            new GroupHeader { Row = ResultRow, Text = "CopyResultFromEmulator", Color = Result, Wait = true },
             new FlowStep { Row = ResultRow + 1, Number = "5", Text = "$20: 0 pass, $FF fail, $FE fault", First = true },
             new FlowStep { Row = ResultRow + 3, Number = "6", Text = "Message at $2E/$2F, value at $2C" },
-            new TextElement { X = Theme.Left, Y = CountRow, Text = "Over 700 test cases, all on 6502", Color = Theme.Accent, Wait = builds },
-            new HiddenSlideKey { Enabled = builds, Appendix = DebuggerMock.Create, Return = PostSharpBuilt },
+            new TextElement { X = Theme.Left, Y = CountRow, Text = "Over 700 test cases, all on 6502", Color = Theme.Accent, Wait = true },
         ]
     };
 }

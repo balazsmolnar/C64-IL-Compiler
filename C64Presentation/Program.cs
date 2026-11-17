@@ -15,7 +15,7 @@ static class Program
     static readonly Func<Slide>[] Slides = EngineGallery.Slides;
 #else
     // DECK.md order: slides 1-8 (Slides/Part1), 9-12 (Slides/Part2) and
-    // 13-16 (Slides/Part3; a scene build adds the hidden appendix after 16).
+    // 13-17 (Slides/Part3).
     static readonly Func<Slide>[] Slides = [.. Part1.Slides, .. Part2.Slides, .. Part3.Slides];
 #endif
 

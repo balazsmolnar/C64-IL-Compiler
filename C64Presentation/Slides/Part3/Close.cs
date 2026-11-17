@@ -5,7 +5,7 @@ using C64Presentation.Helper;
 
 namespace C64Presentation.Slides.Part3;
 
-// Slide 16 (DECK.md): thanks, the logos settling in, and the count-up to
+// Slide 17 (DECK.md): thanks, the logos settling in, and the count-up to
 // the deck's free memory, C64 boot-screen style ("38911 BASIC BYTES FREE":
 // no thousands comma).
 sealed class ThankYouSlide : Slide
@@ -49,7 +49,7 @@ sealed class ThankYouSlide : Slide
         Deck.Reveal();
         Logos.SettleIn();
         Deck.Step();
-        Text.Center(0, ScreenWidth, LeadRow, "16 slides of C#, and still", Theme.Body);
+        Text.Center(0, ScreenWidth, LeadRow, "17 slides of C#, and still", Theme.Body);
         Deck.Step();
         Deck.Show();
         LayOut();

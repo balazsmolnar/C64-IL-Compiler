@@ -5,7 +5,7 @@ to say, and where every fact comes from. The Slides phase builds from this
 file; the Art phase builds the asset list at the end. Owner: Story (see
 `DECK-BRIEF.md`).
 
-**Talk:** "C# on the C64", 16 slides, about 9:40, plus questions.
+**Talk:** "C# on the C64", 17 slides, about 10:25, plus questions.
 Audience: .NET developers and retro fans. One idea per slide; titles say
 something, they don't just label.
 
@@ -57,18 +57,20 @@ something, they don't just label.
 | 13 | Small and fast | Small and fast | section + 2 numbers | 0:35 |
 | 14 | Testing | Tests run on 6502 | code | 0:40 |
 | 15 | Testing | PostSharp swaps it | diagram | 0:50 |
-| 16 | Close | Thank you | title | 0:25 |
-| | | | **Total** | **9:40** |
+| 16 | Testing | Debug C# on a C64 | diagram | 0:45 |
+| 17 | Close | Thank you | title | 0:25 |
+| | | | **Total** | **10:25** |
 
-Outside the running order: the hidden debugger mock (appendix), reached
-with D from slide 15, about 0:45 when used. Eleven slides were cut by the
-user to fit memory and length; they are kept at the end under "Cut
-slides", with their sources, so any of them can be restored.
+The debugger mock, once a hidden appendix reached with D from slide 15,
+is a regular slide (16) since the integration, by the user's decision.
+Eleven slides were cut by the user to fit memory and length; they are
+kept at the end under "Cut slides", with their sources, so any of them
+can be restored.
 
-There is **no live demo** in the 16-slide talk: its slide is cut, and
+There is **no live demo** in the 17-slide talk: its slide is cut, and
 switching to VICE without a slide would bring back the time the cut
 saved. If the slot allows it, the presenter can still run Demo in VICE
-after slide 16, during questions; the cut slide's steps and rehearsal
+after slide 17, during questions; the cut slide's steps and rehearsal
 checks are kept for that.
 
 The story: a hook (this slide is a C# program), what you can and cannot
@@ -681,8 +683,7 @@ Over 700 test cases, all on 6502
   steps 5-6 (rows 16, 18); headers and step texts start on column 4, a
   cell clear of the rail. Line 7 on row 20 in the accent colour. (The
   integration cut the memory strip: the address chips and their dotted
-  leaders, to fit memory; the addresses stay in the step texts.) D on this
-  slide shows the hidden appendix.
+  leaders, to fit memory; the addresses stay in the step texts.)
 - **Build:** on entry steps 1-2. Press 1: steps 3-4. Press 2: steps 5-6.
   Press 3: line 7.
 - **Say:** "PostSharp weaves an aspect into every test method at build
@@ -710,65 +711,11 @@ Over 700 test cases, all on 6502
   `Test.Runtime/`, named by `[assembly: UnitTestProgram(...)]`, CLAUDE.md);
   the slide shows the first.
 
-## 8. Close
+### Slide 16 — Debug C# on a C64
 
-### Slide 16 — Thank you
-
-- **Layout:** title (hi-res, plus sprites).
-- **Title:** `Thank you` (9)
-- **On screen:** the number line in the large title font (at most 18
-  characters, e.g. `NNNN BYTES FREE`, in capitals and without a thousands
-  comma like the C64's own boot screen, "38911 BASIC BYTES FREE"), the
-  rest in the 8x8 font:
-
-```screen
-16 slides of C#, and still
-NNNN BYTES FREE
-github.com/balazsmolnar/C64-IL-Compiler
-```
-
-- **Visual (as built):** the C# and Commodore logo sprites settle side by
-  side above the title, C# on the left as on the cover. "Thank you" in the
-  32 px face on rows 7-10; "16 slides of C#, and still" on row 12; "NNNN
-  BYTES FREE" centred in the 32 px face in the accent colour, rows 14-17;
-  the URL on one line, small and grey, on row 21. The count-up has a fixed
-  3-cell slot per digit; a changed digit is a block of ready tiles
-  (`art/digits/make_digits.py`, 960 bytes) copied with `DrawTiles`, so it
-  replaces the old one in place and no frame shows a digit half drawn or
-  missing (about 15 steps, 3 frames apart). A 2-cell gap before "BYTES
-  FREE" fits up to 4 digits; a 5-digit number puts "BYTES FREE" under it
-  in the 16 px face (rows 18-19). The sprites hide as the slide fades out.
-- **Build:** on entry the title and the URL. Press 1: line 1. Press 2:
-  the number, counting up from 0 to its value in about a second; the talk
-  ends on it.
-- **Say:** "Remember slide one, 'this slide is a C# program'? So were the
-  other fifteen. A C64 boots with 38911 BASIC BYTES FREE; after all of
-  them, this deck still has this many. Thank you."
-- **Required output of the Slides phase:** the real number, measured on
-  the final build and put on this slide; the deck is not done while the
-  slide says N,NNN. It is the free memory **before the heap**: the
-  Catacombs/TECH.md "Free memory" formula with no heap reserve, so it is
-  not a judgement call. Run `C64Presentation\measure.bat`, take the end
-  of the last `Data:` line, then free = $CC00 - that end - 1,080 (object
-  tables, locals stack and string buffers with `DrawText`; 56 without) -
-  the static frames (the compiler's "Static frames: ..., N bytes") - 64
-  per sprite frame beyond 64. Write it without a comma, as the boot screen does. Report it
-  with the commit it was measured on. Slide 8's Catacombs figure (10,478)
-  is the same quantity ("left for more code, assets and the heap").
-- **Sources:** this project (`C64Presentation/`); `git remote -v`;
-  Catacombs/TECH.md (free-memory formula). "38911 BASIC BYTES FREE": the
-  C64's power-on screen (Commodore 64 Programmer's Reference Guide).
-
-## Appendix: hidden fallback slide
-
-Not in the running order and not counted in "16 slides". With the live
-demo cut, this mock is now the only place the talk can show debugging, so
-keep it, reachable with **D from slide 15** ("PostSharp swaps it", the end
-of the testing section) instead of from the cut live-demo slide. The
-presenter uses it when there is time or when someone asks "can you debug
-it?"; SPACE (or B) returns to slide 15's last build, then continues to slide 16.
-
-### Appendix (hidden) — Debug C# on a C64
+With the live demo cut, this mock is the only place the talk shows
+debugging. It was a hidden appendix (D from slide 15); the user made it
+a regular slide, just before the close, at the integration.
 
 - **Layout:** diagram (hi-res): a mock of the VS Code debugger, drawn by
   the engine, feature list on the right.
@@ -798,9 +745,8 @@ Registers and
   with a thin line to the highlighted row (the stop). As built: the
   editor's caption is the file name, the `VICE` tag sits in that tab row,
   a light-blue elbow runs down the panel's right side to the stop line,
-  and the breakpoint dot sits in a one-cell gutter left of the code. Shown
-  as a hidden slide: the footer has no slide number or progress bar (scene
-  builds enter it the same way).
+  and the breakpoint dot sits in a one-cell gutter left of the code. A
+  regular content slide: number and progress bar in the footer.
 - **Build:** on entry the editor. Press 1: the red dot. Press 2: the
   yellow stop line and the `VICE` link. Press 3: the Variables panel.
   Presses 4-7: the feature lines in pairs.
@@ -826,6 +772,55 @@ Registers and
   (watch, hover), `98c2604` (run a program on VICE from VS Code and stop
   at breakpoints), `ac88e7f` (step-over/step-out, editable locals).
 
+## 8. Close
+
+### Slide 17 — Thank you
+
+- **Layout:** title (hi-res, plus sprites).
+- **Title:** `Thank you` (9)
+- **On screen:** the number line in the large title font (at most 18
+  characters, e.g. `NNNN BYTES FREE`, in capitals and without a thousands
+  comma like the C64's own boot screen, "38911 BASIC BYTES FREE"), the
+  rest in the 8x8 font:
+
+```screen
+17 slides of C#, and still
+NNNN BYTES FREE
+github.com/balazsmolnar/C64-IL-Compiler
+```
+
+- **Visual (as built):** the C# and Commodore logo sprites settle side by
+  side above the title, C# on the left as on the cover. "Thank you" in the
+  32 px face on rows 7-10; "17 slides of C#, and still" on row 12; "NNNN
+  BYTES FREE" centred in the 32 px face in the accent colour, rows 14-17;
+  the URL on one line, small and grey, on row 21. The count-up has a fixed
+  3-cell slot per digit; a changed digit is a block of ready tiles
+  (`art/digits/make_digits.py`, 960 bytes) copied with `DrawTiles`, so it
+  replaces the old one in place and no frame shows a digit half drawn or
+  missing (about 15 steps, 3 frames apart). A 2-cell gap before "BYTES
+  FREE" fits up to 4 digits; a 5-digit number puts "BYTES FREE" under it
+  in the 16 px face (rows 18-19). The sprites hide as the slide fades out.
+- **Build:** on entry the title and the URL. Press 1: line 1. Press 2:
+  the number, counting up from 0 to its value in about a second; the talk
+  ends on it.
+- **Say:** "Remember slide one, 'this slide is a C# program'? So were the
+  other sixteen. A C64 boots with 38911 BASIC BYTES FREE; after all of
+  them, this deck still has this many. Thank you."
+- **Required output of the Slides phase:** the real number, measured on
+  the final build and put on this slide; the deck is not done while the
+  slide says N,NNN. It is the free memory **before the heap**: the
+  Catacombs/TECH.md "Free memory" formula with no heap reserve, so it is
+  not a judgement call. Run `C64Presentation\measure.bat`, take the end
+  of the last `Data:` line, then free = $CC00 - that end - 1,080 (object
+  tables, locals stack and string buffers with `DrawText`; 56 without) -
+  the static frames (the compiler's "Static frames: ..., N bytes") - 64
+  per sprite frame beyond 64. Write it without a comma, as the boot screen does. Report it
+  with the commit it was measured on. Slide 8's Catacombs figure (10,478)
+  is the same quantity ("left for more code, assets and the heap").
+- **Sources:** this project (`C64Presentation/`); `git remote -v`;
+  Catacombs/TECH.md (free-memory formula). "38911 BASIC BYTES FREE": the
+  C64's power-on screen (Commodore 64 Programmer's Reference Guide).
+
 ---
 
 ## Cut slides (kept for reference)
@@ -835,7 +830,7 @@ are kept so a slide can be restored; nothing here is built.
 
 ### Cut — int is 8 bits (was slide 10)
 
-**Cut.** Not in the 16-slide talk.
+**Cut.** Not in the 17-slide talk.
 
 - **Layout:** two-column (hi-res): type table on top, code and error below.
 - **Title:** `int is 8 bits` (13)
@@ -880,7 +875,7 @@ would become 188.
 
 ### Cut — Our tests lied (was slide 11)
 
-**Cut.** Not in the 16-slide talk.
+**Cut.** Not in the 17-slide talk.
 
 - **Layout:** bullets (hi-res).
 - **Title:** `Our tests lied` (14)
@@ -909,7 +904,7 @@ This deck: Wait(500) waited 244
 
 ### Cut — Frames share bytes (was slide 12)
 
-**Cut.** Not in the 16-slide talk.
+**Cut.** Not in the 17-slide talk.
 
 - **Layout:** diagram (hi-res).
 - **Title:** `Frames share bytes` (18)
@@ -948,7 +943,7 @@ in 39 bytes of frames
 
 ### Cut — Hide under the ROM (was slide 16)
 
-**Cut.** Not in the 16-slide talk.
+**Cut.** Not in the 17-slide talk.
 
 - **Layout:** diagram (hi-res): memory map left, text right.
 - **Title:** `Hide under the ROM` (18)
@@ -984,7 +979,7 @@ Pictures packed:
 
 ### Cut — 39 bytes to 12 (was slide 18)
 
-**Cut.** Not in the 16-slide talk.
+**Cut.** Not in the 17-slide talk.
 
 - **Layout:** code (hi-res): a mini bar chart, the code, three lines.
 - **Title:** `39 bytes to 12` (14)
@@ -1032,7 +1027,7 @@ Result comes back in A
 
 ### Cut — Hunchback: -24% (was slide 19)
 
-**Cut.** Not in the 16-slide talk.
+**Cut.** Not in the 17-slide talk.
 
 - **Layout:** chart (hi-res): two horizontal bars and a caption line.
 - **Title:** `Hunchback: -24%` (15)
@@ -1064,7 +1059,7 @@ Same game, same C#: -8,690 B
 
 ### Cut — No single winner (was slide 20)
 
-**Cut.** Not in the 16-slide talk.
+**Cut.** Not in the 17-slide talk.
 
 - **Layout:** chart (hi-res): horizontal bars, two rows per optimization.
 - **Title:** `No single winner` (16)
@@ -1126,7 +1121,7 @@ Logic + const
 
 ### Cut — Worst frame: -19% (was slide 21)
 
-**Cut.** Not in the 16-slide talk.
+**Cut.** Not in the 17-slide talk.
 
 - **Layout:** chart (hi-res): bars against a full-frame outline.
 - **Title:** `Worst frame: -19%` (17)
@@ -1157,7 +1152,7 @@ Catacombs, raster lines per frame
 
 ### Cut — Line to address (was slide 24)
 
-**Cut.** Not in the 16-slide talk.
+**Cut.** Not in the 17-slide talk.
 
 - **Layout:** diagram (hi-res): a five-step pipeline, top to bottom.
 - **Title:** `Line to address` (15)
@@ -1200,7 +1195,7 @@ Debug build: bigger, less optimized
 
 ### Cut — Change it live (was slide 25)
 
-**Cut.** Not in the 16-slide talk.
+**Cut.** Not in the 17-slide talk.
 
 - **Layout:** bullets (hi-res checklist), shown while the presenter works
   on the PC.
@@ -1278,7 +1273,7 @@ Debug build: bigger, less optimized
 
 ### Cut — Four lessons (was slide 26)
 
-**Cut.** Not in the 16-slide talk.
+**Cut.** Not in the 17-slide talk.
 
 - **Layout:** bullets (hi-res).
 - **Title:** `Four lessons` (12)
@@ -1446,7 +1441,7 @@ image of the same size (line art compresses well: about 0.3-0.8 KB each).
 | D6 | 11 GC without a scan | 38x18 | the existing animated GC scene, plus the compaction step |
 | D7 | cut: Hide under the ROM | 16x18 | vertical memory map, 6 segments, "not to scale" |
 | D8 | 15 PostSharp swaps it | 38x16 | six-step flow, two group boxes, address strip |
-| D9 | appendix (hidden, D from slide 15) Debug C# on a C64 | 18x18 | VS Code mock: editor with breakpoint dot and stop line, Variables panel (top-level `bcx`, `cx_`, `velX_`, `cosAy_`), `VICE` tag; only if the hidden fallback is ever used |
+| D9 | slide 16, Debug C# on a C64 | 18x18 | VS Code mock: editor with breakpoint dot and stop line, Variables panel (top-level `bcx`, `cx_`, `velX_`, `cosAy_`), `VICE` tag |
 | D10 | cut: Line to address | 30x12 | five stacked boxes with down-arrows |
 | C1 | cut: 39 bytes to 12 | 38x2 | 2 bars: 26 and 8 cells |
 | C2 | cut: Hunchback: -24% | 38x6 | 2 bars: 22 and 17 cells, dashed gap |

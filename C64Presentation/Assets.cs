@@ -29,7 +29,7 @@ using C64Lib;
 // The section icon of slide 9 (from the extras)
 [assembly: RawImage(Resource = "sec_chip.img", Label = "SecChip")]         //  6x6 hires   204
 
-// The section icon of slide 17, Small and fast (an extra, see below).
+// The section icon of slide 13, Small and fast (an extra, see below).
 [assembly: RawImage(Resource = "sec_chart.img", Label = "SecChart")]       //  6x6 hires   129
 
 // --- Extras, not in the storyboard: 4,427 bytes. Built and embeddable;

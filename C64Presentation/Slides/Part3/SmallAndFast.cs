@@ -4,7 +4,7 @@ using C64Presentation.SlideElements;
 
 namespace C64Presentation.Slides.Part3;
 
-// Section 6, slide 13 (DECK.md): the rule, and what it bought, as two stat
+// Section 6, slide 12 (DECK.md): the rule, and what it bought, as two stat
 // tiles (a hairline, a figure in the 16 px face, a caption), one per press.
 static class SmallAndFast
 {

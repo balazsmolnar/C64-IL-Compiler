@@ -5,7 +5,7 @@ to say, and where every fact comes from. The Slides phase builds from this
 file; the Art phase builds the asset list at the end. Owner: Story (see
 `DECK-BRIEF.md`).
 
-**Talk:** "C# on the C64", 17 slides, about 10:25, plus questions.
+**Talk:** "C# on the C64", 16 slides, about 9:45, plus questions.
 Audience: .NET developers and retro fans. One idea per slide; titles say
 something, they don't just label.
 
@@ -51,26 +51,25 @@ something, they don't just label.
 | 7 | How it works | Add costs 39 bytes | diagram | 0:35 |
 | 8 | Built with this | Built with this | full-bleed + split | 0:35 |
 | 9 | Hard parts | The hard parts | section | 0:10 |
-| 10 | Hard parts | References: 1 byte | diagram | 0:40 |
-| 11 | Hard parts | GC without a scan | diagram (animated) | 0:45 |
-| 12 | Hard parts | Borrow, not build | two-column | 0:30 |
-| 13 | Small and fast | Small and fast | section + 2 numbers | 0:35 |
-| 14 | Testing | Tests run on 6502 | code | 0:40 |
-| 15 | Testing | PostSharp swaps it | diagram | 0:50 |
-| 16 | Testing | Debug C# on a C64 | diagram | 0:45 |
-| 17 | Close | Thank you | title | 0:25 |
-| | | | **Total** | **10:25** |
+| 10 | Hard parts | GC without a scan | diagram (animated) | 0:45 |
+| 11 | Hard parts | Borrow, not build | two-column | 0:30 |
+| 12 | Small and fast | Small and fast | section + 2 numbers | 0:35 |
+| 13 | Testing | Tests run on 6502 | code | 0:40 |
+| 14 | Testing | PostSharp swaps it | diagram | 0:50 |
+| 15 | Testing | Debug C# on a C64 | diagram | 0:45 |
+| 16 | Close | Thank you | title | 0:25 |
+| | | | **Total** | **9:45** |
 
-The debugger mock, once a hidden appendix reached with D from slide 15,
-is a regular slide (16) since the integration, by the user's decision.
-Eleven slides were cut by the user to fit memory and length; they are
+The debugger mock, once a hidden appendix reached with D from the
+PostSharp slide, is a regular slide (15) since the integration, by the
+user's decision. Twelve slides were cut by the user to fit memory and length; they are
 kept at the end under "Cut slides", with their sources, so any of them
 can be restored.
 
-There is **no live demo** in the 17-slide talk: its slide is cut, and
+There is **no live demo** in the 16-slide talk: its slide is cut, and
 switching to VICE without a slide would bring back the time the cut
 saved. If the slot allows it, the presenter can still run Demo in VICE
-after slide 17, during questions; the cut slide's steps and rehearsal
+after slide 16, during questions; the cut slide's steps and rehearsal
 checks are kept for that.
 
 The story: a hook (this slide is a C# program), what you can and cannot
@@ -436,57 +435,19 @@ Catacombs: 3,477 lines of C#
 - **On screen:**
 
 ```screen
-objects   GC   strings & floats
+GC   strings & floats
 ```
 
 - **Visual:** section background (the theme's section colour, full
-  bleed). A row of three hi-res icons (asset **A6**: object, GC arrows,
-  `"A"`) above the text line, each over its word.
+  bleed). A row of two hi-res icons (asset **A6**: GC arrows, `"A"`)
+  above the text line, each over its word.
 - **Build:** on entry everything.
-- **Say:** "Three things C# takes for granted that a 6502 does not have."
-- **Sources:** agenda of slides 10-12.
+- **Say:** "Two things C# takes for granted that a 6502 does not have."
+- **Sources:** agenda of slides 10-11.
 
-- **As built** (`Slides/Part2/HardPartsSlide.cs`): the engine section master (number `05`, the `sec_chip` icon top right, no subtitle); the three icons in cyan on row 15 at columns 6, 18 and 30, each word centred under its icon on row 19.
+- **As built** (`Slides/Part2/HardPartsSlide.cs`): the engine section master (number `05`, the `sec_chip` icon top right, no subtitle); the two icons in cyan on row 15 at columns 12 and 24 (the pair centred on the content), each word centred under its icon on row 19. (Was three, with `objects`, until slide 10 was cut.)
 
-### Slide 10 — References: 1 byte
-
-- **Layout:** diagram (hi-res).
-- **Title:** `References: 1 byte` (18)
-- **On screen:**
-
-```screen
-A reference is a 1-byte handle
-255 objects; handle 0 is null
-Handle -> table -> heap address
-Full: ?OUT OF MEMORY ERROR
-```
-
-- **Visual:** the old MemoryLayoutSlide, redrawn on the theme: an object
-  table (rows "1", "2", "...", "255"; columns HEAP PTR, SIZE, REFS, ROOTS,
-  VTABLE) in cyan across rows 4-11, and a heap strip in yellow across rows
-  13-15 with blocks "1", "3", "2", "5" and "FREE". Arrows from row 1's
-  and row 2's HEAP PTR down to their blocks. The four text lines in rows
-  17-20. Nothing overlaps the footer row (today the slide counter
-  overwrites the heap).
-- **Build:** on entry the table header. Press 1: rows 1, 2, 255. Press 2:
-  the heap strip and the two arrows. Press 3: the four text lines
-  together.
-- **Say:** "A reference is one byte: an index into seven 256-byte tables
-  holding each object's address, size, reference fields, root count and
-  vtable. So a program can have 255 live objects, and moving an object
-  only changes one table entry."
-- **Sources:** 1-byte reference: `Compiler/TypeExtensions.cs`
-  (`GetStorageBytes()` returns 1 for classes); tables:
-  `asm/helper/objectTables.asm` ("The 7x256-byte object/GC tables";
-  `objTableSize`, `objTableReferences`, `objTableRootCount`, ...); handle
-  0 = null: `asm/GC.asm` (`trackObjects`: "mark NULL"); faults "out of
-  memory" and "too many objects": commit `3f3d760` and
-  `asm/helper/fault.asm` (header: "?<MESSAGE> ERROR", red border;
-  `Runtime_FaultMsg0 .text "OUT OF MEMORY"`).
-
-- **As built** (`ReferencesSlide.cs`, critic round 1): table rows 1 and 2 only (the engine critic's table), Grey2 pointer arrows (row 1 from left of its value down the empty first cell, row 2 down from right of its value), heap strip rows 12-14 labelled `heap`, block widths 5, 3, 4, 3 (the table's sizes); text lines 1, 3, 4 on rows 16, 18, 20, and line 2 as a stat card right of them: `255 objects` / `handle 0 is null`.
-
-### Slide 11 — GC without a scan
+### Slide 10 — GC without a scan
 
 - **Layout:** diagram (hi-res, animated: the existing GarbageCollectorSlide
   logic on the new theme).
@@ -524,7 +485,7 @@ Full: ?OUT OF MEMORY ERROR
 
 - **As built** (`GcSlide.cs`, critic round 1): one press per phase (4), the steps inside a phase paced (0.4 s). Objects in a 3x2 grid on the left (id, references), `root` in cyan under 1 and 3; the four phase labels on the right, the current one white; the mark stack as a line of ids; the heap below, labelled `heap`, in address order 3, 1, 6, 4, 2, 5. Traced = yellow bar, marked = cyan bar, card and heap block alike (text on the cards stays white). Sort: the stack line becomes the sort table, `1 3 4 5` (handle order) rewritten as `3 1 4 5` (address order), the moved ids in yellow. Slide down: 2 and 6 dim, `2 -> 6 -> 2: a dead cycle` replaces the table, they fade out, the live blocks slide left cell by cell.
 
-### Slide 12 — Borrow, not build
+### Slide 11 — Borrow, not build
 
 - **Layout:** two-column (hi-res).
 - **Title:** `Borrow, not build` (17)
@@ -565,7 +526,7 @@ Sin, Cos, Sqrt
 
 ## 6. Small and fast
 
-### Slide 13 — Small and fast
+### Slide 12 — Small and fast
 
 - **Layout:** section (hi-res).
 - **Title:** `Small and fast` (14)
@@ -608,7 +569,7 @@ Hunchback: -24%, same C#
 
 ## 7. Testing
 
-### Slide 14 — Tests run on 6502
+### Slide 13 — Tests run on 6502
 
 - **Layout:** code (hi-res), three text lines below.
 - **Title:** `Tests run on 6502` (17)
@@ -656,7 +617,7 @@ The body never runs as .NET
   `Test/`: "the test method body is actually compiled to 6502 and executed
   on the emulator, not run as normal C#").
 
-### Slide 15 — PostSharp swaps it
+### Slide 14 — PostSharp swaps it
 
 - **Layout:** diagram (hi-res): a numbered flow, a timeline down the left.
 - **Title:** `PostSharp swaps it` (18)
@@ -711,10 +672,10 @@ Over 700 test cases, all on 6502
   `Test.Runtime/`, named by `[assembly: UnitTestProgram(...)]`, CLAUDE.md);
   the slide shows the first.
 
-### Slide 16 — Debug C# on a C64
+### Slide 15 — Debug C# on a C64
 
 With the live demo cut, this mock is the only place the talk shows
-debugging. It was a hidden appendix (D from slide 15); the user made it
+debugging. It was a hidden appendix (D from the PostSharp slide); the user made it
 a regular slide, just before the close, at the integration.
 
 - **Layout:** diagram (hi-res): a mock of the VS Code debugger, drawn by
@@ -774,7 +735,7 @@ Registers and
 
 ## 8. Close
 
-### Slide 17 — Thank you
+### Slide 16 — Thank you
 
 - **Layout:** title (hi-res, plus sprites).
 - **Title:** `Thank you` (9)
@@ -784,14 +745,14 @@ Registers and
   rest in the 8x8 font:
 
 ```screen
-17 slides of C#, and still
+16 slides of C#, and still
 NNNN BYTES FREE
 github.com/balazsmolnar/C64-IL-Compiler
 ```
 
 - **Visual (as built):** the C# and Commodore logo sprites settle side by
   side above the title, C# on the left as on the cover. "Thank you" in the
-  32 px face on rows 7-10; "17 slides of C#, and still" on row 12; "NNNN
+  32 px face on rows 7-10; "16 slides of C#, and still" on row 12; "NNNN
   BYTES FREE" centred in the 32 px face in the accent colour, rows 14-17;
   the URL on one line, small and grey, on row 21. The count-up has a fixed
   3-cell slot per digit; a changed digit is a block of ready tiles
@@ -804,7 +765,7 @@ github.com/balazsmolnar/C64-IL-Compiler
   the number, counting up from 0 to its value in about a second; the talk
   ends on it.
 - **Say:** "Remember slide one, 'this slide is a C# program'? So were the
-  other sixteen. A C64 boots with 38911 BASIC BYTES FREE; after all of
+  other fifteen. A C64 boots with 38911 BASIC BYTES FREE; after all of
   them, this deck still has this many. Thank you."
 - **Required output of the Slides phase:** the real number, measured on
   the final build and put on this slide; the deck is not done while the
@@ -828,9 +789,49 @@ github.com/balazsmolnar/C64-IL-Compiler
 Cut by the user to fit memory and length. Their text, visuals and sources
 are kept so a slide can be restored; nothing here is built.
 
+### Cut — References: 1 byte (was slide 10)
+
+**Cut.** Not in the 16-slide talk (cut at the integration, to fit memory).
+
+- **Layout:** diagram (hi-res).
+- **Title:** `References: 1 byte` (18)
+- **On screen:**
+
+```screen
+A reference is a 1-byte handle
+255 objects; handle 0 is null
+Handle -> table -> heap address
+Full: ?OUT OF MEMORY ERROR
+```
+
+- **Visual:** the old MemoryLayoutSlide, redrawn on the theme: an object
+  table (rows "1", "2", "...", "255"; columns HEAP PTR, SIZE, REFS, ROOTS,
+  VTABLE) in cyan across rows 4-11, and a heap strip in yellow across rows
+  13-15 with blocks "1", "3", "2", "5" and "FREE". Arrows from row 1's
+  and row 2's HEAP PTR down to their blocks. The four text lines in rows
+  17-20. Nothing overlaps the footer row (today the slide counter
+  overwrites the heap).
+- **Build:** on entry the table header. Press 1: rows 1, 2, 255. Press 2:
+  the heap strip and the two arrows. Press 3: the four text lines
+  together.
+- **Say:** "A reference is one byte: an index into seven 256-byte tables
+  holding each object's address, size, reference fields, root count and
+  vtable. So a program can have 255 live objects, and moving an object
+  only changes one table entry."
+- **Sources:** 1-byte reference: `Compiler/TypeExtensions.cs`
+  (`GetStorageBytes()` returns 1 for classes); tables:
+  `asm/helper/objectTables.asm` ("The 7x256-byte object/GC tables";
+  `objTableSize`, `objTableReferences`, `objTableRootCount`, ...); handle
+  0 = null: `asm/GC.asm` (`trackObjects`: "mark NULL"); faults "out of
+  memory" and "too many objects": commit `3f3d760` and
+  `asm/helper/fault.asm` (header: "?<MESSAGE> ERROR", red border;
+  `Runtime_FaultMsg0 .text "OUT OF MEMORY"`).
+
+- **As built** (`ReferencesSlide.cs`, critic round 1): table rows 1 and 2 only (the engine critic's table), Grey2 pointer arrows (row 1 from left of its value down the empty first cell, row 2 down from right of its value), heap strip rows 12-14 labelled `heap`, block widths 5, 3, 4, 3 (the table's sizes); text lines 1, 3, 4 on rows 16, 18, 20, and line 2 as a stat card right of them: `255 objects` / `handle 0 is null`.
+
 ### Cut — int is 8 bits (was slide 10)
 
-**Cut.** Not in the 17-slide talk.
+**Cut.** Not in the 16-slide talk.
 
 - **Layout:** two-column (hi-res): type table on top, code and error below.
 - **Title:** `int is 8 bits` (13)
@@ -875,7 +876,7 @@ would become 188.
 
 ### Cut — Our tests lied (was slide 11)
 
-**Cut.** Not in the 17-slide talk.
+**Cut.** Not in the 16-slide talk.
 
 - **Layout:** bullets (hi-res).
 - **Title:** `Our tests lied` (14)
@@ -904,7 +905,7 @@ This deck: Wait(500) waited 244
 
 ### Cut — Frames share bytes (was slide 12)
 
-**Cut.** Not in the 17-slide talk.
+**Cut.** Not in the 16-slide talk.
 
 - **Layout:** diagram (hi-res).
 - **Title:** `Frames share bytes` (18)
@@ -943,7 +944,7 @@ in 39 bytes of frames
 
 ### Cut — Hide under the ROM (was slide 16)
 
-**Cut.** Not in the 17-slide talk.
+**Cut.** Not in the 16-slide talk.
 
 - **Layout:** diagram (hi-res): memory map left, text right.
 - **Title:** `Hide under the ROM` (18)
@@ -979,7 +980,7 @@ Pictures packed:
 
 ### Cut — 39 bytes to 12 (was slide 18)
 
-**Cut.** Not in the 17-slide talk.
+**Cut.** Not in the 16-slide talk.
 
 - **Layout:** code (hi-res): a mini bar chart, the code, three lines.
 - **Title:** `39 bytes to 12` (14)
@@ -1027,7 +1028,7 @@ Result comes back in A
 
 ### Cut — Hunchback: -24% (was slide 19)
 
-**Cut.** Not in the 17-slide talk.
+**Cut.** Not in the 16-slide talk.
 
 - **Layout:** chart (hi-res): two horizontal bars and a caption line.
 - **Title:** `Hunchback: -24%` (15)
@@ -1059,7 +1060,7 @@ Same game, same C#: -8,690 B
 
 ### Cut — No single winner (was slide 20)
 
-**Cut.** Not in the 17-slide talk.
+**Cut.** Not in the 16-slide talk.
 
 - **Layout:** chart (hi-res): horizontal bars, two rows per optimization.
 - **Title:** `No single winner` (16)
@@ -1121,7 +1122,7 @@ Logic + const
 
 ### Cut — Worst frame: -19% (was slide 21)
 
-**Cut.** Not in the 17-slide talk.
+**Cut.** Not in the 16-slide talk.
 
 - **Layout:** chart (hi-res): bars against a full-frame outline.
 - **Title:** `Worst frame: -19%` (17)
@@ -1152,7 +1153,7 @@ Catacombs, raster lines per frame
 
 ### Cut — Line to address (was slide 24)
 
-**Cut.** Not in the 17-slide talk.
+**Cut.** Not in the 16-slide talk.
 
 - **Layout:** diagram (hi-res): a five-step pipeline, top to bottom.
 - **Title:** `Line to address` (15)
@@ -1195,7 +1196,7 @@ Debug build: bigger, less optimized
 
 ### Cut — Change it live (was slide 25)
 
-**Cut.** Not in the 17-slide talk.
+**Cut.** Not in the 16-slide talk.
 
 - **Layout:** bullets (hi-res checklist), shown while the presenter works
   on the PC.
@@ -1273,7 +1274,7 @@ Debug build: bigger, less optimized
 
 ### Cut — Four lessons (was slide 26)
 
-**Cut.** Not in the 17-slide talk.
+**Cut.** Not in the 16-slide talk.
 
 - **Layout:** bullets (hi-res).
 - **Title:** `Four lessons` (12)
@@ -1312,7 +1313,7 @@ Play the game, too
 Figures marked "measured" were taken for this storyboard; reproduce them
 like this (all paths literal, scratch under `.debug-tmp\`).
 
-- **Hunchback before/after (slide 13; was the cut slide 19).** HEAD `5216d06`: build
+- **Hunchback before/after (slide 12; was the cut slide 19).** HEAD `5216d06`: build
   `Hunchback\Hunchback.csproj`, run `Hunchback\measure.bat`, add the
   `Data:` lengths: 13 + 3,479 + 5,760 + 18,905 = 28,157. Before: `git
   archive 1e1a44e` into `.debug-tmp\old`, build its `Compiler` and
@@ -1441,7 +1442,7 @@ image of the same size (line art compresses well: about 0.3-0.8 KB each).
 | D6 | 11 GC without a scan | 38x18 | the existing animated GC scene, plus the compaction step |
 | D7 | cut: Hide under the ROM | 16x18 | vertical memory map, 6 segments, "not to scale" |
 | D8 | 15 PostSharp swaps it | 38x16 | six-step flow, two group boxes, address strip |
-| D9 | slide 16, Debug C# on a C64 | 18x18 | VS Code mock: editor with breakpoint dot and stop line, Variables panel (top-level `bcx`, `cx_`, `velX_`, `cosAy_`), `VICE` tag |
+| D9 | slide 15, Debug C# on a C64 | 18x18 | VS Code mock: editor with breakpoint dot and stop line, Variables panel (top-level `bcx`, `cx_`, `velX_`, `cosAy_`), `VICE` tag |
 | D10 | cut: Line to address | 30x12 | five stacked boxes with down-arrows |
 | C1 | cut: 39 bytes to 12 | 38x2 | 2 bars: 26 and 8 cells |
 | C2 | cut: Hunchback: -24% | 38x6 | 2 bars: 22 and 17 cells, dashed gap |

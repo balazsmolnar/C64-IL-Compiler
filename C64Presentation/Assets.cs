@@ -21,15 +21,14 @@ using C64Lib;
 [assembly: RawAssembly(Resource = "picture_buffer.asm")]                   // buf_Picture  3755
 // A5 the C64 breadbox, hi-res (slide 3)
 [assembly: RawImage(Resource = "breadbox.img", Label = "Breadbox")]        // 18x8 hires   377
-// A6 icons, PIXELS ONLY: set the cells' colours first (slide 9: object, GC, string;
-// icon_int8/stack/bitmap are built but undeclared since the cut)
-[assembly: RawImage(Resource = "icon_object.img", Label = "IconObject")]   // 3x3 hires     67
+// A6 icons, PIXELS ONLY: set the cells' colours first (slide 9: GC, string;
+// icon_int8/stack/bitmap/object are built but undeclared since the cuts)
 [assembly: RawImage(Resource = "icon_gc.img", Label = "IconGc")]           // 3x3 hires     74
 [assembly: RawImage(Resource = "icon_string.img", Label = "IconString")]   // 3x3 hires     47
 // The section icon of slide 9 (from the extras)
 [assembly: RawImage(Resource = "sec_chip.img", Label = "SecChip")]         //  6x6 hires   204
 
-// The section icon of slide 13, Small and fast (an extra, see below).
+// The section icon of slide 12, Small and fast (an extra, see below).
 [assembly: RawImage(Resource = "sec_chart.img", Label = "SecChart")]       //  6x6 hires   129
 
 // --- Extras, not in the storyboard: 4,427 bytes. Built and embeddable;

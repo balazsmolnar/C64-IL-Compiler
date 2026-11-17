@@ -4,13 +4,13 @@ using C64Presentation.SlideElements;
 
 namespace C64Presentation.Slides.Part3;
 
-// Section 7, slides 14-15: tests that run on a 6502 (DECK.md).
+// Section 7, slides 13-14: tests that run on a 6502 (DECK.md).
 static class Testing
 {
     const Colors Passed = Colors.LightGreen;    // NUnit's green
     const uint TickColumn = 31;                 // right of the [TestCase] line, in the panel
 
-    // 14: the code panel and its first line, whose 5 and 6 are underlined.
+    // 13: the code panel and its first line, whose 5 and 6 are underlined.
     const uint CodeTop = 5;
     const uint CodeColumn = Theme.Left + 1;     // CodeBlock draws from inside its frame
     const uint TestCaseRow = CodeTop + 1;
@@ -18,7 +18,7 @@ static class Testing
     const uint FiveAt = 10;                     // characters into TestCase
     const uint SixAt = 30;
 
-    // 14: an ordinary NUnit test case whose body runs as 6502 code. The code
+    // 13: an ordinary NUnit test case whose body runs as 6502 code. The code
     // is shown exactly as written; the code face can change colour only on a
     // cell edge (every 4 characters), so 5 and 6 are marked by underlines,
     // and `int`, which can't start on one as a parameter type, stays white.
@@ -50,7 +50,7 @@ static class Testing
         ]
     };
 
-    // 15 (D8): what the PostSharp aspect does around every test call: two
+    // 14 (D8): what the PostSharp aspect does around every test call: two
     // groups of steps on a rail, spread over the body rows.
     const Colors Result = Colors.LightGreen;    // CopyResultFromEmulator's group
     const uint InvokeRow = 5;                   // OnInvoke: steps 1-4

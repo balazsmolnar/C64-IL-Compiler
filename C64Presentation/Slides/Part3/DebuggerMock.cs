@@ -4,7 +4,7 @@ using C64Presentation.SlideElements;
 
 namespace C64Presentation.Slides.Part3;
 
-// Slide 16 (DECK.md): a mock of the VS Code debugger, stopped in
+// Slide 15 (DECK.md): a mock of the VS Code debugger, stopped in
 // Demo/RotatingCube.cs. The breakpoint dot sits in the editor's gutter, a
 // cell left free before the code.
 static class DebuggerMock

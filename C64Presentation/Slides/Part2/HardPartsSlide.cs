@@ -4,21 +4,20 @@ using C64Presentation.SlideElements;
 
 namespace C64Presentation.Slides;
 
-// Slide 9: the section divider, with the topics of the three slides that
-// follow as A6 icons, each over its word, the group centred on the content.
+// Slide 9: the section divider, with the topics of the two slides that
+// follow as A6 icons, each over its word, the pair centred on the content.
 static class HardPartsSlide
 {
     const uint IconRow = 15, Pitch = 12;
-    const uint First = 6, Second = First + Pitch, Third = Second + Pitch;     // icon columns: 6, 18, 30
+    const uint First = 12, Second = First + Pitch;      // icon columns 12 and 24: centres 13.5 and 25.5, about 19.5
 
     public static Slide Create() => new SimpleSlide
     {
         Elements =
         [
             new SectionElement { Number = "05", Title = "The hard parts", Subtitle = "", Icon = C64Address.FromLabel("img_SecChip") },
-            new Topic { X = First, Y = IconRow, Icon = C64Address.FromLabel("img_IconObject"), Label = "objects" },
-            new Topic { X = Second, Y = IconRow, Icon = C64Address.FromLabel("img_IconGc"), Label = "GC" },
-            new Topic { X = Third, Y = IconRow, Icon = C64Address.FromLabel("img_IconString"), Label = "strings & floats" },
+            new Topic { X = First, Y = IconRow, Icon = C64Address.FromLabel("img_IconGc"), Label = "GC" },
+            new Topic { X = Second, Y = IconRow, Icon = C64Address.FromLabel("img_IconString"), Label = "strings & floats" },
         ]
     };
 }

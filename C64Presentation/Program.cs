@@ -27,12 +27,11 @@ static class Program
         IlStackSlide.Create,
         AddCostSlide.Create,
         BuiltWithThisSlide.Create,
-        // 9-12 (Slides/Part2): the hard parts
+        // 9-11 (Slides/Part2): the hard parts
         HardPartsSlide.Create,
-        ReferencesSlide.Create,
         GcSlide.Create,
         BorrowSlide.Create,
-        // 13-17 (Slides/Part3): small and fast, testing, debugging, the close
+        // 12-16 (Slides/Part3): small and fast, testing, debugging, the close
         SmallAndFast.Section,
         Testing.TestsRunOn6502,
         Testing.PostSharpSwapsIt,

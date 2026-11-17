@@ -4,7 +4,7 @@ using C64Presentation.SlideElements;
 
 namespace C64Presentation.Slides;
 
-// Slide 11 (DECK.md D6): mark and compact, one press per phase. Left: six
+// Slide 10 (DECK.md D6): mark and compact, one press per phase. Left: six
 // objects (1 and 3 are roots) with their references; right: the four
 // phases, lighting up in turn, and the mark stack, which becomes the sort
 // table; below: the heap. An object being traced gets a yellow bar, a

@@ -3,7 +3,7 @@ using C64Presentation.SlideElements;
 
 namespace C64Presentation.Slides;
 
-// Slide 12: strings and floats are borrowed from what is already there.
+// Slide 11: strings and floats are borrowed from what is already there.
 // Two columns under accent headings, a hairline between them; each column,
 // its bullets and then a byte diagram of what they say, is one build step.
 static class BorrowSlide

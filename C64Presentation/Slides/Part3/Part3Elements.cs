@@ -7,7 +7,7 @@ namespace C64Presentation.Slides.Part3;
 // Elements only part 3 of the deck needs. Same conventions as
 // SlideElements/: init properties, 0 / Colors.Black = the theme's value.
 
-// One step of a numbered top-down flow (slide 15): its number in cyan on a
+// One step of a numbered top-down flow (slide 14): its number in cyan on a
 // thin Grey2 rail down the left margin (joined to the step above unless it
 // starts a group), then its text.
 //
@@ -102,7 +102,7 @@ sealed class CodeUnderline : SlideElement
 }
 
 // A thin elbow from a tag to a line: down the middle of Column from FromRow
-// to ToRow, then left across the cell before it (slide 16's VICE tag
+// to ToRow, then left across the cell before it (slide 15's VICE tag
 // to the line it stopped on).
 sealed class Elbow : SlideElement
 {

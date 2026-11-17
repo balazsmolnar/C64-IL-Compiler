@@ -189,7 +189,8 @@ class ILMethodIntOperandFusionOptimizer : ICompilerMethodPass
 
         var lines = context.Lines;
         Execute8Bit(context, lines);
-        Execute16Bit(lines);
+        Execute16Bit(context, lines);
+        ExecuteArith16Stack(lines);
         ExecuteLogicConst(lines);
         ExecuteBranchTruthiness(context, lines);
     }
@@ -255,7 +256,7 @@ class ILMethodIntOperandFusionOptimizer : ICompilerMethodPass
         }
     }
 
-    private void Execute16Bit(List<ILOperation> lines)
+    private void Execute16Bit(CompilerMethodContext context, List<ILOperation> lines)
     {
         for (int i = 0; i < lines.Count; i++)
         {
@@ -289,10 +290,74 @@ class ILMethodIntOperandFusionOptimizer : ICompilerMethodPass
             if (LogicOps.ContainsKey(lines[k].OpCode) && bMatch.Value.leaf.Operation is OpLdConst)
                 continue;
 
-            var fused = new OpFusedIntBinOp(aMatch.Value.leaf, bMatch.Value.leaf, false, "zp_param2_low", "zp_param1_low", tailMacro);
-
             var toMark = new List<int>();
             for (int x = i; x <= aEnd; x++) toMark.Add(x);
+            for (int x = j; x <= bEnd; x++) toMark.Add(x);
+            toMark.Add(k);
+
+            // Add/Sub of locals, parameters and constants needs no scratch
+            // at all: straight from the operands, and straight into the
+            // local the result is stored to, if that is what comes next
+            // (Hunchback: 32 bytes a site, 15 this way, 14 for `x += 2`).
+            bool isAddSub = lines[k].OpCode == ILOpCode.Add || lines[k].OpCode == ILOpCode.Sub;
+            if (isAddSub && Int16DirectOperand.IsDirect(aMatch.Value.leaf) && Int16DirectOperand.IsDirect(bMatch.Value.leaf))
+            {
+                int s = NextEffective(lines, k);
+                ILOperation store = null;
+                if (s >= 0 && string.IsNullOrEmpty(lines[s].Label) && IsInt16LocalStore(context, lines[s]))
+                {
+                    store = lines[s];
+                    toMark.Add(s);
+                }
+                var direct = new OpFusedInt16Direct(aMatch.Value.leaf, bMatch.Value.leaf, lines[k].OpCode == ILOpCode.Sub, store);
+                InsertFused(lines, direct, store != null ? s : k, toMark.ToArray());
+                continue;
+            }
+
+            var fused = new OpFusedIntBinOp(aMatch.Value.leaf, bMatch.Value.leaf, false, "zp_param2_low", "zp_param1_low", tailMacro);
+            InsertFused(lines, fused, k, toMark.ToArray());
+        }
+    }
+
+    // A Stloc of a 16-bit integer local (never promoted: promotion is for
+    // single bytes; never reference counted: an Add/Sub result is a number).
+    private static bool IsInt16LocalStore(CompilerMethodContext context, ILOperation l)
+    {
+        if (l.Optimized || l.RawParameter == null)
+            return false;
+        if (l.Operation is not OpStloc && l.Operation is not OpStloc_s)
+            return false;
+        return l.Operation.Is16Bit(context, l) && l.RawParameter.ToString().Split(',').Length == 2 &&
+               l.RawParameter.ToString().Split(',')[1].Trim() == "0";
+    }
+
+    // [a 16-bit value already on the stack] [16-bit constant/local/parameter]
+    // [Add/Sub] -> "#arith16_stack": what Execute16Bit cannot take because
+    // the first operand is not a simple leaf (a field of another object, a
+    // call's result, an expression). As in ExecuteLogicConst, the second
+    // operand may carry a label -- a join where both paths pushed the first.
+    private static void ExecuteArith16Stack(List<ILOperation> lines)
+    {
+        for (int j = 0; j < lines.Count; j++)
+        {
+            if (lines[j].Optimized)
+                continue;
+            var m = TryMatchInt16Leaf(lines, j);
+            if (m == null || !Int16DirectOperand.IsDirect(m.Value.leaf))
+                continue;
+            int bEnd = j + m.Value.span - 1;
+
+            int k = NextEffective(lines, bEnd);
+            if (k < 0 || !string.IsNullOrEmpty(lines[k].Label))
+                continue;
+            if (lines[k].OpCode != ILOpCode.Add && lines[k].OpCode != ILOpCode.Sub)
+                continue;
+            var result = lines[k].StackContent;
+            if (result == null || result.Count == 0 || result.Last() == typeof(float) || result.Last().GetStorageBytes() != 2)
+                continue;
+
+            var fused = new OpFusedInt16Stack(m.Value.leaf, lines[k].OpCode == ILOpCode.Sub);
+            var toMark = new List<int>();
             for (int x = j; x <= bEnd; x++) toMark.Add(x);
             toMark.Add(k);
             InsertFused(lines, fused, k, toMark.ToArray());

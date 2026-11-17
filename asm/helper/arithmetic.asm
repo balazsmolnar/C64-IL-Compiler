@@ -28,6 +28,115 @@ add16 .macro
     #add16_tail
 .endm
 
+; ---------------------------------------------------------------------------
+; 16-bit add / subtract straight from where the operands are to where the
+; result goes (ILMethodIntOperandFusionOptimizer, OpFusedInt16Direct and
+; OpFusedInt16Stack), instead of add16's copy of both into zp_param1/2 and
+; a push of the result: 14-17 bytes where that is 32 and more.
+;
+; An operand is a pair (kind, v): kind 0 = the constant v, kind 1 = the
+; 16-bit local or parameter at rel_pos v (localsStack.asm's ls_op: a static
+; frame slot from 256 up, else localsStack,y). `sub` is 0 to add, 1 to
+; subtract (a - b). X is used to hold the low byte of a pushed result.
+; ---------------------------------------------------------------------------
+
+; One byte (k = 0 low, 1 high) of an operand, as the operand of `op`.
+arith16_byte .macro op, kind, v, k
+  .if \kind == 0
+    .if \k == 0
+      \op #<(\v)
+    .else
+      \op #>(\v)
+    .endif
+  .else
+    #ls_op \op, \v, \k
+  .endif
+.endm
+
+; Y = stackPointer if either operand is a local in a dynamic frame.
+arith16_ldy .macro akind, a, bkind, b
+  .if (\akind == 1 && \a < 256) || (\bkind == 1 && \b < 256)
+    ldy stackPointer
+  .endif
+.endm
+
+arith16_carry .macro sub
+  .if \sub
+    sec
+  .else
+    clc
+  .endif
+.endm
+
+arith16_op .macro sub, kind, v, k
+  .if \sub
+    #arith16_byte sbc, \kind, \v, \k
+  .else
+    #arith16_byte adc, \kind, \v, \k
+  .endif
+.endm
+
+; a + b / a - b, both operands a constant or a local: the result on the
+; evaluation stack.
+arith16_direct .macro sub, akind, a, bkind, b
+    #arith16_ldy \akind, \a, \bkind, \b
+    #arith16_carry \sub
+    #arith16_byte lda, \akind, \a, 0
+    #arith16_op \sub, \bkind, \b, 0
+    tax
+    #arith16_byte lda, \akind, \a, 1
+    #arith16_op \sub, \bkind, \b, 1
+    pha
+    txa
+    #stack_push_tos
+.endm
+
+; The same, the result stored in the 16-bit local at rel_pos dest. A local
+; in a static frame changed by a constant below 256 (x += 2) only touches
+; its high byte on a carry.
+arith16_store .macro sub, akind, a, bkind, b, dest
+  .if \akind == 1 && \a == \dest && \dest >= 256 && \bkind == 0 && (\b) >= 0 && (\b) < 256
+    #arith16_carry \sub
+    #ls_op lda, \dest, 0
+    #arith16_op \sub, 0, \b, 0
+    #ls_op sta, \dest, 0
+    .if \sub
+      bcs +
+      #ls_op dec, \dest, 1
+    .else
+      bcc +
+      #ls_op inc, \dest, 1
+    .endif
++
+  .else
+    .if (\akind == 1 && \a < 256) || (\bkind == 1 && \b < 256) || \dest < 256
+      ldy stackPointer
+    .endif
+    #arith16_carry \sub
+    #arith16_byte lda, \akind, \a, 0
+    #arith16_op \sub, \bkind, \b, 0
+    #ls_op sta, \dest, 0
+    #arith16_byte lda, \akind, \a, 1
+    #arith16_op \sub, \bkind, \b, 1
+    #ls_op sta, \dest, 1
+  .endif
+.endm
+
+; [a 16-bit value on the evaluation stack] + b / - b, b a constant or a
+; local: the result back on the stack.
+arith16_stack .macro sub, bkind, b
+    #arith16_ldy 0, 0, \bkind, \b
+    #stack_pull_int_a
+    #arith16_carry \sub
+    #arith16_op \sub, \bkind, \b, 0
+    tax
+    pla
+    #arith16_op \sub, \bkind, \b, 1
+    pha
+    txa
+    #stack_push_tos
+.endm
+
 add8_tail .macro
     clc
     adc zp_param1_low

@@ -119,6 +119,72 @@ class OpFusedIntBinOp : OpBase
     }
 }
 
+// A 16-bit add/subtract operand the arith16_* macros (asm/helper/
+// arithmetic.asm) can address directly: a constant, or a local/parameter.
+static class Int16DirectOperand
+{
+    public static bool IsDirect(ILOperation source) =>
+        source.Operation is OpLdloc || source.Operation is OpLdloc_s || source.Operation is OpLdarg ||
+        source.Operation is OpLdarg_s || source.Operation is OpLdConst;
+
+    // "kind, value" as the macros take it.
+    public static string Emit(ILOperation source) =>
+        source.Operation is OpLdConst ? $"0, {source.RawParameter}" : $"1, {source.RawParameter}";
+}
+
+// Built by ILMethodIntOperandFusionOptimizer, replacing a
+// [16-bit local/parameter/constant] [the same] [Add/Sub] window, and the
+// Stloc after it if there is one: the sum is computed straight from the
+// operands ("#arith16_direct") and, with a destination, straight into it
+// ("#arith16_store"), instead of both operands being copied to zp_param1/2,
+// added there and the result pushed.
+class OpFusedInt16Direct : OpBase
+{
+    private readonly ILOperation _a;
+    private readonly ILOperation _b;
+    private readonly bool _subtract;
+    private readonly ILOperation _store;
+
+    public OpFusedInt16Direct(ILOperation a, ILOperation b, bool subtract, ILOperation store) : base(0)
+    {
+        _a = a;
+        _b = b;
+        _subtract = subtract;
+        _store = store;
+    }
+
+    // The rel_pos of a Stloc's local (its parameter is "rel_pos, isRef").
+    public static string StoreRelPos(ILOperation store) => store.RawParameter.ToString().Split(',')[0].Trim();
+
+    public override string Emit(CompilerMethodContext context, ILOperation operation)
+    {
+        var operands = $"{(_subtract ? 1 : 0)}, {Int16DirectOperand.Emit(_a)}, {Int16DirectOperand.Emit(_b)}";
+        return _store == null
+            ? $"#arith16_direct {operands}"
+            : $"#arith16_store {operands}, {StoreRelPos(_store)}";
+    }
+}
+
+// Built by ILMethodIntOperandFusionOptimizer: a 16-bit Add/Sub whose first
+// operand is already on the evaluation stack (a field, a call's result, an
+// expression) and whose second is a constant or a local/parameter, which is
+// added byte by byte as it is pulled ("#arith16_stack") instead of being
+// pushed first and both then copied to zp_param1/2.
+class OpFusedInt16Stack : OpBase
+{
+    private readonly ILOperation _b;
+    private readonly bool _subtract;
+
+    public OpFusedInt16Stack(ILOperation b, bool subtract) : base(0)
+    {
+        _b = b;
+        _subtract = subtract;
+    }
+
+    public override string Emit(CompilerMethodContext context, ILOperation operation) =>
+        $"#arith16_stack {(_subtract ? 1 : 0)}, {Int16DirectOperand.Emit(_b)}";
+}
+
 // Built by ILMethodIntOperandFusionOptimizer: And/Or/Xor whose second
 // operand is an int constant, which goes in as an immediate
 // ("and8_const 7", asm/helper/arithmetic.asm) instead of being pushed and

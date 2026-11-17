@@ -43,7 +43,7 @@
        deck build needs no list: dead-code elimination drops the elements no
        deck slide uses.) -->
   <ItemGroup Condition="'$(Scene)' == 'ENGINE'">
-    <Compile Remove="Slides\DemoSlide.cs;Slides\Part1\**;Slides\Part2\**" />
+    <Compile Remove="Slides\Part1\**;Slides\Part2\**;Slides\Part3\**" />
   </ItemGroup>
 
   <ItemGroup>

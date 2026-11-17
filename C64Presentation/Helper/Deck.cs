@@ -23,6 +23,7 @@ static class Deck
 {
     public static uint Number { get; private set; }     // current slide, 0-based
     public static uint Count { get; private set; }      // slides in the deck
+    public static bool Hidden { get; private set; }     // a hidden slide: no number, no progress
 
     // Fade levels: fade_Levels holds Black (0) .. Full (4).
     const uint Black = 0;
@@ -66,6 +67,7 @@ static class Deck
     public static void Begin(uint number)
     {
         Number = number;
+        Hidden = false;
         _contentBottom = Screen.Rows;
         if (_picture)
         {
@@ -79,6 +81,15 @@ static class Deck
         _building = false;
         _leaving = false;
         _markCount = 0;
+    }
+
+    // Swaps the current slide for a hidden one (an appendix shown on a key):
+    // fades out, then starts a slide whose footer has no number or progress.
+    public static void BeginHidden()
+    {
+        FadeOut();
+        Begin(Number);
+        Hidden = true;
     }
 
     // True once a jump is pending; the first time, fades what is on screen
@@ -129,6 +140,7 @@ static class Deck
 
     static void FadeToBlack()
     {
+        C64.Sprites.VisibleMask = 0;     // sprites have no fade levels: they go first
         if (_revealed)
         {
             Save();

@@ -38,9 +38,12 @@ static class Master
 
     // Deck title, "n / total" and the progress bar, all receding: the grey
     // track over the full width, then this slide's progress in cyan over it.
+    // A hidden slide (Deck.BeginHidden) shows the deck title only.
     public static void Footer()
     {
         Text.Draw(ContentLeft, Theme.FooterRow, DeckTitle, Theme.Muted);
+        if (Deck.Hidden)
+            return;
         Text.RightNow(ContentRight, Theme.FooterRow, $"{Deck.Number + 1} / {Deck.Count}", Theme.Muted);
 
         uint done = Theme.Left + (uint)((ulong)Theme.Width * (Deck.Number + 1) / Deck.Count);
@@ -60,7 +63,7 @@ static class Master
     {
         Text.Big(ContentLeft, 4, number, Theme.Muted);
         if (icon != 0)
-            C64.Screen.DrawImage(Theme.Right - 6, 3, icon);
+            C64.Screen.DrawImage(Theme.Right - 6, 1, icon);     // its base line level with the number's
         Text.Big(ContentLeft, 10, title);
         Text.Draw(ContentLeft, 15, subtitle, Theme.Body);
         Footer();

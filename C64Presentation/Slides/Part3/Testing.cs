@@ -1,0 +1,76 @@
+using C64Lib;
+using C64Presentation.Helper;
+using C64Presentation.SlideElements;
+
+namespace C64Presentation.Slides.Part3;
+
+// Section 7, slides 14-15: tests that run on a 6502 (DECK.md).
+static class Testing
+{
+    const Colors Passed = Colors.LightGreen;    // NUnit's green
+    const uint TickColumn = 31;                 // right of the [TestCase] line, in the panel
+
+    // 14: an ordinary NUnit test case whose body runs as 6502 code. The code
+    // is shown exactly as written; the code face can change colour only on a
+    // cell edge (every 4 characters), so 5 and 6 are marked by underlines,
+    // and `int`, which can't start on one as a parameter type, stays white.
+    public static Slide TestsRunOn6502() => new SimpleSlide
+    {
+        Elements =
+        [
+            new Title { Text = "Tests run on 6502" },
+            new CodeBlock
+            {
+                X = Theme.Left, Y = CodeTop,
+                Lines =
+                [
+                    "[TestCase(5, ExpectedResult = 6)]",
+                    "int TestIncrement(int value)",
+                    "{",
+                    $"    {Theme.Kw}var{Theme.Pl}a = value;",
+                    $"    {Theme.Kw}return{Theme.Pl}++a;",
+                    "}",
+                ],
+            },
+            new CodeUnderline { Column = Theme.Left + 1, Row = CodeTop + 1, From = 10, Length = 1 },
+            new CodeUnderline { Column = Theme.Left + 1, Row = CodeTop + 1, From = 30, Length = 1 },
+            new TextElement { X = Theme.Left, Y = 14, Text = "NUnit finds it, runs it, reports it", Wait = true },
+            new TextElement { X = Theme.Left, Y = 16, Text = $"{Theme.Hi}5{Theme.Off}goes in via $09E0", Wait = true },
+            new TextElement { X = Theme.Left, Y = 18, Text = $"{Theme.Hi}6{Theme.Off}comes back at $2C", Wait = true },
+            new TextElement { X = Theme.Left, Y = 20, Text = "The body never runs as .NET", Wait = true },
+            new TextElement { X = TickColumn, Y = CodeTop + 1, Text = Theme.Tick, Face = TextFace.Heading, Color = Passed },
+        ]
+    };
+
+    const uint CodeTop = 5;
+
+    // 15 (D8): what the PostSharp aspect does around every test call: the
+    // steps on a rail, each with the bytes it touches as chips on its row.
+    // D swaps in the hidden debugger mock, the fallback for a failed live demo.
+    public static Slide PostSharpSwapsIt() => PostSharp(builds: true);
+
+    static Slide PostSharpBuilt() => PostSharp(builds: false);
+
+    const Colors Result = Colors.LightGreen;    // CopyResultFromEmulator's group
+
+    static Slide PostSharp(bool builds) => new SimpleSlide
+    {
+        Elements =
+        [
+            new Title { Text = "PostSharp swaps it" },
+            new TextElement { X = Theme.Left, Y = 5, Text = Theme.Dot, Color = Theme.Brand },
+            new TextElement { X = Theme.Left + 1, Y = 5, Text = "RunInEmulatorAspect.OnInvoke" },
+            new FlowStep { Row = 7, Number = "1", Text = "Load prg/unittest.prg", First = true },
+            new FlowStep { Row = 9, Number = "2", Text = $"Method address {Theme.Arrow} $09FE", Addresses = ["$09FE"], Color = Theme.Brand },
+            new FlowStep { Row = 11, Number = "3", Text = $"Arguments {Theme.Arrow} $09E0", Addresses = ["$09E0"], Color = Theme.Brand, Wait = builds },
+            new FlowStep { Row = 13, Number = "4", Text = "Run from $1000", Addresses = ["$1000"], Color = Theme.Brand },
+            new TextElement { X = Theme.Left, Y = 14, Text = Theme.Dot, Color = Result, Wait = builds },
+            new TextElement { X = Theme.Left + 1, Y = 14, Text = "CopyResultFromEmulator" },
+            new FlowStep { Row = 16, Number = "5", Text = "$20: 0 pass, $FF fail, $FE fault", Addresses = ["$0020"], Color = Result, First = true },
+            new FlowStep { Row = 18, Number = "6", Text = "Message at $2E/$2F, value at $2C", Addresses = ["$002E", "$002C"], Color = Result },
+            new TextElement { X = Theme.Left, Y = 20, Text = "Over 700 test cases, all on 6502", Color = Theme.Accent, Wait = builds },
+            new HiddenSlideKey { Enabled = builds, Appendix = DebuggerMock.Create, Return = PostSharpBuilt },
+        ]
+    };
+
+}

@@ -97,11 +97,29 @@ static class KeyBoard
 #endif
     }
 
+    // A slide's own key (D: the hidden appendix), edge-triggered like N and
+    // B: true once per press, until the key is released. Never in a scene
+    // build. Not for N or B, which the engine owns.
+    public static bool Pressed(Keys key)
+    {
+#if SCENE
+        return false;
+#else
+        bool down = C64.IsKeyPressed(key);
+        bool pressed = down && !_slideKeyHeld;
+        _slideKeyHeld = down;
+        return pressed;
+#endif
+    }
+
+    static bool _slideKeyHeld;
+
     // Waits for SPACE / fire and its release, or until a jump is pending.
     public static void WaitForAdvance()
     {
         while (!AdvancePressed())
         {
+            C64.Screen.WaitForVBlank();
         }
 #if !(SCENE_HOLD || SCENE_AUTO)
         while (!Jumping && C64.IsKeyPressed(Keys.Space))

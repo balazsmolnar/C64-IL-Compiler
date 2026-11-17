@@ -1,8 +1,9 @@
 # Files on the deck's disk, next to the program (tools/make-d64.ps1 puts them
 # on prg\presentation.d64). Loaded with C64.Disk.Load, see art/ArtDisk.cs.
-# Made by art/presentation_art.py.
+# Made by art/presentation_art.py (room: art/slides/make_room.py).
 #
 # name on disk   host file
 shotroom         art\build\disk\shot_room.bin
 shottitle        art\build\disk\shot_title.bin
 shotboss         art\build\disk\shot_boss.bin
+room             art\build\disk\room.bin

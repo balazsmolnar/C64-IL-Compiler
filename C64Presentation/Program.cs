@@ -10,19 +10,9 @@ static class Program
 #if SCENE_ENGINE
     static readonly Func<Slide>[] Slides = EngineGallery.Slides;
 #else
-    static readonly Func<Slide>[] Slides =
-    [
-        () => new IntroSlide(),
-        AgendaSlide.Create,
-        WhatIsItSlide.Create,
-        CompilerPassesSlide.Create,
-        () => new DemoSlide(),
-        FeaturesSlide.Create,
-        () => new DemoSlide(),
-        MemoryLayoutSlide.Create,
-        () => new GarbageCollectorSlide(),
-        () => new DemoSlide(),
-    ];
+    // For now only DECK.md slides 1-8 (Slides/Part1); the other parts join
+    // when they are merged.
+    static readonly Func<Slide>[] Slides = Part1.Slides;
 #endif
 
     static void Main()
@@ -33,6 +23,9 @@ static class Program
 #if SCENE_DISK
         DiskScene.Run();  // art/DiskScene.cs: a picture loaded from the disk
 #endif
+        // The picture slides from the disk: load while the deck boots, so the
+        // talk never waits for the drive (slide 8's room).
+        ArtDisk.Load(DiskPicture.Room);
         Presenter.Present(Slides);
     }
 }

@@ -101,7 +101,15 @@ a C# program.
   lines of syntax-coloured C#. It must move out of the `#if
   SCENE_ART || ART_EXTRAS` block in `Assets.cs`.
 - **Build:** on entry the picture. Press 1: the caption, typed out one
-  character at a time like a C64 `PRINT`.
+  character at a time like a C64 `PRINT`, with a cyan block cursor that
+  keeps blinking after the full stop until the next press.
+- **As built:** the caption is in the code face (the deck's fixed-pitch
+  face, 6 px a character: it matches the code card), from cell 20 (under
+  the bubble's tail) on rows 20-21, line 1 Grey3, line 2 white. It is drawn once under black
+  x-expanded sprites that step right with the cursor, so nothing is
+  redrawn while it types (`Slides/Part1/TitleSlide.cs`; sprites from
+  `art/slides/make_caret.py`). `Program.Main` loads slide 8's picture from
+  the disk while the deck boots.
 - **Say:** "Before anything else: what you are looking at is not
   PowerPoint. This slide is a C# program, compiled to 6502 machine code and
   running on a Commodore 64. The rest of the talk is how."
@@ -119,7 +127,7 @@ a C# program.
 
 ```screen
 64 KB RAM
-~1 MHz 6510 CPU
+1 MHz 6510 CPU
 A, X, Y: 8 bits
 256-byte stack
 320x200, 16 colours
@@ -127,68 +135,74 @@ A, X, Y: 8 bits
 
 - **Visual:** asset **A5**, a hi-res (two colours per cell) pixel-art
   Commodore 64 breadbox, in the left column (cells 1-18, rows 7-14).
-- **Build:** on entry the picture. Presses 1-5: one fact each.
+- **On screen (under both, white, after the facts):**
+
+```screen
+Everything that follows is fitting C# into that.
+```
+
+- **Build:** on entry the picture. Presses 1-5: one fact each. Press 6:
+  the closing line (the Say's point, on screen so the empty bottom half
+  carries it).
 - **Say:** "This is the target: 64 kilobytes, one megahertz, three 8-bit
   registers and a 256-byte hardware stack. Everything that follows is about
   fitting C# into that."
 - **Sources:** Commodore 64 Programmer's Reference Guide (memory map, 6510,
-  VIC-II modes). PAL clock is 0.985 MHz, hence "~1 MHz".
+  VIC-II modes). PAL clock is 0.985 MHz, hence "~1 MHz" in the first
+  draft; the slide says "1 MHz" because `~` is the deck fonts' arrow
+  glyph (the title rounds the same way).
 
 ### Slide 3 — It's ordinary C#
 
 - **Layout:** code (hi-res), two text lines below.
 - **Title:** `It's ordinary C#` (16)
-- **On screen (code, 9 lines: the one exception to the 8-line rule, for
-  idiomatic braces; the panel is rows 4-12, the two text lines rows 14-15,
-  which still fits above the footer):**
+- **On screen (code, 9 rows: the one exception to the 8-line rule, for
+  idiomatic braces; the panel is rows 5-15, the two text lines rows 17
+  and 19, which still fits above the footer). The code face is 6 px a
+  character, so a 36-cell panel holds 45 columns:**
 
 ```code
-class Star
+class Star(uint speed)
 {
-  public uint X { get; set; }
-  public uint Dx { get; init; }
-  public void Move() => X += Dx;
+    public uint X { get; private set; }
+    public void Move() => X += speed;
 }
-Star[] sky = [new() { Dx = 1 },
-              new() { Dx = 2 }];
-foreach (var s in sky) s.Move();
+--------------------------------------
+Star[] sky = [new(1), new(2)];
+foreach (var star in sky)
+    star.Move();
 ```
 
 - **On screen (text, below the code):**
 
 ```screen
-Properties, init, collection exprs
+Primary constructors, properties, [a, b]
 C64Lib: the C64 as a C# API
 ```
 
-- **Visual:** code in a panel with the theme's code background; a thin
-  rule between the class (lines 1-6) and the three statements (lines 7-9),
-  with a small grey label `in Main` beside line 7.
-- **Build:** on entry the class. Press 1: lines 7-9. Presses 2-3: one text
-  line each.
-- **Say:** "Auto-properties, an init-only property set by an object
-  initializer, an expression-bodied method, a collection expression with
-  target-typed new, foreach. Normal, current C#. C64Lib gives you the
-  screen, sprites, sound and joystick as C# calls; its methods are empty
-  stubs that the compiler maps to 6502 routines."
-- **Sources:** this exact code compiled and run for this storyboard
-  (snippet S2 under "Measurements"): built with `dotnet build`, compiled
-  by this repo's compiler, assembled by 64tass and run in VICE, where it
-  prints `2` (`sky[1].X`). C64Lib stubs: CLAUDE.md ("What this is").
-- **Not used, on purpose (for a future compiler change):**
-  - A primary constructor, `class Star(uint speed) { ... }` with
-    `[new(1), new(2)]`, fails: `error C64004: The constructor of 'Star'
-    does real work (sets a field, including a field initializer such as
-    'int x = 5;', or calls a method), which is not supported yet.` (hint:
-    "Set the fields where you create the object, with an object
-    initializer ..., or add an Init() method and call it after new.").
-  - `public uint X { get; private set; }` compiles and runs (also
-    verified, prints `2`) but is 35 columns indented, one too many for the
-    slide, so the slide uses `{ get; set; }`.
+- **Visual:** code in a panel with the theme's code background. Colour
+  can only change on an 8 px cell edge while the code face is 6 px wide,
+  so only `class`, `public uint`, `public void` and `foreach` are cyan:
+  keywords that cannot start and end on an edge stay white, and no
+  bracket or semicolon is ever in a keyword colour; a thin rule (the dashed row above) between the class
+  (lines 1-5) and the three statements, with a small grey label `in Main`
+  at the right end of the first statement.
+- **Build:** on entry the class. Press 1: the rule and the statements.
+  Presses 2-3: one text line each.
+- **Say:** "A primary constructor, an auto-property with a private setter,
+  an expression-bodied method, a collection expression with target-typed
+  new, foreach. Normal, current C#. C64Lib gives you the screen, sprites,
+  sound and joystick as C# calls; its methods are empty stubs that the
+  compiler maps to 6502 routines."
+- **Sources:** this exact code (the primary-constructor version) was
+  compiled by the constructor-support work (merged before `ee8ec86`),
+  assembled by 64tass and run in VICE, where it prints `2` (`sky[1].X`);
+  see snippet S2 under "Measurements". C64Lib stubs: CLAUDE.md ("What this
+  is").
+- **Not used, on purpose:**
   - Top-level statements fail to link: they compile to a method named
     `<Main>$`, and 64tass reports "not defined symbol 'Program_Main'". So
-    lines 7-9 sit in a `Main` method.
-
+    the statements sit in a `Main` method.
 ### Slide 4 — What compiles
 
 - **Layout:** two-column (hi-res).
@@ -199,7 +213,7 @@ C64Lib: the C64 as a C# API
 WORKS
 classes, virtuals
 arrays, strings
-$"x = {x}"
+string interpolation
 float, Func<T>
 GC.Collect()
 ```
@@ -212,11 +226,12 @@ generics
 interfaces
 struct, double
 try, throw, LINQ
-constructor logic
 ```
 
 - **Visual:** "WORKS" heading in light green, "COMPILE ERROR" in light
-  red; thin vertical rule between the columns. Below both columns, one
+  red, each with a 1 px rule of its colour under it; thin vertical rule
+  between the columns, from the headings to the right column's last item. Interpolation is written out in words: the deck
+  fonts have no `"` glyph. Below both columns, one
   line in the secondary colour:
 
 ```screen
@@ -226,13 +241,11 @@ Every error has a code and a hint
 - **Build:** on entry the headings. Press 1: left column. Press 2: right
   column. Press 3: the bottom line.
 - **Say:** "You get classes with virtual methods, arrays, strings, floats
-  and a garbage collector. You don't get generics, interfaces, structs,
-  exceptions or constructor logic: you set fields with an object
-  initializer, exactly as slide 3 did. The compiler tells you so with an
-  error and a hint, never by producing wrong code."
-  (The "constructor logic" line and its clause in the Say are kept easy
-  to drop: if constructor support is added later, delete both and the
-  right column is still 5 lines.)
+  and a garbage collector. You don't get generics, interfaces, structs
+  or exceptions. The compiler tells you so with an error and a hint,
+  never by producing wrong code."
+  ("constructor logic" was dropped from the right column once constructor
+  support landed: slide 3's primary constructor compiles.)
 - **Sources:** works: `Compiler/Diagnostics.cs` ("Only your own code,
   C64Lib.*, MathF.Sin/Cos/Sqrt, Console.Write/WriteLine(string),
   GC.Collect(), Func<T>.Invoke(), numeric ToString() and the string basics
@@ -243,13 +256,7 @@ Every error has a code and a hint
   `Compiler/Operands/OperandBase.cs` ("Interfaces are not supported yet");
   struct, double, try/throw `Compiler/Diagnostics.cs` (`Describe`: "A
   struct (user-defined value type)", "double-precision floating point",
-  "try/catch/finally", "The 'throw' statement"); constructor logic
-  `Compiler/Operands/OperandBase.cs:447` (C64004: "The constructor of
-  '{t.Name}' does real work (sets a field, including a field initializer
-  such as 'int x = 5;', or calls a method), which is not supported yet.",
-  hint "Set the fields where you create the object, with an object
-  initializer ..."), also hit by the primary-constructor try on slide 3;
-  LINQ and the rest of the
+  "try/catch/finally", "The 'throw' statement"); LINQ and the rest of the
   class library: C64002 ("a call into the .NET class library ... with no
   C64 implementation"). Codes and hints: CLAUDE.md ("Unsupported C# is a
   compile error").
@@ -264,14 +271,20 @@ Every error has a code and a hint
   `IL .dll`, `.asm`, `.prg`, `VICE`, `C64`. Arrow labels (small text):
   `dotnet build`, `Compiler.exe`, `64tass`. Caption under `Compiler.exe`:
   `46 passes`.
-- **Visual:** row A (cell rows 6-9): box "C#" (cyan), arrow "dotnet
-  build", box "IL .dll" (violet), arrow "Compiler.exe" turning down at
-  the right edge, with "46 passes" under it in the accent colour. Row B
-  (cell rows 13-16), right to left: box ".asm" (light green), arrow
-  "64tass", box ".prg" (yellow). Below .prg, two small boxes side by side:
-  "VICE" and "C64". Boxes 8 cells wide, 3 high; arrows 1 cell high with
-  the label above. Column budget of row A: 8 box + 7 arrow + 8 box + 7
-  arrow = 30.
+- **Visual (as built):** a snake on three slots (box columns 2, 16 and
+  31, boxes 7 cells wide and 3 high, arrows with the label above). Row A
+  (rows 6-8): box "C#", arrow "dotnet build", box "IL .dll", both
+  violet (.NET: Roslyn's half); then the arrow "Compiler.exe" runs over
+  the empty third slot and turns down, with "46 passes" under its label in
+  the accent colour. Row B (rows 12-14), right to left: box ".asm", arrow
+  "64tass", box ".prg", both cyan (our half). Under .prg, two short
+  arrows to two small boxes side by side, "VICE" and "C64" (yellow: where
+  it runs). The colours follow the deck's palette (violet = C#/.NET, cyan =
+  this project) rather than the first draft's light green for .asm. The
+  halves are labelled: a 1 px violet rule under C# and IL with `Roslyn`
+  under it (built with press 1), and a cyan rule under the compiler
+  arrow's span with `ours: 46 passes` under it (press 2), in place of a
+  separate `46 passes` caption.
 - **Build:** on entry the C# box. Press 1: arrow + IL box (Roslyn's half).
   Press 2: arrow + "46 passes" + .asm box. Press 3: arrow + .prg box.
   Press 4: VICE and C64 boxes.
@@ -302,10 +315,22 @@ add        #add8
 ret        #method_exit 4, []
 ```
 
-- **Visual:** the IL column in violet, the macro column in light green, a
-  faint row highlight that moves down with the build.
-- **Build:** on entry the C# (2 lines). Press 1: the IL column. Presses
-  2-5: one macro per press, next to its IL line.
+- **Visual:** one code panel. The IL column in violet (.NET), the macro
+  column in cyan (ours) with its operands in yellow; a thin rule between
+  the C# and the IL (as on slide 3), the header in grey. Each macro comes
+  in behind a grey arrow from its IL line (`ldarg.0 ~ #locals_push_value8
+  1`), so the rows that have been translated read as "becomes"; this
+  replaces the first draft's moving row highlight (a highlight bar would
+  put violet text on the Grey1 surface).
+- **On screen (after the last macro, accent):**
+
+```screen
+One 6502 macro per IL instruction
+```
+
+- **Build:** on entry the C# (2 lines). Press 1: the rule, the header and
+  the IL column. Presses 2-5: one arrow and macro per press, next to its
+  IL line. Press 6: the closing line, which also sets up slide 7.
 - **Say:** "IL is a stack machine: push a, push b, add, return. The naive
   translation is one 6502 macro per IL instruction, and that works,
   because the 6502 has a stack too."
@@ -327,14 +352,18 @@ localsStack: arguments and locals
 One line of C#: 39 bytes of 6502
 ```
 
-- **Visual:** two vertical stacks side by side, 10 cells wide, 9 high.
-  Left, labelled "$0100 6502 stack": cells, top down, "ret addr", "b",
-  "a", with a "pha / pla" label on the arrow into its top. Right, labelled
-  "localsStack, 256 B": a frame of cells "ret addr", "a", "b" and a
-  pointer arrow from a small box "Y = stackPointer" to the frame. A curved
-  arrow from left to right labelled "pla, sta localsStack,y" (the prologue
-  moving the return address and the arguments into the frame). The three
-  text lines sit under the stacks.
+- **Visual (as built):** the stacks' names as Grey3 headers on row 5:
+  "6502 stack, $0100" (left) and "localsStack, 256 B" (right). Two
+  stacks of three cards, 6 cells wide, two rows a card, rows 8-13. Left
+  (cells 2-7, grey bars): "ret addr", "b", "a", with a short down arrow
+  into its top and "pha/pla" to the left of the arrow (row 6). Right
+  (cells 22-27, cyan bars): "ret addr", "a", "b", and a pointer arrow
+  from a small yellow box "Y" (cells 30-36, "stackPointer" in grey under
+  it) to the frame's top. A straight arrow from left to right, ending one
+  cell before the right stack, labelled "pla, sta localsStack,y" centred
+  over it (the prologue moving the return address and the arguments into
+  the frame). The three text lines on rows 16, 18 and 20, with a blank
+  row under the stacks.
 - **Build:** on entry the left stack and line 1. Press 1: the right stack,
   the arrow and line 2. Press 2: line 3 in the accent colour.
 - **Say:** "Values being computed live on the hardware stack; arguments and
@@ -355,9 +384,12 @@ One line of C#: 39 bytes of 6502
   slide number or progress bar). Row 21 stays empty and black (the first
   line under a split must be blank); the title and two lines use rows
   22-24.
-- **Title:** `Built with this` (15), in the 8x8 font on row 22 (the band
-  has no room for the large font), accent colour.
-- **On screen (rows 23-24):**
+- **Title:** `Built with this` (15), in the 8x8 font (the band has no
+  room for the large font), accent colour, as a lower third: the title on
+  row 23 at the left, after a short arrow (rows 22-24, column 2) pointing
+  up at the picture; the two lines on rows 22 and 24 from column 18, so
+  every line keeps 16 px of leading.
+- **On screen (rows 22 and 24):**
 
 ```screen
 Catacombs: 3,477 lines of C#
@@ -365,8 +397,18 @@ Catacombs: 3,477 lines of C#
 ```
 
 - **Visual:** the whole of A1 (Catacombs room with the skeleton guardian,
-  torches lit). A short arrow in the left margin of row 22 pointing up at
-  the split line.
+  torches lit). The arrow in the left margin points up at the split line.
+- **Alive (as built):** the picture is that room without characters,
+  rendered by Catacombs' own `art/room_art.py` (room (5,3): moss theme,
+  doors north, west and south, a puddle; `art/slides/make_room.py`, on the
+  disk as `room`). Over it, until the last press: the torches flicker
+  (Catacombs' four flame frames, a random one on alternating torches every
+  fourth frame), and three of the game's characters move as hardware
+  sprites with the game's frames and colours: the adventurer walks across
+  the front, the skeleton guardian paces in the doorway (only as near as
+  y 140, so the adventurer always passes in front), a bat flits along
+  the torch-lit band between the torches (black on orange, x 96-224). The facts fade in on presses 1-2 while it runs; the
+  sprites are hidden before the fade-out.
 - **Build:** on entry the picture and the title. Presses 1-2: one line
   each.
 - **Say:** "The biggest thing built with it so far: Catacombs, a dungeon
@@ -1300,9 +1342,12 @@ like this (all paths literal, scratch under `.debug-tmp\`).
   whitespace only.) Variants tried
   the same way: `X { get; private set; }` with `Speed { get; init; }`
   also prints `2`; the primary-constructor version (`class Star(uint
-  speed)`, `[new(1), new(2)]`) fails with C64004 (text on slide 3); the
+  speed)`, `[new(1), new(2)]`) failed with C64004 at that point; the
   same statements as top-level statements fail to link ("not defined
-  symbol 'Program_Main'").
+  symbol 'Program_Main'"). Since constructor support landed, the
+  primary-constructor version with `X { get; private set; }` (the one
+  slide 3 now shows) compiles and prints `2` in VICE (checked by the
+  constructor-support work).
 - **C64006 text (slide 4's "Every error has a code and a hint"; was the cut slide 10).** The same compiler on `for (uint i = 0; i <
   700; i++) n++;` prints `error C64006: The constant 700 does not fit in 8
   bits: int and uint are 8-bit values on the C64 (0..255, or -128..127), so

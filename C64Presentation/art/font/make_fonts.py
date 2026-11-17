@@ -70,12 +70,16 @@ def bootstrap_title():
 # The code face: a 6 px pitch (an escape that changes colour moves to the
 # next cell edge, so syntax colours never share a cell). The body's 6-7 px
 # capitals would touch their neighbours at that pitch: 5 px ones instead.
+# i and j: the leading drops line 1, the gap under their dots, so the dot
+# would sit on the stem ("slide" read "sllde"): a shorter, serifed stem.
 CODE_PITCH = 6
 CODE_GLYPHS = {
     "M": ["#...#", "##.##", "#.#.#", "#.#.#", "#...#", "#...#", "#...#", "....."],
     "W": ["#...#", "#...#", "#...#", "#.#.#", "#.#.#", "##.##", "#...#", "....."],
     "O": [".###.", "#...#", "#...#", "#...#", "#...#", "#...#", ".###.", "....."],
     "Q": [".###.", "#...#", "#...#", "#...#", "#.#.#", "#..#.", ".##.#", "....."],
+    "i": [".#.", "...", "...", "##.", ".#.", ".#.", "###", "..."],
+    "j": ["..#", "...", "...", ".##", "..#", "..#", "..#", "##."],
 }
 
 

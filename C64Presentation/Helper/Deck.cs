@@ -227,13 +227,16 @@ static class Deck
     // A content slide: rows from `bottom` to the footer must stay empty.
     public static void KeepEmptyFrom(uint bottom) => _contentBottom = bottom;
 
-    // In a scene build, drawing into the rows kept empty above the footer
-    // turns the border red, so a screenshot shows it. Compiled out of the
-    // real deck ([Conditional]: the calls go too).
+    // In a scene build, drawing into the rows kept empty above the footer,
+    // or drawing a slide before its fade-in while the display is on (VIC
+    // DEN, $D011 bit 4), turns the border red, so a screenshot shows it.
+    // Compiled out of the real deck ([Conditional]: the calls go too).
     [System.Diagnostics.Conditional("SCENE")]
     public static void CheckRows(uint row, uint height)
     {
         if (row + height > _contentBottom && row < Theme.FooterRow)
+            C64.Screen.SetBorderColor(Theme.Bad);
+        if (!_revealed && (C64.GetMemory(0xD011, 0) & 0x10) != 0)
             C64.Screen.SetBorderColor(Theme.Bad);
     }
 

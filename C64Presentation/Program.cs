@@ -2,7 +2,7 @@ using System;
 using C64Presentation.Slides;
 
 #if !SCENE_ENGINE
-using Part3 = C64Presentation.Slides.Part3.Part3;
+using C64Presentation.Slides.Part3;
 #endif
 
 namespace C64Presentation;
@@ -10,13 +10,35 @@ namespace C64Presentation;
 static class Program
 {
     // The deck, in order. Each entry builds its slide when it is shown, so
-    // only one slide's objects live on the heap at a time.
+    // only one slide's objects live on the heap at a time. Method groups,
+    // no lambdas: the compiler names every lambda class <>c, and two of them
+    // in one program collide.
 #if SCENE_ENGINE
     static readonly Func<Slide>[] Slides = EngineGallery.Slides;
 #else
-    // DECK.md order: slides 1-8 (Slides/Part1), 9-12 (Slides/Part2) and
-    // 13-17 (Slides/Part3).
-    static readonly Func<Slide>[] Slides = [.. Part1.Slides, .. Part2.Slides, .. Part3.Slides];
+    static readonly Func<Slide>[] Slides =
+    [
+        // 1-8 (Slides/Part1): the hook, what it is, how it works, built with this
+        TitleSlide.Create,
+        MachineSlide.Create,
+        OrdinaryCSharpSlide.Create,
+        WhatCompilesSlide.Create,
+        PipelineSlide.Create,
+        IlStackSlide.Create,
+        AddCostSlide.Create,
+        BuiltWithThisSlide.Create,
+        // 9-12 (Slides/Part2): the hard parts
+        HardPartsSlide.Create,
+        ReferencesSlide.Create,
+        GcSlide.Create,
+        BorrowSlide.Create,
+        // 13-17 (Slides/Part3): small and fast, testing, debugging, the close
+        SmallAndFast.Section,
+        Testing.TestsRunOn6502,
+        Testing.PostSharpSwapsIt,
+        DebuggerMock.Create,
+        ThankYouSlide.Create,
+    ];
 #endif
 
     static void Main()

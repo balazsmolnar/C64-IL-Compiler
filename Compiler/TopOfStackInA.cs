@@ -69,6 +69,8 @@ static class TopOfStackInA
         ["rem_mask8"] = Always, ["not8"] = Always, ["negate8"] = Always,
         // Final push through stack_push_var (lda).
         ["add16"] = Always, ["add16_tail"] = Always, ["sub16"] = Always, ["sub16_tail"] = Always,
+        // ...and through txa.
+        ["arith16_direct"] = Always, ["arith16_stack"] = Always,
         ["and16"] = Always, ["and16_tail"] = Always, ["or16"] = Always, ["or16_tail"] = Always,
         ["xor16"] = Always, ["xor16_tail"] = Always, ["mul16"] = Always, ["mul16_tail"] = Always,
         ["div_const8"] = Always, ["div_const16"] = Always, ["div_shift_const16"] = Always,
@@ -96,7 +98,7 @@ static class TopOfStackInA
             "stack_pull_int", "stack_pull_int8", "stack_pull_int16", "stack_pop", "stack_pop16", "stack_pop_n", "zp_pull_value8",
             "locals_pull_value16", "locals_pull_value16_ky",
             "add8", "sub8", "mul8", "and8", "or8", "xor8", "and8_const", "or8_const", "xor8_const",
-            "add16", "sub16", "mul16", "and16", "or16", "xor16",
+            "add16", "sub16", "mul16", "and16", "or16", "xor16", "arith16_stack",
             "mul_shift_const8", "div_shift_const8", "mul_shift_const16", "div_shift_const16",
             "div_const8", "rem_const8", "div_const16", "rem_const16", "rem_mask8", "rem_mask16",
             "not8", "negate8", "not16", "negate16", "conv_8_16", "conv_16_8",

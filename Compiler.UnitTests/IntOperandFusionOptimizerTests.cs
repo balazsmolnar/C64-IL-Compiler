@@ -149,7 +149,10 @@ class Program
         var asmDir = CompileAndGetAsmDir(source);
         var programAsm = ReadType(asmDir, "Program");
 
-        Assert.That(programAsm, Does.Contain("locals_copy_value16"), "16-bit local operands should fuse:\n" + programAsm);
+        // Two locals/parameters: added straight from where they are
+        // (arith16_direct, asm/helper/arithmetic.asm), no zp_param copies.
+        Assert.That(programAsm, Does.Contain("#arith16_direct 0, 1, "), "16-bit local operands should fuse:\n" + programAsm);
+        Assert.That(programAsm, Does.Not.Contain("locals_copy_value16"), "no copy into zp_param1/2 is left:\n" + programAsm);
         Assert.That(programAsm, Does.Not.Contain("\n    #add16 "),
             "the unfused add16 macro should not run as real code once fused:\n" + programAsm);
     }
@@ -160,6 +163,56 @@ class Program
     // computes the full 16-bit push at compile time, leaving the Conv
     // line to emit nothing (OpConv_8_16.Emit), which is why
     // TryMatchInt16Leaf needs to look one line past the Ldc itself.
+    // `x += c` on a 16-bit local: computed and stored in one go
+    // (arith16_store), and so is a sum stored to another local.
+    [Test]
+    public void Local_16Bit_Add_Is_Stored_Directly()
+    {
+        var source = @"
+class Program
+{
+    static void Main()
+    {
+        ulong address = 0x0400ul;
+        for (uint y = 0; y < 5; y++)
+            address += 40ul;
+        ulong other = address + 1000ul;
+        C64Lib.C64.FillMemory(other, 1, 1);
+    }
+}";
+        var asmDir = CompileAndGetAsmDir(source);
+        var programAsm = ReadType(asmDir, "Program");
+
+        Assert.That(programAsm, Does.Match(@"#arith16_store 0, 1, (\d+), 0, 40, \1\b"), "x += 40 should be done in place:\n" + programAsm);
+        // (the replaced lines stay in the listing as "; OPT" comments)
+        // (the C# compiler keeps no local for `other`: the sum is the argument)
+        Assert.That(programAsm, Does.Match(@"#arith16_direct 0, 1, \d+, 0, 1000"), "local + constant as an argument:\n" + programAsm);
+        Assert.That(programAsm, Does.Not.Contain("\n    #add16"), "no generic 16-bit add runs as real code:\n" + programAsm);
+    }
+
+    // The first operand already on the evaluation stack (a call's result):
+    // the constant is added as it is pulled (arith16_stack).
+    [Test]
+    public void Stack_Plus_Constant_16Bit_Adds_On_The_Stack()
+    {
+        var source = @"
+class Program
+{
+    static ulong Base(ulong a) { C64Lib.C64.FillMemory(a, 1, 1); C64Lib.C64.FillMemory(a, 2, 1); return a; }
+    static void Main()
+    {
+        ulong x = Base(0x0900ul) + 300ul;
+        ulong y = Base(x) - 2ul;
+        C64Lib.C64.FillMemory(y, 3, 1);
+    }
+}";
+        var asmDir = CompileAndGetAsmDir(source);
+        var programAsm = ReadType(asmDir, "Program");
+
+        Assert.That(programAsm, Does.Contain("#arith16_stack 0, 0, 300"), "call result + constant:\n" + programAsm);
+        Assert.That(programAsm, Does.Contain("#arith16_stack 1, 0, 2"), "call result - constant:\n" + programAsm);
+    }
+
     [Test]
     public void Local_And_Widened_Constant_16Bit_Sub_Fuses()
     {
@@ -181,7 +234,9 @@ class Program
         var asmDir = CompileAndGetAsmDir(source);
         var programAsm = ReadType(asmDir, "Program");
 
-        Assert.That(programAsm, Does.Contain("copy_int16_const"), "the widened constant operand should fuse:\n" + programAsm);
+        // The constant goes in as an immediate operand of the subtraction.
+        Assert.That(programAsm, Does.Match(@"#arith16_direct 1, 1, \d+, 0, 40"), "the widened constant operand should fuse:\n" + programAsm);
+        Assert.That(programAsm, Does.Not.Contain("copy_int16_const"), "no copy into zp_param1 is left:\n" + programAsm);
         Assert.That(programAsm, Does.Not.Contain("\n    #sub16 "),
             "the unfused sub16 macro should not run as real code once fused:\n" + programAsm);
     }

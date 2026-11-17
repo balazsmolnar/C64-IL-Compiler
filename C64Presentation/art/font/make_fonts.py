@@ -72,12 +72,14 @@ def bootstrap_title():
 # capitals would touch their neighbours at that pitch: 5 px ones instead.
 # i and j: the leading drops line 1, the gap under their dots, so the dot
 # would sit on the stem ("slide" read "sllde"): a shorter, serifed stem.
+# I: serifs, or a bare stem reads as l ("VARIABLES" read "VAR|ABLES").
 CODE_PITCH = 6
 CODE_GLYPHS = {
     "M": ["#...#", "##.##", "#.#.#", "#.#.#", "#...#", "#...#", "#...#", "....."],
     "W": ["#...#", "#...#", "#...#", "#.#.#", "#.#.#", "##.##", "#...#", "....."],
     "O": [".###.", "#...#", "#...#", "#...#", "#...#", "#...#", ".###.", "....."],
     "Q": [".###.", "#...#", "#...#", "#...#", "#.#.#", "#..#.", ".##.#", "....."],
+    "I": ["###", ".#.", ".#.", ".#.", ".#.", ".#.", "###", "..."],
     "i": [".#.", "...", "...", "##.", ".#.", ".#.", "###", "..."],
     "j": ["..#", "...", "...", ".##", "..#", "..#", "..#", "##."],
 }

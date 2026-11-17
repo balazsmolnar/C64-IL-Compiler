@@ -78,6 +78,44 @@ sealed class FlowStep : SlideElement
     }
 }
 
+// A group's header in a flow: a dot in the group's colour, then its name.
+//
+//     new GroupHeader { Row = 5, Text = "RunInEmulatorAspect.OnInvoke", Color = Theme.Brand }
+sealed class GroupHeader : SlideElement
+{
+    public uint Row { get; init; }
+    public required string Text { get; init; }
+    public Colors Color { get; init; }
+    public bool Wait { get; init; }
+
+    public override void Draw()
+    {
+        if (Wait)
+            Deck.Step();
+        Helper.Text.Draw(Screen.Px(Theme.Left), Row, Theme.Dot, Color);
+        Helper.Text.Draw(Screen.Px(Theme.Left + 1), Row, Text, Theme.Body);
+    }
+}
+
+// A 1 px Grey2 rule across some cells, near the bottom of a cell row: the
+// top edge of a stat tile (the table header look).
+sealed class HairRule : SlideElement
+{
+    public uint X { get; init; }
+    public uint Y { get; init; }
+    public uint Width { get; init; }
+    public bool Wait { get; init; }
+
+    public override void Draw()
+    {
+        if (Wait)
+            Deck.Step();
+        Deck.Paint(X, Y, Width, 1, Theme.Muted, Theme.Background);
+        ulong y = Screen.Px(Y) + 5;
+        Screen.Line(Screen.Px(X), y, Screen.Px(X + Width) - 1, y);
+    }
+}
+
 // A 1 px line under some characters of a code line (cells keep their
 // colour): marks values in code without recolouring them.
 sealed class CodeUnderline : SlideElement
@@ -94,8 +132,11 @@ sealed class CodeUnderline : SlideElement
     {
         if (Wait)
             Deck.Step();
-        ulong x = Screen.Px(Column) + From * Pitch, y = Screen.Px(Row) + 7;
-        Screen.Line(x, y, x + Length * Pitch - 2, y);
+        ulong x = Screen.Px(Column) + From * Pitch, y = Screen.Px(Row + 1);   // the next line's blank top row
+        ulong end = x + Length * Pitch - 2;
+        uint first = (uint)(x / Theme.CellPixels);
+        Deck.Paint(first, Row + 1, (uint)(end / Theme.CellPixels) - first + 1, 1, Theme.Heading, Theme.Code);
+        Screen.Line(x, y, end, y);
     }
 }
 

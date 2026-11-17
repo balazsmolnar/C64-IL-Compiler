@@ -15,15 +15,15 @@ sealed class ThankYouSlide : Slide
     // Free memory before the heap of the final, combined deck (DECK.md slide
     // 16): $CC00 - the end of the last Data: segment - 1,080 (object tables,
     // locals stack, string buffers) - the static frames - 64 per sprite
-    // frame beyond 64, from C64Presentation\measure.bat's output. 12,957 is
+    // frame beyond 64, from C64Presentation\measure.bat's output. 12,367 is
     // the part-3-only build: the integrator re-measures the combined deck.
-    public const ulong BytesFree = 12957;
+    public const ulong BytesFree = 12367;
 
     const uint TitleRow = 7;
     const uint LeadRow = 12;
     const uint NumberRow = 14;
     const uint NumberRows = 4;              // the 32 px face
-    const uint LinkRow = 20;
+    const uint LinkRow = 21;            // clear of the words' fallback row (18-19)
     const string Title = "Thank you";
     const string Words = "BYTES FREE";
     const ulong ScreenWidth = Screen.Columns * Theme.CellPixels;
@@ -36,7 +36,6 @@ sealed class ThankYouSlide : Slide
     const uint MaxDigits = 5;               // ulong is 16 bits: 65535
     const uint TilesPerDigit = SlotCells * NumberRows;
     const uint FramesPerStep = 3;
-
 
     uint _count;                            // digits in BytesFree
     uint _left;                             // the first slot's column
@@ -70,15 +69,15 @@ sealed class ThankYouSlide : Slide
         for (uint i = 0; i < MaxDigits; i++)
             _shown[i] = Blank;
         Deck.Paint(0, NumberRow, Screen.Columns, NumberRows, Theme.Background, Theme.Background);   // the words appear whole
-        if (spare < 1)
+        if (spare < WordGap)
         {
             _left = (uint)(((int)Screen.Columns - digitCells) / 2);
             Text.CenterHeading(0, ScreenWidth, NumberRow + NumberRows, Words, Theme.Accent);
+            Deck.Paint(0, NumberRow, Screen.Columns, NumberRows, Theme.Accent, Theme.Background);
             return;
         }
-        int gap = spare < WordGap ? spare : WordGap;
-        _left = (uint)(spare - gap) / 2;
-        Text.Big(Screen.Px(_left + (uint)(digitCells + gap)), NumberRow, Words, Theme.Background, Theme.Background);
+        _left = (uint)(spare - WordGap) / 2;
+        Text.Big(Screen.Px(_left + (uint)(digitCells + WordGap)), NumberRow, Words, Theme.Background, Theme.Background);
         Deck.Paint(0, NumberRow, Screen.Columns, NumberRows, Theme.Accent, Theme.Background);
     }
 

@@ -14,11 +14,17 @@ using C64Lib;
 // The three Catacombs shots (9,073 bytes) are files on the deck's disk
 // (disk.txt), not part of the program: ArtDisk.Load(DiskPicture.X) loads one
 // into a single shared buffer and returns its address for DrawImage. The
-// buffer is sized for the largest of them by art/presentation_art.py.
-//   A1 ShotRoom   40x21 mc  3755  DrawImage(0, 0, ..), split at 21 (slides 1, 24)
-//   A2 ShotTitle  36x18 mc  2748  DrawImage(2, 3, ..), full screen (slide 22)
-//   A3 ShotBoss   40x15 mc  2570  DrawImage(0, 0, ..), split at 15 (slide 23)
-[assembly: RawAssembly(Resource = "picture_buffer.asm")]                   // buf_Picture  3755
+// buffer is sized by 64tass for the largest file that build can load
+// (art/presentation_art.py writes both buffer files): the deck loads only
+// the room and the cover, the art and gallery scenes the shots as well.
+//   A1 ShotRoom   40x21 mc  3755  DrawImage(0, 0, ..), split at 21 (art scenes, gallery)
+//   A2 ShotTitle  36x18 mc  2748  DrawImage(2, 3, ..), full screen (art scenes)
+//   A3 ShotBoss   40x15 mc  2570  DrawImage(0, 0, ..), split at 15 (art scenes, gallery)
+#if SCENE_ART || SCENE_DISK || SCENE_ENGINE
+[assembly: RawAssembly(Resource = "picture_buffer_all.asm")]               // buf_Picture  3755
+#else
+[assembly: RawAssembly(Resource = "picture_buffer.asm")]                   // buf_Picture  3695 (the room)
+#endif
 // A5 the C64 breadbox, hi-res (slide 3)
 [assembly: RawImage(Resource = "breadbox.img", Label = "Breadbox")]        // 18x8 hires   377
 // A6 icons, PIXELS ONLY: set the cells' colours first (slide 9: GC, string;

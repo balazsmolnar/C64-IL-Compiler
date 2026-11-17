@@ -532,10 +532,10 @@ Hunchback: -24%, same C#
   section 6; slide 9's section keeps `05`) and the chart icon, its base
   line level with the number's. Line 1 is the subtitle (row 15);
   `.weak Flag_X` (the asm mechanism that links a routine only when used)
-  directly under it in the code face, Grey2 (row 16). Lines 2 and 3 are
-  two stat tiles side by side (cells 2-18 and 21-37): a figure in the 16 px
-  face on rows 18-19, `39 -> 12` (the "12" in the accent colour) and
-  `-24%` (accent), over a Grey3 caption on row 20, `bytes for Add` and
+  under it in the code face, Grey2 (row 17). Lines 2 and 3 are two stat
+  tiles side by side (cells 2-18 and 21-37): a 1 px Grey2 rule (row 18),
+  a figure in the 16 px face on rows 19-20, `39 -> 12` (the "12" in the
+  accent colour) and `-24%` (accent), over a Grey3 caption on row 21, `bytes for Add` and
   `Hunchback, same C#`. So the tiles split each line into figure and
   caption.
 - **Build:** on entry line 1. Press 1: tile 1. Press 2: tile 2.
@@ -630,13 +630,13 @@ Over 700 test cases, all on 6502
 - **Visual (as built):** the steps as a timeline: each step's number in
   cyan on a thin Grey2 rail down the left margin, its text after it, one
   step every 2 rows. Each group has a Grey3 header row above it with a
-  coloured dot: violet `RunInEmulatorAspect.OnInvoke` (row 5, a blank row
-  under it) over steps 1-4 (rows 7-13), green `CopyResultFromEmulator`
-  (row 14) over steps 5-6 (rows 16, 18). The addresses a step touches sit
+  coloured dot: violet `RunInEmulatorAspect.OnInvoke` (row 5) over steps
+  1-4 (rows 6, 8, 10, 12), green `CopyResultFromEmulator` (row 14) over
+  steps 5-6 (rows 15, 17). The addresses a step touches sit
   on its own row, right aligned, as Grey1 chips with a bar in the group's
   colour (`$09FE`, `$09E0`, `$1000`; `$0020`; `$002E` and `$002C`), joined
   to the text by a dotted Grey2 leader: no crossings, like a table of
-  contents. Line 7 on row 20 in the accent colour. D on this slide shows
+  contents. Line 7 on row 19 in the accent colour. D on this slide shows
   the hidden appendix.
 - **Build:** on entry steps 1-2. Press 1: steps 3-4. Press 2: steps 5-6.
   Press 3: line 7.
@@ -686,13 +686,13 @@ github.com/balazsmolnar/C64-IL-Compiler
   side above the title, C# on the left as on the cover. "Thank you" in the
   32 px face on rows 7-10; "16 slides of C#, and still" on row 12; "NNNN
   BYTES FREE" centred in the 32 px face in the accent colour, rows 14-17;
-  the URL on one line, small and grey, on row 20. The count-up has a fixed
+  the URL on one line, small and grey, on row 21. The count-up has a fixed
   3-cell slot per digit; a changed digit is a block of ready tiles
   (`art/digits/make_digits.py`, 960 bytes) copied with `DrawTiles`, so it
   replaces the old one in place and no frame shows a digit half drawn or
-  missing (about 15 steps, 3 frames apart). The gap before "BYTES FREE"
-  is 2 cells for up to 4 digits, 1 for 5; the sprites hide as the slide
-  fades out.
+  missing (about 15 steps, 3 frames apart). A 2-cell gap before "BYTES
+  FREE" fits up to 4 digits; a 5-digit number puts "BYTES FREE" under it
+  in the 16 px face (rows 18-19). The sprites hide as the slide fades out.
 - **Build:** on entry the title and the URL. Press 1: line 1. Press 2:
   the number, counting up from 0 to its value in about a second; the talk
   ends on it.

@@ -10,6 +10,7 @@ public enum DiskPicture : uint
     ShotTitle,
     ShotBoss,
     Room,       // the guardian's room without its characters (art/slides/make_room.py)
+    Title,      // the cover (Master.Cover)
 }
 
 /// <summary>
@@ -44,6 +45,7 @@ static class ArtDisk
         DiskPicture.ShotRoom => "shotroom",
         DiskPicture.ShotTitle => "shottitle",
         DiskPicture.Room => "room",
+        DiskPicture.Title => "title",
         _ => "shotboss",
     };
 }

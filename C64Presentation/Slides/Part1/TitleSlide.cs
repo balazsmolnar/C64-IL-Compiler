@@ -43,7 +43,11 @@ sealed class TitleSlide : Slide
 
     public override void Present()
     {
-        Master.Cover();
+        Master.Cover();                  // loads the cover from the disk
+        // With the cover up, the drive fetches slide 8's room into the shared
+        // picture buffer, so the talk never waits for it there.
+        Deck.Reveal();
+        ArtDisk.Load(DiskPicture.Room);
 
         Deck.Step();
         Deck.Show();                     // what follows is drawn live

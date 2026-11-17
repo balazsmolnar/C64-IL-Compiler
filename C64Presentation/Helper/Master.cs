@@ -50,8 +50,9 @@ static class Master
     }
 
     // The cover: the art's title picture (title.img, hi-res, 40x25: the
-    // title lettering, the breadbox and a code card), nothing else.
-    public static void Cover() => C64.Screen.DrawImage(0, 0, C64Address.FromLabel("img_Title"));
+    // title lettering, the breadbox and a code card), nothing else. It is
+    // loaded from the disk into the shared picture buffer when drawn.
+    public static void Cover() => C64.Screen.DrawImage(0, 0, ArtDisk.Load(DiskPicture.Title));
 
     // A section divider on black, centred as a group: the part number in
     // big Grey2 figures with the section's 6x6 icon on the right, the title

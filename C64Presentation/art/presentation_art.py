@@ -685,7 +685,7 @@ def flatten_horns(im):
 # file each in art/build/disk/<name>.bin. ../disk.txt puts them on the .d64.
 # picture_buffer.asm reserves the one RAM buffer they all load into, sized
 # for the largest (embedded by the .csproj, declared in Assets.cs).
-DISK_PICTURES = ["shot_room", "shot_title", "shot_boss"]
+DISK_PICTURES = ["shot_room", "shot_title", "shot_boss", "title"]
 DISK_OUT = os.path.join(OUT, "disk")
 BUFFER_LABEL = "buf_Picture"
 

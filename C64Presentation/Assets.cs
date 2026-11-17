@@ -8,8 +8,8 @@ using C64Lib;
 
 // --- The storyboard's asset list (round 5): about 6.3 KB ------------------
 
-// The title picture (opens the deck, slide 1): storyboard round 5.
-[assembly: RawImage(Resource = "title.img", Label = "Title")]              // 40x25 hires  1715
+// The title picture (opens the deck, slide 1; 40x25 hires, 1715 bytes) is a
+// file on the deck's disk too: Master.Cover loads it into buf_Picture.
 
 // The three Catacombs shots (9,073 bytes) are files on the deck's disk
 // (disk.txt), not part of the program: ArtDisk.Load(DiskPicture.X) loads one

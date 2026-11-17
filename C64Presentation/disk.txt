@@ -7,3 +7,4 @@ shotroom         art\build\disk\shot_room.bin
 shottitle        art\build\disk\shot_title.bin
 shotboss         art\build\disk\shot_boss.bin
 room             art\build\disk\room.bin
+title            art\build\disk\title.bin

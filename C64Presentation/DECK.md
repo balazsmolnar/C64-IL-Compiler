@@ -656,8 +656,7 @@ The body never runs as .NET
 
 ### Slide 15 — PostSharp swaps it
 
-- **Layout:** diagram (hi-res): a numbered flow down the left, a strip of
-  memory addresses on the right.
+- **Layout:** diagram (hi-res): a numbered flow, a timeline down the left.
 - **Title:** `PostSharp swaps it` (18)
 - **On screen:**
 
@@ -678,13 +677,12 @@ Over 700 test cases, all on 6502
   cyan on a thin Grey2 rail down the left margin, its text after it, one
   step every 2 rows. Each group has a Grey3 header row above it with a
   coloured dot: violet `RunInEmulatorAspect.OnInvoke` (row 5) over steps
-  1-4 (rows 6, 8, 10, 12), green `CopyResultFromEmulator` (row 14) over
-  steps 5-6 (rows 15, 17). The addresses a step touches sit
-  on its own row, right aligned, as Grey1 chips with a bar in the group's
-  colour (`$09FE`, `$09E0`, `$1000`; `$0020`; `$002E` and `$002C`), joined
-  to the text by a dotted Grey2 leader: no crossings, like a table of
-  contents. Line 7 on row 19 in the accent colour. D on this slide shows
-  the hidden appendix.
+  1-4 (rows 6, 8, 10, 12), green `CopyResultFromEmulator` (row 15) over
+  steps 5-6 (rows 16, 18); headers and step texts start on column 4, a
+  cell clear of the rail. Line 7 on row 20 in the accent colour. (The
+  integration cut the memory strip: the address chips and their dotted
+  leaders, to fit memory; the addresses stay in the step texts.) D on this
+  slide shows the hidden appendix.
 - **Build:** on entry steps 1-2. Press 1: steps 3-4. Press 2: steps 5-6.
   Press 3: line 7.
 - **Say:** "PostSharp weaves an aspect into every test method at build

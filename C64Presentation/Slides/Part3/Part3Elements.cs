@@ -10,71 +10,33 @@ namespace C64Presentation.Slides.Part3;
 
 // One step of a numbered top-down flow (slide 15): its number in cyan on a
 // thin Grey2 rail down the left margin (joined to the step above unless it
-// starts a group), its text, and the addresses it touches as chips right
-// aligned on its own row, each joined to the text by a dotted leader.
+// starts a group), then its text.
 //
-//     new FlowStep { Row = 9, Number = "2", Text = "Method address ~ $09FE", Addresses = ["$09FE"], Color = Theme.Brand }
+//     new FlowStep { Row = 8, Number = "2", Text = "Method address ~ $09FE" }
 sealed class FlowStep : SlideElement
 {
     public uint Row { get; init; }
     public required string Number { get; init; }
     public required string Text { get; init; }
-    public string[]? Addresses { get; init; }
-    public Colors Color { get; init; }      // the chips' bar: the step's group
     public bool First { get; init; }        // starts a group: no rail above
     public bool Wait { get; init; }
 
     const uint RailColumn = Theme.Left;
-    const uint TextColumn = Theme.Left + 1;
-    const uint ChipCells = 5;
-    const uint ChipGap = 1;                 // cells between two chips
+    const uint TextColumn = Theme.Left + 2;
     const uint Pitch = 2;
-    const ulong TextInset = 3;              // pixels of air after the number
 
     public override void Draw()
     {
         if (Wait)
             Deck.Step();
-        ulong rail = Screen.Px(RailColumn) + 2;
         if (!First)
         {
+            ulong rail = Screen.Px(RailColumn) + 2;
             Deck.Paint(RailColumn, Row - Pitch + 1, 1, Pitch - 1, Theme.Muted, Theme.Background);
             Screen.Line(rail, Screen.Px(Row - Pitch + 1), rail, Screen.Px(Row) - 1);
         }
         Helper.Text.Draw(Screen.Px(RailColumn), Row, Number, Theme.Accent);
-        ulong end = Helper.Text.Draw(Screen.Px(TextColumn) + TextInset, Row, Text, Theme.Body);
-        if (Addresses is not { } addresses)
-            return;
-        uint chip = Theme.Right - (uint)addresses.Length * (ChipCells + ChipGap) + ChipGap;
-        Leader(end, Screen.Px(chip) - 4);
-        foreach (var address in addresses)
-        {
-            Chip(chip, address);
-            chip += ChipCells + ChipGap;
-        }
-    }
-
-    // A Grey2 dotted line along the row's middle, in cells of its own.
-    void Leader(ulong textEnd, ulong to)
-    {
-        ulong from = Screen.CellAfter(textEnd, 2);
-        if (from >= to)
-            return;
-        uint first = (uint)(from / Theme.CellPixels);
-        Deck.Paint(first, Row, (uint)(to / Theme.CellPixels) - first + 1, 1, Theme.Muted, Theme.Background);
-        ulong y = Screen.Px(Row) + 4;
-        for (ulong x = from; x <= to; x += 2)
-            Screen.Line(x, y, x, y);
-    }
-
-    // A Grey1 chip with the address in white and a bar in the group colour.
-    void Chip(uint column, string address)
-    {
-        Deck.Paint(column, Row, 1, 1, Color, Theme.Card);
-        Deck.Paint(column + 1, Row, ChipCells - 1, 1, Theme.Heading, Theme.Card);
-        ulong x = Screen.Px(column);
-        Screen.Fill(x, Screen.Px(Row), x + 1, Screen.Px(Row + 1) - 1);
-        Helper.Text.Center(Screen.Px(column + 1), Screen.Px(ChipCells - 1), Row, address, Theme.Heading, Theme.Card);
+        Helper.Text.Draw(Screen.Px(TextColumn), Row, Text, Theme.Body);
     }
 }
 
@@ -93,7 +55,7 @@ sealed class GroupHeader : SlideElement
         if (Wait)
             Deck.Step();
         Helper.Text.Draw(Screen.Px(Theme.Left), Row, Theme.Dot, Color);
-        Helper.Text.Draw(Screen.Px(Theme.Left + 1), Row, Text, Theme.Body);
+        Helper.Text.Draw(Screen.Px(Theme.Left + 2), Row, Text, Theme.Body);
     }
 }
 

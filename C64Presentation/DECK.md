@@ -444,6 +444,8 @@ objects   GC   strings & floats
 - **Say:** "Three things C# takes for granted that a 6502 does not have."
 - **Sources:** agenda of slides 10-12.
 
+- **As built** (`Slides/Part2/HardPartsSlide.cs`): the engine section master (number `05`, the `sec_chip` icon top right, no subtitle); the three icons in cyan on row 15 at columns 6, 18 and 30, each word centred under its icon on row 19.
+
 ### Slide 10 — References: 1 byte
 
 - **Layout:** diagram (hi-res).
@@ -479,6 +481,8 @@ Full: ?OUT OF MEMORY ERROR
   memory" and "too many objects": commit `3f3d760` and
   `asm/helper/fault.asm` (header: "?<MESSAGE> ERROR", red border;
   `Runtime_FaultMsg0 .text "OUT OF MEMORY"`).
+
+- **As built** (`ReferencesSlide.cs`, critic round 1): table rows 1 and 2 only (the engine critic's table), Grey2 pointer arrows (row 1 from left of its value down the empty first cell, row 2 down from right of its value), heap strip rows 12-14 labelled `heap`, block widths 5, 3, 4, 3 (the table's sizes); text lines 1, 3, 4 on rows 16, 18, 20, and line 2 as a stat card right of them: `255 objects` / `handle 0 is null`.
 
 ### Slide 11 — GC without a scan
 
@@ -516,6 +520,8 @@ Full: ?OUT OF MEMORY ERROR
   `Compiler/ILMethodCachedFieldAccessPass.cs` ("This GC only ever moves an
   object via an explicit GC.Collect() call").
 
+- **As built** (`GcSlide.cs`, critic round 1): one press per phase (4), the steps inside a phase paced (0.4 s). Objects in a 3x2 grid on the left (id, references), `root` in cyan under 1 and 3; the four phase labels on the right, the current one white; the mark stack as a line of ids; the heap below, labelled `heap`, in address order 3, 1, 6, 4, 2, 5. Traced = yellow bar, marked = cyan bar, card and heap block alike (text on the cards stays white). Sort: the stack line becomes the sort table, `1 3 4 5` (handle order) rewritten as `3 1 4 5` (address order), the moved ids in yellow. Slide down: 2 and 6 dim, `2 -> 6 -> 2: a dead cycle` replaces the table, they fade out, the live blocks slide left cell by cell.
+
 ### Slide 12 — Borrow, not build
 
 - **Layout:** two-column (hi-res).
@@ -524,28 +530,25 @@ Full: ?OUT OF MEMORY ERROR
 
 ```screen
 STRINGS
-Pointer to bytes,
-zero-terminated
+Zero-terminated bytes
 Not on the heap
-a + b: a 40-byte
-buffer
+a + b: one 40-byte buffer
 ```
 
 - **On screen (right, cells 21-38):**
 
 ```screen
 FLOATS
-5-byte C64 format
-Math: the BASIC
-ROM's own routines
+C64's 5-byte format
+Math: BASIC ROM routines
 Sin, Cos, Sqrt
 ```
 
 - **Visual:** column headings in the accent colour; a thin vertical rule
-  between the columns.
-- **Build:** on entry the headings. Press 1: left column. Press 2: right
-  column.
-- **Say:** "A string is a pointer to zero-terminated bytes, and
+  between the columns. Under each list a byte diagram: left `C` `6` `4`  `0`  (the 0 hollow), captioned `'C64' in memory`; right `exp` `m1`  `m2` `m3` `m4`, captioned `one float: 5 bytes`.
+- **Build:** on entry the headings. Press 1: left column, then its diagram. Press 2: right
+  column, then its diagram.
+- **Say:** "A string is just zero-terminated bytes, and
   concatenation writes into one small buffer. A float is the C64's own
   5-byte format, so the BASIC ROM that is in every C64 does the maths."
 - **Sources:** strings: `asm/helper/stringops.asm` header ("raw
@@ -555,6 +558,8 @@ Sin, Cos, Sqrt
   `Compiler/TypeExtensions.cs` ("Native C64 MFLPT format", 5 bytes);
   BASIC ROM routines: `asm/helper/floatBanking.asm`; Sin/Cos/Sqrt:
   `Compiler/Diagnostics.cs` ("MathF.Sin/Cos/Sqrt").
+
+- **As built** (`BorrowSlide.cs`, critic round 1): headings in the 16 px face; each item on one line (two engine bullet lists, 2 rows apart), a byte diagram under each: `Zero-terminated bytes`, `Not on the heap`, `a + b: one 40-byte buffer` / `C64's 5-byte format`, `Math: BASIC ROM routines`, `Sin, Cos, Sqrt`.
 
 ## 6. Small and fast
 

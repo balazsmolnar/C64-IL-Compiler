@@ -25,6 +25,7 @@ sealed class Table : SlideElement
     public required string[] Header { get; init; }
     public required string[][] Rows { get; init; }
     public bool WaitAfterRow { get; init; }
+    public bool WaitAfterHeader { get; init; }    // all the rows in one build step
 
     public override void Draw()
     {
@@ -35,6 +36,8 @@ sealed class Table : SlideElement
         uint row = Y;
         DrawRow(left, row, Header, Theme.Heading);
         Rule(left, row + 1, total, Theme.Accent, 2, 0);
+        if (WaitAfterHeader)
+            Deck.Step();
         foreach (var cells in Rows)
         {
             row += 2;

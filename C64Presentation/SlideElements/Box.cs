@@ -7,7 +7,8 @@ namespace C64Presentation.SlideElements;
 // text centred in white. With a Caption the text sits on the first body row
 // and the caption two rows lower (16 px apart): give such a box Height 4 or
 // more. Hollow: no fill (an empty slot: just the bar). ConnectToLeft: a 1 px
-// divider down its left edge, for a row of boxes that touch.
+// black divider down its left edge, for a row of boxes that touch; the text
+// is then centred in the cells after it, so the divider's cell stays black.
 //
 //     new Box { X = 2, Y = 6, Width = 8, Height = 3, Text = "C#", Color = Theme.Brand }
 sealed class Box : SlideElement
@@ -35,6 +36,8 @@ sealed class Box : SlideElement
         {
             Deck.Paint(X, Y + 1, 1, Height - 1, Theme.Background, fill);
             Screen.Line(x, Screen.Px(Y + 1), x, Screen.Px(Y + Height) - 1);
+            x += Theme.CellPixels;
+            width -= Theme.CellPixels;
         }
         var ink = Hollow ? Theme.Body : Theme.Heading;
         bool captioned = Caption != null;

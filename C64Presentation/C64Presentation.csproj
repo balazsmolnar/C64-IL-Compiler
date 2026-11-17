@@ -39,8 +39,11 @@
     <EmbeddedResource Include="art\font\build\*.asm;art\engine\build\*.spr;art\build\*.img;art\build\*.spr;art\build\*.asm" LogicalName="%(Filename)%(Extension)" />
   </ItemGroup>
 
+  <!-- The gallery build leaves the deck's slides out, so that it fits. (The
+       deck build needs no list: dead-code elimination drops the elements no
+       deck slide uses.) -->
   <ItemGroup Condition="'$(Scene)' == 'ENGINE'">
-    <Compile Remove="Slides\MemoryLayoutSlide.cs;Slides\GarbageCollectorSlide.cs;Slides\DemoSlide.cs;Slides\Part1\**" />
+    <Compile Remove="Slides\DemoSlide.cs;Slides\Part1\**;Slides\Part2\**" />
   </ItemGroup>
 
   <ItemGroup>

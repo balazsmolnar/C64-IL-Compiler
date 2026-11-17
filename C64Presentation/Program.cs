@@ -10,9 +10,8 @@ static class Program
 #if SCENE_ENGINE
     static readonly Func<Slide>[] Slides = EngineGallery.Slides;
 #else
-    // For now only DECK.md slides 1-8 (Slides/Part1); the other parts join
-    // when they are merged.
-    static readonly Func<Slide>[] Slides = Part1.Slides;
+    // DECK.md order: slides 1-8 (Slides/Part1), 9-12 (Slides/Part2).
+    static readonly Func<Slide>[] Slides = [.. Part1.Slides, .. Part2.Slides];
 #endif
 
     static void Main()

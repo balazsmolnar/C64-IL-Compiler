@@ -43,6 +43,8 @@ static class KeyBoard
     public static void Poll()
     {
 #if SCENE_NAVTEST
+        if (Jumping)                // as with the real keys: no new request, and no
+            return;                 // ticks, while a jump is pending (Deck.Wait polls then too)
         _fakeTicks++;
         if (_fakeStage == 0 && _fakeTicks == 100)          // during the first slide's second build step
             Request(Navigation.Next);

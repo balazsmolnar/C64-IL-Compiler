@@ -27,7 +27,9 @@ namespace Compiler;
 // The array stays on the stack, as it did after the last Stelem_ref.
 //
 // A plain `new T()` element (no initializer, so still a #newObj) joins a run
-// too, as all-zero bytes.
+// too, as all-zero bytes; so does a static method group stored as a Func<T>
+// (TryParseStaticFunc: about 55 bytes of code each before, a slide list of
+// method groups being the typical case).
 //
 // Elements that don't fit (a non-constant field, a nested `new`, a different
 // type, a gap in the indices, a branch target inside) end the run and keep
@@ -136,6 +138,14 @@ class ILObjectArrayInitializerOptimizer : ICompilerMethodPass
             lines[index].NextInstructions[0].OpCode is System.Reflection.Metadata.ILOpCode.Conv_i8 or System.Reflection.Metadata.ILOpCode.Conv_u8)
             return null;
 
+        if (TryParseStaticFunc(lines, index) is { } func)
+        {
+            func.Dup = p;
+            func.Index = index;
+            func.Value = value;
+            return func;
+        }
+
         var k = index + 1;
         while (k < lines.Count && lines[k].Optimized)
         {
@@ -182,5 +192,38 @@ class ILObjectArrayInitializerOptimizer : ICompilerMethodPass
         element.Store = store;
         element.Value = value;
         return element;
+    }
+
+    // A static method group stored as a Func<T> (`Func<Slide>[] s = [A.Create,
+    // B.Create]`): `ldnull; ldftn M; newobj Func<T>::.ctor; stelem.ref` after
+    // the index. Func_1_x_ctor (asm/system.asm) only stores its two arguments,
+    // the target at byte 0 (none: 0) and the method address at bytes 1-2, so
+    // the object is constant and joins a run like any `new T { .. }`: the same
+    // size, reference count and vtable as the #newObj it replaces.
+    private static Element TryParseStaticFunc(List<ILOperation> lines, int index)
+    {
+        int target = index + 1, method = index + 2, ctor = index + 3, store = index + 4;
+        if (store >= lines.Count)
+            return null;
+        for (int k = target; k <= store; k++)
+            if (lines[k].Optimized || lines[k].Label != null)
+                return null;
+        if (!(lines[target].Operation is OpLdnull) ||
+            !(lines[method].Operation is OpLdftn) || lines[method].RawParameter is not string label ||
+            !(lines[ctor].Operation is OpNewObj) || lines[ctor].RawParameter == null ||
+            !(lines[store].Operation is OpStElem) || !(lines[store].RawParameter is Type elementType) || elementType.IsValueType)
+            return null;
+        var constructor = MethodBaseExtension.ProgramAssembly.ManifestModule.ResolveMethod((int)lines[ctor].OriginalParameter);
+        var type = constructor.DeclaringType;
+        if (type == null || !type.IsGenericType || type.GetGenericTypeDefinition() != typeof(Func<>))
+            return null;
+        var parts = lines[ctor].RawParameter.ToString().Split(',').Select(x => x.Trim()).ToArray();
+        if (parts.Length != 4 || !int.TryParse(parts[0], out var size) || !int.TryParse(parts[1], out var refs) || size < 3)
+            return null;
+        var mem = new string[size];
+        Array.Fill(mem, "0");
+        mem[1] = $"<{label}";
+        mem[2] = $">{label}";
+        return new Element { Size = size, ReferenceFields = refs, VTable = parts[2], Mem = mem, InitLine = ctor, Store = store };
     }
 }

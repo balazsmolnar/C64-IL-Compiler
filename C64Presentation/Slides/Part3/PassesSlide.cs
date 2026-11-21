@@ -5,16 +5,14 @@ using C64Presentation.SlideElements;
 namespace C64Presentation.Slides.Part3;
 
 // Slide 12 (DECK.md): slide 7's Add, compiled again with three passes
-// switched on one at a time, one press each. Every number is measured
-// (DECK.md, "Measurements", snippet S1): a bar is Add's own bytes, the grey
-// line under it the real 6502 the pass changed (struck through: removed).
+// switched on one after another, one press each. Every number is measured
+// (DECK.md, "Measurements", snippet S1): a bar is Add's own bytes with this
+// pass and the ones above it on; the line under it is the 6502 it changed.
 static class PassesSlide
 {
-    const string K = Theme.Kw, T = Theme.Ty;
+    const string K = Theme.Kw, T = Theme.Ty, C = Theme.Com;
     const uint Naive = 43, Frames = 18, Tos = 14, Fused = 12;     // Add's bytes after each step
-    const uint Step1 = 9, Step2 = Step1 + 3, Step3 = Step2 + 3, Step4 = Step3 + 3;   // bar, code, a blank row
-    const uint Bar = ByteBar.Column;
-    const uint After = Bar + 1;            // + bytes / 2: the cell after a bar (half a cell a byte)
+    const uint Pitch = 3;                                         // bar, code, a blank row
 
     public static Slide Create() => new SimpleSlide
     {
@@ -22,57 +20,61 @@ static class PassesSlide
         [
             new Title { Text = "43 bytes to 12" },
             new CodeBlock { X = Theme.Left, Y = Theme.BodyTop, Lines = [$"{K}static uint {T}Add({K}uint{T} a, {K}uint{T} b) => a + b;"] },
-
-            new TextElement { X = Theme.Left, Y = Step1, Text = "One macro per IL", Color = Theme.Heading },
-            new ByteBar { Row = Step1, Bytes = Naive, Color = Theme.Muted },
-            new TextElement { X = After + Naive / 2, Y = Step1, Text = "43 B", Color = Theme.Heading },
-            new TextElement { X = Bar, Y = Step1 + 1, Text = "#locals_push_value8, #add8", Face = TextFace.Code, Color = Theme.Accent },
-
-            new TextElement { X = Theme.Left, Y = Step2, Text = "Static frames", Color = Theme.Heading, Wait = true },
-            new ByteBar { Row = Step2, Bytes = Frames },
-            new TextElement { X = After + Frames / 2, Y = Step2, Text = $"18 B  {Theme.Hi}-25", Color = Theme.Heading },
-            new TextElement { X = Bar, Y = Step2 + 1, Text = "lda SF_TOP-511, rts: no prologue", Face = TextFace.Code, Color = Theme.Body },
-
-            new TextElement { X = Theme.Left, Y = Step3, Text = "Top of stack in A", Color = Theme.Heading, Wait = true },
-            new ByteBar { Row = Step3, Bytes = Tos },
-            new TextElement { X = After + Tos / 2, Y = Step3, Text = $"14 B  {Theme.Hi}-4", Color = Theme.Heading },
-            new TextElement { X = Bar, Y = Step3 + 1, Text = "pha, pla   pha, pla", Face = TextFace.Code, Color = Theme.Body, Strike = true },
-
-            new TextElement { X = Theme.Left, Y = Step4, Text = "Operand fusion", Color = Theme.Heading, Wait = true },
-            new ByteBar { Row = Step4, Bytes = Fused, Color = Theme.Accent },
-            new TextElement { X = After + Fused / 2, Y = Step4, Text = $"12 B  {Theme.Hi}-2", Color = Theme.Heading },
-            new TextElement { X = Bar, Y = Step4 + 1, Text = "lda SF_TOP-511, adc zp_param1_low", Face = TextFace.Code, Color = Theme.Body },
+            new PassRow { Row = 9, Label = "One macro per IL", Bytes = Naive, Code = "#locals_push_value8, #add8", CodeColor = Theme.Accent },
+            new PassRow { Row = 9 + Pitch, Label = "+ Static frames", Bytes = Frames, Before = Naive, Code = $"lda SF_TOP-511 {C}; no prologue", Wait = true },
+            new PassRow { Row = 9 + 2 * Pitch, Label = "+ Stack top in A", Bytes = Tos, Before = Frames, Code = $"{C}; pha, pla x2: gone", Wait = true },
+            new PassRow { Row = 9 + 3 * Pitch, Label = "+ Operand fusion", Bytes = Fused, Before = Tos, Code = $"lda SF_TOP-511 {C}; a: no pha/pla", Color = Theme.Accent, Wait = true },
         ]
     };
 }
 
-// A bar of Bytes at 4 px a byte from Column, 6 px high in its row. Drawn
-// after a press, it grows; the elements after it in the same step fade in
-// once it has grown.
-sealed class ByteBar : SlideElement
+// One step of a shrinking routine: its name, a bar of Bytes at 4 px a byte
+// (grey; Color for the result), the count a few pixels after the bar's end,
+// the saving against Before in cyan, and under the bar a line of 6502 in the
+// code face (white; comments `Theme.Com`). Drawn after a press, the name
+// fades in, the bar grows, the count and saving appear as it stops, and the
+// code line fades in.
+//
+//     new PassRow { Row = 12, Label = "+ Static frames", Bytes = 18, Before = 43, Code = "lda SF_TOP-511" }
+sealed class PassRow : SlideElement
 {
-    public const uint Column = Theme.Left + 11;    // the names before it: 10 cells and a gap
-    const ulong X = Column * Theme.CellPixels;
-    const uint PixelsPerByte = 4;                  // 43 B: 172 px (a uint is 8 bits), its count inside the margin
+    const uint BarColumn = Theme.Left + 11;     // the names before it: 10 cells and a gap
+    const ulong BarX = BarColumn * Theme.CellPixels;
+    const uint PixelsPerByte = 4;               // 43 B: 172 px (a uint is 8 bits), its count inside the margin
+    const ulong CountGap = 6;                   // past the bar's last pixel, so the count clears its cell
 
     public uint Row { get; init; }
+    public required string Label { get; init; }
     public uint Bytes { get; init; }
-    public Colors Color { get; init; }             // Auto = Theme.Body
+    public uint Before { get; init; }           // the step above's bytes; 0 = the first step, no saving
+    public required string Code { get; init; }
+    public Colors Color { get; init; }          // the bar; Auto = Theme.Body
+    public Colors CodeColor { get; init; }      // Auto = Theme.Heading (white, as in a code panel)
+    public bool Wait { get; init; }
 
     public override void Draw()
     {
+        if (Wait)
+            Deck.Step();
+        Helper.Text.Draw(Screen.Px(Theme.Left), Row, Label, Theme.Heading);
         Deck.Show();
         bool live = Deck.Live;
         uint length = Bytes * PixelsPerByte;
         ulong y = Screen.Px(Row);
-        Deck.Paint(Column, Row, (length + 7) / 8, 1, Theme.Or(Color, Theme.Body), Theme.Background);
-        for (uint end = 0; end < length;)          // two cells a frame when live (Wait returns at once on a jump)
+        Deck.Paint(BarColumn, Row, (length + 7) / 8, 1, Theme.Or(Color, Theme.Body), Theme.Background);
+        for (uint end = 0; end < length;)       // two cells a frame when live (Wait returns at once on a jump)
         {
             end = live && end + 16 < length ? end + 16 : length;
-            Screen.Fill(X, y + 1, X + end - 1, y + 6);
+            Screen.Fill(BarX, y + 1, BarX + end - 1, y + 6);
             if (live)
                 Deck.Wait(1);
         }
+        // Built at run time from the numbers, so drawn at once (Text.DrawNow),
+        // as the bar stops; the code line then fades in.
+        ulong countEnd = Helper.Text.DrawNow(BarX + length + CountGap, Row, $"{Bytes} B", Theme.Heading);
+        if (Before != 0)
+            Helper.Text.DrawNow(Screen.CellAfter(countEnd, 8), Row, $"-{Before - Bytes}", Theme.Accent);
         Deck.Build(onSurface: false);
+        Helper.Text.Code(BarColumn, Row + 1, Code, Theme.Or(CodeColor, Theme.Heading), Theme.Background);
     }
 }

@@ -26,7 +26,7 @@ static class IlStackSlide
             new CodeBlock
             {
                 X = Theme.Left, Y = Panel, Rows = 8,
-                Lines = [$"{K}static uint {T}Add({K}uint{T} a, {K}uint{T} b)", "    => a + b;"],
+                Lines = [$"{K}static uint {T}Add({K}uint{T} a, {K}uint{T} b) => a + b;"],     // as on slide 12
             },
             new Rule { X = Code, Y = Header - 1, Length = Theme.Width - 2, Wait = true },
             new CodeLine { Column = Code, Row = Header, Text = "IL          6502 macro", Color = Theme.Body },

@@ -311,8 +311,7 @@ Every error has a code and a hint
 - **On screen (code, 8 lines):**
 
 ```code
-static uint Add(uint a, uint b)
-    => a + b;
+static uint Add(uint a, uint b) => a + b;
 
 IL         6502 macro
 ldarg.0    #locals_push_value8 1
@@ -560,27 +559,29 @@ static uint Add(uint a, uint b) => a + b;
 ```screen
 One macro per IL   [43 B]
   #locals_push_value8, #add8
-Static frames      [18 B  -25]
-  lda SF_TOP-511, rts: no prologue
-Top of stack in A  [14 B  -4]
-  pha, pla   pha, pla            (struck through)
-Operand fusion     [12 B  -2]
-  lda SF_TOP-511, adc zp_param1_low
++ Static frames    [18 B  -25]
+  lda SF_TOP-511   ; no prologue
++ Stack top in A   [14 B  -4]
+  ; pha, pla x2: gone
++ Operand fusion   [12 B  -2]
+  lda SF_TOP-511   ; a: no pha/pla
 ```
 
 - **Visual (as built,** `Slides/Part3/PassesSlide.cs`**):** the C# in a
   code panel (rows 5-7), coloured as on slide 6. The steps on rows 9, 12,
-  15 and 18, each three rows: the pass name in white (cells 2-11), a bar
-  6 px high from cell 13 at 4 px a byte (43 B = 172 px, the longest), the
-  byte count one cell after its bar in white with the saving in cyan;
-  under the bar, the 6502 in the code face. Column budget: label 10 | gap
-  1 | bar 22 | count 3 = 36. Bar colours: Grey2 for the starting point,
-  Grey3 for the two steps between, cyan for the result. The first code
-  line is cyan (the macros of slide 6), the others Grey3; the top-of-stack
-  line is struck through (what the pass removed).
+  15 and 18, each three rows, one `PassRow` each: the pass name in white
+  (cells 2-11; `+` on rows 2-4: each pass comes on top of the ones above),
+  a bar 6 px high from cell 13 at 4 px a byte (43 B = 172 px, the
+  longest), the byte count 6 px after the bar's last pixel in white and
+  the saving one cell on in cyan, both built from the numbers (`$"{Bytes}
+  B"`, `$"-{Before - Bytes}"`); under the bar, the 6502 in the code face,
+  white, with its comment in Grey3 (`Theme.Com`). Column budget: label 10
+  | gap 1 | bar 22 | count 3 = 36. Bars Grey3, the result's cyan. The
+  first code line is cyan (the macros of slide 6); the top-of-stack line
+  is only a comment, what the pass removed.
 - **Build:** on entry the code and step 1 (43 B). Presses 1-3: one pass
-  each: its name fades in, its bar grows from the left, then its count and
-  code line fade in.
+  each: its name fades in, its bar grows from the left, its count and
+  saving appear as the bar stops, then its code line fades in.
 - **Say:** "Here is slide 7's Add once more, with the passes switched on one
   at a time; every number is measured, the same compiler with the other
   passes off. One macro per IL instruction: 43 bytes. Static frames give a
@@ -605,7 +606,8 @@ Operand fusion     [12 B  -2]
   `#locals_push_value8_ky 1` / `2`, `#add8` (here without `_ky`, as on
   slide 6); 18 B reads `lda SF_TOP-511+0` and ends in `rts` instead of
   the 14-byte prologue and `jmp Method_Exit_4`; 14 B has two `pha`/`pla`
-  pairs fewer; 12 B is `lda SF_TOP-512 / sta zp_param1_low / lda
+  pairs fewer; 12 B loads a straight into A (no `pha`/`pla` around b's
+  load): `lda SF_TOP-512 / sta zp_param1_low / lda
   SF_TOP-511 / clc / adc zp_param1_low / rts`. Mechanisms: `18bb09d`
   (static frames), `21e84ec` (top of stack in A), `fc86ecb` and `5d479b9`
   (int operand fusion; the 16-bit half is the newest).
@@ -825,11 +827,12 @@ github.com/balazsmolnar/C64-IL-Compiler
   with the commit it was measured on. Slide 8's Catacombs figure (10,478)
   is the same quantity ("left for more code, assets and the heap").
 - **As measured with the passes slide** (and without "Borrow, not
-  build"): program end `$C4A1`, + 56 + 85 (static frames), heap `$C52E`:
-  **1746 BYTES FREE** (four digits, so "BYTES FREE" stays on the number's
+  build"): program end `$C4B4`, + 56 + 85 (static frames), heap `$C541`:
+  **1727 BYTES FREE** (four digits, so "BYTES FREE" stays on the number's
   row). At the integration it was 1402 (heap `$C686`). The deck's heap
-  peaks at 530 bytes (slide 15, the debugger mock; slide 12 509), inside
-  that with 1,216 bytes to spare. Measured in VICE on the AUTO scene build
+  peaks at 530 bytes (slide 15, the debugger mock; slide 12 509 before its
+  rows became four `PassRow`s, fewer objects since), inside that with
+  1,197 bytes to spare. Measured in VICE on the AUTO scene build
   of the whole deck: a remote-monitor breakpoint on
   `KeyBoard_WaitForAdvance` (each build step and the end of each slide)
   and on `GC_Collect` (before each slide), reading `heapPointer` ($FB/$FC)

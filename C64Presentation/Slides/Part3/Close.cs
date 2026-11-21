@@ -17,9 +17,11 @@ sealed class ThankYouSlide : Slide
     // TECH.md "Free memory"): $CC00 - the heap's start, i.e. the program's
     // end (prg\presentation.labels: Sprite_InitData, where the sprite frames
     // moved under I/O at startup were) + 56 (tables and string buffers,
-    // no DrawText) + the static frames. Measured at the integration: the
-    // program ends at $C5F9, 56 + 85 bytes on, the heap starts at $C686.
-    public const ulong BytesFree = 1402;
+    // no DrawText) + the static frames. Measured with the passes slide (and
+    // without "Borrow, not build"): the program ends at $C4A1, 56 + 85
+    // bytes on, the heap starts at $C52E. The heap peaks at 530 bytes
+    // (slide 15; heapPointer at every KeyBoard.WaitForAdvance, in VICE).
+    public const ulong BytesFree = 1746;
 
     const uint TitleRow = 7;
     const uint LeadRow = 12;

@@ -54,14 +54,13 @@ static class Master
     // loaded from the disk into the shared picture buffer when drawn.
     public static void Cover() => C64.Screen.DrawImage(0, 0, ArtDisk.Load(DiskPicture.Title));
 
-    // A section divider on black, centred as a group: the part number in
-    // big Grey2 figures with the section's 6x6 icon on the right, the title
-    // in the big face (white), a Grey3 subtitle. icon 0 = none.
-    public static void Section(string number, string title, string subtitle, ulong icon)
+    // A section divider on black, one left-aligned column: the section's
+    // 6x6 icon, a blank row, the title in the big face (white), a Grey3
+    // subtitle. icon 0 = none.
+    public static void Section(string title, string subtitle, ulong icon)
     {
-        Text.Big(ContentLeft, 4, number, Theme.Muted);
         if (icon != 0)
-            C64.Screen.DrawImage(Theme.Right - 6, 1, icon);     // its base line level with the number's
+            C64.Screen.DrawImage(Theme.Left, 3, icon);          // rows 3-8, over the title's first letters
         Text.Big(ContentLeft, 10, title);
         Text.Draw(ContentLeft, 15, subtitle, Theme.Body);
         Footer();

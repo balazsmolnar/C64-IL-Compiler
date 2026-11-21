@@ -159,7 +159,7 @@ Commodore logos on slides 2 and 28 reuse `sprites.asm`.
 
 | File | Label | Cells | Mode | Bytes | What / where |
 |---|---|---|---|---|---|
-| title.img | Title | 40x25 | hires | 1715 | Full-screen title: "C# on the" (cyan), then "Commodore 64" on one line, a cyan rule and the subtitle. Below them, the A5 breadbox (rows 17-24, cols 1-18) and a floating dark-grey card (rows 13-16, cols 18-38). The card holds two real lines of C# in the pixel font, syntax-coloured: `C64.Screen.Clear();` and `Hud.SetHealth(100);` |
+| title.img | Title | 40x25 | hires | 1718 | Full-screen title: "C# on the" (cyan), then "Commodore 64" on one line, a cyan rule and the subtitle (Segoe UI 12 px, its own hinted 1-bit render: the supersampled render of the large lettering cut the round tops flat at that size). Below them, the A5 breadbox (rows 17-24, cols 1-18) and a floating dark-grey card (rows 13-16, cols 18-38). The card holds two real lines of C# in the pixel font, syntax-coloured: `C64.Screen.Clear();` and `Hud.SetHealth(100);` |
 | logo_c64.img | LogoC64 | 5x4 | hires | 129 | generic "chicken lips": a thin ring C, a gap, a light-blue upper flag and a light-red lower flag |
 | logo_csharp.img | LogoCSharp | 5x5 | hires | 176 | violet hexagon, "C#" |
 | logo_dotnet.img | LogoDotNet | 5x5 | hires | 111 | violet rounded square, ".NET" (dot on the baseline) |

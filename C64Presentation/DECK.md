@@ -5,7 +5,7 @@ to say, and where every fact comes from. The Slides phase builds from this
 file; the Art phase builds the asset list at the end. Owner: Story (see
 `DECK-BRIEF.md`).
 
-**Talk:** "C# on the C64", 16 slides, about 9:45, plus questions.
+**Talk:** "C# on the C64", 16 slides, about 10:00, plus questions.
 Audience: .NET developers and retro fans. One idea per slide; titles say
 something, they don't just label.
 
@@ -48,23 +48,24 @@ something, they don't just label.
 | 4 | What it is | What compiles | two-column | 0:40 |
 | 5 | How it works | Roslyn does half | diagram | 0:45 |
 | 6 | How it works | IL is a stack | code | 0:45 |
-| 7 | How it works | Add costs 39 bytes | diagram | 0:35 |
+| 7 | How it works | Add costs 43 bytes | diagram | 0:35 |
 | 8 | Built with this | Built with this | full-bleed + split | 0:35 |
 | 9 | Hard parts | The hard parts | section | 0:10 |
 | 10 | Hard parts | GC without a scan | diagram (animated) | 0:45 |
-| 11 | Hard parts | Borrow, not build | two-column | 0:30 |
-| 12 | Small and fast | Small and fast | section + 2 numbers | 0:35 |
+| 11 | Small and fast | Small and fast | section + 2 numbers | 0:30 |
+| 12 | Small and fast | 43 bytes to 12 | chart + code (build) | 0:50 |
 | 13 | Testing | Tests run on 6502 | code | 0:40 |
 | 14 | Testing | PostSharp swaps it | diagram | 0:50 |
 | 15 | Testing | Debug C# on a C64 | diagram | 0:45 |
 | 16 | Close | Thank you | title | 0:25 |
-| | | | **Total** | **9:45** |
+| | | | **Total** | **10:00** |
 
 The debugger mock, once a hidden appendix reached with D from the
 PostSharp slide, is a regular slide (15) since the integration, by the
-user's decision. Twelve slides were cut by the user to fit memory and length; they are
-kept at the end under "Cut slides", with their sources, so any of them
-can be restored.
+user's decision. Twelve slides were cut by the user to fit memory and length,
+and a thirteenth ("Borrow, not build", was slide 11) to make room for the
+passes slide (12); they are kept at the end under "Cut slides", with their
+sources, so any of them can be restored.
 
 There is **no live demo** in the 16-slide talk: its slide is cut, and
 switching to VICE without a slide would bring back the time the cut
@@ -73,11 +74,11 @@ after slide 16, during questions; the cut slide's steps and rehearsal
 checks are kept for that.
 
 The story: a hook (this slide is a C# program), what you can and cannot
-write, how it works (ending on "39 bytes" for a one-line method), what was
-built with it (Catacombs), three hard parts (objects, the GC, strings and
-floats), the optimization payoff in one slide (39 bytes become 12, a game
-gets a quarter smaller), proof (tests that run on an emulated 6502), and a
-callback to slide one that ends on the deck's BYTES FREE.
+write, how it works (ending on "43 bytes" for a one-line method), what was
+built with it (Catacombs), the hard part (a GC on a 6502), the
+optimization payoff (a game gets a quarter smaller; the 43 bytes become
+12, one measured pass at a time), proof (tests that run on an emulated
+6502), and a callback to slide one that ends on the deck's BYTES FREE.
 
 ---
 
@@ -97,10 +98,14 @@ a C# program.
 ```
 
 - **Visual:** the extra asset **title** (`art/build/title.img`, 40x25,
-  hi-res, 1,715 B): "C# on the" in cyan, "Commodore 64", a cyan rule and
+  hi-res, 1,718 B): "C# on the" in cyan, "Commodore 64", a cyan rule and
   the subtitle, the breadbox (A5) bottom left and a dark-grey card with two
   lines of syntax-coloured C#. It must move out of the `#if
-  SCENE_ART || ART_EXTRAS` block in `Assets.cs`.
+  SCENE_ART || ART_EXTRAS` block in `Assets.cs` (done: it is on the disk).
+  The subtitle ("Compiling .NET IL to 6502 machine code", Segoe UI 12 px)
+  is Segoe's own hinted 1-bit render: drawn like the large lettering (4x,
+  scaled down, 50% threshold) the thin tops of C, o, m, p, 6 and 0 fell
+  under half coverage and were cut flat.
 - **Build:** on entry the picture. Press 1: the caption, typed out one
   character at a time like a C64 `PRINT`, with a cyan block cursor that
   keeps blinking after the full stop until the next press.
@@ -116,7 +121,7 @@ a C# program.
   running on a Commodore 64. The rest of the talk is how."
 - **Sources:** this deck (`C64Presentation/`, C#); the picture:
   `C64Presentation/art/ART.md` ("Extras": `title.img`, 40x25, hires,
-  1715 bytes).
+  1718 bytes).
 
 ## 2. What it is
 
@@ -338,19 +343,21 @@ One 6502 macro per IL instruction
 - **Sources:** compiled for this storyboard (see "Measurements", snippet
   S1) with `--no-static-frames`; the four macro lines are the compiler's
   own one-per-instruction output (printed as `; OPT` comments in
-  `Program.asm` once the optimizer replaced them). The method prologue
+  `Program.asm` once the optimizer replaced them; with slide 12's three
+  passes off they are what is emitted, as `#locals_push_value8_ky`: the
+  `_ky` form only skips reloading Y). The method prologue
   `#init_locals_pull_parameters` is left out for width.
 
-### Slide 7 — Add costs 39 bytes
+### Slide 7 — Add costs 43 bytes
 
 - **Layout:** diagram (hi-res).
-- **Title:** `Add costs 39 bytes` (18)
+- **Title:** `Add costs 43 bytes` (18)
 - **On screen:**
 
 ```screen
 6502 stack: the evaluation stack
 localsStack: arguments and locals
-One line of C#: 39 bytes of 6502
+One line of C#: 43 bytes of 6502
 ```
 
 - **Visual (as built):** the stacks' names as Grey3 headers on row 5:
@@ -369,10 +376,16 @@ One line of C#: 39 bytes of 6502
   the arrow and line 2. Press 2: line 3 in the accent colour.
 - **Say:** "Values being computed live on the hardware stack; arguments and
   locals get their own 256-byte stack indexed by Y. Correct, but our
-  one-line Add is 39 bytes plus a shared exit. Remember that number."
-- **Sources:** the 64tass listing of snippet S1 with `--no-static-frames`:
-  `Program_Add` spans `$17B0-$17D6` (39 bytes), ending `jmp Method_Exit_4`;
-  its prologue is `ldy stackPointer` / `pla` / `sta localsStack,y`. Shared
+  one-line Add is 43 bytes plus a shared exit. Remember that number."
+- **Sources:** the 64tass listing of snippet S1 compiled the way slide 6
+  shows it: one macro per IL instruction, i.e. with the three passes of
+  slide 12 off (`C64_STATIC_FRAMES=0`, TopOfStackInA and
+  ILMethodIntOperandFusionOptimizer removed; see "Measurements"):
+  `Program_Add` spans `$17B0-$17DA` (43 bytes), ending `jmp
+  Method_Exit_4`; its prologue is `ldy stackPointer` / `pla` / `sta
+  localsStack,y`. (Until this round the slide said 39: that build had
+  static frames off but operand fusion on, which already replaces slide
+  6's macros; 39 is still what `--no-static-frames` alone gives.) Shared
   exit tails: `0e32d14`. 256-byte locals stack: CLAUDE.md,
   `asm/helper/objectTables.asm` header ("256-byte localsStack").
 
@@ -435,17 +448,25 @@ Catacombs: 3,477 lines of C#
 - **On screen:**
 
 ```screen
-GC   strings & floats
+A garbage collector, on a 6502
 ```
 
-- **Visual:** section background (the theme's section colour, full
-  bleed). A row of two hi-res icons (asset **A6**: GC arrows, `"A"`)
-  above the text line, each over its word.
+- **Visual:** the section master: the `sec_chip` icon (6x6 cells, rows
+  3-8) on the content's left edge, the title in the 32 px face (rows
+  10-13) under it, the line above as the Grey3 subtitle (row 15).
 - **Build:** on entry everything.
-- **Say:** "Two things C# takes for granted that a 6502 does not have."
-- **Sources:** agenda of slides 10-11.
+- **Say:** "One thing C# takes for granted that a 6502 does not have: a
+  garbage collector."
+- **Sources:** agenda of slide 10.
 
-- **As built** (`Slides/Part2/HardPartsSlide.cs`): the engine section master (number `05`, the `sec_chip` icon top right, no subtitle); the two icons in cyan on row 15 at columns 12 and 24 (the pair centred on the content), each word centred under its icon on row 19. (Was three, with `objects`, until slide 10 was cut.)
+- **As built** (`Slides/Part2/HardPartsSlide.cs`): the section master
+  (`Master.Section`). History: it had a row of topic icons (A6) with a
+  word under each, `objects`, `GC`, `strings & floats`, shrinking as their
+  slides were cut; with "Borrow, not build" gone only `GC` was left, so the
+  row became the subtitle, and the section number (`05`, from an old
+  seven-section outline that meant nothing in the 16-slide talk) went
+  from the master: the icon now stands where the number was, over the
+  title, so the slide reads icon, title, subtitle with nothing missing.
 
 ### Slide 10 — GC without a scan
 
@@ -485,48 +506,9 @@ GC   strings & floats
 
 - **As built** (`GcSlide.cs`, critic round 1): one press per phase (4), the steps inside a phase paced (0.4 s). Objects in a 3x2 grid on the left (id, references), `root` in cyan under 1 and 3; the four phase labels on the right, the current one white; the mark stack as a line of ids; the heap below, labelled `heap`, in address order 3, 1, 6, 4, 2, 5. Traced = yellow bar, marked = cyan bar, card and heap block alike (text on the cards stays white). Sort: the stack line becomes the sort table, `1 3 4 5` (handle order) rewritten as `3 1 4 5` (address order), the moved ids in yellow. Slide down: 2 and 6 dim, `2 -> 6 -> 2: a dead cycle` replaces the table, they fade out, the live blocks slide left cell by cell.
 
-### Slide 11 — Borrow, not build
-
-- **Layout:** two-column (hi-res).
-- **Title:** `Borrow, not build` (17)
-- **On screen (left, cells 1-18):**
-
-```screen
-STRINGS
-Zero-terminated bytes
-Not on the heap
-a + b: one 40-byte buffer
-```
-
-- **On screen (right, cells 21-38):**
-
-```screen
-FLOATS
-C64's 5-byte format
-Math: BASIC ROM routines
-Sin, Cos, Sqrt
-```
-
-- **Visual:** column headings in the accent colour; a thin vertical rule
-  between the columns. Under each list a byte diagram: left `C` `6` `4`  `0`  (the 0 hollow), captioned `'C64' in memory`; right `exp` `m1`  `m2` `m3` `m4`, captioned `one float: 5 bytes`.
-- **Build:** on entry the headings. Press 1: left column, then its diagram. Press 2: right
-  column, then its diagram.
-- **Say:** "A string is just zero-terminated bytes, and
-  concatenation writes into one small buffer. A float is the C64's own
-  5-byte format, so the BASIC ROM that is in every C64 does the maths."
-- **Sources:** strings: `asm/helper/stringops.asm` header ("raw
-  null-terminated character bytes", "stringops_buffer's fixed 40-byte
-  size"); not reference counted: `Compiler/TypeExtensions.cs`
-  (`IsReferenceCounted`: string -> false). Floats:
-  `Compiler/TypeExtensions.cs` ("Native C64 MFLPT format", 5 bytes);
-  BASIC ROM routines: `asm/helper/floatBanking.asm`; Sin/Cos/Sqrt:
-  `Compiler/Diagnostics.cs` ("MathF.Sin/Cos/Sqrt").
-
-- **As built** (`BorrowSlide.cs`, critic round 1): headings in the 16 px face; each item on one line (two engine bullet lists, 2 rows apart), a byte diagram under each: `Zero-terminated bytes`, `Not on the heap`, `a + b: one 40-byte buffer` / `C64's 5-byte format`, `Math: BASIC ROM routines`, `Sin, Cos, Sqrt`.
-
 ## 6. Small and fast
 
-### Slide 12 — Small and fast
+### Slide 11 — Small and fast
 
 - **Layout:** section (hi-res).
 - **Title:** `Small and fast` (14)
@@ -534,38 +516,99 @@ Sin, Cos, Sqrt
 
 ```screen
 Pay only for what you use
-Add: 39 bytes -> 12
+Add: 43 bytes -> 12
 Hunchback: -24%, same C#
 ```
 
-- **Visual (as built):** the section master with the number `06` (DECK's
-  section 6; slide 9's section keeps `05`) and the chart icon, its base
-  line level with the number's. Line 1 is the subtitle (row 15);
-  `.weak Flag_X` (the asm mechanism that links a routine only when used)
-  under it in the code face, Grey2 (row 17). Lines 2 and 3 are two stat
-  tiles side by side (cells 2-18 and 21-37): a 1 px Grey2 rule (row 18),
-  a figure in the 16 px face on rows 19-20, `39 -> 12` (the "12" in the
-  accent colour) and `-24%` (accent), over a Grey3 caption on row 21, `bytes for Add` and
+- **Visual (as built):** the section master: the chart icon (6x6 cells,
+  rows 3-8) on the content's left edge, the title in the 32 px face (rows
+  10-13). Line 1 is the subtitle (row 15); `.weak Flag_X` (the asm
+  mechanism that links a routine only when used) under it in the code
+  face, Grey2 (row 17). Lines 2 and 3 are two stat tiles side by side
+  (cells 2-18 and 21-37): a 1 px Grey2 rule (row 18), a figure in the
+  16 px face on rows 19-20, `43 -> 12` (the "12" in the accent colour)
+  and `-24%` (accent), over a Grey3 caption on row 21, `bytes for Add` and
   `Hunchback, same C#`. So the tiles split each line into figure and
-  caption.
+  caption. (The master drew a section number, `06`, until this round: a
+  leftover of an old seven-section outline, it meant nothing in the
+  16-slide talk; the icon took its place over the title.)
 - **Build:** on entry line 1. Press 1: tile 1. Press 2: tile 2.
 - **Say:** "One rule for every optimization and feature: a program that does
   not use it pays nothing. Within that rule the compiler got much tighter:
-  the one-line Add from slide 7 went from 39 bytes to 12, and Hunchback,
-  another full game, got 24% smaller with its C# unchanged. Every one of
-  those changes had to be proven correct, which brings us to the tests."
+  Hunchback, another full game, got 24% smaller with its C# unchanged, and
+  the one-line Add from slide 7 went from 43 bytes to 12. Here is how."
 - **Sources:** CLAUDE.md ("Pay only for what you use", "`.weak Flag_X`",
-  "an unrelated change must leave its segment sizes identical"). 39 -> 12:
-  snippet S1 (`Program_Add`, 39 bytes with `--no-static-frames`, 12 bytes
-  by default; the evidence of the cut slide "39 bytes to 12"). -24%:
-  measured Hunchback program bytes 36,847 at `1e1a44e` -> 28,157 at
-  `5216d06` (-23.6%), source unchanged in between (the evidence of the cut
-  slide "Hunchback: -24%"). Both under "Measurements".
-- **Why this fix:** with the optimization slides cut, this section slide
-  would introduce nothing. Two headline lines keep the optimization story,
-  pay off slide 7's "remember that number" without touching slide 7, and
-  the Say bridges to the testing slides. Cutting it instead would leave
-  slide 7's setup hanging; retitling it alone would lose the numbers.
+  "an unrelated change must leave its segment sizes identical"). 43 -> 12:
+  slide 12. -24%: measured Hunchback program bytes 36,847 at `1e1a44e` ->
+  28,157 at `5216d06` (-23.6%), source unchanged in between (the evidence
+  of the cut slide "Hunchback: -24%"). Both under "Measurements".
+
+### Slide 12 — 43 bytes to 12
+
+- **Layout:** chart + code (hi-res): the C# on top, then a waterfall of
+  four bars, one per compiler step, each with the real 6502 it changed
+  under it.
+- **Title:** `43 bytes to 12` (14)
+- **On screen (code, 1 line, 41 columns in the 6 px code face):**
+
+```code
+static uint Add(uint a, uint b) => a + b;
+```
+
+- **On screen (the steps; `label | bar | bytes`, then the code line):**
+
+```screen
+One macro per IL   [43 B]
+  #locals_push_value8, #add8
+Static frames      [18 B  -25]
+  lda SF_TOP-511, rts: no prologue
+Top of stack in A  [14 B  -4]
+  pha, pla   pha, pla            (struck through)
+Operand fusion     [12 B  -2]
+  lda SF_TOP-511, adc zp_param1_low
+```
+
+- **Visual (as built,** `Slides/Part3/PassesSlide.cs`**):** the C# in a
+  code panel (rows 5-7), coloured as on slide 6. The steps on rows 9, 12,
+  15 and 18, each three rows: the pass name in white (cells 2-11), a bar
+  6 px high from cell 13 at 4 px a byte (43 B = 172 px, the longest), the
+  byte count one cell after its bar in white with the saving in cyan;
+  under the bar, the 6502 in the code face. Column budget: label 10 | gap
+  1 | bar 22 | count 3 = 36. Bar colours: Grey2 for the starting point,
+  Grey3 for the two steps between, cyan for the result. The first code
+  line is cyan (the macros of slide 6), the others Grey3; the top-of-stack
+  line is struck through (what the pass removed).
+- **Build:** on entry the code and step 1 (43 B). Presses 1-3: one pass
+  each: its name fades in, its bar grows from the left, then its count and
+  code line fade in.
+- **Say:** "Here is slide 7's Add once more, with the passes switched on one
+  at a time; every number is measured, the same compiler with the other
+  passes off. One macro per IL instruction: 43 bytes. Static frames give a
+  and b fixed addresses, so the prologue that copied them into the locals
+  stack is gone: 18. Top of stack in A keeps a value in the accumulator
+  from the instruction that makes it to the one that uses it, and two
+  push-pull pairs vanish: 14. Operand fusion, the newest, loads each
+  operand straight to where the add wants it, b to zero page and a into A:
+  12 bytes, six instructions. Every one of those passes had to be proven
+  correct, which brings us to the tests."
+- **Prepared answer** ("I'd write that in 8 bytes"): "Yes: `lda a / clc /
+  adc b / rts` is 8 bytes with absolute addresses. We spend 4 more copying
+  b to zero page, and the caller does the two stores either way. 12 is
+  close to hand-written; 43 was not."
+- **Sources:** snippet S1, compiled with the compiler of this commit, once
+  per step, the passes switched off as in "Measurements" ("Passes, one at
+  a time"): `Program_Add`'s bytes in the 64tass listing. 43: static frames
+  off (`C64_STATIC_FRAMES=0`), TopOfStackInA and
+  ILMethodIntOperandFusionOptimizer removed. 18: static frames on. 14:
+  and TopOfStackInA. 12: and operand fusion, i.e. the default build. The
+  code lines are from the same listings: 43 B emits slide 6's
+  `#locals_push_value8_ky 1` / `2`, `#add8` (here without `_ky`, as on
+  slide 6); 18 B reads `lda SF_TOP-511+0` and ends in `rts` instead of
+  the 14-byte prologue and `jmp Method_Exit_4`; 14 B has two `pha`/`pla`
+  pairs fewer; 12 B is `lda SF_TOP-512 / sta zp_param1_low / lda
+  SF_TOP-511 / clc / adc zp_param1_low / rts`. Mechanisms: `18bb09d`
+  (static frames), `21e84ec` (top of stack in A), `fc86ecb` and `5d479b9`
+  (int operand fusion; the 16-bit half is the newest).
 
 ## 7. Testing
 
@@ -781,10 +824,17 @@ github.com/balazsmolnar/C64-IL-Compiler
   example. Write it without a comma, as the boot screen does. Report it
   with the commit it was measured on. Slide 8's Catacombs figure (10,478)
   is the same quantity ("left for more code, assets and the heap").
-- **As measured at the integration:** program end `$C5F9`, heap `$C686`:
-  **1402 BYTES FREE** (four digits, so "BYTES FREE" stays on the number's
-  row). The deck's heap peaks at about 640 bytes (slide 11, measured in
-  VICE), inside that.
+- **As measured with the passes slide** (and without "Borrow, not
+  build"): program end `$C4A1`, + 56 + 85 (static frames), heap `$C52E`:
+  **1746 BYTES FREE** (four digits, so "BYTES FREE" stays on the number's
+  row). At the integration it was 1402 (heap `$C686`). The deck's heap
+  peaks at 530 bytes (slide 15, the debugger mock; slide 12 509), inside
+  that with 1,216 bytes to spare. Measured in VICE on the AUTO scene build
+  of the whole deck: a remote-monitor breakpoint on
+  `KeyBoard_WaitForAdvance` (each build step and the end of each slide)
+  and on `GC_Collect` (before each slide), reading `heapPointer` ($FB/$FC)
+  minus `heap` each time (`.debug-tmp` harness, not checked in). The old
+  peak, about 640 bytes, was the Borrow slide's.
 - **Sources:** this project (`C64Presentation/`); `git remote -v`;
   Catacombs/TECH.md (free-memory formula). "38911 BASIC BYTES FREE": the
   C64's power-on screen (Commodore 64 Programmer's Reference Guide).
@@ -795,6 +845,49 @@ github.com/balazsmolnar/C64-IL-Compiler
 
 Cut by the user to fit memory and length. Their text, visuals and sources
 are kept so a slide can be restored; nothing here is built.
+
+### Cut — Borrow, not build (was slide 11)
+
+**Cut.** Removed to make room for the passes slide (12), with its
+file `Slides/Part2/BorrowSlide.cs` (and `ColumnRule`, `BuildStep`, which
+only it used); slide 9's `strings & floats` topic went with it.
+
+- **Layout:** two-column (hi-res).
+- **Title:** `Borrow, not build` (17)
+- **On screen (left, cells 1-18):**
+
+```screen
+STRINGS
+Zero-terminated bytes
+Not on the heap
+a + b: one 40-byte buffer
+```
+
+- **On screen (right, cells 21-38):**
+
+```screen
+FLOATS
+C64's 5-byte format
+Math: BASIC ROM routines
+Sin, Cos, Sqrt
+```
+
+- **Visual:** column headings in the accent colour; a thin vertical rule
+  between the columns. Under each list a byte diagram: left `C` `6` `4`  `0`  (the 0 hollow), captioned `'C64' in memory`; right `exp` `m1`  `m2` `m3` `m4`, captioned `one float: 5 bytes`.
+- **Build:** on entry the headings. Press 1: left column, then its diagram. Press 2: right
+  column, then its diagram.
+- **Say:** "A string is just zero-terminated bytes, and
+  concatenation writes into one small buffer. A float is the C64's own
+  5-byte format, so the BASIC ROM that is in every C64 does the maths."
+- **Sources:** strings: `asm/helper/stringops.asm` header ("raw
+  null-terminated character bytes", "stringops_buffer's fixed 40-byte
+  size"); not reference counted: `Compiler/TypeExtensions.cs`
+  (`IsReferenceCounted`: string -> false). Floats:
+  `Compiler/TypeExtensions.cs` ("Native C64 MFLPT format", 5 bytes);
+  BASIC ROM routines: `asm/helper/floatBanking.asm`; Sin/Cos/Sqrt:
+  `Compiler/Diagnostics.cs` ("MathF.Sin/Cos/Sqrt").
+
+- **As built** (`BorrowSlide.cs`, critic round 1): headings in the 16 px face; each item on one line (two engine bullet lists, 2 rows apart), a byte diagram under each: `Zero-terminated bytes`, `Not on the heap`, `a + b: one 40-byte buffer` / `C64's 5-byte format`, `Math: BASIC ROM routines`, `Sin, Cos, Sqrt`.
 
 ### Cut — References: 1 byte (was slide 10)
 
@@ -1320,7 +1413,7 @@ Play the game, too
 Figures marked "measured" were taken for this storyboard; reproduce them
 like this (all paths literal, scratch under `.debug-tmp\`).
 
-- **Hunchback before/after (slide 12; was the cut slide 19).** HEAD `5216d06`: build
+- **Hunchback before/after (slide 11; was the cut slide 19).** HEAD `5216d06`: build
   `Hunchback\Hunchback.csproj`, run `Hunchback\measure.bat`, add the
   `Data:` lengths: 13 + 3,479 + 5,760 + 18,905 = 28,157. Before: `git
   archive 1e1a44e` into `.debug-tmp\old`, build its `Compiler` and
@@ -1329,7 +1422,7 @@ like this (all paths literal, scratch under `.debug-tmp\`).
 - **Static frames on/off (cut slide "No single winner").** At `5216d06`, `C64_STATIC_FRAMES=0`
   then default: Hunchback main segment 21,209 -> 18,905 (-2,304);
   Catacombs main segment 39,383 -> 37,565 (-1,818).
-- **Snippet S1 (slides 6, 7, 13).** A C64Lib program:
+- **Snippet S1 (slides 6, 7, 11, 12).** A C64Lib program:
 
   ```
   static uint score, bonus;
@@ -1348,6 +1441,31 @@ like this (all paths literal, scratch under `.debug-tmp\`).
   64tass `--list`. Default: `Program_Add` = `$17B0-$17BB`, 12 bytes.
   `--no-static-frames`: `$17B0-$17D6`, 39 bytes, plus the shared
   `Method_Exit_4`.
+- **Passes, one at a time (slides 7, 11, 12).** Snippet S1 again, at the
+  commit of the passes slide, compiled by a scratch copy of `Compiler/`
+  (under `.debug-tmp`, not checked in) whose only change is an environment
+  variable `C64_SKIP` naming passes to leave out: `Program.cs` drops them
+  from the pass list (also inside `ILCodePass`), and `ILMethodEmitPass`
+  skips `TopOfStackInA.Apply` when it names `TopOfStackInA`. Static frames
+  by the compiler's own `C64_STATIC_FRAMES`. Assembled with 64tass
+  `--list`; `Program_Add`'s bytes are `Program_Main`'s address minus its
+  own. All eight combinations (F = static frames, T = top of stack in A,
+  U = int operand fusion):
+
+  | F | T | U | bytes |
+  |---|---|---|---|
+  | off | off | off | 43 |
+  | off | on | off | 41 |
+  | off | off | on | 39 |
+  | off | on | on | 39 (`--no-static-frames` alone: slide 7's old figure) |
+  | on | off | off | 18 |
+  | on | on | off | 14 |
+  | on | off | on | 14 |
+  | on | on | on | 12 (the default) |
+
+  Slide 12 takes the path 43 -> F 18 -> T 14 -> U 12, the biggest step
+  first and each pass on top of the one before; every intermediate is a
+  real build. (The other order, U first, gives 43 -> 39 -> 14 -> 12.)
 - **Snippet S2 (slide 3).** A C64Lib project (`LangVersion` latest):
 
   ```
@@ -1413,13 +1531,13 @@ or full-screen; everything that shares rows with text is hi-res.
 
 | ID | What | Cells | Mode | Bytes | Slides | Status |
 |---|---|---|---|---|---|---|
-| title | Full-screen title: "C# on the Commodore 64", rule, subtitle, breadbox, C# code card | 40x25 | hi-res | 1,715 | 1 | built (extra): move its line out of the `#if` in `Assets.cs` |
+| title | Full-screen title: "C# on the Commodore 64", rule, subtitle, breadbox, C# code card | 40x25 | hi-res | 1,718 | 1 | built (extra); on the disk |
 | A1 | Catacombs room with the skeleton guardian, lit torches, no HUD | 40x21 | multicolour, split at 21 | 3,755 | 8 | built |
 | A5 | Commodore 64 breadbox | 18x8 | hi-res | 377 | 2 | built |
-| A6 | Six icons: chip "8", stack, object, GC arrows, `"A"`, picture frame | 3 x 3x3 | hi-res, pixels only | 188 | 9 | built; only `icon_object`, `icon_gc`, `icon_string` (67 + 74 + 47) |
+| A6 | Six icons: chip "8", stack, object, GC arrows, `"A"`, picture frame | 3 x 3x3 | hi-res, pixels only | 0 | -- | built; none in the deck since slide 9 lost its topic row (`icon_gc`, `icon_string` stay declared for the art review build) |
 | -- | C# and Commodore logos | sprites | -- | 0 (reuse) | 16 | existing `sprites.asm` |
 
-Total: **6,035 bytes** of the 18 KB budget.
+Total: **5,850 bytes** of the 18 KB budget.
 
 ### No longer needed (can be undeclared)
 
@@ -1442,7 +1560,8 @@ image of the same size (line art compresses well: about 0.3-0.8 KB each).
 | ID | Slide | Size (cells) | Content |
 |---|---|---|---|
 | D1 | 5 Roslyn does half | 38x12 | 5 boxes in a snake + 2 small target boxes, labelled arrows, "46 passes" |
-| D2 | 7 Add costs 39 bytes | 30x11 | two vertical stacks, the Y pointer, the "pla, sta" arrow |
+| D2 | 7 Add costs 43 bytes | 30x11 | two vertical stacks, the Y pointer, the "pla, sta" arrow |
+| C5 | 12 43 bytes to 12 | 36x11 | 4 bars (172, 72, 56, 48 px), names, counts and a code line each |
 | D3 | cut: Our tests lied | 36x4 | strike-through on three numbers, replacement values |
 | D4 | cut: Frames share bytes | 38x10 | call tree + "StaticFrames" address strip with shared rows |
 | D5 | 10 References: 1 byte | 38x12 | object table (4 rows x 6 columns) + heap strip + 2 arrows |

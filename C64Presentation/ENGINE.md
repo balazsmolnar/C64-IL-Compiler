@@ -21,12 +21,16 @@ and `art/ART.md` for the pictures.
   - **Heading** (`title.txt`): 16 px bold. It started from DejaVu Sans Bold
     and is now edited as pixel art.
   - **Big**: the heading glyphs drawn at 2x (32 px), set by a scale byte in
-    the font header. Used for the cover title and section numbers.
+    the font header. Used for section titles and "Thank you".
   - **Code**: the body glyphs at a fixed 6 px pitch, with *leading* (a header
     flag): pixel line 0 is blank and the glyph's line 1 is dropped. Code lines
     sit on consecutive rows without touching, and no extra glyph data is
     needed. `i` and `j` have code-face glyphs of their own (a shorter,
-    serifed stem): dropping line 1 put their dots on the stem.
+    serifed stem): dropping line 1 put their dots on the stem. So do the
+    glyphs whose line 1 is their shoulder or flag (`0 1 2 3 5 6 A C D G S
+    ? f ( )`): without it `C` and `6` had a flat top with a hard corner,
+    `1` a detached flag and `5` no stem. Their code-face versions drop a
+    repeated middle line instead (`make_fonts.py`, `shown()`; 8 bytes each).
   - Special glyphs in every face: `~` is an arrow, `\` a bullet dot, `^` a
     tick (`Theme.Arrow`, `Theme.Dot`, `Theme.Tick`).
 - **Inline colour**: `` `x `` sets the colour (`Theme.Hi`, `Hi2`, `White`,
@@ -93,7 +97,7 @@ at once, `-Scene AUTO` presses by itself).
 | Element | Properties (defaults) | Notes |
 |---|---|---|
 | `Title` | `Text` | Content master: title, rule, footer. |
-| `SectionElement` | `Number`, `Title`, `Subtitle`, `Icon` (an `img_Sec*` address; 0 = none) | On black: the part number big in Grey2, the title 2x in white, the subtitle, the icon top right. No number: a plain title slide (`DemoSlide`: the LIVE badge sits in the footer). |
+| `SectionElement` | `Title`, `Subtitle`, `Icon` (an `img_Sec*` address; 0 = none) | On black, one left edge: the 6x6 icon (rows 3-8), the title 2x in white (rows 10-13), the Grey3 subtitle (row 15). No section numbers: the deck's were left over from an old outline. |
 | `TextElement` | `X`, `Y`, `Text`, `Face` (`Body` / `Heading` / `Big`), `Color` (Body, or white for headings), `Strike`, `Wait` | One line. `Strike` draws a 1 px rule through the text, for an old value. |
 | `BulletList` | `Items`, `Left` (2), `Top` (5), `Pitch` (2), `Level` (0 = dot, 1 = dash), `Color`, `Wait` | 5 px between the mark and the text. |
 | `CodeBlock` | `X`, `Y`, `Width` (36), `Rows`, `Lines`, `Caption`, `Replace`, `Wait` | Black panel, Grey1 1 px frame. Caption on row 1, code from row 3 in the code face: 6 px pitch, with leading (underscores clear the next line); each colour change starts on the next cell edge, so pad with spaces to line up a column after one. `Replace`: the old code is swapped row by row, never an empty card. |
@@ -211,7 +215,7 @@ B soon after the next slide comes up.
 | Free | about 5.7 KB before $CC00, before the heap |
 | Elements no slide uses | cost nothing: dead-code elimination drops unused classes (byte-identical to the old csproj `Compile Remove` list, which is gone) |
 | Engine C# in the deck build | about 11 KB (Arrow 2,122, Text 1,393, Deck 1,199, Table 1,130, Box, Master, CodeBlock, BulletList, ...) |
-| Fonts | 3,630 (the code face's own width/address tables, 4 narrow capitals and its i/j: +330) |
+| Fonts | 3,758 (the code face's own width/address tables, 4 narrow capitals, its i/j and 15 shouldered glyphs: +450) |
 | `buf_Picture` | 3,755 (the disk shots load into it) |
 | Typical slide | Agenda (title + 5 bullets) 420 B of code; a table slide (What is it) 1,100 B; Features (two columns) 1,107 B; plus strings |
 | GC slide | 4,550 B |

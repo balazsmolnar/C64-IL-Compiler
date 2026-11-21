@@ -8,7 +8,7 @@ using C64Lib;
 
 // --- The storyboard's asset list (round 5): about 6.3 KB ------------------
 
-// The title picture (opens the deck, slide 1; 40x25 hires, 1715 bytes) is a
+// The title picture (opens the deck, slide 1; 40x25 hires, 1718 bytes) is a
 // file on the deck's disk too: Master.Cover loads it into buf_Picture.
 
 // The three Catacombs shots (9,073 bytes) are files on the deck's disk
@@ -27,14 +27,17 @@ using C64Lib;
 #endif
 // A5 the C64 breadbox, hi-res (slide 3)
 [assembly: RawImage(Resource = "breadbox.img", Label = "Breadbox")]        // 18x8 hires   377
-// A6 icons, PIXELS ONLY: set the cells' colours first (slide 9: GC, string;
-// icon_int8/stack/bitmap/object are built but undeclared since the cuts)
+// A6 icons, PIXELS ONLY: set the cells' colours first. Only the art review
+// pages show them since slide 9 lost its topic row (with the Borrow slide);
+// icon_int8/stack/bitmap/object are built but undeclared since the cuts.
+#if SCENE_ART
 [assembly: RawImage(Resource = "icon_gc.img", Label = "IconGc")]           // 3x3 hires     74
 [assembly: RawImage(Resource = "icon_string.img", Label = "IconString")]   // 3x3 hires     47
+#endif
 // The section icon of slide 9 (from the extras)
 [assembly: RawImage(Resource = "sec_chip.img", Label = "SecChip")]         //  6x6 hires   204
 
-// The section icon of slide 12, Small and fast (an extra, see below).
+// The section icon of slide 11, Small and fast (an extra, see below).
 [assembly: RawImage(Resource = "sec_chart.img", Label = "SecChart")]       //  6x6 hires   129
 
 // --- Extras, not in the storyboard: 4,427 bytes. Built and embeddable;

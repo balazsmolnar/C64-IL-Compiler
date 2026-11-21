@@ -163,7 +163,7 @@ static class EngineGallery
     {
         Elements =
         [
-            new SectionElement { Number = "03", Title = "Small and fast", Subtitle = "Pay only for what you use", Icon = C64Address.FromLabel("img_SecGear") },
+            new SectionElement { Title = "Small and fast", Subtitle = "Pay only for what you use", Icon = C64Address.FromLabel("img_SecGear") },
         ]
     };
 }

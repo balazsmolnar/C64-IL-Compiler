@@ -6,7 +6,8 @@ namespace C64Presentation.Slides;
 // Slide 7: where Add's values live without optimization. Left, the 6502's
 // own stack (pha/pla) holds the evaluation stack; the prologue pulls the
 // return address and the arguments off it into a frame on localsStack,
-// which Y indexes. Then the cost of all that: 39 bytes.
+// which Y indexes. Then the cost of all that: 43 bytes: slide 6's macros,
+// without the three passes slide 12 switches on.
 static class AddCostSlide
 {
     const uint Header = 5;                // the stacks' names
@@ -24,7 +25,7 @@ static class AddCostSlide
     {
         Elements =
         [
-            new Title { Text = "Add costs 39 bytes" },
+            new Title { Text = "Add costs 43 bytes" },
             new TextElement { X = Hardware, Y = Header, Text = "6502 stack, $0100" },
             new TextElement { X = Hardware, Y = Push, Text = "pha/pla", Color = Theme.Muted },
             new Arrow { FromCol = Into, FromRow = Push, ToCol = Into, ToRow = Cell1 - 1 },
@@ -43,7 +44,7 @@ static class AddCostSlide
             new TextElement { X = Pointer, Y = Cell3, Text = "stackPointer", Color = Theme.Muted },
             new TextElement { X = Theme.Left, Y = Line2, Text = "localsStack: arguments and locals" },
 
-            new TextElement { X = Theme.Left, Y = Line3, Text = "One line of C#: 39 bytes of 6502", Color = Theme.Accent, Wait = true },
+            new TextElement { X = Theme.Left, Y = Line3, Text = "One line of C#: 43 bytes of 6502", Color = Theme.Accent, Wait = true },
         ]
     };
 }

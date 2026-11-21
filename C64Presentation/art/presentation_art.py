@@ -89,13 +89,22 @@ class Pic:
     def text(self, x, y, s, font, c, anchor="la", ss=4, threshold=0.5):
         """TrueType lettering without the stair-stepped bowls of a hinted
         1-bit render: drawn `ss` times larger with anti-aliasing, scaled
-        down, and every pixel more than `threshold` covered is set."""
+        down, and every pixel more than `threshold` covered is set. Only for
+        large lettering: at small sizes the thin tops of round letters
+        (C, o, m, 6) are less than half covered and vanish, so small text
+        uses small_text."""
         big = ImageFont.truetype(font.path, font.size * ss)
         mask = Image.new("L", (self.w * ss, self.h * ss), 0)
         ImageDraw.Draw(mask).text((x * ss, y * ss), s, font=big, fill=255, anchor=anchor)
         mask = mask.resize((self.w, self.h), Image.BOX)
         ink = mask.point(lambda v: 255 if v >= threshold * 255 else 0).convert("1")
         self.img.paste(c, (0, 0, self.w, self.h), ink)
+
+    def small_text(self, x, y, s, font, c, anchor="la"):
+        """Small TrueType lettering as the font's own hinted 1-bit render:
+        the hints keep every stroke, the round tops included, one pixel
+        wide and on the pixel grid."""
+        self.d.text((x, y), s, font=font, fill=c, anchor=anchor)
 
     def smooth(self, x0, y0, x1, y1, ink, bg):
         """Hand-cleaning for large lettering: a pixel on an edge that sticks
@@ -342,7 +351,7 @@ def title():
         if y > 60:
             p.px(54, y, TEXT)
     p.rect(16, 81, 39, 82, ACCENT)
-    p.text(16, 98, "Compiling .NET IL to 6502 machine code", font(REG, 12), TEXT2, anchor="ls")
+    p.small_text(16, 98, "Compiling .NET IL to 6502 machine code", font(REG, 12), TEXT2, anchor="ls")
     code_card(p, 18, 13, [
         ("C64.Screen.Clear();", "cccgwwwwwwgwwwwwggg"),
         ("Hud.SetHealth(100);", "cccgwwwwwwwwwgyyygg"),

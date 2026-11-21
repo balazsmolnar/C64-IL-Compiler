@@ -13,11 +13,13 @@ sealed class ThankYouSlide : Slide
     public static Slide Create() => new ThankYouSlide();
 
     // Free memory before the heap of the final, combined deck (DECK.md slide
-    // 16): $CC00 - the end of the last Data: segment - 1,080 (object tables,
-    // locals stack, string buffers) - the static frames - 64 per sprite
-    // frame beyond 64, from C64Presentation\measure.bat's output. 12,367 is
-    // the part-3-only build: the integrator re-measures the combined deck.
-    public const ulong BytesFree = 12367;
+    // 16), the same quantity as slide 8's Catacombs figure (Catacombs/
+    // TECH.md "Free memory"): $CC00 - the heap's start, i.e. the program's
+    // end (prg\presentation.labels: Sprite_InitData, where the sprite frames
+    // moved under I/O at startup were) + 56 (tables and string buffers,
+    // no DrawText) + the static frames. Measured at the integration: the
+    // program ends at $C5F9, 56 + 85 bytes on, the heap starts at $C686.
+    public const ulong BytesFree = 1402;
 
     const uint TitleRow = 7;
     const uint LeadRow = 12;

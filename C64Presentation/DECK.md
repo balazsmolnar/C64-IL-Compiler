@@ -771,13 +771,20 @@ github.com/balazsmolnar/C64-IL-Compiler
   the final build and put on this slide; the deck is not done while the
   slide says N,NNN. It is the free memory **before the heap**: the
   Catacombs/TECH.md "Free memory" formula with no heap reserve, so it is
-  not a judgement call. Run `C64Presentation\measure.bat`, take the end
-  of the last `Data:` line, then free = $CC00 - that end - 1,080 (object
-  tables, locals stack and string buffers with `DrawText`; 56 without) -
-  the static frames (the compiler's "Static frames: ..., N bytes") - 64
-  per sprite frame beyond 64. Write it without a comma, as the boot screen does. Report it
+  not a judgement call. Run `C64Presentation\measure.bat`; free = $CC00 -
+  the heap's start (`heap` in `prg\presentation.labels`). The heap starts
+  at the program's end (`Sprite_InitData`: the last `Data:` line ends
+  further on, with the sprite frames that are moved under the I/O area at
+  startup and whose space the tables and heap then reuse) + 56 (tables
+  and string buffers without `DrawText`; 1,080 with it) + the static frames
+  (the compiler's "Static frames: ..., N bytes"), as in TECH.md's worked
+  example. Write it without a comma, as the boot screen does. Report it
   with the commit it was measured on. Slide 8's Catacombs figure (10,478)
   is the same quantity ("left for more code, assets and the heap").
+- **As measured at the integration:** program end `$C5F9`, heap `$C686`:
+  **1402 BYTES FREE** (four digits, so "BYTES FREE" stays on the number's
+  row). The deck's heap peaks at about 640 bytes (slide 11, measured in
+  VICE), inside that.
 - **Sources:** this project (`C64Presentation/`); `git remote -v`;
   Catacombs/TECH.md (free-memory formula). "38911 BASIC BYTES FREE": the
   C64's power-on screen (Commodore 64 Programmer's Reference Guide).

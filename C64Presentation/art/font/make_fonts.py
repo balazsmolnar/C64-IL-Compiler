@@ -85,6 +85,35 @@ CODE_GLYPHS = {
 }
 
 
+def shown(*rows):
+    """A code-face glyph given as it is shown: 6 capital lines and the
+    descender line. The face drops the glyph's line 1, so a blank one goes
+    in there."""
+    return [rows[0], "." * len(rows[0])] + list(rows[1:])
+
+
+# Round and pointed tops: dropping line 1 took their shoulder ("C" and "6"
+# got a flat top with a hard corner, "1" a detached flag, "5" lost its
+# stem). These lose a repeated middle line instead (or are redrawn 6 high).
+CODE_GLYPHS.update({
+    "0": shown(".###.", "#..##", "#.#.#", "##..#", "#...#", ".###.", "....."),
+    "1": shown("..#..", ".##..", "#.#..", "..#..", "..#..", "#####", "....."),
+    "2": shown(".###.", "#...#", "...#.", "..#..", ".#...", "#####", "....."),
+    "3": shown(".###.", "#...#", "..##.", "....#", "#...#", ".###.", "....."),
+    "5": shown("#####", "#....", "####.", "....#", "#...#", ".###.", "....."),
+    "6": shown("..##.", ".#...", "#....", "####.", "#...#", ".###.", "....."),
+    "A": shown("..#..", ".#.#.", "#...#", "#####", "#...#", "#...#", "....."),
+    "C": shown(".###.", "#...#", "#....", "#....", "#...#", ".###.", "....."),
+    "D": shown("###..", "#..#.", "#...#", "#...#", "#..#.", "###..", "....."),
+    "G": shown(".###.", "#...#", "#....", "#.###", "#...#", ".####", "....."),
+    "S": shown(".###.", "#....", ".###.", "....#", "#...#", ".###.", "....."),
+    "?": shown(".###.", "#...#", "...#.", "..#..", ".....", "..#..", "....."),
+    "f": shown("..##", ".#..", "####", ".#..", ".#..", ".#..", "...."),
+    "(": shown("..#", ".#.", "#..", "#..", ".#.", "..#", "..."),
+    ")": shown("#..", ".#.", "..#", "..#", ".#.", "#..", "..."),
+})
+
+
 def main():
     if "--bootstrap-title" in sys.argv:
         bootstrap_title()

@@ -73,6 +73,7 @@ class Program
         var asm = Assembly.LoadFrom(asmLocation);
         MethodBaseExtension.ProgramAssembly = asm;
 
+        Directory.CreateDirectory(output); // a fresh checkout has no asm/<target> folders (they are gitignored)
         using (var outputFile = File.CreateText(Path.Combine(output, "generated.asm")))
         {
             var context = new CompilerContext
